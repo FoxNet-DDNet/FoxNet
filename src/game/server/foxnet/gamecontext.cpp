@@ -229,46 +229,6 @@ void CGameContext::HandleEffects()
 	}
 }
 
-void CGameContext::BanSync()
-{
-	static int64_t ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
-	if(m_BanSaveDelay < Server()->Tick())
-	{
-		static bool ExecBans = false;
-
-		if(Storage()->FileExists("Bans.cfg", IStorage::TYPE_ALL))
-		{
-			if(!ExecBans)
-			{
-				Server()->SetQuietBan(true);
-				Console()->ExecuteBansFile();
-				ExecBans = true;
-				ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
-			}
-		}
-		else
-		{
-			// Info Message
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Couldn't find \"Bans.cfg\", disabling component ");
-			g_Config.m_SvBanSyncing = 0;
-			if(g_Config.m_SvBanSyncing == 0)
-				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "fs_ban_syncing set to 0");
-		}
-
-		if(ExecSaveDelay < Server()->Tick() && ExecBans)
-		{
-			Console()->ExecuteLine("bans_save \"Bans.cfg\"");
-
-			// Info Message
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Saved Bans");
-
-			ExecBans = false;
-			m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
-		}
-	}
-	Server()->SetQuietBan(false);
-}
-
 void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap)
 {
 	SnapLaserEffect(ClientId);
@@ -321,6 +281,46 @@ void CGameContext::FoxNetPostGlobalSnap()
 
 		pFakePlayer->m_ClientId = -1;
 	}
+}
+
+void CGameContext::BanSync()
+{
+	static int64_t ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
+	if(m_BanSaveDelay < Server()->Tick())
+	{
+		static bool ExecBans = false;
+
+		if(Storage()->FileExists("Bans.cfg", IStorage::TYPE_ALL))
+		{
+			if(!ExecBans)
+			{
+				Server()->SetQuietBan(true);
+				Console()->ExecuteBansFile();
+				ExecBans = true;
+				ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
+			}
+		}
+		else
+		{
+			// Info Message
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Couldn't find \"Bans.cfg\", disabling component ");
+			g_Config.m_SvBanSyncing = 0;
+			if(g_Config.m_SvBanSyncing == 0)
+				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "fs_ban_syncing set to 0");
+		}
+
+		if(ExecSaveDelay < Server()->Tick() && ExecBans)
+		{
+			Console()->ExecuteLine("bans_save \"Bans.cfg\"");
+
+			// Info Message
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Saved Bans");
+
+			ExecBans = false;
+			m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
+		}
+	}
+	Server()->SetQuietBan(false);
 }
 
 void CGameContext::ClearVotes(int ClientId, bool Header)

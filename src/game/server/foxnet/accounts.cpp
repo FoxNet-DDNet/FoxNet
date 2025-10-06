@@ -81,6 +81,8 @@ void CAccounts::AutoLogin(int ClientId)
 	AddPending(pRes, [this, ClientId, Name = std::string(pName)](CAccResult &Res) {
 		if(!Res.m_Success || !Res.m_Found || Res.m_LastLogin == 0)
 			return;
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+			return;
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
 			return;
@@ -102,6 +104,8 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
 	AddPending(pRes, [this, ClientId, Silent, Auto](CAccResult &Res) {
 		if(!Res.m_Success || !Res.m_Found)
+			return;
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
 			return;
 		if(Res.m_LoggedIn)
 		{
@@ -134,6 +138,8 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+			return;
 		if(!Res.m_Success || !Res.m_Found)
 		{
 			GameServer()->SendChatTarget(ClientId, "Login failed");
@@ -194,6 +200,8 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	time(&Now);
 	pReq->m_RegisterDate = Now;
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+			return;
 		if(!Res.m_Success)
 			GameServer()->SendChatTarget(ClientId, "[Err] Username is already taken");
 		else

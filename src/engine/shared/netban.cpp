@@ -1,4 +1,4 @@
-#include "netban.h"
+﻿#include "netban.h"
 
 #include <base/math.h>
 
@@ -208,7 +208,6 @@ typename CNetBan::CBan<T> *CNetBan::CBanPool<T, HashCount>::Get(int Index) const
 }
 
 template<class T>
-
 int CNetBan::Ban(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason, bool VerbatimReason)
 {
 	// do not ban localhost

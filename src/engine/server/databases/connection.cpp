@@ -118,7 +118,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  Money INTEGER DEFAULT 0, "
 		"  Inventory TEXT COLLATE %s DEFAULT '', "
 		"  LastActiveItems TEXT COLLATE %s DEFAULT '', "
-		"  Disabled BOOL DEFAULT FALSE, "
+		"  Disabled BOOL DEFAULT %s, "
 		"  PRIMARY KEY (Username)"
 		")",
 		BinaryCollate(),
@@ -128,7 +128,8 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		BinaryCollate(),
 		BinaryCollate(),
 		BinaryCollate(),
-		BinaryCollate()
+		BinaryCollate(),
+		False()
 	);
 }
 // FoxNet>

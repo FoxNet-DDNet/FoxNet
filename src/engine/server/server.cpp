@@ -2,8 +2,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
-#include "server.h"
-
 #include "databases/connection.h"
 #include "databases/connection_pool.h"
 #include "register.h"
@@ -3287,7 +3285,9 @@ int CServer::Run()
 			{
 				DoSnapshot();
 
+				// <FoxNet
 				UpdateClientRconCommands();
+				// FoxNet>
 				const int CommandSendingClientId = Tick() % MAX_CLIENTS;
 				UpdateClientMaplistEntries(CommandSendingClientId);
 
