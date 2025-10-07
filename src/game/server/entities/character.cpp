@@ -3171,6 +3171,12 @@ void CCharacter::DoTelekinesis()
 			if(pChr && pChr->m_TelekinesisId == pClosest->GetPlayer()->GetCid())
 				return; // already telekinesis
 		}
+		if (GetPlayer()->m_ShowOthers != SHOW_OTHERS_ON)
+		{
+			if(!Teams()->m_Core.SameTeam(GetPlayer()->GetCid(), pClosest->GetPlayer()->GetCid()) && Team() != TEAM_SUPER)
+				return; // not same team
+		}
+
 		if(pClosest->m_TelekinesisId == GetPlayer()->GetCid())
 			return; // dont telekinesis back
 		if(pClosest->GetPlayer()->m_TelekinesisImmunity)
