@@ -827,6 +827,7 @@ void CGameContext::CreateLaserDeath(int Type, int pOwner, vec2 pPos, CClientMask
 	m_vLaserDeaths.push_back(effect);
 }
 
+// ToDo @qxdFox: Use a new Entity type for this effect
 void CGameContext::SnapLaserEffect(int ClientId)
 {
 	if(m_vLaserDeaths.empty())
