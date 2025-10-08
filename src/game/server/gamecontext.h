@@ -928,10 +928,6 @@ public:
 
 	void CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMask Mask);
 
-	std::vector<LaserDeath> m_vLaserDeaths;
-	void CreateLaserDeath(int Type, int pOwner, vec2 pPos, CClientMask pMask);
-	void SnapLaserEffect(int ClientId);
-
 	bool IsValidHookPower(int HookPower);
 	const char *HookTypeName(int HookType);
 

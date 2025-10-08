@@ -28,10 +28,12 @@
 #include <game/server/foxnet/accounts.h>
 #include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
+#include <game/server/foxnet/cosmetics/laserdeath.h>
 #include <game/server/foxnet/entities/custom_projectile.h>
 #include <game/server/foxnet/entities/light_saber.h>
 #include <game/server/foxnet/entities/pickupdrop.h>
 #include <game/server/foxnet/entities/roulette.h>
+
 #include <string>
 // FoxNet>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
@@ -1157,7 +1159,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	}
 	case DEATH_LASER:
 	{
-		GameServer()->CreateLaserDeath(1, m_pPlayer->GetCid(), m_Pos, CosmeticMask());
+		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask());
 		break;
 	}
 	case DEATH_DAMAGEIND:
@@ -1230,9 +1232,9 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	CCharacterCore *pCore;
 	int Weapon = /*<FoxNet*/ GameServer()->GetWeaponType(m_Core.m_ActiveWeapon) /*FoxNet>*/,
-	 AmmoCount = 0,
+	    AmmoCount = 0,
 	    Health = 0,
-		 Armor = 0;
+	    Armor = 0;
 	int Emote = DetermineEyeEmote();
 	int Tick;
 	if(!m_ReckoningTick || GameServer()->m_World.m_Paused)
@@ -1382,7 +1384,7 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 			return true;
 	}
 	else if(pSnapPlayer->SpectatorId() >= 0)
-	{ 
+	{
 		CCharacter *pSpecChar = GameServer()->GetPlayerChar(pSnapPlayer->SpectatorId());
 		if(((pSpecChar && pSpecChar->m_SpawnSolo) || (pSnapChar && pSnapChar->m_SpawnSolo)) && Teams()->m_Core.SameTeam(SnappingClient, pSnapPlayer->SpectatorId()))
 			return true;
@@ -3062,7 +3064,6 @@ void CCharacter::RouletteTileHandle()
 	}
 }
 
-
 void CCharacter::ExtraTileHandle()
 {
 	const int CurrentIndex = Collision()->GetMapIndex(m_Pos);
@@ -3075,7 +3076,6 @@ void CCharacter::ExtraTileHandle()
 		if(IsTile(TILE_SOLO_DISABLE) || IsTile(TILE_SOLO_ENABLE))
 			UnSpawnSolo(false);
 	}
-
 
 	if(Collision()->IsSpeedup(CurrentIndex))
 	{
@@ -3171,7 +3171,7 @@ void CCharacter::DoTelekinesis()
 			if(pChr && pChr->m_TelekinesisId == pClosest->GetPlayer()->GetCid())
 				return; // already telekinesis
 		}
-		if (GetPlayer()->m_ShowOthers != SHOW_OTHERS_ON)
+		if(GetPlayer()->m_ShowOthers != SHOW_OTHERS_ON)
 		{
 			if(!Teams()->m_Core.SameTeam(GetPlayer()->GetCid(), pClosest->GetPlayer()->GetCid()) && Team() != TEAM_SUPER)
 				return; // not same team

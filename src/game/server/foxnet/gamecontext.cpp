@@ -212,26 +212,10 @@ void CGameContext::HandleEffects()
 		else
 			++it;
 	}
-
-	// Sound Effect Handle
-	for(auto it = m_vLaserDeaths.begin(); it != m_vLaserDeaths.end();)
-	{
-		const size_t count = std::min<size_t>((size_t)it->m_Remaining, it->m_vStartTick.size());
-		for(size_t at = 0; at < count; at++)
-		{
-			if(Server()->Tick() < it->m_EndTick)
-			{
-				if(it->m_vStartTick[at] == Server()->Tick())
-					CreateSound(it->m_Pos, it->m_Sound, it->m_Mask);
-			}
-		}
-		++it;
-	}
 }
 
 void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap)
 {
-	SnapLaserEffect(ClientId);
 	SnapDebuggedQuad(ClientId);
 
 	// Snap the Fake Player
@@ -795,81 +779,6 @@ bool CGameContext::ResetFakeTunes(int ClientId, int Zone)
 	GetPlayerChar(ClientId)->SetFakeTuned(false);
 	SendTuningParams(ClientId, Zone);
 	return true;
-}
-
-void CGameContext::CreateLaserDeath(int Type, int pOwner, vec2 pPos, CClientMask pMask)
-{
-	LaserDeath effect;
-
-	std::random_device rd;
-	std::uniform_int_distribution<long> dist(5.0, 50.0);
-
-	effect.m_Pos = pPos;
-	effect.m_Mask = pMask;
-	effect.m_Owner = pOwner;
-
-	effect.m_Remaining = 15;
-	effect.m_EndTick = Server()->Tick() + (Server()->TickSpeed() / 4.5f * effect.m_Remaining);
-	effect.m_Sound = SOUND_HOOK_LOOP;
-	for(int Num = 0; Num < effect.m_Remaining; Num++)
-	{
-		long Random = dist(rd) + Num;
-
-		vec2 Pos = pPos + random_direction() * Random;
-
-		effect.m_vIds.push_back(Server()->SnapNewId());
-
-		effect.m_vFrom.push_back(Pos);
-		effect.m_vTo.push_back(Pos);
-		effect.m_vStartTick.push_back(Server()->Tick() + Server()->TickSpeed() / 5 * Num);
-	}
-
-	m_vLaserDeaths.push_back(effect);
-}
-
-// ToDo @qxdFox: Use a new Entity type for this effect
-void CGameContext::SnapLaserEffect(int ClientId)
-{
-	if(m_vLaserDeaths.empty())
-		return;
-
-	CPlayer *pPlayer = m_apPlayers[ClientId];
-
-	if(!pPlayer || pPlayer->m_HideCosmetics)
-		return;
-
-	for(auto it = m_vLaserDeaths.begin(); it != m_vLaserDeaths.end();)
-	{
-		const size_t count = std::min({(size_t)it->m_Remaining,
-			it->m_vIds.size(), it->m_vFrom.size(), it->m_vTo.size(), it->m_vStartTick.size()});
-		for(size_t at = 0; at < count; at++)
-		{
-			if(Server()->Tick() > it->m_vStartTick[at] && Server()->Tick() < it->m_EndTick)
-			{
-				CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(it->m_vIds[at]);
-				if(pObj)
-				{
-					const vec2 &To = it->m_vTo[at];
-					const vec2 &From = it->m_vFrom[at];
-					pObj->m_ToX = (int)To.x;
-					pObj->m_ToY = (int)To.y;
-					pObj->m_FromX = (int)From.x;
-					pObj->m_FromY = (int)From.y;
-					pObj->m_StartTick = it->m_EndTick;
-					pObj->m_Owner = it->m_Owner;
-					pObj->m_Flags = LASERFLAG_NO_PREDICT;
-				}
-			}
-		}
-		if(Server()->Tick() > it->m_EndTick)
-		{
-			for(const auto aIds : it->m_vIds)
-				Server()->SnapFreeId(aIds);
-			it = m_vLaserDeaths.erase(it);
-		}
-		else
-			++it;
-	}
 }
 
 void CGameContext::Explosion(vec2 Pos, CClientMask Mask)
