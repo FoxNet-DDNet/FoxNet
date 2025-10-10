@@ -5,6 +5,7 @@
 #include "accounts.h"
 #include "accountworker.h"
 #include "shop.h"
+#include <base/system.h>
 
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
@@ -98,15 +99,15 @@ static bool WriteEquippedValues(IDbConnection *pSql, const char *pUsername, cons
 	}
 
 	char aUpd[2048];
-	int Len = str_format(aUpd, sizeof(aUpd),
+	int Len = str_format(aUpd, sizeof(aUpd), "%s",
 		"UPDATE foxnet_account_inventory "
 		"SET Value = CASE CosmeticId");
 
 	for(int i = 0; i < Count; i++)
 	{
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "%s", " WHEN ? THEN ?");
 	}
-	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE 0 END WHERE Username = ?");
+	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "%s", " ELSE 0 END WHERE Username = ?");
 
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
 		return false;

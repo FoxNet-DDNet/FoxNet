@@ -142,6 +142,9 @@ private:
 	// <FoxNet
 	bool ApplyMigrations();
 	// FoxNet>
+
+	// Execute a raw SQL statement without parameters. Returns true on success.
+	bool Execute(const char *pQuery, char *pError, int ErrorSize);
 };
 
 void CMysqlConnection::CStmtDeleter::operator()(MYSQL_STMT *pStmt) const
@@ -703,7 +706,7 @@ std::unique_ptr<IDbConnection> CreateMysqlConnection(CMysqlConfig Config)
 	return std::make_unique<CMysqlConnection>(Config);
 }
 // <FoxNet
-bool CSqliteConnection::ApplyMigrations()
+bool CMysqlConnection::ApplyMigrations()
 {
 	char aErr[256];
 
@@ -714,7 +717,7 @@ bool CSqliteConnection::ApplyMigrations()
 			return true;
 		if(str_find_nocase(aErr, "duplicate column") || str_find_nocase(aErr, "already exists"))
 			return true;
-		dbg_msg("sqlite", "migration add column failed on %s: %s", pTable, aErr);
+		dbg_msg("mysql", "migration add column failed on %s: %s", pTable, aErr);
 		return false;
 	};
 
@@ -732,7 +735,10 @@ bool CSqliteConnection::ApplyMigrations()
 
 	bool EquippedExists = false;
 	{
-		if(!PrepareStatement("SELECT 1 FROM sqlite_master WHERE type='table' AND name='foxnet_account_equipped' LIMIT 1", aErr, sizeof(aErr)))
+		const char *pCheck =
+			"SELECT 1 FROM INFORMATION_SCHEMA.TABLES "
+			"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'foxnet_account_equipped' LIMIT 1";
+		if(!PrepareStatement(pCheck, aErr, sizeof(aErr)))
 			return false;
 		bool End = true;
 		if(!Step(&End, aErr, sizeof(aErr)))
@@ -800,7 +806,7 @@ bool CSqliteConnection::ApplyMigrations()
 	{
 		const char *pSel =
 			"SELECT Username, IFNULL(Inventory,''), IFNULL(LastActiveItems,''), "
-			"       COALESCE(NULLIF(LastLogin,0), RegisterDate, strftime('%s','now')) "
+			"       COALESCE(NULLIF(LastLogin,0), RegisterDate, UNIX_TIMESTAMP()) "
 			"FROM foxnet_accounts WHERE Version < 3";
 		if(!PrepareStatement(pSel, aErr, sizeof(aErr)))
 			return false;
@@ -856,7 +862,7 @@ bool CSqliteConnection::ApplyMigrations()
 
 	auto InsertInventory = [&](const Row &r, const char *pFull) -> bool {
 		const char *pIns =
-			"INSERT OR IGNORE INTO foxnet_account_inventory"
+			"INSERT IGNORE INTO foxnet_account_inventory"
 			"(Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta) "
 			"VALUES (?, ?, 1, ?, 0, '')";
 		if(!PrepareStatement(pIns, aErr, sizeof(aErr)))
@@ -872,7 +878,7 @@ bool CSqliteConnection::ApplyMigrations()
 			"INSERT INTO foxnet_account_inventory"
 			"(Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta, Value) "
 			"VALUES (?, ?, 1, ?, 0, '', ?) "
-			"ON CONFLICT(Username, CosmeticId) DO UPDATE SET Value=excluded.Value";
+			"ON DUPLICATE KEY UPDATE Value=VALUES(Value)";
 		if(!PrepareStatement(pIns, aErr, sizeof(aErr)))
 			return false;
 		BindString(1, r.User);
@@ -919,21 +925,16 @@ bool CSqliteConnection::ApplyMigrations()
 	}
 
 	auto ColumnExists = [&](const char *pCol) -> bool {
-		if(!PrepareStatement("PRAGMA table_info(foxnet_accounts)", aErr, sizeof(aErr)))
+		const char *pColSel =
+			"SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS "
+			"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='foxnet_accounts' AND COLUMN_NAME=? LIMIT 1";
+		if(!PrepareStatement(pColSel, aErr, sizeof(aErr)))
 			return false;
+		BindString(1, pCol);
 		bool End = true;
 		if(!Step(&End, aErr, sizeof(aErr)))
 			return false;
-		while(!End)
-		{
-			char aName[128]{};
-			GetString(2, aName, sizeof(aName));
-			if(str_comp(aName, pCol) == 0)
-				return true;
-			if(!Step(&End, aErr, sizeof(aErr)))
-				return false;
-		}
-		return false;
+		return !End;
 	};
 
 	if(ColumnExists("Inventory") || ColumnExists("LastActiveItems"))
@@ -943,7 +944,7 @@ bool CSqliteConnection::ApplyMigrations()
 
 		if(!Dropped)
 		{
-			if(!Execute("BEGIN TRANSACTION", aErr, sizeof(aErr)))
+			if(!Execute("START TRANSACTION", aErr, sizeof(aErr)))
 				return false;
 			char aCreate[1024];
 			str_format(aCreate, sizeof(aCreate),
@@ -989,9 +990,9 @@ bool CSqliteConnection::ApplyMigrations()
 				"Version, Username, Password, RegisterDate, PlayerName, LastPlayerName, "
 				"CurrentIP, LastIP, LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, "
 				"Playtime, Deaths, Kills, Level, XP, Money, Disabled"
-				" FROM temp.foxnet_accounts_backup";
+				" FROM foxnet_accounts_backup";
 
-			if(!Execute("ALTER TABLE foxnet_accounts RENAME TO foxnet_accounts_backup", aErr, sizeof(aErr)))
+			if(!Execute("RENAME TABLE foxnet_accounts TO foxnet_accounts_backup", aErr, sizeof(aErr)))
 			{
 				Execute("ROLLBACK", aErr, sizeof(aErr));
 				return false;
@@ -1011,6 +1012,21 @@ bool CSqliteConnection::ApplyMigrations()
 		}
 	}
 
+	return true;
+}
+
+bool CMysqlConnection::Execute(const char *pQuery, char *pError, int ErrorSize)
+{
+	if(mysql_real_query(&m_Mysql, pQuery, str_length(pQuery)))
+	{
+		str_format(pError, ErrorSize, "error executing query (%d): %s", mysql_errno(&m_Mysql), mysql_error(&m_Mysql));
+		return false;
+	}
+	MYSQL_RES *pRes = mysql_store_result(&m_Mysql);
+	if(pRes != nullptr)
+	{
+		mysql_free_result(pRes);
+	}
 	return true;
 }
 // FoxNet>

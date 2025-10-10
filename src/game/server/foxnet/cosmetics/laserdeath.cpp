@@ -32,8 +32,7 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 
 		m_SnapData.m_StartTick[i] = Server()->Tick() + Server()->TickSpeed() / SNAPDELAY * i;
 
-		vec2 Pos = m_Pos + random_direction() * Random;
-		m_SnapData.m_aPos[i] = Pos;
+		m_SnapData.m_aPos[i] = m_Pos + random_direction() * Random;
 	}
 	m_EndTick = Server()->Tick() + (Server()->TickSpeed() / SNAPDELAY * MAX_PARTICLES);
 
