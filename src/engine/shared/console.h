@@ -112,9 +112,10 @@ class CConsole : public IConsole
 
 		enum
 		{
-			VICTIM_NONE = -3,
-			VICTIM_ME = -2,
-			VICTIM_ALL = -1,
+			VICTIM_NONE = -4,
+			VICTIM_ALL = -3,
+			VICTIM_OTHERS = -2,
+			VICTIM_ME = -1,
 		};
 
 		int m_Victim;

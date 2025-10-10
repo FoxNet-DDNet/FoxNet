@@ -606,6 +606,17 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 							}
 						}
+						else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_OTHERS)
+						{
+							for(int i = 0; i < MAX_CLIENTS; i++)
+							{
+								if(i == ClientId)
+									continue;
+
+								Result.SetVictim(i);
+								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+							}
+						}
 						else
 						{
 							pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
@@ -1194,6 +1205,8 @@ void CConsole::CResult::SetVictim(const char *pVictim)
 {
 	if(!str_comp(pVictim, "me"))
 		m_Victim = VICTIM_ME;
+	else if(!str_comp(pVictim, "other") || !str_comp(pVictim, "others"))
+		m_Victim = VICTIM_OTHERS;
 	else if(!str_comp(pVictim, "all"))
 		m_Victim = VICTIM_ALL;
 	else
