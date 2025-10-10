@@ -1143,7 +1143,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	// a nice sound, and bursting tee death effect
 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE, TeamMask());
 	// <FoxNet
-	switch(GetPlayer()->m_Cosmetics.m_DeathEffect)
+	switch(GetPlayer()->Cosmetics()->m_DeathEffect)
 	{
 	case DEATH_HAMMERHIT:
 	{
@@ -1538,10 +1538,10 @@ void CCharacter::Snap(int SnappingClient)
 
 		if(!SnapPlayer->m_HideCosmetics)
 		{
-			if(GetPlayer()->m_Cosmetics.m_Sparkle)
+			if(GetPlayer()->Cosmetics()->m_Sparkle)
 				pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
 
-			if(GetPlayer()->m_Cosmetics.m_InverseAim && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
+			if(GetPlayer()->Cosmetics()->m_InverseAim && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
 			{
 				pDDNetCharacter->m_TargetX = -m_Core.m_Input.m_TargetX;
 				pDDNetCharacter->m_TargetY = -m_Core.m_Input.m_TargetY;
@@ -2964,11 +2964,11 @@ void CCharacter::FoxNetTick()
 
 	if(Team() != TEAM_SPECTATORS && m_Alive)
 	{
-		if(GetPlayer()->m_Cosmetics.m_StrongBloody)
+		if(GetPlayer()->Cosmetics()->m_StrongBloody)
 		{
 			GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
 		}
-		else if(GetPlayer()->m_Cosmetics.m_Bloody || GetPowerHooked() == HOOK_BLOODY)
+		else if(GetPlayer()->Cosmetics()->m_Bloody || GetPowerHooked() == HOOK_BLOODY)
 		{
 			if(Server()->Tick() % 6 == 0)
 				GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
@@ -2977,7 +2977,7 @@ void CCharacter::FoxNetTick()
 
 	float Angle = std::atan2(m_Core.m_Vel.x, -m_Core.m_Vel.y);
 
-	if(GetPlayer()->m_Cosmetics.m_Trail == TRAIL_STAR && Server()->Tick() % 20 == 0) // only every second
+	if(GetPlayer()->Cosmetics()->m_Trail == TRAIL_STAR && Server()->Tick() % 20 == 0) // only every second
 		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
 
 	if(GetPlayer()->m_SpiderHook)
@@ -3142,7 +3142,7 @@ void CCharacter::HandleTelekinesis()
 			return;
 		}
 
-		if(GetActiveWeapon() == WEAPON_TELEKINESIS || GetPlayer()->m_Cosmetics.m_Ability == ABILITY_TELEKINESIS)
+		if(GetActiveWeapon() == WEAPON_TELEKINESIS || GetPlayer()->Cosmetics()->m_Ability == ABILITY_TELEKINESIS)
 		{
 			pChr->m_Core.m_Pos = GetCursorPos();
 			pChr->m_Core.m_Vel = vec2(0.f, 0.0f);
@@ -3211,7 +3211,7 @@ void CCharacter::OnPlayerHook()
 	if(!pHookedTee)
 		return;
 
-	if(GetPlayer()->m_Cosmetics.m_HookPower != HOOK_NORMAL)
+	if(GetPlayer()->Cosmetics()->m_HookPower != HOOK_NORMAL)
 		pHookedTee->m_PowerHookedId = m_pPlayer->GetCid();
 
 	// set hook extra stuff
@@ -3233,7 +3233,7 @@ int CCharacter::GetPowerHooked()
 		return HOOK_NORMAL;
 	}
 
-	return pHooker->GetPlayer()->m_Cosmetics.m_HookPower;
+	return pHooker->GetPlayer()->Cosmetics()->m_HookPower;
 }
 
 void CCharacter::SetFakeTuned(bool Active, std::optional<const CTuningParams> Tuning)
@@ -3344,7 +3344,7 @@ void CCharacter::CreatePowerupCircle(vec2 Pos, int ClientId, int Type)
 
 void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 {
-	int Ability = GetPlayer()->m_Cosmetics.m_Ability;
+	int Ability = GetPlayer()->Cosmetics()->m_Ability;
 
 	bool NoCooldown = Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
 

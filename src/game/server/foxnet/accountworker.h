@@ -3,6 +3,7 @@
 
 #include <engine/server/databases/connection_pool.h>
 #include <engine/shared/protocol.h>
+#include <game/server/player.h>
 
 class CGameContext;
 class IDbConnection;
@@ -29,9 +30,8 @@ struct CAccResult : ISqlResult
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
-	char m_Inventory[1028] = "";
-	char m_LastActiveItems[1028] = "";
 	bool m_Disabled = false;
+	CInventory m_Inventory;
 };
 
 struct CAccRegisterRequest : ISqlData
@@ -91,8 +91,7 @@ struct CAccUpdLogoutState : ISqlData
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
-	char m_Inventory[1028] = "";
-	char m_LastActiveItems[1028] = "";
+	CInventory m_Inventory;
 };
 struct CAccSaveInfo : ISqlData
 {
@@ -107,8 +106,7 @@ struct CAccSaveInfo : ISqlData
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
-	char m_Inventory[1028] = "";
-	char m_LastActiveItems[1028] = "";
+	CInventory m_Inventory;
 };
 struct CAccSetNameReq : ISqlData
 {

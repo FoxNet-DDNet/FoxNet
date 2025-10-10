@@ -46,8 +46,8 @@ void CStaffInd::Reset()
 
 void CStaffInd::Tick()
 {
-	const CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->m_Cosmetics.m_StaffInd)
+	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
+	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_StaffInd)
 	{
 		Reset();
 		return;

@@ -38,8 +38,8 @@ void CEpicCircle::Reset()
 
 void CEpicCircle::Tick()
 {
-	const CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->m_Cosmetics.m_EpicCircle)
+	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
+	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_EpicCircle)
 	{
 		Reset();
 		return;

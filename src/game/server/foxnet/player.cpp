@@ -31,8 +31,6 @@
 #include "accounts.h"
 #include "shop.h"
 
-
-
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
 
 void CPlayer::FoxNetTick()
@@ -68,7 +66,7 @@ void CPlayer::FoxNetReset()
 	m_TelekinesisImmunity = false;
 	m_SpiderHook = false;
 
-	m_Cosmetics = CCosmetics();
+	m_Inventory = CInventory();
 	m_vPickupDrops.clear();
 }
 
@@ -217,37 +215,10 @@ bool CPlayer::OwnsItem(const char *pItemName)
 	if(!Acc()->m_LoggedIn)
 		return false;
 
-	const char *pInventory = Acc()->m_Inventory;
-
-	char pItem[64];
-	str_copy(pItem, pItemName);
-	if(str_comp(GameServer()->m_Shop.NameToShortcut(pItem), "") != 0)
-		str_copy(pItem, GameServer()->m_Shop.NameToShortcut(pItem));
-
-	bool ItemExists = false;
-	for(const char *pShortcut : ItemShortcuts)
-	{
-		if(!str_comp_nocase(pItem, pShortcut))
-		{
-			ItemExists = true;
-			break;
-		}
-	}
-
-	if(!ItemExists)
-		return false;
-
-	char FindItem[256];
-	// Items are stored with a space at the end to avoid partial matches
-	str_format(FindItem, sizeof(FindItem), "%s ", pItem);
-
-	if(str_find_nocase(pInventory, FindItem))
-		return true;
-
-	return false;
+	return Acc()->m_Inventory.Owns(pItemName);
 }
 
-int CPlayer::GetItemToggle(const char *pItemName) const
+int CPlayer::GetItemToggle(const char *pItemName)
 {
 	int Value = -1;
 
@@ -257,65 +228,65 @@ int CPlayer::GetItemToggle(const char *pItemName) const
 		str_copy(pItem, GameServer()->m_Shop.NameToShortcut(pItem));
 
 	if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_SPARKLE]))
-		Value = (int)!m_Cosmetics.m_Sparkle;
+		Value = (int)!Cosmetics()->m_Sparkle;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_HEARTHAT]))
-		Value = (int)!m_Cosmetics.m_HeartHat;
+		Value = (int)!Cosmetics()->m_HeartHat;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_INVERSEAIM]))
-		Value = (int)!m_Cosmetics.m_InverseAim;
+		Value = (int)!Cosmetics()->m_InverseAim;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_LOVELY]))
-		Value = (int)!m_Cosmetics.m_Lovely;
+		Value = (int)!Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
-		Value = (int)!m_Cosmetics.m_RotatingBall;
+		Value = (int)!Cosmetics()->m_RotatingBall;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-		Value = (int)!m_Cosmetics.m_EpicCircle;
+		Value = (int)!Cosmetics()->m_EpicCircle;
 	// else if(!str_comp_nocase(pItem, ItemShortcuts[OTHER_BLOODY]))
-	//	Value = (int)!m_Cosmetics.m_Bloody;
+	//	Value = (int)!Cosmetics()->m_Bloody;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
-		Value = (int)!m_Cosmetics.m_RainbowFeet;
+		Value = (int)!Cosmetics()->m_RainbowFeet;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_BODY]))
-		Value = (int)!m_Cosmetics.m_RainbowBody;
+		Value = (int)!Cosmetics()->m_RainbowBody;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_HOOK]))
-		Value = (int)m_Cosmetics.m_HookPower == HOOK_RAINBOW ? HOOK_NORMAL : HOOK_RAINBOW;
+		Value = (int)Cosmetics()->m_HookPower == HOOK_RAINBOW ? HOOK_NORMAL : HOOK_RAINBOW;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
-		Value = (int)m_Cosmetics.m_EmoticonGun;
+		Value = (int)Cosmetics()->m_EmoticonGun;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-		Value = (int)!m_Cosmetics.m_ConfettiGun;
+		Value = (int)!Cosmetics()->m_ConfettiGun;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_LASER]))
-		Value = (int)!m_Cosmetics.m_PhaseGun;
+		Value = (int)!Cosmetics()->m_PhaseGun;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
-		Value = (int)m_Cosmetics.m_Trail == TRAIL_STAR ? TRAIL_NONE : TRAIL_STAR;
+		Value = (int)Cosmetics()->m_Trail == TRAIL_STAR ? TRAIL_NONE : TRAIL_STAR;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_DOT]))
-		Value = (int)m_Cosmetics.m_Trail == TRAIL_DOT ? TRAIL_NONE : TRAIL_DOT;
+		Value = (int)Cosmetics()->m_Trail == TRAIL_DOT ? TRAIL_NONE : TRAIL_DOT;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_CLOCKWISE ? IND_NONE : IND_CLOCKWISE;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_CLOCKWISE ? IND_NONE : IND_CLOCKWISE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_COUNTERWISE ? IND_NONE : IND_COUNTERWISE;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_COUNTERWISE ? IND_NONE : IND_COUNTERWISE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_INWARD ? IND_NONE : IND_INWARD;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_INWARD ? IND_NONE : IND_INWARD;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_OUTWARD ? IND_NONE : IND_OUTWARD;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_OUTWARD ? IND_NONE : IND_OUTWARD;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_LINE]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_LINE ? IND_NONE : IND_LINE;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_LINE ? IND_NONE : IND_LINE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
-		Value = (int)m_Cosmetics.m_DamageIndType == IND_CRISSCROSS ? IND_NONE : IND_CRISSCROSS;
+		Value = (int)Cosmetics()->m_DamageIndType == IND_CRISSCROSS ? IND_NONE : IND_CRISSCROSS;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_EXPLOSIVE]))
-		Value = (int)m_Cosmetics.m_DeathEffect == DEATH_EXPLOSION ? DEATH_NONE : DEATH_EXPLOSION;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATH_EXPLOSION ? DEATH_NONE : DEATH_EXPLOSION;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_HAMMERHIT]))
-		Value = (int)m_Cosmetics.m_DeathEffect == DEATH_HAMMERHIT ? DEATH_NONE : DEATH_HAMMERHIT;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT ? DEATH_NONE : DEATH_HAMMERHIT;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_INDICATOR]))
-		Value = (int)m_Cosmetics.m_DeathEffect == DEATH_DAMAGEIND ? DEATH_NONE : DEATH_DAMAGEIND;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND ? DEATH_NONE : DEATH_DAMAGEIND;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_LASER]))
-		Value = (int)m_Cosmetics.m_DeathEffect == DEATH_LASER ? DEATH_NONE : DEATH_LASER;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATH_LASER ? DEATH_NONE : DEATH_LASER;
 
 	return Value;
 }
 
-bool CPlayer::ItemEnabled(const char *pItemName) const
+bool CPlayer::ItemEnabled(const char *pItemName)
 {
 	int Value = false;
 
@@ -325,60 +296,60 @@ bool CPlayer::ItemEnabled(const char *pItemName) const
 		str_copy(pItem, GameServer()->m_Shop.NameToShortcut(pItem));
 
 	if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_SPARKLE]))
-		Value = m_Cosmetics.m_Sparkle;
+		Value = Cosmetics()->m_Sparkle;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_HEARTHAT]))
-		Value = m_Cosmetics.m_HeartHat;
+		Value = Cosmetics()->m_HeartHat;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_INVERSEAIM]))
-		Value = m_Cosmetics.m_InverseAim;
+		Value = Cosmetics()->m_InverseAim;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_LOVELY]))
-		Value = m_Cosmetics.m_Lovely;
+		Value = Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
-		Value = m_Cosmetics.m_RotatingBall;
+		Value = Cosmetics()->m_RotatingBall;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-		Value = m_Cosmetics.m_EpicCircle;
+		Value = Cosmetics()->m_EpicCircle;
 	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_BLOODY]))
-	//	Value = m_Cosmetics.m_Bloody;
+	//	Value = Cosmetics()->m_Bloody;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
-		Value = m_Cosmetics.m_RainbowFeet;
+		Value = Cosmetics()->m_RainbowFeet;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_BODY]))
-		Value = m_Cosmetics.m_RainbowBody;
+		Value = Cosmetics()->m_RainbowBody;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_HOOK]))
-		Value = m_Cosmetics.m_HookPower == HOOK_RAINBOW ? true : false;
+		Value = Cosmetics()->m_HookPower == HOOK_RAINBOW ? true : false;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
-		Value = m_Cosmetics.m_EmoticonGun;
+		Value = Cosmetics()->m_EmoticonGun;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-		Value = m_Cosmetics.m_ConfettiGun;
+		Value = Cosmetics()->m_ConfettiGun;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_LASER]))
-		Value = m_Cosmetics.m_PhaseGun;
+		Value = Cosmetics()->m_PhaseGun;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
-		Value = m_Cosmetics.m_Trail == TRAIL_STAR ? true : false;
+		Value = Cosmetics()->m_Trail == TRAIL_STAR ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_DOT]))
-		Value = m_Cosmetics.m_Trail == TRAIL_DOT ? true : false;
+		Value = Cosmetics()->m_Trail == TRAIL_DOT ? true : false;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
-		Value = m_Cosmetics.m_DamageIndType == IND_CLOCKWISE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_CLOCKWISE ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
-		Value = m_Cosmetics.m_DamageIndType == IND_COUNTERWISE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_COUNTERWISE ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
-		Value = m_Cosmetics.m_DamageIndType == IND_INWARD ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_INWARD ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
-		Value = m_Cosmetics.m_DamageIndType == IND_OUTWARD ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_OUTWARD ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_LINE]))
-		Value = m_Cosmetics.m_DamageIndType == IND_LINE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_LINE ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
-		Value = m_Cosmetics.m_DamageIndType == IND_CRISSCROSS ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_CRISSCROSS ? true : false;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_EXPLOSIVE]))
-		Value = m_Cosmetics.m_DeathEffect == DEATH_EXPLOSION ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_EXPLOSION ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_HAMMERHIT]))
-		Value = m_Cosmetics.m_DeathEffect == DEATH_HAMMERHIT ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_INDICATOR]))
-		Value = m_Cosmetics.m_DeathEffect == DEATH_DAMAGEIND ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND ? true : false;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_LASER]))
-		Value = m_Cosmetics.m_DeathEffect == DEATH_LASER ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_LASER ? true : false;
 
 	return Value;
 }
@@ -392,43 +363,43 @@ bool CPlayer::ReachedItemLimit(const char *pItem, int Set, int Value)
 
 	int Amount = 0;
 
-	if(m_Cosmetics.m_EpicCircle)
+	if(Cosmetics()->m_EpicCircle)
 		Amount++;
-	if(m_Cosmetics.m_Lovely)
+	if(Cosmetics()->m_Lovely)
 		Amount++;
-	if(m_Cosmetics.m_RotatingBall)
+	if(Cosmetics()->m_RotatingBall)
 		Amount++;
-	if(m_Cosmetics.m_Sparkle)
+	if(Cosmetics()->m_Sparkle)
 		Amount++;
-	if(m_Cosmetics.m_HookPower > 0)
+	if(Cosmetics()->m_HookPower > 0)
 		Amount++;
-	if(m_Cosmetics.m_Bloody || m_Cosmetics.m_StrongBloody)
+	if(Cosmetics()->m_Bloody || Cosmetics()->m_StrongBloody)
 		Amount++;
-	if(m_Cosmetics.m_InverseAim)
+	if(Cosmetics()->m_InverseAim)
 		Amount++;
-	if(m_Cosmetics.m_HeartHat)
-		Amount++;
-
-	if(m_Cosmetics.m_DeathEffect > 0)
-		Amount++;
-	if(m_Cosmetics.m_DamageIndType > 0)
+	if(Cosmetics()->m_HeartHat)
 		Amount++;
 
-	if(m_Cosmetics.m_EmoticonGun > 0)
+	if(Cosmetics()->m_DeathEffect > 0)
 		Amount++;
-	if(m_Cosmetics.m_ConfettiGun)
-		Amount++;
-	if(m_Cosmetics.m_PhaseGun)
+	if(Cosmetics()->m_DamageIndType > 0)
 		Amount++;
 
-	if(m_Cosmetics.m_Trail > 0)
+	if(Cosmetics()->m_EmoticonGun > 0)
 		Amount++;
-	if(m_Cosmetics.m_RainbowBody || m_Cosmetics.m_RainbowFeet)
+	if(Cosmetics()->m_ConfettiGun)
+		Amount++;
+	if(Cosmetics()->m_PhaseGun)
 		Amount++;
 
-	if(m_Cosmetics.m_StaffInd)
+	if(Cosmetics()->m_Trail > 0)
 		Amount++;
-	if(m_Cosmetics.m_PickupPet)
+	if(Cosmetics()->m_RainbowBody || Cosmetics()->m_RainbowFeet)
+		Amount++;
+
+	if(Cosmetics()->m_StaffInd)
+		Amount++;
+	if(Cosmetics()->m_PickupPet)
 		Amount++;
 
 	return Amount >= g_Config.m_SvCosmeticLimit;
@@ -455,7 +426,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	if(!OwnsItem(Item) && !IgnoreAccount)
 		return false;
 
-	const int Value = GetItemToggle(Item);
+	int Value = GetItemToggle(Item);
 	if(Value == -1 && Set == -1)
 		return false;
 	if(ReachedItemLimit(pItemName, Set, Value) && Value != 0)
@@ -477,7 +448,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_EPICCIRCLE]))
 		SetEpicCircle(Value);
 	// else if(!str_comp_nocase(Item, ItemShortcuts[OTHER_BLOODY]))
-	//	m_Cosmetics.m_Bloody = Value;
+	//	Cosmetics()->m_Bloody = Value;
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_RAINBOW_FEET]))
 		SetRainbowFeet(Value);
@@ -487,7 +458,10 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		HookPower(Value);
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_EMOTICON]))
-		SetEmoticonGun(Set);
+	{
+		Value = Set;
+		SetEmoticonGun(Value);
+	}
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_CONFETTI]))
 		SetConfettiGun(Value);
@@ -521,38 +495,14 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_LASER]))
 		SetDeathEffect(Value);
 
-	UpdateActiveItems();
+	Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfShortcut(Item), Value);
 
 	return true;
 }
 
-void CPlayer::UpdateActiveItems()
-{
-	char pActiveItems[1024] = "";
-
-	int Index = 0;
-	char intBuf[12];
-	for(const char *pShortcut : ItemShortcuts)
-	{
-		if(ItemEnabled(pShortcut))
-		{
-			if(pActiveItems[0] != '\0')
-				str_append(pActiveItems, " ");
-			str_append(pActiveItems, pShortcut);
-			if(Index == C_GUN_EMOTICON)
-			{
-				str_format(intBuf, sizeof(intBuf), "=%d", m_Cosmetics.m_EmoticonGun);
-				str_append(pActiveItems, intBuf);
-			}
-		}
-		Index++;
-	}
-	str_copy(Acc()->m_LastActiveItems, pActiveItems, sizeof(Acc()->m_LastActiveItems));
-}
-
 void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 {
-	if(!GetCharacter() || (!m_Cosmetics.m_RainbowBody && !m_Cosmetics.m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
+	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
 		return;
 
 	if(GetCharacter()->GetPowerHooked() == HOOK_RAINBOW)
@@ -567,9 +517,9 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 		if(!GameServer()->m_apPlayers[SnappingClient]->m_HideCosmetics)
 		{
 			pClientInfo->m_UseCustomColor = 1;
-			if(m_Cosmetics.m_RainbowBody || GetCharacter()->m_IsRainbowHooked)
+			if(Cosmetics()->m_RainbowBody || GetCharacter()->m_IsRainbowHooked)
 				pClientInfo->m_ColorBody = BaseColor + Color;
-			if(m_Cosmetics.m_RainbowFeet || GetCharacter()->m_IsRainbowHooked)
+			if(Cosmetics()->m_RainbowFeet || GetCharacter()->m_IsRainbowHooked)
 				pClientInfo->m_ColorFeet = BaseColor + Color;
 		}
 	}
@@ -577,14 +527,14 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 
 void CPlayer::RainbowTick()
 {
-	if(!GetCharacter() || (!m_Cosmetics.m_RainbowBody && !m_Cosmetics.m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
+	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
 		return;
 
-	if(m_Cosmetics.m_RainbowSpeed < 1)
-		m_Cosmetics.m_RainbowSpeed = 1;
+	if(Cosmetics()->m_RainbowSpeed < 1)
+		Cosmetics()->m_RainbowSpeed = 1;
 
 	if(Server()->Tick() % 2 == 1)
-		m_RainbowColor = (m_RainbowColor + m_Cosmetics.m_RainbowSpeed) % 256;
+		m_RainbowColor = (m_RainbowColor + Cosmetics()->m_RainbowSpeed) % 256;
 }
 
 void CPlayer::OverrideName(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
@@ -612,136 +562,136 @@ void CPlayer::OverrideName(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 }
 void CPlayer::SetRainbowBody(bool Active)
 {
-	m_Cosmetics.m_RainbowBody = Active;
+	Cosmetics()->m_RainbowBody = Active;
 }
 
 void CPlayer::SetRainbowFeet(bool Active)
 {
-	m_Cosmetics.m_RainbowFeet = Active;
+	Cosmetics()->m_RainbowFeet = Active;
 }
 
 void CPlayer::SetSparkle(bool Active)
 {
-	m_Cosmetics.m_Sparkle = Active;
+	Cosmetics()->m_Sparkle = Active;
 }
 
 void CPlayer::SetInverseAim(bool Active)
 {
-	m_Cosmetics.m_InverseAim = Active;
+	Cosmetics()->m_InverseAim = Active;
 }
 
 void CPlayer::SetBloody(bool Active)
 {
-	m_Cosmetics.m_Bloody = Active;
-	m_Cosmetics.m_StrongBloody = false;
+	Cosmetics()->m_Bloody = Active;
+	Cosmetics()->m_StrongBloody = false;
 }
 
 void CPlayer::SetRotatingBall(bool Active)
 {
-	if(m_Cosmetics.m_RotatingBall == Active)
+	if(Cosmetics()->m_RotatingBall == Active)
 		return;
-	m_Cosmetics.m_RotatingBall = Active;
+	Cosmetics()->m_RotatingBall = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_RotatingBall)
+	if(Cosmetics()->m_RotatingBall)
 		new CRotatingBall(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetEpicCircle(bool Active)
 {
-	if(m_Cosmetics.m_EpicCircle == Active)
+	if(Cosmetics()->m_EpicCircle == Active)
 		return;
-	m_Cosmetics.m_EpicCircle = Active;
+	Cosmetics()->m_EpicCircle = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_EpicCircle)
+	if(Cosmetics()->m_EpicCircle)
 		new CEpicCircle(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetLovely(bool Active)
 {
-	if(m_Cosmetics.m_Lovely == Active)
+	if(Cosmetics()->m_Lovely == Active)
 		return;
-	m_Cosmetics.m_Lovely = Active;
+	Cosmetics()->m_Lovely = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_Lovely)
+	if(Cosmetics()->m_Lovely)
 		new CLovely(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetTrail(int Type)
 {
-	if(m_Cosmetics.m_Trail == Type)
+	if(Cosmetics()->m_Trail == Type)
 		return;
-	m_Cosmetics.m_Trail = Type;
+	Cosmetics()->m_Trail = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_Trail == TRAIL_DOT)
+	if(Cosmetics()->m_Trail == TRAIL_DOT)
 		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetPickupPet(bool Active)
 {
-	if(m_Cosmetics.m_PickupPet == Active)
+	if(Cosmetics()->m_PickupPet == Active)
 		return;
-	m_Cosmetics.m_PickupPet = Active;
+	Cosmetics()->m_PickupPet = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_PickupPet)
+	if(Cosmetics()->m_PickupPet)
 		m_pPickupPet = new CPickupPet(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetStaffInd(bool Active)
 {
-	if(m_Cosmetics.m_StaffInd == Active)
+	if(Cosmetics()->m_StaffInd == Active)
 		return;
-	m_Cosmetics.m_StaffInd = Active;
+	Cosmetics()->m_StaffInd = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_StaffInd)
+	if(Cosmetics()->m_StaffInd)
 		new CStaffInd(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetHeartHat(bool Active)
 {
-	if(m_Cosmetics.m_HeartHat == Active)
+	if(Cosmetics()->m_HeartHat == Active)
 		return;
-	m_Cosmetics.m_HeartHat = Active;
+	Cosmetics()->m_HeartHat = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(m_Cosmetics.m_HeartHat)
+	if(Cosmetics()->m_HeartHat)
 		new CHeartHat(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetDamageIndType(int Type)
 {
-	m_Cosmetics.m_DamageIndType = Type;
+	Cosmetics()->m_DamageIndType = Type;
 }
 
 void CPlayer::SetDeathEffect(int Type)
 {
-	m_Cosmetics.m_DeathEffect = Type;
+	Cosmetics()->m_DeathEffect = Type;
 }
 
 void CPlayer::SetStrongBloody(bool Active)
 {
-	m_Cosmetics.m_StrongBloody = Active;
-	m_Cosmetics.m_Bloody = false;
+	Cosmetics()->m_StrongBloody = Active;
+	Cosmetics()->m_Bloody = false;
 }
 
 void CPlayer::HookPower(int Extra)
 {
-	if(m_Cosmetics.m_HookPower == HOOK_NORMAL && Extra == HOOK_NORMAL)
+	if(Cosmetics()->m_HookPower == HOOK_NORMAL && Extra == HOOK_NORMAL)
 		return;
-	m_Cosmetics.m_HookPower = Extra;
+	Cosmetics()->m_HookPower = Extra;
 }
 
 void CPlayer::SetEmoticonGun(int EmoteType)
 {
-	m_Cosmetics.m_EmoticonGun = EmoteType;
+	Cosmetics()->m_EmoticonGun = EmoteType;
 }
 
 void CPlayer::SetPhaseGun(bool Active)
 {
-	m_Cosmetics.m_PhaseGun = Active;
+	Cosmetics()->m_PhaseGun = Active;
 }
 
 void CPlayer::SetConfettiGun(bool Set)
 {
-	m_Cosmetics.m_ConfettiGun = Set;
+	Cosmetics()->m_ConfettiGun = Set;
 }
 
 void CPlayer::SetInvisible(bool Active)
@@ -822,18 +772,18 @@ static const char *GetAbilityName(int Type)
 
 void CPlayer::SetAbility(int Type)
 {
-	if(m_Cosmetics.m_Ability == Type)
+	if(Cosmetics()->m_Ability == Type)
 		return;
 
-	m_Cosmetics.m_Ability = Type;
+	Cosmetics()->m_Ability = Type;
 
 	int ClientId = GetCid();
 
-	if(m_Cosmetics.m_Ability <= ABILITY_NONE)
+	if(Cosmetics()->m_Ability <= ABILITY_NONE)
 		return;
 
 	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Ability set to %s", GetAbilityName(m_Cosmetics.m_Ability));
+	str_format(aBuf, sizeof(aBuf), "Ability set to %s", GetAbilityName(Cosmetics()->m_Ability));
 	GameServer()->SendChatTarget(ClientId, aBuf);
 
 	GameServer()->SendChatTarget(ClientId, "Use f4 (Vote No) to use your Ability");

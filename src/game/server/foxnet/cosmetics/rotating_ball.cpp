@@ -43,8 +43,8 @@ void CRotatingBall::Reset()
 
 void CRotatingBall::Tick()
 {
-	const CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->m_Cosmetics.m_RotatingBall)
+	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
+	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_RotatingBall)
 	{
 		Reset();
 		return;
@@ -81,7 +81,7 @@ void CRotatingBall::Snap(int SnappingClient)
 		return;
 
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
@@ -121,7 +121,7 @@ void CRotatingBall::Snap(int SnappingClient)
 	}
 
 	int Owner = m_Owner;
-	if(g_Config.m_SvCorruptPickupPet && pSnapPlayer->m_Cosmetics.m_PickupPet)
+	if(g_Config.m_SvCorruptPickupPet && pSnapPlayer->Cosmetics()->m_PickupPet)
 		Owner = -1; // Sets the pickuppet to the laser sprite for some reason
 
 

@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <game/server/player.h>
 
 struct CAccResult;
 class CDbConnectionPool;
@@ -50,8 +51,8 @@ struct CAccountSession
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
-	char m_Inventory[1028] = "";
-	char m_LastActiveItems[1028] = ""; // correlates to m_Inventory, will load this on login
+
+	CInventory m_Inventory;
 
 	int m_LoginTick = 0;
 	bool m_Disabled = false;

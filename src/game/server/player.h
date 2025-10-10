@@ -15,9 +15,11 @@
 // <FoxNet
 #include <memory>
 #include <optional>
-#include "foxnet/accounts.h"
 #include "foxnet/cosmetics/pickup_pet.h"
 #include "foxnet/entities/pickupdrop.h"
+#include "foxnet/shop.h"
+
+struct CAccountSession;
 // FoxNet>
 
 class CCharacter;
@@ -72,8 +74,9 @@ enum TrailTypes
 	NUM_TRAILS
 };
 
-struct CCosmetics
+class CCosmetics
 {
+public:
 	int m_Ability = 0;
 	bool m_EpicCircle = false;
 	bool m_Lovely = false;
@@ -103,6 +106,68 @@ struct CCosmetics
 	bool m_StrongBloody = false;
 	bool m_StaffInd = false;
 	bool m_PickupPet = false;
+};
+
+class CInventory
+{
+public:
+	CCosmetics m_Cosmetics;
+
+	// Ownership and equipped state per shop index
+	bool m_aOwned[NUM_ITEMS] = {false};
+	int m_aEquipped[NUM_ITEMS]; // 0 = not equipped, >0 = equipped with optional value
+
+	void Reset()
+	{
+		mem_zero(m_aOwned, sizeof(m_aOwned));
+		mem_zero(m_aEquipped, sizeof(m_aEquipped));
+		m_Cosmetics = CCosmetics();
+	}
+
+	static int IndexOfName(const char *pName)
+	{
+		for(int i = 0; i < NUM_ITEMS; i++)
+			if(!str_comp_nocase(Items[i], pName))
+				return i;
+		return -1;
+	}
+	static int IndexOfShortcut(const char *pShortcut)
+	{
+		for(int i = 0; i < NUM_ITEMS; i++)
+			if(!str_comp_nocase(ItemShortcuts[i], pShortcut))
+				return i;
+		return -1;
+	}
+	static int IndexOf(const char *pNameOrShortcut)
+	{
+		int Idx = IndexOfName(pNameOrShortcut);
+		if(Idx >= 0)
+			return Idx;
+		return IndexOfShortcut(pNameOrShortcut);
+	}
+
+	void SetOwnedIndex(int Index, bool Owned)
+	{
+		if(Index >= 0 && Index < NUM_ITEMS)
+			m_aOwned[Index] = Owned;
+	}
+	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aOwned[Index] : false; }
+	bool Owns(const char *pNameOrShortcut) const
+	{
+		return OwnsIndex(IndexOf(pNameOrShortcut));
+	}
+
+	// Equipped
+	void SetEquippedIndex(int Index, int Value)
+	{
+		if(Index >= 0 && Index < NUM_ITEMS)
+			m_aEquipped[Index] = maximum(0, Value);
+	}
+	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
+	int Equipped(const char *pNameOrShortcut) const
+	{
+		return EquippedIndex(IndexOf(pNameOrShortcut));
+	}
 };
 
 // FoxNet>
@@ -357,7 +422,9 @@ public:
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
 
-	CCosmetics m_Cosmetics;
+	CInventory m_Inventory;
+	CCosmetics *Cosmetics() { return &m_Inventory.m_Cosmetics; };
+	CAccountSession *Acc();
 
 	bool m_Invisible = false;
 	bool m_Obfuscated = false;
@@ -367,8 +434,6 @@ public:
 	bool m_TelekinesisImmunity = false;
 	bool m_SpiderHook = false;
 	int m_IncludeServerInfo;
-
-	CAccountSession *Acc();
 
 	void GivePlaytime(int Amount);
 	void GiveXP(long Amount, const char *pMessage = "");
@@ -380,10 +445,8 @@ public:
 	bool ToggleItem(const char *pItemName, int Set, bool IgnoreAccount = false);
 	bool ReachedItemLimit(const char *pItem, int Set, int Value);
 
-	void UpdateActiveItems();
-
-	int GetItemToggle(const char *pItemName) const;
-	bool ItemEnabled(const char *pItemName) const;
+	int GetItemToggle(const char *pItemName);
+	bool ItemEnabled(const char *pItemName);
 
 	void HookPower(int Extra);
 	void SetEmoticonGun(int Type);

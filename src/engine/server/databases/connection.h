@@ -100,6 +100,7 @@ protected:
 	void FormatCreatePoints(char *aBuf, unsigned int BufferSize) const;
 	// <FoxNet
 	void FormatCreateAccounts(char *aBuf, unsigned int BufferSize) const;
+	void FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const;
 	// FoxNet>
 };
 

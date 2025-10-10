@@ -519,32 +519,6 @@ void CGameContext::OnLogin(int ClientId)
 		pPl->m_HideCosmetics = true;
 	if(Flags & ACC_FLAG_HIDE_POWERUPS)
 		pPl->m_HidePowerUps = true;
-
-	char aItemsCopy[1028];
-	str_copy(aItemsCopy, pPl->Acc()->m_LastActiveItems, sizeof(aItemsCopy));
-
-	for(char *pToken = strtok(aItemsCopy, " "); pToken; pToken = strtok(nullptr, " "))
-	{
-		char *pEqual = strchr(pToken, '=');
-		if(pEqual)
-		{
-			*pEqual = '\0';
-			const char *pShortcut = pToken;
-			int value = str_toint(pEqual + 1);
-
-			if(!str_comp(pShortcut, "G_E"))
-			{
-				if(!pPl->ToggleItem(pShortcut, value))
-					break;
-				continue;
-			}
-		}
-		else
-		{
-			if(!pPl->ToggleItem(pToken, true))
-				break;
-		}
-	}
 }
 void CGameContext::OnLogout(int ClientId)
 {

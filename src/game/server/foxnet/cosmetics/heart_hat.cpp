@@ -41,8 +41,8 @@ void CHeartHat::Reset()
 
 void CHeartHat::Tick()
 {
-	const CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->m_Cosmetics.m_HeartHat)
+	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
+	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_HeartHat)
 	{
 		Reset();
 		return;

@@ -228,7 +228,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOptionWithSuffix(pVote, "Rainbow Speed"))
 		{
 			if(ReasonInt.has_value())
-				pPl->m_Cosmetics.m_RainbowSpeed = ReasonInt.value();
+				pPl->Cosmetics()->m_RainbowSpeed = ReasonInt.value();
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
@@ -389,12 +389,12 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		{
 			if(IsOption(pVote, ADMIN_COSM_PICKUPPET))
 			{
-				pPl->SetPickupPet(!pPl->m_Cosmetics.m_PickupPet);
+				pPl->SetPickupPet(!pPl->Cosmetics()->m_PickupPet);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_COSM_STAFFIND))
 			{
-				pPl->SetStaffInd(!pPl->m_Cosmetics.m_StaffInd);
+				pPl->SetStaffInd(!pPl->Cosmetics()->m_StaffInd);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_COSM_HEARTGUN))
@@ -405,22 +405,22 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 			if(IsOption(pVote, ADMIN_ABILITY_HEART))
 			{
-				pPl->SetAbility(pPl->m_Cosmetics.m_Ability == ABILITY_HEART ? ABILITY_NONE : ABILITY_HEART);
+				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_HEART ? ABILITY_NONE : ABILITY_HEART);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_ABILITY_SHIELD))
 			{
-				pPl->SetAbility(pPl->m_Cosmetics.m_Ability == ABILITY_SHIELD ? ABILITY_NONE : ABILITY_SHIELD);
+				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_SHIELD ? ABILITY_NONE : ABILITY_SHIELD);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_ABILITY_FIREWORK))
 			{
-				pPl->SetAbility(pPl->m_Cosmetics.m_Ability == ABILITY_FIREWORK ? ABILITY_NONE : ABILITY_FIREWORK);
+				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK ? ABILITY_NONE : ABILITY_FIREWORK);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_ABILITY_TELEKINESIS))
 			{
-				pPl->SetAbility(pPl->m_Cosmetics.m_Ability == ABILITY_TELEKINESIS ? ABILITY_NONE : ABILITY_TELEKINESIS);
+				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS ? ABILITY_NONE : ABILITY_TELEKINESIS);
 				return true;
 			}
 		}
@@ -494,24 +494,19 @@ void CVoteMenu::UpdatePages(int ClientId)
 	{
 		if(pAcc->m_Money != OldAcc.m_Money)
 			Changes = true;
-		if(memcmp(pAcc->m_Inventory, OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
+		if(memcmp(&pAcc->m_Inventory, &OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
 			Changes = true;
-
-		// if(mem_comp(&Acc, &m_aClientData[ClientId].m_Account, sizeof(Acc)) != 0)
-		//	Changes = true;
 	}
 	if(Page == PAGE_INVENTORY || Page == PAGE_ADMIN)
 	{
-		if(memcmp(pAcc->m_Inventory, OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
-			Changes = true;
-		if(memcmp(&pPl->m_Cosmetics, &m_aClientData[ClientId].m_Cosmetics, sizeof(pPl->m_Cosmetics)) != 0)
+		if(memcmp(&pAcc->m_Inventory, &OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
 			Changes = true;
 	}
 
 	if(Changes)
 	{
 		m_aClientData[ClientId].m_Account = GameServer()->m_aAccounts[ClientId];
-		m_aClientData[ClientId].m_Cosmetics = pPl->m_Cosmetics;
+		m_aClientData[ClientId].m_Cosmetics = *pPl->Cosmetics();
 		PrepareVoteOptions(ClientId, Page);
 	}
 }
@@ -919,24 +914,24 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 	if(Authed)
 	{
 		AddVoteSubheader("Uɴᴀᴠᴀɪʟᴀʙʟᴇ");
-		AddVoteCheckBox(ADMIN_COSM_PICKUPPET, pPl->m_Cosmetics.m_PickupPet);
-		AddVoteCheckBox(ADMIN_COSM_STAFFIND, pPl->m_Cosmetics.m_StaffInd);
+		AddVoteCheckBox(ADMIN_COSM_PICKUPPET, pPl->Cosmetics()->m_PickupPet);
+		AddVoteCheckBox(ADMIN_COSM_STAFFIND, pPl->Cosmetics()->m_StaffInd);
 		if(pPl->GetCharacter())
 			AddVoteCheckBox(ADMIN_COSM_HEARTGUN, pPl->GetCharacter()->GetWeaponGot(WEAPON_HEARTGUN));
 		AddVoteSeperator();
 
 		AddVoteSubheader("Aʙɪʟɪᴛɪᴇs");
-		AddVoteCheckBox(ADMIN_ABILITY_HEART, pPl->m_Cosmetics.m_Ability == ABILITY_HEART);
-		AddVoteCheckBox(ADMIN_ABILITY_SHIELD, pPl->m_Cosmetics.m_Ability == ABILITY_SHIELD);
-		AddVoteCheckBox(ADMIN_ABILITY_FIREWORK, pPl->m_Cosmetics.m_Ability == ABILITY_FIREWORK);
-		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->m_Cosmetics.m_Ability == ABILITY_TELEKINESIS);
+		AddVoteCheckBox(ADMIN_ABILITY_HEART, pPl->Cosmetics()->m_Ability == ABILITY_HEART);
+		AddVoteCheckBox(ADMIN_ABILITY_SHIELD, pPl->Cosmetics()->m_Ability == ABILITY_SHIELD);
+		AddVoteCheckBox(ADMIN_ABILITY_FIREWORK, pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK);
+		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS);
 		AddVoteSeperator();
 	}
 
 	if(!RainbowItems.empty())
 	{
 		AddVoteSubheader("Rᴀɪɴʙᴏᴡ");
-		AddVoteValueOption("Rainbow Speed", pPl->m_Cosmetics.m_RainbowSpeed, 20, BULLET_ARROW);
+		AddVoteValueOption("Rainbow Speed", pPl->Cosmetics()->m_RainbowSpeed, 20, BULLET_ARROW);
 		for(const auto &Item : RainbowItems)
 		{
 			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
@@ -949,7 +944,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		for(const auto &Item : GunItems)
 		{
 			if(!str_comp(Item.c_str(), "Emoticon Gun"))
-				AddVoteValueOption(Item.c_str(), pPl->m_Cosmetics.m_EmoticonGun, 16, BULLET_NONE);
+				AddVoteValueOption(Item.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, BULLET_NONE);
 			else
 				AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
 		}

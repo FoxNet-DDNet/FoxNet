@@ -173,6 +173,10 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateAccounts(aBuf, sizeof(aBuf));
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+
+		FormatCreateAccountInventory(aBuf, sizeof(aBuf));
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 		// FoxNet>
 
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);
@@ -432,19 +436,311 @@ std::unique_ptr<IDbConnection> CreateSqliteConnection(const char *pFilename, boo
 bool CSqliteConnection::ApplyMigrations()
 {
 	char aErr[256];
-	if(!Execute("ALTER TABLE foxnet_accounts ADD COLUMN IF NOT EXISTS Disabled INTEGER NOT NULL DEFAULT 0", aErr, sizeof(aErr)))
+
+	auto AddColumnIfMissing = [&](const char *pTable, const char *pStmtIfExists, const char *pStmt) -> bool {
+		if(Execute(pStmtIfExists, aErr, sizeof(aErr)))
+			return true;
+		if(Execute(pStmt, aErr, sizeof(aErr)))
+			return true;
+		if(str_find_nocase(aErr, "duplicate column") || str_find_nocase(aErr, "already exists"))
+			return true;
+		dbg_msg("sqlite", "migration add column failed on %s: %s", pTable, aErr);
+		return false;
+	};
+
+	if(!AddColumnIfMissing("foxnet_accounts",
+		   "ALTER TABLE foxnet_accounts ADD COLUMN IF NOT EXISTS Disabled INTEGER NOT NULL DEFAULT 0",
+		   "ALTER TABLE foxnet_accounts ADD COLUMN Disabled INTEGER NOT NULL DEFAULT 0"))
+		return false;
+
+	Execute("UPDATE foxnet_accounts SET Version = 2 WHERE Version < 2", aErr, sizeof(aErr));
+
+	if(!AddColumnIfMissing("foxnet_account_inventory",
+		   "ALTER TABLE foxnet_account_inventory ADD COLUMN IF NOT EXISTS Value INTEGER NOT NULL DEFAULT 0",
+		   "ALTER TABLE foxnet_account_inventory ADD COLUMN Value INTEGER NOT NULL DEFAULT 0"))
+		return false;
+
+	bool EquippedExists = false;
 	{
-		if(!Execute("ALTER TABLE foxnet_accounts ADD COLUMN Disabled INTEGER NOT NULL DEFAULT 0", aErr, sizeof(aErr)))
+		if(!PrepareStatement("SELECT 1 FROM sqlite_master WHERE type='table' AND name='foxnet_account_equipped' LIMIT 1", aErr, sizeof(aErr)))
+			return false;
+		bool End = true;
+		if(!Step(&End, aErr, sizeof(aErr)))
+			return false;
+		EquippedExists = !End;
+	}
+	if(EquippedExists)
+	{
+		Execute(
+			"UPDATE foxnet_account_inventory AS i "
+			"SET Value = COALESCE((SELECT e.Value "
+			"                      FROM foxnet_account_equipped e "
+			"                      WHERE e.Username=i.Username AND e.CosmeticId=i.CosmeticId), i.Value)",
+			aErr, sizeof(aErr));
+		Execute("DROP TABLE IF EXISTS foxnet_account_equipped", aErr, sizeof(aErr));
+	}
+
+	auto ShortcutToName = [](const char *pShortcut) -> const char * {
+		struct Pair
 		{
-			if(!strstr(aErr, "duplicate column"))
-			{
-				dbg_msg("sqlite", "foxnet migration failed: %s", aErr);
+			const char *Short;
+			const char *Name;
+		};
+		static const Pair s_Map[] = {
+			{"R_F", "Rainbow Feet"},
+			{"R_B", "Rainbow Body"},
+			{"R_H", "Rainbow Hook"},
+			{"G_E", "Emoticon Gun"},
+			{"G_C", "Confetti Gun"},
+			{"G_P", "Phase Gun"},
+			{"I_C", "Clockwise Indicator"},
+			{"I_CC", "Counter Clockwise Indicator"},
+			{"I_IT", "Inward Turning Indicator"},
+			{"I_OT", "Outward Turning Indicator"},
+			{"I_L", "Line Indicator"},
+			{"I_CrCs", "Criss Cross Indicator"},
+			{"D_E", "Explosive Death"},
+			{"D_HH", "Hammer Hit Death"},
+			{"D_I", "Indicator Death"},
+			{"D_L", "Laser Death"},
+			{"T_S", "Star Trail"},
+			{"T_D", "Dot Trail"},
+			{"O_S", "Sparkle"},
+			{"O_HH", "Heart Hat"},
+			{"O_IA", "Inverse Aim"},
+			{"O_L", "Lovely"},
+			{"O_RB", "Rotating Ball"},
+			{"O_EC", "Epic Circle"},
+		};
+		for(const auto &p : s_Map)
+			if(str_comp(pShortcut, p.Short) == 0)
+				return p.Name;
+		return pShortcut;
+	};
+
+	struct Row
+	{
+		char User[33]{};
+		char Inv[1028]{};
+		char Active[1028]{};
+		long long Acq{};
+	};
+	std::vector<Row> vRows;
+
+	{
+		const char *pSel =
+			"SELECT Username, IFNULL(Inventory,''), IFNULL(LastActiveItems,''), "
+			"       COALESCE(NULLIF(LastLogin,0), RegisterDate, strftime('%s','now')) "
+			"FROM foxnet_accounts WHERE Version < 3";
+		if(!PrepareStatement(pSel, aErr, sizeof(aErr)))
+			return false;
+		bool End = true;
+		if(!Step(&End, aErr, sizeof(aErr)))
+			return false;
+		while(!End)
+		{
+			Row r{};
+			GetString(1, r.User, sizeof(r.User));
+			GetString(2, r.Inv, sizeof(r.Inv));
+			GetString(3, r.Active, sizeof(r.Active));
+			r.Acq = GetInt64(4);
+			if(r.User[0])
+				vRows.push_back(r);
+			if(!Step(&End, aErr, sizeof(aErr)))
 				return false;
-			}
 		}
 	}
 
-	Execute("UPDATE foxnet_accounts SET Version = 2 WHERE Version < 2", aErr, sizeof(aErr));
+	auto Trim = [](char *s) {
+		int n = (int)str_length(s), i = 0, j = n - 1;
+		while(i <= j && (s[i] == ' ' || s[i] == '\t'))
+			i++;
+		while(j >= i && (s[j] == ' ' || s[j] == '\t'))
+			j--;
+		int k = 0;
+		for(int p = i; p <= j; ++p)
+			s[k++] = s[p];
+		s[k] = '\0';
+	};
+	auto ForEachSpaceToken = [&](char *buf, auto f) {
+		for(char *p = buf;;)
+		{
+			while(*p == ' ')
+				++p;
+			if(*p == '\0')
+				break;
+			char *q = p;
+			while(*q && *q != ' ')
+				++q;
+			char saved = *q;
+			*q = '\0';
+			Trim(p);
+			if(p[0])
+				f(p);
+			if(saved == '\0')
+				break;
+			*q = saved;
+			p = q;
+		}
+	};
+
+	auto InsertInventory = [&](const Row &r, const char *pFull) -> bool {
+		const char *pIns =
+			"INSERT OR IGNORE INTO foxnet_account_inventory"
+			"(Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta) "
+			"VALUES (?, ?, 1, ?, 0, '')";
+		if(!PrepareStatement(pIns, aErr, sizeof(aErr)))
+			return false;
+		BindString(1, r.User);
+		BindString(2, pFull);
+		BindInt64(3, r.Acq);
+		int Num = 0;
+		return ExecuteUpdate(&Num, aErr, sizeof(aErr));
+	};
+	auto UpsertValue = [&](const Row &r, const char *pFull, int Val) -> bool {
+		const char *pIns =
+			"INSERT INTO foxnet_account_inventory"
+			"(Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta, Value) "
+			"VALUES (?, ?, 1, ?, 0, '', ?) "
+			"ON CONFLICT(Username, CosmeticId) DO UPDATE SET Value=excluded.Value";
+		if(!PrepareStatement(pIns, aErr, sizeof(aErr)))
+			return false;
+		BindString(1, r.User);
+		BindString(2, pFull);
+		BindInt64(3, r.Acq);
+		BindInt(4, Val);
+		int Num = 0;
+		return ExecuteUpdate(&Num, aErr, sizeof(aErr));
+	};
+	auto BumpToV3 = [&](const Row &r) -> bool {
+		const char *pUpd = "UPDATE foxnet_accounts SET Version = 3 WHERE Username = ?";
+		if(!PrepareStatement(pUpd, aErr, sizeof(aErr)))
+			return false;
+		BindString(1, r.User);
+		int Num = 0;
+		return ExecuteUpdate(&Num, aErr, sizeof(aErr));
+	};
+
+	for(const auto &r : vRows)
+	{
+		if(r.Inv[0])
+		{
+			char buf[1028];
+			str_copy(buf, r.Inv, sizeof(buf));
+			ForEachSpaceToken(buf, [&](char *tok) {
+				InsertInventory(r, ShortcutToName(tok));
+			});
+		}
+		if(r.Active[0])
+		{
+			char buf[1028];
+			str_copy(buf, r.Active, sizeof(buf));
+			ForEachSpaceToken(buf, [&](char *tok) {
+				int Val = 1;
+				if(char *eq = (char *)str_find(tok, "="))
+				{
+					*eq = '\0';
+					Val = maximum(1, atoi(eq + 1));
+				}
+				UpsertValue(r, ShortcutToName(tok), Val);
+			});
+		}
+		BumpToV3(r);
+	}
+
+	auto ColumnExists = [&](const char *pCol) -> bool {
+		if(!PrepareStatement("PRAGMA table_info(foxnet_accounts)", aErr, sizeof(aErr)))
+			return false;
+		bool End = true;
+		if(!Step(&End, aErr, sizeof(aErr)))
+			return false;
+		while(!End)
+		{
+			char aName[128]{};
+			GetString(2, aName, sizeof(aName));
+			if(str_comp(aName, pCol) == 0)
+				return true;
+			if(!Step(&End, aErr, sizeof(aErr)))
+				return false;
+		}
+		return false;
+	};
+
+	if(ColumnExists("Inventory") || ColumnExists("LastActiveItems"))
+	{
+		bool Dropped = Execute("ALTER TABLE foxnet_accounts DROP COLUMN Inventory", aErr, sizeof(aErr)) &&
+			       Execute("ALTER TABLE foxnet_accounts DROP COLUMN LastActiveItems", aErr, sizeof(aErr));
+
+		if(!Dropped)
+		{
+			if(!Execute("BEGIN TRANSACTION", aErr, sizeof(aErr)))
+				return false;
+
+			char aCreate[1024];
+			str_format(aCreate, sizeof(aCreate),
+				"CREATE TABLE foxnet_accounts ("
+				"  Version INTEGER NOT NULL DEFAULT 2, "
+				"  Username VARCHAR(32) COLLATE %s NOT NULL, "
+				"  Password VARCHAR(128) COLLATE %s NOT NULL, "
+				"  RegisterDate INTEGER NOT NULL, "
+				"  PlayerName VARCHAR(%d) COLLATE %s DEFAULT '', "
+				"  LastPlayerName VARCHAR(%d) COLLATE %s DEFAULT '', "
+				"  CurrentIP VARCHAR(45) COLLATE %s DEFAULT '', "
+				"  LastIP VARCHAR(45) COLLATE %s DEFAULT '', "
+				"  LoggedIn INTEGER DEFAULT 0, "
+				"  LastLogin INTEGER DEFAULT 0, "
+				"  Port INTEGER DEFAULT 0, "
+				"  ClientId INTEGER DEFAULT -1, "
+				"  Flags INTEGER DEFAULT -1, "
+				"  VoteMenuPage INTEGER DEFAULT -1, "
+				"  Playtime INTEGER DEFAULT 0, "
+				"  Deaths INTEGER DEFAULT 0, "
+				"  Kills INTEGER DEFAULT 0, "
+				"  Level INTEGER DEFAULT 0, "
+				"  XP INTEGER DEFAULT 0, "
+				"  Money INTEGER DEFAULT 0, "
+				"  Disabled INTEGER NOT NULL DEFAULT %s, "
+				"  PRIMARY KEY (Username))",
+				BinaryCollate(), BinaryCollate(),
+				MAX_NAME_LENGTH_SQL, BinaryCollate(),
+				MAX_NAME_LENGTH_SQL, BinaryCollate(),
+				BinaryCollate(), BinaryCollate(), False());
+			if(!Execute(aCreate, aErr, sizeof(aErr)))
+			{
+				Execute("ROLLBACK", aErr, sizeof(aErr));
+				return false;
+			}
+
+			const char *pCopy =
+				"INSERT INTO foxnet_accounts("
+				"Version, Username, Password, RegisterDate, PlayerName, LastPlayerName, "
+				"CurrentIP, LastIP, LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, "
+				"Playtime, Deaths, Kills, Level, XP, Money, Disabled)"
+				" SELECT "
+				"Version, Username, Password, RegisterDate, PlayerName, LastPlayerName, "
+				"CurrentIP, LastIP, LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, "
+				"Playtime, Deaths, Kills, Level, XP, Money, Disabled"
+				" FROM temp.foxnet_accounts_backup";
+
+			if(!Execute("ALTER TABLE foxnet_accounts RENAME TO foxnet_accounts_backup", aErr, sizeof(aErr)))
+			{
+				Execute("ROLLBACK", aErr, sizeof(aErr));
+				return false;
+			}
+			if(!Execute(pCopy, aErr, sizeof(aErr)))
+			{
+				Execute("ROLLBACK", aErr, sizeof(aErr));
+				return false;
+			}
+			if(!Execute("DROP TABLE foxnet_accounts_backup", aErr, sizeof(aErr)))
+			{
+				Execute("ROLLBACK", aErr, sizeof(aErr));
+				return false;
+			}
+			if(!Execute("COMMIT", aErr, sizeof(aErr)))
+				return false;
+		}
+	}
 
 	return true;
 }

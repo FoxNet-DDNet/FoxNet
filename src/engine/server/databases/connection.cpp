@@ -93,7 +93,6 @@ void IDbConnection::FormatCreatePoints(char *aBuf, unsigned int BufferSize) cons
 // <FoxNet
 void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) const
 {
-	// ToDO: @qxdFox - move Inventory and LastActiveItems to separate table
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS foxnet_accounts ("
 		"  Version INTEGER NOT NULL DEFAULT 2, "
@@ -116,8 +115,6 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  Level INTEGER DEFAULT 0, "
 		"  XP INTEGER DEFAULT 0, "
 		"  Money INTEGER DEFAULT 0, "
-		"  Inventory TEXT COLLATE %s DEFAULT '', "
-		"  LastActiveItems TEXT COLLATE %s DEFAULT '', "
 		"  Disabled BOOL DEFAULT %s, "
 		"  PRIMARY KEY (Username)"
 		")",
@@ -127,9 +124,25 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		MAX_NAME_LENGTH_SQL, BinaryCollate(),
 		BinaryCollate(),
 		BinaryCollate(),
+		False());
+}
+
+void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_account_inventory ("
+		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
+		"  CosmeticId VARCHAR(64) COLLATE %s NOT NULL,"
+		"  Quantity INTEGER NOT NULL DEFAULT 1,"
+		"  AcquiredAt INTEGER NOT NULL,"
+		"  ExpiresAt INTEGER NOT NULL,"
+		"  Meta TEXT COLLATE %s DEFAULT '',"
+		"  Value INTEGER NOT NULL DEFAULT 0,"
+		"  PRIMARY KEY (Username, CosmeticId)"
+		")",
 		BinaryCollate(),
 		BinaryCollate(),
-		False()
+		BinaryCollate()
 	);
 }
 // FoxNet>

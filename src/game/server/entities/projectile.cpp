@@ -144,9 +144,9 @@ void CProjectile::Tick()
 	if(pOwnerChar)
 	{
 		GLClipped = GameLayerClipped(CurPos) && !pOwnerChar->GetPlayer()->m_IgnoreGamelayer;
-		EmoteGun = pOwnerChar->GetPlayer()->m_Cosmetics.m_EmoticonGun;
-		ConfettiGun = pOwnerChar->GetPlayer()->m_Cosmetics.m_ConfettiGun;
-		LaserGun = pOwnerChar->GetPlayer()->m_Cosmetics.m_PhaseGun;
+		EmoteGun = pOwnerChar->GetPlayer()->Cosmetics()->m_EmoticonGun;
+		ConfettiGun = pOwnerChar->GetPlayer()->Cosmetics()->m_ConfettiGun;
+		LaserGun = pOwnerChar->GetPlayer()->Cosmetics()->m_PhaseGun;
 	}
 	// FoxNet>
 
@@ -281,7 +281,7 @@ void CProjectile::Tick()
 			else if(ConfettiGun)
 				CreateDmgInd = false;
 
-			int DamageIndEffect = (pOwnerChar && pOwnerChar->GetPlayer()->m_Cosmetics.m_DamageIndType) ? pOwnerChar->GetPlayer()->m_Cosmetics.m_DamageIndType : 0;
+			int DamageIndEffect = (pOwnerChar && pOwnerChar->GetPlayer()->Cosmetics()->m_DamageIndType) ? pOwnerChar->GetPlayer()->Cosmetics()->m_DamageIndType : 0;
 
 			if(LaserGun && pTargetChr)
 				CreateDmgInd = true;

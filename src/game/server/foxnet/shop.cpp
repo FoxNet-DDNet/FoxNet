@@ -253,10 +253,8 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	}
 
 	pPl->TakeMoney(Price);
-
-	char AddItem[64];
-	str_format(AddItem, sizeof(AddItem), "%s ", NameToShortcut(ItemName));
-	str_append(pAcc->m_Inventory, AddItem);
+	
+	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(ItemName), true);
 
 	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
 	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d %s", ItemName, Price, g_Config.m_SvCurrencyName);

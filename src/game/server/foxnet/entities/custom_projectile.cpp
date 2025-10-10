@@ -125,7 +125,7 @@ void CCustomProjectile::HitCharacter()
 	// else
 	// pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_aId[GameServer()->GetWeaponType(m_Type)].m_Damage, m_Owner, m_Type);
 
-	if(GameServer()->GetPlayerChar(m_Owner)->GetActiveWeapon() == WEAPON_HEARTGUN || GameServer()->GetPlayerChar(m_Owner)->GetPlayer()->m_Cosmetics.m_Ability == ABILITY_HEART)
+	if(GameServer()->GetPlayerChar(m_Owner)->GetActiveWeapon() == WEAPON_HEARTGUN || GameServer()->GetPlayerChar(m_Owner)->GetPlayer()->Cosmetics()->m_Ability == ABILITY_HEART)
 	{
 		pHit->SetEmote(EMOTE_HAPPY, Server()->Tick() + 2 * Server()->TickSpeed());
 		GameServer()->SendEmoticon(pHit->GetPlayer()->GetCid(), EMOTICON_HEARTS, -1);
@@ -170,7 +170,7 @@ void CCustomProjectile::Snap(int SnappingClient)
 
 	if(m_Weapon)
 	{
-		if(m_Type >= NUM_WEAPONS && pSnapChar && pSnapChar->GetPlayer()->m_HideCosmetics && pOwnerChar->GetPlayer()->m_Cosmetics.m_Trail == TRAIL_DOT)
+		if(m_Type >= NUM_WEAPONS && pSnapChar && pSnapChar->GetPlayer()->m_HideCosmetics && pOwnerChar->GetPlayer()->Cosmetics()->m_Trail == TRAIL_DOT)
 			return;
 
 		CNetObj_DDRaceProjectile DDRaceProjectile;

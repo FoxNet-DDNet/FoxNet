@@ -239,12 +239,33 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_Level = Res.m_Level;
 		Acc.m_XP = Res.m_XP;
 		Acc.m_Money = Res.m_Money;
-		str_copy(Acc.m_Inventory, Res.m_Inventory);
-		str_copy(Acc.m_LastActiveItems, Res.m_LastActiveItems);
 		Acc.m_LoginTick = Server()->Tick();
+		Acc.m_Inventory = Res.m_Inventory;
 		GameServer()->m_VoteMenu.SetPage(ClientId, Acc.m_VoteMenuPage);
 	}
 	GameServer()->OnLogin(ClientId);
+
+	// Apply equipped items to player cosmetics
+	if(auto *pPl = GameServer()->m_apPlayers[ClientId])
+	{
+		for(int i = 0; i < NUM_ITEMS; i++)
+		{
+			const int Val = GameServer()->m_aAccounts[ClientId].m_Inventory.m_aEquipped[i];
+			if(Val <= 0)
+				continue;
+
+			const char *pShortcut = ItemShortcuts[i];
+
+			if(!str_comp_nocase(pShortcut, ItemShortcuts[C_GUN_EMOTICON]))
+			{
+				pPl->ToggleItem(pShortcut, Val, false);
+			}
+			else
+			{
+				pPl->ToggleItem(pShortcut, -1, false);
+			}
+		}
+	}
 
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
 	str_copy(pUpd->m_Username, Res.m_Username, sizeof(pUpd->m_Username));
@@ -284,8 +305,7 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	pReq->m_Level = AccInfo.m_Level;
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
-	str_copy(pReq->m_Inventory, AccInfo.m_Inventory);
-	str_copy(pReq->m_LastActiveItems, AccInfo.m_LastActiveItems);
+	pReq->m_Inventory = AccInfo.m_Inventory;
 	m_pPool->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 
@@ -388,7 +408,7 @@ void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const 
 	};
 	auto IsTextCol = [](const char *pCol) {
 		static const char *s_aTextCols[] = {
-			"PlayerName", "LastPlayerName", "CurrentIP", "LastIP", "Inventory", "LastActiveItems", nullptr};
+			"PlayerName", "LastPlayerName", "CurrentIP", "LastIP", nullptr};
 		for(const char **pp = s_aTextCols; *pp; ++pp)
 			if(!str_comp(*pp, pCol))
 				return true;
@@ -506,6 +526,7 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	if(!m_pPool)
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
+	str_copy(pReq->m_Username, AccInfo.m_Username, sizeof(pReq->m_Username));
 	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_VoteMenuPage = AccInfo.m_VoteMenuPage;
 	pReq->m_Playtime = AccInfo.m_Playtime;
@@ -514,9 +535,7 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	pReq->m_Level = AccInfo.m_Level;
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
-	str_copy(pReq->m_Inventory, AccInfo.m_Inventory);
-	str_copy(pReq->m_LastActiveItems, AccInfo.m_LastActiveItems);
-	str_copy(pReq->m_Username, AccInfo.m_Username);
+	pReq->m_Inventory = AccInfo.m_Inventory;
 	m_pPool->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
 }
 
