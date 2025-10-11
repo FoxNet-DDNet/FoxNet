@@ -61,7 +61,7 @@ public:
 	int GetHeight() const { return m_Height; }
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
 	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr) const;
-	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr) const;
+	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CQuadData **ppOutQuad = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
 	bool TestBox(vec2 Pos, vec2 Size) const;
@@ -193,11 +193,18 @@ private:
 	std::vector<vec2> m_SpawnCandidates;
 	std::vector<CQuadData> m_vQuads;
 
+
 public:
+	int IsSolidQuad(vec2 Pos) const;
+	int IsSolidQuad(int x, int y) const { return IsSolidQuad(vec2(x, y)); };
+
 	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
 	void UpdateQuadCache();
 
-	std::vector<CQuadData *> GetQuadsAt(vec2 Pos);
+	std::vector<const CQuadData *> GetQuadsAt(vec2 Pos) const;
+
+	const CQuadData *GetQuad(vec2 Pos) const;
+	int GetSolidQuad(vec2 Pos) const;
 
 	void ClearQuadLayers();
 	void Rotate(vec2 Center, vec2 *pPoint, float Rotation) const;

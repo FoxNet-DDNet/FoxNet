@@ -155,6 +155,8 @@ void CCollision::Init(class CLayers *pLayers)
 		}
 	}
 	// <FoxNet
+	BuildSpawnCandidatesOnLoad();
+
 	for(const auto pQuadLayers : m_pLayers->QuadLayers())
 	{//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision.cpp#L79
 		CQuad *pQuads = (CQuad *)m_pLayers->Map()->GetDataSwapped(pQuadLayers->m_Data);
@@ -183,7 +185,6 @@ void CCollision::Init(class CLayers *pLayers)
 
 	int QuadLayers = (int)m_pLayers->QuadLayers().size();
 	log_info("moving-tiles", "%d valid quadlayer%s with %d quads", QuadLayers, QuadLayers == 1 ? "" : "s", (int)m_vQuads.size());
-	BuildSpawnCandidatesOnLoad();
 	// FoxNet>
 }
 
@@ -389,7 +390,10 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 				*pOutCollision = Pos;
 			if(pOutBeforeCollision)
 				*pOutBeforeCollision = Last;
-			return GetCollisionAt(ix, iy);
+			int Tile = GetCollisionAt(ix, iy);
+			if(!Tile)
+				Tile = GetSolidQuad(vec2(ix, iy));
+			return Tile;
 		}
 
 		Last = Pos;
@@ -401,8 +405,11 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 	return 0;
 }
 
-int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr) const
+int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, const CQuadData **ppOutQuad) const
 {
+	if(ppOutQuad)
+		*ppOutQuad = nullptr;
+
 	float Distance = distance(Pos0, Pos1);
 	int End(Distance + 1);
 	vec2 Last = Pos0;
@@ -443,6 +450,24 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 		{
 			hit = TILE_NOHOOK;
 		}
+
+		if(!hit)
+		{
+			const CQuadData *pQuadData = GetQuad(vec2(ix, iy));
+			if(pQuadData)
+			{
+				if(pQuadData->m_Type == QUADTYPE_HOOKABLE)
+					hit = TILE_SOLID;
+				else if(pQuadData->m_Type == QUADTYPE_UNHOOKABLE)
+					hit = TILE_NOHOOK;
+
+				if(hit == TILE_SOLID && ppOutQuad)
+				{
+					*ppOutQuad = pQuadData;
+				}
+			}
+		}
+
 		if(hit)
 		{
 			if(pOutCollision)
@@ -638,10 +663,13 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 }
 
 // DDRace
-
 int CCollision::IsSolid(int x, int y) const
 {
-	int index = GetTile(x, y);
+	// <FoxNet
+	int index = GetSolidQuad(vec2(x, y));
+	if(!index)
+		index = GetTile(x, y);
+	// FoxNet>
 	return index == TILE_SOLID || index == TILE_NOHOOK;
 }
 
@@ -1352,22 +1380,55 @@ void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const
 	pPoint->y = (x * sinf(Rotation) + y * cosf(Rotation) + Center.y);
 }
 
-std::vector<CQuadData *> CCollision::GetQuadsAt(vec2 Pos)
+std::vector<const CQuadData *> CCollision::GetQuadsAt(vec2 Pos) const
 {//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1104
-	std::vector<CQuadData *> vpQuads;
+	std::vector<const CQuadData *> vpQuads;
 
-	for(auto &QuadData : m_vQuads)
+	for(const auto &QuadData : m_vQuads)
 	{
 		float TestRadius = 0.f;
 		if(QuadData.m_Type == QUADTYPE_DEATH)
 			TestRadius = 8.0f;
-		else if(QuadData.m_Type == QUADTYPE_STOPA)
-			TestRadius = CCharacterCore::PhysicalSize() * 0.5f;
+		else if(QuadData.m_Type == QUADTYPE_STOPA || QuadData.m_Type == QUADTYPE_HOOKABLE|| QuadData.m_Type == QUADTYPE_UNHOOKABLE)
+			TestRadius = CCharacterCore::PhysicalSize() * 0.6f;
 
 		if(InsideQuad(Pos, TestRadius, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
 			vpQuads.push_back(&QuadData);
 	}
 	return vpQuads;
+}
+
+const CQuadData *CCollision::GetQuad(vec2 Pos) const
+{
+	for(const auto &QuadData : m_vQuads)
+	{
+		if(QuadData.m_Type != QUADTYPE_HOOKABLE && QuadData.m_Type != QUADTYPE_UNHOOKABLE)
+			continue;
+
+		if(InsideQuad(Pos, 0, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
+			return &QuadData;
+	}
+	return nullptr;
+}
+
+int CCollision::GetSolidQuad(vec2 Pos) const
+{
+	const CQuadData *pQuad = GetQuad(Pos);
+	if (pQuad)
+	{
+		if(pQuad->m_Type == QUADTYPE_HOOKABLE)
+			return TILE_SOLID;
+		if(pQuad->m_Type == QUADTYPE_UNHOOKABLE)
+			return TILE_NOHOOK;
+	}
+
+	return 0;
+}
+
+int CCollision::IsSolidQuad(vec2 Pos) const
+{
+	int index = GetSolidQuad(Pos);
+	return index == TILE_SOLID || index == TILE_NOHOOK;
 }
 
 void CCollision::GetAnimationTransform(float GlobalTime, int Env, vec2 &Position, float &Angle) const

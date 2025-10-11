@@ -20,6 +20,7 @@ class CCollision;
 class CTeamsCore;
 
 // <FoxNet
+class CQuadData;
 enum ExtraWeapons
 {
 	WEAPON_NONE = -1,
@@ -196,6 +197,9 @@ public:
 	static constexpr vec2 PhysicalSizeVec2() { return vec2(28.0f, 28.0f); };
 	vec2 m_Pos;
 	vec2 m_Vel;
+
+	const CQuadData *m_pHookedQuad = nullptr;
+	vec2 m_HookQuadLocal = vec2(0, 0);  
 
 	vec2 m_HookPos;
 	vec2 m_HookDir;

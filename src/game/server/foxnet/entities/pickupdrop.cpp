@@ -530,7 +530,7 @@ void CPickupDrop::ForceSetPos(vec2 NewPos)
 
 void CPickupDrop::HandleQuads()
 {
-	std::vector<CQuadData *> pQuads = Collision()->GetQuadsAt(m_Pos);
+	std::vector<const CQuadData *> pQuads = Collision()->GetQuadsAt(m_Pos);
 	for(const CQuadData *pQuad : pQuads)
 	{
 		if(pQuad->m_Type < QUADTYPE_FREEZE || pQuad->m_Type >= NUM_QUADTYPES)
@@ -575,7 +575,7 @@ void CPickupDrop::HandleQuads()
 
 void CPickupDrop::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR)
 {
-	const float R = GetProximityRadius() * 0.4f;
+	const float R = GetProximityRadius() * 0.55f;
 	const vec2 P = m_Pos;
 
 	const vec2 aA[4] = {TL, TR, BR, BL};
@@ -609,7 +609,7 @@ void CPickupDrop::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, c
 
 	if(MinPenetration > 0.0f)
 	{
-		const float Epsilon = 0.0f;
+		const float Epsilon = -0.0f;
 		vec2 MTV = -BestInwardNormal * (MinPenetration + Epsilon);
 
 		auto CanPlace = [&](const vec2 &Pos) {

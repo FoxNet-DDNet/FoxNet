@@ -101,6 +101,9 @@ void CCharacterCore::SetCoreWorld(CWorldCore *pWorld, CCollision *pCollision, CT
 
 void CCharacterCore::Reset()
 {
+	m_pHookedQuad = nullptr;
+	m_HookQuadLocal = vec2(0, 0);
+
 	m_Pos = vec2(0, 0);
 	m_Vel = vec2(0, 0);
 	m_NewHook = false;
@@ -149,6 +152,12 @@ void CCharacterCore::Reset()
 	m_Hookable = true;
 	m_Collidable = true;
 	// FoxNet>
+}
+
+static inline vec2 RotateVec(vec2 v, float a)
+{
+	const float c = cosf(a), s = sinf(a);
+	return vec2(v.x * c - v.y * s, v.x * s + v.y * c);
 }
 
 void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
@@ -245,6 +254,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			SetHookedPlayer(-1);
 			m_HookState = HOOK_IDLE;
 			m_HookPos = m_Pos;
+			m_pHookedQuad = nullptr;
 		}
 	}
 
@@ -300,7 +310,9 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 		bool GoingToRetract = false;
 		bool GoingThroughTele = false;
 		int teleNr = 0;
-		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, nullptr, &teleNr);
+
+		const CQuadData *pHitQuad = nullptr;
+		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, nullptr, &teleNr, &pHitQuad);
 
 		if(Hit)
 		{
@@ -354,6 +366,20 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			{
 				m_TriggeredEvents |= COREEVENT_HOOK_ATTACH_GROUND;
 				m_HookState = HOOK_GRABBED;
+
+				// If we hit a hookable moving quad, remember it and compute local anchor
+				if(pHitQuad)
+				{
+					m_pHookedQuad = pHitQuad;
+					const vec2 pivot = pHitQuad->m_Pos[4];
+					const float ang = pHitQuad->m_Angle;
+					// local = R(-ang) * (world_hit - pivot)
+					m_HookQuadLocal = RotateVec(NewPos - pivot, -ang);
+				}
+				else
+				{
+					m_pHookedQuad = nullptr;
+				}
 			}
 			else if(GoingToRetract)
 			{
@@ -367,10 +393,13 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				SetHookedPlayer(-1);
 
 				m_NewHook = true;
-				int RandomOut = m_pWorld->RandomOr0(m_pCollision->TeleOuts(teleNr - 1).size());
+				int RandomOut = m_pWorld->RandomOr0((int)m_pCollision->TeleOuts(teleNr - 1).size());
 				m_HookPos = m_pCollision->TeleOuts(teleNr - 1)[RandomOut] + TargetDirection * PhysicalSize() * 1.5f;
 				m_HookDir = TargetDirection;
 				m_HookTeleBase = m_HookPos;
+
+				// Teleport breaks attachment
+				m_pHookedQuad = nullptr;
 			}
 			else
 			{
@@ -383,6 +412,8 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 	{
 		if(m_HookedPlayer != -1 && m_pWorld)
 		{
+			m_pHookedQuad = nullptr;
+
 			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[m_HookedPlayer];
 			if(pCharCore && m_Id != -1 && m_pTeams->CanKeepHook(m_Id, pCharCore->m_Id))
 				m_HookPos = pCharCore->m_Pos;
@@ -392,7 +423,15 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				SetHookedPlayer(-1);
 				m_HookState = HOOK_RETRACTED;
 				m_HookPos = m_Pos;
+				m_pHookedQuad = nullptr;
 			}
+		}	
+		// Update anchored hook head if grabbed to a moving quad
+		if(m_HookedPlayer == -1 && m_pHookedQuad)
+		{
+			const vec2 pivot = m_pHookedQuad->m_Pos[4];
+			const float ang = m_pHookedQuad->m_Angle;
+			m_HookPos = pivot + RotateVec(m_HookQuadLocal, ang);
 		}
 
 		// don't do this hook routine when we are already hooked to a player
@@ -426,6 +465,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			SetHookedPlayer(-1);
 			m_HookState = HOOK_RETRACTED;
 			m_HookPos = m_Pos;
+			m_pHookedQuad = nullptr;
 		}
 	}
 
