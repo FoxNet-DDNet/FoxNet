@@ -27,29 +27,29 @@ void CShop::AddItems()
 
 	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 2550, "Shoot emotions at people", 10));
 	// m_Items.push_back(new CItems("Confetti Gun", TYPE_GUN,  2000,"Party gun!", 10));
-	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 1000, "Your bullets defy physics", 5));
+	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 1250, "Your bullets defy physics", 5));
 
-	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 1500, "Clockwise bullet hit effect", 5));
-	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR,  1500, "Bullet hit effect goes Counter-Clockwise",5));
-	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 3000, "Bullet hit effect goes Inward", 15));
-	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR,  3000, "Bullet hit effect goes Outward",15));
-	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 2500, "Bullet hit effect goes in a Line", 10));
-	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR,  2500, "Criss Cross bullet hit effect",10));
+	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 2500, "Clockwise bullet hit effect", 5));
+	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR,  2500, "Bullet hit effect goes Counter-Clockwise",5));
+	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 4000, "Bullet hit effect goes Inward", 15));
+	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR,  4000, "Bullet hit effect goes Outward",15));
+	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 3500, "Bullet hit effect goes in a Line", 10));
+	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR,  3500, "Criss Cross bullet hit effect",10));
 
 	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 1250, "Go out with a Boom!", 5));
 	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 1250, "Hammer death", 5));
-	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 1750, "Creates an 8 sided circle of damage indicators", 10));
-	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 2250, "Become wizard and summon lasers on death", 10));
+	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 2750, "Creates an 8 sided circle of damage indicators", 10));
+	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 2750, "Become wizard and summon lasers on death", 10));
 
-	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 2500, "A trail of stars", 7));
-	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 2500, "A dot trail", 7));
+	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 4500, "A trail of stars", 7));
+	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 4500, "A dot trail", 7));
 
-	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 1000, "Makes you sparkle", 5));
-	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 2250, "A hat of hearts?", 10));
-	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 3500, "Shows your aim backwards to others!", 20));
-	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 2750, "Spreading love huh?", 15));
-	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 3500, "Ball rotate - life good", 15));
-	m_Items.push_back(new CItems("Epic Circle", TYPE_OTHER, 3500, "Really epic circle", 20));
+	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 1200, "Makes you sparkle", 5));
+	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 4250, "A hat of hearts?", 10));
+	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 10000, "Shows your aim backwards to others!", 20));
+	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 5750, "Spreading love huh?", 15));
+	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 5500, "Ball rotate - life good", 15));
+	// m_Items.push_back(new CItems("Epic Circle", TYPE_OTHER, 3500, "Really epic circle", 20));
 }
 
 void CShop::ResetItems()

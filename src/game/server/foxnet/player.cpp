@@ -32,6 +32,8 @@
 #include "shop.h"
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
+CInventory *CPlayer::Inv() { return &Acc()->m_Inventory; }
+CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 
 void CPlayer::FoxNetTick()
 {
@@ -66,7 +68,7 @@ void CPlayer::FoxNetReset()
 	m_TelekinesisImmunity = false;
 	m_SpiderHook = false;
 
-	m_Inventory = CInventory();
+	Acc()->m_Inventory = CInventory();
 	m_vPickupDrops.clear();
 }
 
@@ -495,7 +497,8 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_LASER]))
 		SetDeathEffect(Value);
 
-	Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfShortcut(Item), Value);
+	if(!IgnoreAccount)
+		Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfShortcut(Item), Value);
 
 	return true;
 }

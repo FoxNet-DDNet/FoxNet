@@ -422,9 +422,9 @@ public:
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
 
-	CInventory m_Inventory;
-	CCosmetics *Cosmetics() { return &m_Inventory.m_Cosmetics; };
 	CAccountSession *Acc();
+	CInventory *Inv();
+	CCosmetics *Cosmetics();
 
 	bool m_Invisible = false;
 	bool m_Obfuscated = false;
