@@ -1472,8 +1472,57 @@ void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData
 	new CProjectileText(&pSelf->m_World, Pos, ClientId, 250, pText, WEAPON_HAMMER);
 }
 
+static void ConServerHelp(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int ClientId = pResult->m_ClientId;
+	if(!CheckClientId(ClientId))
+		return;
+	const char *pCommand = pResult->NumArguments() ? pResult->GetString(0) : "";
+
+	if(!str_comp(pCommand, "level"))
+	{
+		pSelf->SendChatTarget(ClientId, "─── Leveling Info ───");
+		pSelf->SendChatTarget(ClientId, "In the vote menu under the Account section you will find your Level and your XP");
+		pSelf->SendChatTarget(ClientId, "You need to reach the required xp to level up.");
+		pSelf->SendChatTarget(ClientId, "How to get XP:");
+		pSelf->SendChatTarget(ClientId, "- You get +1 XP every minute just by playing");
+		pSelf->SendChatTarget(ClientId, "- Everytime you finish a map, you get the amount of points as XP");
+		pSelf->SendChatTarget(ClientId, "- Powerups will randomly spawn on the map, they can reward you with XP or Money!");
+		pSelf->SendChatTarget(ClientId, "Note that on weekends XP and Money doubled!");
+	}
+	else if(!str_comp(pCommand, "shop"))
+	{
+		pSelf->SendChatTarget(ClientId, "─── Shop Info ───");
+		pSelf->SendChatTarget(ClientId, "The Shop can be found in the Vote Menu");
+		pSelf->SendChatTarget(ClientId, "There you can find Items (mostly cosmetics)");
+		pSelf->SendChatTarget(ClientId, "If you have an Idea for an Item, you can create an Issue on the Github Repository!");
+		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNetw/FoxNet/issues");
+		pSelf->SendChatTarget(ClientId, "Note that you need a github account for that.");
+	}
+	else if(!str_comp(pCommand, "other"))
+	{
+		pSelf->SendChatTarget(ClientId, "─── Other Info ───");
+		pSelf->SendChatTarget(ClientId, "Powerups randomly spawn on every map");
+		pSelf->SendChatTarget(ClientId, "We have support for some of the moving tiles from KoG. '/map Tuxcana' for example.");
+		pSelf->SendChatTarget(ClientId, "You can drop your weapons by pressing F4 (vote no) or '/dropweapon'");
+		pSelf->SendChatTarget(ClientId, "If you have an Idea or found a Bug, you can go to the Github Repo and make a new Issue!");
+		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNetw/FoxNet/issues");
+		pSelf->SendChatTarget(ClientId, "Note that you need a github account for that.");
+	}
+	else
+	{
+		pSelf->SendChatTarget(ClientId, "─── Tables ───");
+		pSelf->SendChatTarget(ClientId, "Type '/server level' to learn how leveling works");
+		pSelf->SendChatTarget(ClientId, "Type '/server shop' to learn more about the shop");
+		pSelf->SendChatTarget(ClientId, "Type '/server other' for other information");
+	}
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
+	Console()->Register("server", "?r[info]", CFGFLAG_CHAT, ConServerHelp, this, "Sends you info on how accounts work");
+	
 	Console()->Register("lasertext", "r[string]", CFGFLAG_SERVER, ConLaserText, this, "laser text");
 	Console()->Register("projectiletext", "r[string]", CFGFLAG_SERVER, ConProjectileText, this, "projectile text");
 

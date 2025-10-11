@@ -519,6 +519,13 @@ void CGameContext::OnLogin(int ClientId)
 		pPl->m_HideCosmetics = true;
 	if(Flags & ACC_FLAG_HIDE_POWERUPS)
 		pPl->m_HidePowerUps = true;
+
+	if(pPl->Acc()->m_LastName[0] == '\0')
+	{
+		SendChatTarget(ClientId, "This seems to be your first Login, so welcome to FoxNetwork!");
+		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
+		SendChatTarget(ClientId, "For more Info on Accounts, type '/server' !");
+	}
 }
 void CGameContext::OnLogout(int ClientId)
 {

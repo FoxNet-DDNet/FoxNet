@@ -113,13 +113,13 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
 			return;
 		}
-		OnLogin(ClientId, Res);
 		if(!Silent)
 		{
 			GameServer()->SendChatTarget(ClientId, "Logged in successfully");
 		}
 		else if(Auto)
 			GameServer()->SendChatTarget(ClientId, "Automatically logged into your account");
+		OnLogin(ClientId, Res);
 	});
 	m_pPool->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
 	return true;
@@ -155,8 +155,8 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 			GameServer()->SendChatTarget(ClientId, "Account is already logged in");
 			return;
 		}
-		OnLogin(ClientId, Res);
 		GameServer()->SendChatTarget(ClientId, "Login successful");
+		OnLogin(ClientId, Res);
 	});
 	m_pPool->Execute(CAccountsWorker::Login, std::move(pReq), "acc login");
 }
