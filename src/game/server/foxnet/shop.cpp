@@ -1,13 +1,17 @@
 ﻿#include "shop.h"
-#include "../gamecontext.h"
-#include "../player.h"
+
 #include "accounts.h"
-#include <algorithm>
+#include "game/server/gamecontext.h"
+#include "game/server/player.h"
+
 #include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
+
 #include <engine/server.h>
 #include <engine/shared/config.h>
+
+#include <algorithm>
 #include <vector>
 
 IServer *CShop::Server() const { return GameServer()->Server(); }
@@ -23,26 +27,26 @@ void CShop::AddItems()
 {
 	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 750, "Makes your body Rainbow", 2));
 	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 1450, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 2500, "Anyone you hook is Rainbow", 5));
+	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 2500, "Anyone you hook becomes Rainbow!", 5));
 
 	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 2550, "Shoot emotions at people", 10));
 	// m_Items.push_back(new CItems("Confetti Gun", TYPE_GUN,  2000,"Party gun!", 10));
 	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 1250, "Your bullets defy physics", 5));
 
-	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 2500, "Clockwise bullet hit effect", 5));
-	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR,  2500, "Bullet hit effect goes Counter-Clockwise",5));
-	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 4000, "Bullet hit effect goes Inward", 15));
-	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR,  4000, "Bullet hit effect goes Outward",15));
-	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 3500, "Bullet hit effect goes in a Line", 10));
-	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR,  3500, "Criss Cross bullet hit effect",10));
+	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 2500, "Gun Hit -> turns Clockwise", 5));
+	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR, 2500, "Gun Hit -> turns Counter-Clockwise", 5));
+	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 4000, "Gun Hit -> turns Inward", 15));
+	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR, 4000, "Gun Hit -> turns Outward", 15));
+	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 3500, "Gun Hit -> goes in a Line", 10));
+	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR, 3500, "Gun Hit -> goes in a Criss Cross pattern", 10));
 
 	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 1250, "Go out with a Boom!", 5));
-	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 1250, "Hammer death", 5));
-	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 2750, "Creates an 8 sided circle of damage indicators", 10));
+	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 1250, "Get Bonked on death!", 5));
+	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 2750, "Creates an octagon of damage indicators", 10));
 	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 2750, "Become wizard and summon lasers on death", 10));
 
-	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 4500, "A trail of stars", 7));
-	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 4500, "A dot trail", 7));
+	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 4500, "The Stars follow you", 7));
+	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 4500, "A trail made out of small dots", 7));
 
 	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 1200, "Makes you sparkle", 5));
 	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 4250, "A hat of hearts?", 10));
@@ -253,7 +257,7 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	}
 
 	pPl->TakeMoney(Price);
-	
+
 	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(ItemName), true);
 
 	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
