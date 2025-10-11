@@ -1426,9 +1426,9 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[64];
 	if(pPlayer->m_BetAmount <= 0)
-		str_format(aBuf, sizeof(aBuf), "You wagered %d %s", Amount, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You wagered %d%s", Amount, g_Config.m_SvCurrencyName);
 	else
-		str_format(aBuf, sizeof(aBuf), "You changed your wager to %d %s", Amount, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You changed your wager to %d%s", Amount, g_Config.m_SvCurrencyName);
 
 	pSelf->SendChatTarget(ClientId, aBuf);
 

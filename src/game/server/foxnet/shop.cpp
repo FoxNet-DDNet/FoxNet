@@ -235,9 +235,9 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	if(pAcc->m_Money < Price)
 	{
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		str_format(aBuf, sizeof(aBuf), "│ You don't have enough %s to buy %s", g_Config.m_SvCurrencyName, ItemName);
+		str_format(aBuf, sizeof(aBuf), "│ You don't have enough Money to buy %s", ItemName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ You need atleast %d %s", Price, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "│ You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 		return;
@@ -261,9 +261,9 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(ItemName), true);
 
 	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d %s", ItemName, Price, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d%s", ItemName, Price, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
-	str_format(aBuf, sizeof(aBuf), "│ You now have: %ld %s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "│ You now have: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 	GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);

@@ -165,7 +165,7 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 
 	if(pMessage[0])
 	{
-		str_format(aBuf, sizeof(aBuf), "+%ld %s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
+		str_format(aBuf, sizeof(aBuf), "+%ld%s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 	}	
 
@@ -195,7 +195,7 @@ void CPlayer::TakeMoney(long Amount, bool Silent, const char *pMessage)
 
 	if(pMessage[0])
 	{
-		str_format(aBuf, sizeof(aBuf), "-%ld %s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
+		str_format(aBuf, sizeof(aBuf), "-%ld%s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 	}
 

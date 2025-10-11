@@ -697,7 +697,7 @@ void CVoteMenu::SendPageAccount(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ Playtime: %ld Minute%s", pAcc->m_Playtime, pAcc->m_Playtime == 1 ? "" : "s");
 	AddVoteText(aBuf);
 
-	str_format(aBuf, sizeof(aBuf), "│ %s: %ld", g_Config.m_SvCurrencyName, pAcc->m_Money);
+	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 	AddVoteText(aBuf);
 
 	str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
@@ -730,7 +730,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		std::vector<std::string> OtherItems;
 
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "%ld %s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "%ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 		AddVoteText(aBuf);
 		AddVoteSeperator();
 

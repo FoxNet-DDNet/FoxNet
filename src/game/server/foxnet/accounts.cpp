@@ -479,7 +479,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, "├──────      Sᴛᴀᴛs");
 		str_format(aBuf, sizeof(aBuf), "│ Level %ld", Data.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ %ld %s", Data.m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "│ %ld%s", Data.m_Money, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		float PlayTimeHours = Data.m_Playtime / 60.0f;
 		if(Data.m_Playtime < 100)
