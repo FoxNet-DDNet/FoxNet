@@ -20,27 +20,10 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	static constexpr const char *CREDITS[] = {
-		"DDNet is run by the DDNet staff (DDNet.org/staff)",
-		"Great maps and many ideas from the great community",
-		"Help and code by eeeee, HMH, east, CookieMichal, Learath2,",
-		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, timakro, Shiki,",
-		"trml, Soreu, hi_leute_gll, Lady Saavik, Chairn, heinrich5991,",
-		"swick, oy, necropotame, Ryozuki, Redix, d3fault, marcelherd,",
-		"BannZay, ACTom, SiuFuWong, PathosEthosLogos, TsFreddie,",
-		"Jupeyy, noby, ChillerDragon, ZombieToad, weez15, z6zzz,",
-		"Piepow, QingGo, RafaelFF, sctt, jao, daverck, fokkonaut,",
-		"Bojidar, FallenKN, ardadem, archimede67, sirius1242, Aerll,",
-		"trafilaw, Zwelf, Patiga, Konsti, ElXreno, MikiGamer,",
-		"Fireball, Banana090, axblk, yangfl, Kaffeine, Zodiac,",
-		"c0d3d3v, GiuCcc, Ravie, Robyt3, simpygirl, sjrc6, Cellegen,",
-		"srdante, Nouaa, Voxel, luk51, Vy0x2, Avolicious, louis,",
-		"Marmare314, hus3h, ArijanJ, tarunsamanta2k20, Possseidon,",
-		"M0REKZ, Teero, furo, dobrykafe, Moiman, JSaurusRex,",
-		"Steinchen, ewancg, gerdoe-jr, BlaiZephyr, KebsCS, bencie,",
-		"DynamoFox, MilkeeyCat, iMilchshake, SchrodingerZhu,",
-		"catseyenebulous, Rei-Tw, Matodor, Emilcha, art0007i, SollyBunny,",
-		"0xfaulty & others",
-		"Based on DDRace by the DDRace developers,",
+		"Credits: fokkonaut, Pointer31, Schnupp, +KZ",
+		"FoxNetwork is made by qxdFox,",
+		"Which is based on DDNet by the DDNet developers,",
+		"Which is based on DDRace by the DDRace developers,",
 		"which is a mod of Teeworlds by the Teeworlds developers.",
 	};
 	for(const char *pLine : CREDITS)
@@ -51,7 +34,7 @@ void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-		"DDraceNetwork Mod. Version: " GAME_VERSION);
+		"FoxNetwork Mod. Version: " FOXNET_VERSION);
 	if(GIT_SHORTREV_HASH)
 	{
 		char aBuf[64];
@@ -59,11 +42,7 @@ void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 	}
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-		"Official site: DDNet.org");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 		"For more info: /cmdlist");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-		"Or visit DDNet.org");
 }
 
 void CGameContext::ConList(IConsole::IResult *pResult, void *pUserData)
