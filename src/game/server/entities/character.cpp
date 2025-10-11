@@ -2976,8 +2976,9 @@ void CCharacter::FoxNetTick()
 	}
 
 	float Angle = std::atan2(m_Core.m_Vel.x, -m_Core.m_Vel.y);
+	bool Moving = m_Pos != m_PrevPos;
 
-	if(GetPlayer()->Cosmetics()->m_Trail == TRAIL_STAR && Server()->Tick() % 20 == 0) // only every second
+	if(GetPlayer()->Cosmetics()->m_Trail == TRAIL_STAR && Moving && Server()->Tick() % 20 == 0) // every second
 		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
 
 	if(GetPlayer()->m_SpiderHook)
