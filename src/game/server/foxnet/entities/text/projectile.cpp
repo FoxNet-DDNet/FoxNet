@@ -1,14 +1,15 @@
-﻿#include <game/server/entity.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gameworld.h>
-
-#include <generated/protocol.h>
+﻿#include "text.h"
 
 #include <base/math.h>
 #include <base/str.h>
 #include <base/vmath.h>
 
-#include "text.h"
+#include <generated/protocol.h>
+
+#include <game/server/entities/character.h>
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gameworld.h>
 
 constexpr float CellSize = 8.0f;
 
@@ -34,6 +35,13 @@ CProjectileText::CProjectileText(CGameWorld *pGameWorld, vec2 Pos, int Owner, in
 void CProjectileText::Snap(int SnappingClient)
 {
 	if(NetworkClipped(SnappingClient))
+		return;
+
+	CClientMask TeamMask = CClientMask().set();
+	if(GameServer()->GetPlayerChar(m_Owner))
+		TeamMask = GameServer()->GetPlayerChar(m_Owner)->TeamMask();
+
+	if(!TeamMask.test(SnappingClient) && SnappingClient != -1)
 		return;
 
 	for(auto *pData : m_pData)
