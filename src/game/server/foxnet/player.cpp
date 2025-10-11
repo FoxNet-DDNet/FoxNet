@@ -237,8 +237,8 @@ int CPlayer::GetItemToggle(const char *pItemName)
 		Value = (int)!Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		Value = (int)!Cosmetics()->m_RotatingBall;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-		Value = (int)!Cosmetics()->m_EpicCircle;
+	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
+	//	Value = (int)!Cosmetics()->m_EpicCircle;
 	// else if(!str_comp_nocase(pItem, ItemShortcuts[OTHER_BLOODY]))
 	//	Value = (int)!Cosmetics()->m_Bloody;
 
@@ -251,9 +251,9 @@ int CPlayer::GetItemToggle(const char *pItemName)
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
 		Value = (int)Cosmetics()->m_EmoticonGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-		Value = (int)!Cosmetics()->m_ConfettiGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_LASER]))
+	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
+	//	Value = (int)!Cosmetics()->m_ConfettiGun;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_LASER]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
@@ -305,8 +305,8 @@ bool CPlayer::ItemEnabled(const char *pItemName)
 		Value = Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		Value = Cosmetics()->m_RotatingBall;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-		Value = Cosmetics()->m_EpicCircle;
+	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
+	//	Value = Cosmetics()->m_EpicCircle;
 	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_BLOODY]))
 	//	Value = Cosmetics()->m_Bloody;
 
@@ -319,9 +319,9 @@ bool CPlayer::ItemEnabled(const char *pItemName)
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
 		Value = Cosmetics()->m_EmoticonGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-		Value = Cosmetics()->m_ConfettiGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_LASER]))
+	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
+	//	Value = Cosmetics()->m_ConfettiGun;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_LASER]))
 		Value = Cosmetics()->m_PhaseGun;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
@@ -363,8 +363,8 @@ bool CPlayer::ReachedItemLimit(const char *pItem, int Set, int Value)
 
 	int Amount = 0;
 
-	if(Cosmetics()->m_EpicCircle)
-		Amount++;
+	// if(Cosmetics()->m_EpicCircle)
+	//	Amount++;
 	if(Cosmetics()->m_Lovely)
 		Amount++;
 	if(Cosmetics()->m_RotatingBall)
@@ -445,8 +445,8 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		SetLovely(Value);
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		SetRotatingBall(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-		SetEpicCircle(Value);
+	// else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_EPICCIRCLE]))
+	//	SetEpicCircle(Value);
 	// else if(!str_comp_nocase(Item, ItemShortcuts[OTHER_BLOODY]))
 	//	Cosmetics()->m_Bloody = Value;
 
@@ -463,9 +463,9 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		SetEmoticonGun(Value);
 	}
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_CONFETTI]))
-		SetConfettiGun(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_LASER]))
+	// else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_CONFETTI]))
+	//	SetConfettiGun(Value);
+	else if(!str_comp_nocase(Item, ItemShortcuts[C_PHASE_LASER]))
 		SetPhaseGun(Value);
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_TRAIL_STAR]))

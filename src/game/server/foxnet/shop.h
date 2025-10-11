@@ -7,14 +7,14 @@
 class CGameContext;
 class IServer;
 
-constexpr int NUM_ITEMS = 24;
+constexpr int NUM_ITEMS = 22;
 constexpr const char *Items[NUM_ITEMS] = {
 	"Rainbow Feet",
 	"Rainbow Body",
 	"Rainbow Hook",
 
 	"Emoticon Gun",
-	"Confetti Gun",
+	// "Confetti Gun",
 	"Phase Gun",
 
 	"Clockwise Indicator",
@@ -37,8 +37,8 @@ constexpr const char *Items[NUM_ITEMS] = {
 	"Inverse Aim",
 	"Lovely",
 	"Rotating Ball",
-	"Epic Circle",
-	//"Bloody"
+	// "Epic Circle",
+	// "Bloody"
 };
 
 constexpr const char *ItemShortcuts[NUM_ITEMS] = {
@@ -47,7 +47,7 @@ constexpr const char *ItemShortcuts[NUM_ITEMS] = {
 	"R_H", // Rainbow Hook
 
 	"G_E", // Emoticon Gun
-	"G_C", // Confetti Gun
+	// "G_C", // Confetti Gun
 	"G_P", // Phase Gun
 
 	"I_C", // Clockwise Indicator
@@ -70,7 +70,7 @@ constexpr const char *ItemShortcuts[NUM_ITEMS] = {
 	"O_IA", // Inverse Aim
 	"O_L", // Lovely
 	"O_RB", // Rotating Ball
-	"O_EC", // Epic Circle
+	// "O_EC", // Epic Circle
 	//"Bloody"
 };
 
@@ -80,8 +80,8 @@ enum Cosmetics
 	C_RAINBOW_BODY,
 	C_RAINBOW_HOOK,
 	C_GUN_EMOTICON,
-	C_GUN_CONFETTI,
-	C_GUN_LASER,
+	// C_GUN_CONFETTI,
+	C_PHASE_LASER,
 	C_INDICATOR_CLOCKWISE,
 	C_INDICATOR_COUNTERCLOCKWISE,
 	C_INDICATOR_INWARD_TURNING,
@@ -99,7 +99,7 @@ enum Cosmetics
 	C_OTHER_INVERSEAIM,
 	C_OTHER_LOVELY,
 	C_OTHER_ROTATINGBALL,
-	C_OTHER_EPICCIRCLE,
+	// C_OTHER_EPICCIRCLE,
 	// C_OTHER_BLOODY,
 	NUM_COSMETICS
 };

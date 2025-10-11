@@ -22,11 +22,11 @@ void CShop::Init(CGameContext *pGameServer)
 void CShop::AddItems()
 {
 	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 750, "Makes your body Rainbow", 2));
-	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 1250, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 1500, "Anyone you hook is Rainbow", 5));
+	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 1450, "Makes your feet Rainbow", 4));
+	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 2500, "Anyone you hook is Rainbow", 5));
 
-	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 1550, "Shoot emotions at people", 10));
-	m_Items.push_back(new CItems("Confetti Gun", TYPE_GUN,  2000,"Party gun!", 10));
+	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 2550, "Shoot emotions at people", 10));
+	// m_Items.push_back(new CItems("Confetti Gun", TYPE_GUN,  2000,"Party gun!", 10));
 	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 1000, "Your bullets defy physics", 5));
 
 	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 1500, "Clockwise bullet hit effect", 5));
