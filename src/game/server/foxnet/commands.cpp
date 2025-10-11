@@ -150,7 +150,7 @@ void CGameContext::ConAccForceLogin(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConAccForceLogout(IConsole::IResult *pResult, void *pUserData)
 { // Logs out Current Acc Session, does not work across servers
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int ClientId = pResult->GetInteger(0);
+	int ClientId = pResult->GetVictim();
 	if(!CheckClientId(ClientId))
 		return;
 	pSelf->m_AccountManager.Logout(ClientId);
@@ -159,7 +159,7 @@ void CGameContext::ConAccForceLogout(IConsole::IResult *pResult, void *pUserData
 void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetInteger(0);
+	const int ClientId = pResult->GetVictim();
 	if(!CheckClientId(ClientId))
 		return;
 
@@ -179,7 +179,7 @@ void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 { // Logs out Current Acc Session, does not work across servers
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetInteger(0);
+	const int ClientId = pResult->GetVictim();
 	if(!CheckClientId(ClientId))
 		return;
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
