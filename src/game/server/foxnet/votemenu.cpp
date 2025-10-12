@@ -64,8 +64,6 @@ constexpr const char *ADMIN_COSM_STAFFIND = "Staff Indicator";
 constexpr const char *ADMIN_COSM_HEARTGUN = "Heart Gun";
 
 // Part of Cosmetics ig /shrug
-constexpr const char *ADMIN_ABILITY_HEART = "Heart Ability";
-constexpr const char *ADMIN_ABILITY_SHIELD = "Shield Ability";
 constexpr const char *ADMIN_ABILITY_FIREWORK = "Firework Ability";
 constexpr const char *ADMIN_ABILITY_TELEKINESIS = "Telekinesis Ability";
 
@@ -401,16 +399,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			{
 				if(pChr)
 					pChr->GiveWeapon(WEAPON_HEARTGUN, pChr->GetWeaponGot(WEAPON_HEARTGUN));
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_ABILITY_HEART))
-			{
-				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_HEART ? ABILITY_NONE : ABILITY_HEART);
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_ABILITY_SHIELD))
-			{
-				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_SHIELD ? ABILITY_NONE : ABILITY_SHIELD);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_ABILITY_FIREWORK))
@@ -921,8 +909,6 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSeperator();
 
 		AddVoteSubheader("Aʙɪʟɪᴛɪᴇs");
-		AddVoteCheckBox(ADMIN_ABILITY_HEART, pPl->Cosmetics()->m_Ability == ABILITY_HEART);
-		AddVoteCheckBox(ADMIN_ABILITY_SHIELD, pPl->Cosmetics()->m_Ability == ABILITY_SHIELD);
 		AddVoteCheckBox(ADMIN_ABILITY_FIREWORK, pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK);
 		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS);
 		AddVoteSeperator();

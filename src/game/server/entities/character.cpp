@@ -3272,77 +3272,6 @@ void CCharacter::SetCollidable(bool Active)
 	m_Core.m_Collidable = Active;
 }
 
-void CCharacter::CreatePowerupExplosion(vec2 Pos, int ClientId, int Type)
-{
-	vec2 Direction;
-	float Amount = 8;
-
-	for(int Repeat = 1; Repeat < (int)Amount + 1; Repeat++)
-	{
-		Direction = direction(360.0f / Amount * Repeat * (pi / 180.0f));
-
-		new CCustomProjectile(
-			GameWorld(),
-			ClientId, // owner
-			Pos, // pos
-			Direction, // dir
-			false, // explosive
-			false, // freeze
-			false, // unfreeze
-			Type, // type
-			false, // Is Normal Weapon Type
-			6.0f, // Lifetime
-			1.0f, // Accel
-			10.0f // Speed
-		);
-	}
-	int Sound = Type + 24;
-	GameServer()->CreateSound(Pos, Sound, TeamMask());
-}
-
-void CCharacter::CreatePowerupCircle(vec2 Pos, int ClientId, int Type)
-{
-	vec2 Direction;
-	float LifeTime = 3.0f;
-	int Amount = 32;
-
-	float Random = random_float(0.0f, 2.0f);
-
-	for(int Repeat = 1; Repeat < Amount + 1; Repeat++)
-	{
-		float BetweenTime = (Amount / 2.0f) / 10.0f;
-		Direction = direction(360.0f / Amount * Repeat * (pi / 180.0f)) * 50;
-		LifeTime = 3.0f + Repeat / 10.0f;
-
-		if(Random > 1.0f)
-			LifeTime = 3.0f + BetweenTime - Repeat / 10.0f;
-
-		if(Repeat > Amount / 2) // this creates a little effect when its starts to dissapear
-		{
-			LifeTime = 3.0f + BetweenTime - (Amount - Repeat) / 10.0f;
-			if(Random > 1.0f)
-				LifeTime = 3.0f + (Amount - Repeat) / 10.0f;
-		}
-
-		new CCustomProjectile(
-			GameWorld(),
-			ClientId, // owner
-			Pos + Direction, // pos
-			-Direction, // dir
-			false, // explosive
-			false, // freeze
-			false, // unfreeze
-			Type, // type
-			false, // Is Normal Weapon Type
-			LifeTime, // Lifetime
-			0.98f, // Accel
-			4.00f // Speed
-		);
-	}
-	int Sound = Type + 24;
-	GameServer()->CreateSound(Pos, Sound, TeamMask());
-}
-
 void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 {
 	int Ability = GetPlayer()->Cosmetics()->m_Ability;
@@ -3354,16 +3283,6 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 
 	if(F3 && (m_VoteActionDelay <= 0 || NoCooldown))
 	{
-		if(GetActiveWeapon() == WEAPON_HEARTGUN || Ability == ABILITY_HEART)
-		{
-			CreatePowerupCircle(GetCursorPos(), ClientId, POWERUP_HEALTH);
-			m_VoteActionDelay = Server()->TickSpeed() * 3;
-		}
-		if(Ability == ABILITY_SHIELD)
-		{
-			CreatePowerupCircle(GetCursorPos(), ClientId, POWERUP_ARMOR);
-			m_VoteActionDelay = Server()->TickSpeed() * 3;
-		}
 		if(Ability == ABILITY_FIREWORK)
 		{
 			new CFirework(GameWorld(), m_pPlayer->GetCid(), m_Pos);

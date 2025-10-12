@@ -761,10 +761,6 @@ static const char *GetAbilityName(int Type)
 {
 	switch(Type)
 	{
-	case ABILITY_HEART:
-		return "Heart";
-	case ABILITY_SHIELD:
-		return "Shield";
 	case ABILITY_FIREWORK:
 		return "Firework";
 	case ABILITY_TELEKINESIS:
