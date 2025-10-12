@@ -1386,7 +1386,7 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 	else if(pSnapPlayer->SpectatorId() >= 0)
 	{
 		CCharacter *pSpecChar = GameServer()->GetPlayerChar(pSnapPlayer->SpectatorId());
-		if(((pSpecChar && pSpecChar->m_SpawnSolo) || (pSnapChar && pSnapChar->m_SpawnSolo)) && Teams()->m_Core.SameTeam(SnappingClient, pSnapPlayer->SpectatorId()))
+		if(((pSpecChar && pSpecChar->m_SpawnSolo) || (pSnapChar && pSnapChar->m_SpawnSolo) || m_SpawnSolo) && SameTeam(pSnapPlayer->SpectatorId()))
 			return true;
 	}
 
