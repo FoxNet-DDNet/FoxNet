@@ -425,7 +425,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				m_HookPos = m_Pos;
 				m_pHookedQuad = nullptr;
 			}
-		}	
+		}
 		// Update anchored hook head if grabbed to a moving quad
 		if(m_HookedPlayer == -1 && m_pHookedQuad)
 		{
@@ -468,6 +468,11 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			m_pHookedQuad = nullptr;
 		}
 	}
+
+	// <FoxNet
+	if(m_pHookedQuad)
+		m_ResendCore = true;
+	// FoxNet>
 
 	if(DoDeferredTick)
 		TickDeferred();
@@ -572,10 +577,13 @@ void CCharacterCore::Move()
 
 	vec2 OldVel = m_Vel;
 	bool Grounded = false;
-	m_pCollision->MoveBox(&NewPos, &m_Vel, PhysicalSizeVec2(),
+	bool HitQuad = m_pCollision->MoveBox(&NewPos, &m_Vel, PhysicalSizeVec2(),
 		vec2(Tuning.m_GroundElasticityX,
 			Tuning.m_GroundElasticityY),
 		&Grounded);
+
+	if(HitQuad)
+		m_ResendCore = true;
 
 	if(Grounded)
 	{

@@ -587,7 +587,33 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size) const
 	return false;
 }
 
-void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded) const
+// <FoxNet
+bool CCollision::TestBox(vec2 Pos, vec2 Size, bool *pHitQuad) const
+{
+	Size *= 0.5f;
+	if(CheckPoint(Pos.x - Size.x, Pos.y - Size.y, pHitQuad))
+		return true;
+	if(CheckPoint(Pos.x + Size.x, Pos.y - Size.y, pHitQuad))
+		return true;
+	if(CheckPoint(Pos.x - Size.x, Pos.y + Size.y, pHitQuad))
+		return true;
+	if(CheckPoint(Pos.x + Size.x, Pos.y + Size.y, pHitQuad))
+		return true;
+	return false;
+}
+
+int CCollision::IsSolid(int x, int y, bool *pHitQuad) const
+{
+	int index = GetSolidQuad(vec2(x, y));
+	if(pHitQuad && *pHitQuad != true)
+		*pHitQuad = index == TILE_SOLID || index == TILE_NOHOOK;
+	if(!index)
+		index = GetTile(x, y);
+	return index == TILE_SOLID || index == TILE_NOHOOK;
+}
+// FoxNet>
+
+bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded) const
 {
 	// do the move
 	vec2 Pos = *pInoutPos;
@@ -595,6 +621,8 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	float Distance = length(Vel);
 	int Max = (int)Distance;
+
+	bool HitQuad = false; // FoxNet
 
 	if(Distance > 0.00001f)
 	{
@@ -621,20 +649,20 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 				break;
 			}
 
-			if(TestBox(vec2(NewPos.x, NewPos.y), Size))
+			if(TestBox(vec2(NewPos.x, NewPos.y), Size, &HitQuad))
 			{
 				int Hits = 0;
 
-				if(TestBox(vec2(Pos.x, NewPos.y), Size))
+				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuad))
 				{
-					if(pGrounded && ElasticityY > 0 && Vel.y > 0)
+					if(pGrounded && (ElasticityY > 0 || HitQuad) && Vel.y > 0)
 						*pGrounded = true;
 					NewPos.y = Pos.y;
 					Vel.y *= -ElasticityY;
 					Hits++;
 				}
 
-				if(TestBox(vec2(NewPos.x, Pos.y), Size))
+				if(TestBox(vec2(NewPos.x, Pos.y), Size, &HitQuad))
 				{
 					NewPos.x = Pos.x;
 					Vel.x *= -ElasticityX;
@@ -645,7 +673,7 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 				// this is a real _corner case_!
 				if(Hits == 0)
 				{
-					if(pGrounded && ElasticityY > 0 && Vel.y > 0)
+					if(pGrounded && (ElasticityY > 0 || HitQuad) && Vel.y > 0)
 						*pGrounded = true;
 					NewPos.y = Pos.y;
 					Vel.y *= -ElasticityY;
@@ -660,6 +688,8 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	*pInoutPos = Pos;
 	*pInoutVel = Vel;
+
+	return HitQuad;
 }
 
 // DDRace

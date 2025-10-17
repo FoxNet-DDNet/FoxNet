@@ -1056,19 +1056,10 @@ void CCharacter::TickDeferred()
 		m_ReckoningCore.Write(&Predicted);
 		m_Core.Write(&Current);
 
-		// only allow dead reckoning for a top of 3 seconds
-		if(m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0)
-		{
-			// <FoxNet
-			m_ReckoningTick = Server()->Tick();
-			m_SendCore = m_Core;
-			m_ReckoningCore = m_Core;
-			m_Core.m_Reset = false;
-			// FoxNet>
-		}
 		// <FoxNet
+		bool DDNetUpdate = m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0;
 		bool InstaUpdate = m_InSnake || m_Ufo.Active() || g_Config.m_SvInstantCoreUpdate;
-		if(InstaUpdate || m_Core.m_pHookedQuad)
+		if(DDNetUpdate || InstaUpdate || m_Core.m_ResendCore)
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;

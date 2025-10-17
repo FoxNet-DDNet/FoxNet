@@ -63,8 +63,12 @@ public:
 	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr) const;
 	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CQuadData **ppOutQuad = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
-	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
+	bool MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
 	bool TestBox(vec2 Pos, vec2 Size) const;
+
+	bool CheckPoint(float x, float y, bool *pHitQuad) const { return IsSolid(round_to_int(x), round_to_int(y), pHitQuad); }
+	int IsSolid(int x, int y, bool *pHitQuad) const;
+	bool TestBox(vec2 pos, vec2 size, bool *pHitQuad) const;
 
 	// DDRace
 	void SetCollisionAt(float x, float y, int Index);
@@ -192,7 +196,6 @@ private:
 	void GetAnimationTransform(float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 	std::vector<vec2> m_SpawnCandidates;
 	std::vector<CQuadData> m_vQuads;
-
 
 public:
 	int IsSolidQuad(vec2 Pos) const;
