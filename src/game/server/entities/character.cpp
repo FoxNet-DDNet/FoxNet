@@ -1068,7 +1068,7 @@ void CCharacter::TickDeferred()
 		}
 		// <FoxNet
 		bool InstaUpdate = m_InSnake || m_Ufo.Active() || g_Config.m_SvInstantCoreUpdate;
-		if(InstaUpdate)
+		if(InstaUpdate || m_Core.m_pHookedQuad)
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;
