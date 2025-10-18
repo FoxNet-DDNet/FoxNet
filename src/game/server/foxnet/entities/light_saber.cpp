@@ -151,9 +151,9 @@ void CLightSaber::Snap(int SnappingClient)
 	vec2 To = m_To + pOwnerChr->GetVelocity();
 	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
 	{
-		const double Pred = pOwnerChr->GetPlayer()->m_PredLatency;
-		const float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		const vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
+		double Pred = pOwnerChr->GetPlayer()->GetClientPred();
+		float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
 
 		To = m_Pos + nVel;
 		const vec2 WantedFrom = To + normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)) * m_Length;

@@ -108,9 +108,9 @@ void CRotatingBall::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	const double Pred = pOwnerChr->GetPlayer()->m_PredLatency;
-	const float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-	const vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
+	double Pred = pOwnerChr->GetPlayer()->GetClientPred();
+	float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+	vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
 
 	vec2 Pos = m_ProjPos + pOwnerChr->GetVelocity();
 	vec2 LaserPos = m_LaserPos + pOwnerChr->GetVelocity();

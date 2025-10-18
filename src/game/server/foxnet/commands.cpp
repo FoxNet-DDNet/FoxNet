@@ -1383,7 +1383,14 @@ void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
-	int PredMargin = pResult->NumArguments() ? pResult->GetInteger(0) : 6;
+	if(!pResult->NumArguments())
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "You need to specify your client prediction margin");
+		pSelf->SendChatTarget(pResult->m_ClientId, "10 is the default.");
+		return;
+	}
+
+	int PredMargin = pResult->GetInteger(0);
 
 	pPlayer->Repredict(PredMargin);
 }

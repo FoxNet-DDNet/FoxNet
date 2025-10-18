@@ -39,9 +39,6 @@ void CPlayer::FoxNetTick()
 {
 	RainbowTick();
 
-	if(m_JoinTick + Server()->TickSpeed() * 5 > Server()->Tick())
-		Repredict();
-
 	if(m_LastBet + Server()->TickSpeed() * 30 < Server()->Tick())
 		m_BetAmount = -1; // Reset bet amount every 30 seconds
 
@@ -67,6 +64,8 @@ void CPlayer::FoxNetReset()
 	m_IgnoreGamelayer = false;
 	m_TelekinesisImmunity = false;
 	m_SpiderHook = false;
+
+	Repredict(10); // Default PredMargin set by DDNet Client
 
 	Acc()->m_Inventory = CInventory();
 	m_vPickupDrops.clear();
@@ -876,63 +875,10 @@ void CPlayer::SendBroadcast(const char *pText)
 	GameServer()->SendBroadcast(pText, GetCid());
 }
 
-void CPlayer::Repredict(int PredMargin)
+float CPlayer::GetClientPred()
 {
-	int PingMs = m_Latency.m_Min + PredMargin;
-
-	static const std::unordered_map<int, double> s_BucketByPing = {
-		{0, 2.8},
-		{10, 3.4},
-		{20, 4.1},
-		{30, 5.0},
-		{40, 5.8},
-		{50, 6.8},
-		{60, 7.8},
-		{70, 8.5},
-		{80, 9.7},
-		{90, 10.7},
-		{100, 11.4},
-		{110, 12.5},
-		{120, 13.6},
-		{130, 14.5},
-		{140, 15.6},
-		{150, 16.5},
-		{160, 17.5},
-	};
-
-	static std::vector<int> s_Thresholds = [] {
-		std::vector<int> v;
-		v.reserve(s_BucketByPing.size());
-		for(const auto &kv : s_BucketByPing)
-			v.push_back(kv.first);
-		std::sort(v.begin(), v.end());
-		return v;
-	}();
-
-	double PredIndex = 0.0;
-
-	if(PingMs <= s_Thresholds.front())
-	{
-		PredIndex = s_BucketByPing.at(s_Thresholds.front());
-	}
-	else if(PingMs >= s_Thresholds.back())
-	{
-		PredIndex = s_BucketByPing.at(s_Thresholds.back());
-	}
-	else
-	{
-		const auto it = std::lower_bound(s_Thresholds.begin(), s_Thresholds.end(), PingMs);
-		const int hiKey = *it;
-		const int loKey = *(it - 1);
-
-		const double loIdx = s_BucketByPing.at(loKey);
-		const double hiIdx = s_BucketByPing.at(hiKey);
-
-		const double t = (double)(PingMs - loKey) / (double)(hiKey - loKey);
-		PredIndex = loIdx + t * (hiIdx - loIdx);
-	}
-
-	m_PredLatency = PredIndex;
+	float Ping = (m_Latency.m_Min) / 10.0f + 1.2f;
+	return std::max(Ping + m_PredMargin, 4.0f);
 }
 
 void CPlayer::SendAreaMotd(int Area)

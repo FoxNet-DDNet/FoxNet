@@ -502,8 +502,9 @@ public:
 	void SendBroadcastHud(std::vector<std::string> pMessages, int Offset = -1);
 	void ClearBroadcast() { return SendBroadcast(""); };
 
-	double m_PredLatency = 0.0;
-	void Repredict(int PredMargin = 6);
+	float m_PredMargin;
+	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; };
+	float GetClientPred();
 	// FoxNet>
 };
 
