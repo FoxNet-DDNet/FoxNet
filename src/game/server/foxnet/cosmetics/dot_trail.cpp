@@ -57,10 +57,7 @@ void CDotTrail::Snap(int SnappingClient)
 	if(pOwnerChr->IsPaused())
 		return;
 
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	const int Team = pOwnerChr->Team();
-
-	if(!Teams.SetMask(SnappingClient, Team))
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
 		return;
 
 	if(pSnapPlayer->GetCharacter() && pOwnerChr)

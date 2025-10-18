@@ -98,10 +98,7 @@ void CLovely::Snap(int SnappingClient)
 	if(pSnapPlayer->m_HideCosmetics)
 		return;
 
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	const int Team = pOwnerChr->Team();
-
-	if(!Teams.SetMask(SnappingClient, Team))
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
 		return;
 
 	if(pSnapPlayer->GetCharacter() && pOwnerChr)

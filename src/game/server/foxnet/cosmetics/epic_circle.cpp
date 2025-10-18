@@ -77,10 +77,7 @@ void CEpicCircle::Snap(int SnappingClient)
 	if(pOwnerChr->IsPaused())
 		return;
 
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	const int Team = pOwnerChr->Team();
-
-	if(!Teams.SetMask(SnappingClient, Team))
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
 		return;
 
 	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)

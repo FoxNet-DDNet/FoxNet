@@ -70,10 +70,7 @@ void CHeadItem::Snap(int SnappingClient)
 		if(!pSnapPlayer)
 			return;
 
-		CGameTeams Teams = GameServer()->m_pController->Teams();
-		const int Team = pOwnerChr->Team();
-
-		if(!Teams.SetMaskWithFlags(SnappingClient, Team))
+		if(!pOwnerChr->TeamMask().test(SnappingClient))
 			return;
 
 		if(pSnapPlayer->GetCharacter() && pOwnerChr)

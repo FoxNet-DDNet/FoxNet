@@ -129,10 +129,7 @@ void CLightSaber::Snap(int SnappingClient)
 		if(!pSnapPlayer)
 			return;
 
-		CGameTeams Teams = GameServer()->m_pController->Teams();
-		int Team = pOwnerChr->Team();
-
-		if(!Teams.SetMask(SnappingClient, Team))
+		if(!pOwnerChr->TeamMask().test(SnappingClient))
 			return;
 
 		if(pSnapPlayer->GetCharacter() && pOwnerChr)
