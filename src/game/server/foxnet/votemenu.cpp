@@ -718,7 +718,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		std::vector<std::string> OtherItems;
 
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "%ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "Level %ld | %ld%s", pAcc->m_Level, pAcc->m_Money, g_Config.m_SvCurrencyName);
 		AddVoteText(aBuf);
 		AddVoteSeperator();
 
@@ -817,6 +817,14 @@ void CVoteMenu::SendPageShop(int ClientId)
 		const CItems *pItem = m_pLastItemInfo;
 
 		char aBuf[VOTE_DESC_LENGTH];
+
+		AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
+		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+		AddVoteText(aBuf);
+		str_format(aBuf, sizeof(aBuf), "│ Level %ld", pAcc->m_Level);
+		AddVoteText(aBuf);
+		AddVoteText("╰────────────");
+		AddVoteSeperator();
 
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
 		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->Name());
