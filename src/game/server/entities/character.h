@@ -355,6 +355,8 @@ public:
 	bool m_SpawnSolo = false;
 	bool m_ShouldSolo = true;
 	void UnSpawnSolo(bool Unsolo = true);
+
+	bool m_MixedShield = false; // for Mixed Gun cosmetic
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 

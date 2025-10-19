@@ -32,6 +32,13 @@ public:
 	void Snap(int SnappingClient) override;
 	void SwapClients(int Client1, int Client2) override;
 
+
+	bool m_HeartGun = false;
+	bool m_MixedGun = false;
+	bool m_MixedShield = false; // Switching between shield and heart
+	bool m_LaserGun = false;
+	int m_ExtraId; // Needed for m_LaserGun
+
 	void HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
 
 private:

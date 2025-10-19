@@ -74,6 +74,15 @@ enum TrailTypes
 	NUM_TRAILS
 };
 
+enum GunTypes
+{
+	GUN_NONE = 0,
+	GUN_HEART,
+	GUN_MIXED,
+	GUN_LASER,
+	NUM_GUNS
+};
+
 class CCosmetics
 {
 public:
@@ -94,6 +103,8 @@ public:
 	int m_EmoticonGun = 0;
 	bool m_ConfettiGun = false;
 	bool m_PhaseGun = false;
+
+	int m_GunType = 0;
 
 	// Trails
 	int m_Trail = 0;
@@ -484,6 +495,7 @@ public:
 	void SetConfettiGun(bool Active);
 	void SetPhaseGun(bool Active);
 	void SetDamageIndType(int Type);
+	void SetGunType(int Type);
 
 	void DisableAllCosmetics();
 

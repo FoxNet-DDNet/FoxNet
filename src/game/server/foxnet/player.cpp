@@ -238,10 +238,6 @@ int CPlayer::GetItemToggle(const char *pItemName)
 		Value = (int)!Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		Value = (int)!Cosmetics()->m_RotatingBall;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-	//	Value = (int)!Cosmetics()->m_EpicCircle;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[OTHER_BLOODY]))
-	//	Value = (int)!Cosmetics()->m_Bloody;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
 		Value = (int)!Cosmetics()->m_RainbowFeet;
@@ -252,10 +248,14 @@ int CPlayer::GetItemToggle(const char *pItemName)
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
 		Value = (int)Cosmetics()->m_EmoticonGun;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-	//	Value = (int)!Cosmetics()->m_ConfettiGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_LASER]))
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_GUN]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_HEART_GUN]))
+		Value = (int)!Cosmetics()->m_GunType == GUN_HEART ? GUN_NONE : GUN_HEART;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_MIXED_GUN]))
+		Value = (int)!Cosmetics()->m_GunType == GUN_MIXED ? GUN_NONE : GUN_MIXED;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_LASER_GUN]))
+		Value = (int)!Cosmetics()->m_GunType == GUN_LASER ? GUN_NONE : GUN_LASER;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
 		Value = (int)Cosmetics()->m_Trail == TRAIL_STAR ? TRAIL_NONE : TRAIL_STAR;
@@ -306,51 +306,51 @@ bool CPlayer::ItemEnabled(const char *pItemName)
 		Value = Cosmetics()->m_Lovely;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		Value = Cosmetics()->m_RotatingBall;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-	//	Value = Cosmetics()->m_EpicCircle;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_BLOODY]))
-	//	Value = Cosmetics()->m_Bloody;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
 		Value = Cosmetics()->m_RainbowFeet;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_BODY]))
 		Value = Cosmetics()->m_RainbowBody;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_HOOK]))
-		Value = Cosmetics()->m_HookPower == HOOK_RAINBOW ? true : false;
+		Value = Cosmetics()->m_HookPower == HOOK_RAINBOW;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
 		Value = Cosmetics()->m_EmoticonGun;
-	// else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_CONFETTI]))
-	//	Value = Cosmetics()->m_ConfettiGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_LASER]))
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_GUN]))
 		Value = Cosmetics()->m_PhaseGun;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_HEART_GUN]))
+		Value = Cosmetics()->m_GunType == GUN_HEART;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_MIXED_GUN]))
+		Value = Cosmetics()->m_GunType == GUN_MIXED;
+	else if(!str_comp_nocase(pItem, ItemShortcuts[C_LASER_GUN]))
+		Value = Cosmetics()->m_GunType == GUN_LASER;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
-		Value = Cosmetics()->m_Trail == TRAIL_STAR ? true : false;
+		Value = Cosmetics()->m_Trail == TRAIL_STAR;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_DOT]))
-		Value = Cosmetics()->m_Trail == TRAIL_DOT ? true : false;
+		Value = Cosmetics()->m_Trail == TRAIL_DOT;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
-		Value = Cosmetics()->m_DamageIndType == IND_CLOCKWISE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_CLOCKWISE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
-		Value = Cosmetics()->m_DamageIndType == IND_COUNTERWISE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_COUNTERWISE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
-		Value = Cosmetics()->m_DamageIndType == IND_INWARD ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_INWARD;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
-		Value = Cosmetics()->m_DamageIndType == IND_OUTWARD ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_OUTWARD;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_LINE]))
-		Value = Cosmetics()->m_DamageIndType == IND_LINE ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_LINE;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
-		Value = Cosmetics()->m_DamageIndType == IND_CRISSCROSS ? true : false;
+		Value = Cosmetics()->m_DamageIndType == IND_CRISSCROSS;
 
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_EXPLOSIVE]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_EXPLOSION ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_EXPLOSION;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_HAMMERHIT]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_INDICATOR]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND;
 	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_LASER]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_LASER ? true : false;
+		Value = Cosmetics()->m_DeathEffect == DEATH_LASER;
 
 	return Value;
 }
@@ -364,8 +364,6 @@ bool CPlayer::ReachedItemLimit(const char *pItem, int Set, int Value)
 
 	int Amount = 0;
 
-	// if(Cosmetics()->m_EpicCircle)
-	//	Amount++;
 	if(Cosmetics()->m_Lovely)
 		Amount++;
 	if(Cosmetics()->m_RotatingBall)
@@ -392,6 +390,8 @@ bool CPlayer::ReachedItemLimit(const char *pItem, int Set, int Value)
 		Amount++;
 	if(Cosmetics()->m_PhaseGun)
 		Amount++;
+	if(Cosmetics()->m_GunType > 0)
+		Amount++;
 
 	if(Cosmetics()->m_Trail > 0)
 		Amount++;
@@ -411,7 +411,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 {
 	if(!g_Config.m_SvCosmetics)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "Cosmetics are currently disabled");
+		GameServer()->SendChatTarget(GetCid(), "Cosmetics are currently disabled");
 		return false;
 	}
 	if(!Acc()->m_LoggedIn && !IgnoreAccount)
@@ -432,7 +432,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		return false;
 	if(ReachedItemLimit(pItemName, Set, Value) && Value != 0)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "You have reached the item limit! Disable another item first.");
+		GameServer()->SendChatTarget(GetCid(), "You have reached the item limit! Disable another item first.");
 		return false;
 	}
 
@@ -446,10 +446,6 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		SetLovely(Value);
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_ROTATINGBALL]))
 		SetRotatingBall(Value);
-	// else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_EPICCIRCLE]))
-	//	SetEpicCircle(Value);
-	// else if(!str_comp_nocase(Item, ItemShortcuts[OTHER_BLOODY]))
-	//	Cosmetics()->m_Bloody = Value;
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_RAINBOW_FEET]))
 		SetRainbowFeet(Value);
@@ -463,11 +459,14 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		Value = Set;
 		SetEmoticonGun(Value);
 	}
-
-	// else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_CONFETTI]))
-	//	SetConfettiGun(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_PHASE_LASER]))
+	else if(!str_comp_nocase(Item, ItemShortcuts[C_PHASE_GUN]))
 		SetPhaseGun(Value);
+	else if(!str_comp_nocase(Item, ItemShortcuts[C_HEART_GUN]))
+		SetGunType(Value);
+	else if(!str_comp_nocase(Item, ItemShortcuts[C_MIXED_GUN]))
+		SetGunType(Value);
+	else if(!str_comp_nocase(Item, ItemShortcuts[C_LASER_GUN]))
+		SetGunType(Value);
 
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_TRAIL_STAR]))
 		SetTrail(Value);
@@ -658,14 +657,17 @@ void CPlayer::SetHeartHat(bool Active)
 		new CHeartHat(&GameServer()->m_World, GetCid(), Pos);
 }
 
+void CPlayer::SetDeathEffect(int Type)
+{
+	Cosmetics()->m_DeathEffect = Type;
+}
 void CPlayer::SetDamageIndType(int Type)
 {
 	Cosmetics()->m_DamageIndType = Type;
 }
-
-void CPlayer::SetDeathEffect(int Type)
+void CPlayer::SetGunType(int Type)
 {
-	Cosmetics()->m_DeathEffect = Type;
+	Cosmetics()->m_GunType = Type;
 }
 
 void CPlayer::SetStrongBloody(bool Active)

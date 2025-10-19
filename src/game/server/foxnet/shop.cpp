@@ -25,13 +25,15 @@ void CShop::Init(CGameContext *pGameServer)
 
 void CShop::AddItems()
 {
-	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 1750, "Makes your body Rainbow", 2));
-	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 2450, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
+	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 1750, "Makes your body Rainbow", 1));
+	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 2500, "Makes your feet Rainbow", 4));
+	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 7500, "Anyone you hook becomes Rainbow!", 5));
 
 	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 5500, "Shoot emotions at people", 10));
-	// m_Items.push_back(new CItems("Confetti Gun", TYPE_GUN,  2000,"Party gun!", 10));
 	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 3250, "Your bullets defy physics", 5));
+	m_Items.push_back(new CItems("Heart Gun", TYPE_GUN, 25000, "Shoot bullets full of love", 15));
+	m_Items.push_back(new CItems("Mixed Gun", TYPE_GUN, 35000, "Shoots Hearts and Shields", 25));
+	m_Items.push_back(new CItems("Laser Gun", TYPE_GUN, 45000, "Lasertag in DDNet?", 25));
 
 	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 5500, "Gun Hit -> turns Clockwise", 5));
 	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR, 5500, "Gun Hit -> turns Counter-Clockwise", 5));
@@ -43,17 +45,16 @@ void CShop::AddItems()
 	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 5250, "Go out with a Boom!", 5));
 	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 5250, "Get Bonked on death!", 5));
 	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 7750, "Creates an octagon of damage indicators", 10));
-	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 7750, "Become wizard and summon lasers on death", 10));
+	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 7750, "Become wizard and summon lasers on death!", 10));
 
-	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 10500, "The Stars follow you", 7));
-	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 10500, "A trail made out of small dots", 7));
+	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 10000, "The Stars shall follow you", 7));
+	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 10000, "A trail made out of small dots", 7));
 
 	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 2500, "Makes you sparkle", 5));
 	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 15000, "A hat of hearts?", 10));
-	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 50000, "Shows your aim backwards to others!", 20));
-	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 15750, "Spreading love huh?", 15));
+	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 75000, "Shows your aim backwards for others!", 35));
+	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 17500, "Spreading love huh?", 15));
 	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 15500, "Ball rotate - life good", 15));
-	// m_Items.push_back(new CItems("Epic Circle", TYPE_OTHER, 3500, "Really epic circle", 20));
 }
 
 void CShop::ResetItems()
@@ -198,7 +199,7 @@ void CShop::BuyItem(int ClientId, const char *pName)
 		// This is used to completely disable an Item, also if it has already been bought
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
 		GameServer()->SendChatTarget(ClientId, "│ Invalid Item!");
-		GameServer()->SendChatTarget(ClientId, "│ Check out the Voting Menu");
+		GameServer()->SendChatTarget(ClientId, "│ Check out the Vote Menu");
 		GameServer()->SendChatTarget(ClientId, "│ to see all available Items");
 		GameServer()->SendChatTarget(ClientId, "╰───────────────────────────");
 		return;
@@ -215,9 +216,8 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	else if(Price < -1)
 	{
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		GameServer()->SendChatTarget(ClientId, "│ Our systems are dying");
-		GameServer()->SendChatTarget(ClientId, "│ Try again in a sec");
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
+		GameServer()->SendChatTarget(ClientId, "│ Something is wrong with the item.");
+		GameServer()->SendChatTarget(ClientId, "╰─────────────────────────");
 		return;
 	}
 

@@ -50,6 +50,24 @@ CProjectile::CProjectile(
 	m_DDRaceTeam = m_Owner == -1 ? 0 : GameServer()->GetDDRaceTeam(m_Owner);
 	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
 
+	// <FoxNet
+	if(pOwnerChar)
+	{
+		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
+		m_HeartGun = pCosmetics->m_GunType == GUN_HEART;
+		m_MixedGun = pCosmetics->m_GunType == GUN_MIXED;
+		m_LaserGun = pCosmetics->m_GunType == GUN_LASER;
+		if(m_LaserGun)
+		{
+			m_LifeSpan *= 1.25; // Lasergun projectiles are slower
+			m_ExtraId = Server()->SnapNewId();
+		}
+
+		m_MixedShield = pOwnerChar->m_MixedShield;
+		pOwnerChar->m_MixedShield = !pOwnerChar->m_MixedShield;
+	}
+	// FoxNet>
+
 	GameWorld()->InsertEntity(this);
 }
 
@@ -94,6 +112,14 @@ vec2 CProjectile::GetPos(float Time)
 		break;
 
 	case WEAPON_GUN:
+		// <FoxNet
+		if(m_LaserGun)
+		{
+			Curvature = Tuning()->m_GunCurvature;
+			Speed = Tuning()->m_GunSpeed / 1.25f;
+			break;
+		}
+		// FoxNet>
 		if(!m_TuneZone)
 		{
 			Curvature = Tuning()->m_GunCurvature;
@@ -304,13 +330,11 @@ void CProjectile::HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CChar
 	int EmoteGun = 0;
 	bool ConfettiGun = false;
 	bool PhaseGun = false;
-	bool GLClipped = GameLayerClipped(CurPos);
 	int DamageIndEffect = 0;
 	bool CreateDmgInd = true;
 
 	if(pOwnerChr)
 	{
-		GLClipped = GameLayerClipped(CurPos) && !pOwnerChr->GetPlayer()->m_IgnoreGamelayer;
 		EmoteGun = pOwnerChr->GetPlayer()->Cosmetics()->m_EmoticonGun;
 		ConfettiGun = pOwnerChr->GetPlayer()->Cosmetics()->m_ConfettiGun;
 		PhaseGun = pOwnerChr->GetPlayer()->Cosmetics()->m_PhaseGun;
@@ -365,10 +389,12 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj)
 void CProjectile::Snap(int SnappingClient)
 {
 	float Ct = (Server()->Tick() - m_StartTick) / (float)Server()->TickSpeed();
+	// <FoxNet
+	vec2 SnapPos = GetPos(Ct);
 
-	if(NetworkClipped(SnappingClient, GetPos(Ct)))
+	if(NetworkClipped(SnappingClient, SnapPos))
 		return;
-
+	// FoxNet>
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	if(SnappingClientVersion < VERSION_DDNET_ENTITY_NETOBJS)
 	{
@@ -391,7 +417,37 @@ void CProjectile::Snap(int SnappingClient)
 		return;
 
 	CNetObj_DDRaceProjectile DDRaceProjectile;
+	// <FoxNet
+	CPlayer *pSnapPl = SnappingClient >= 0 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+	if(pOwnerChar && pSnapPl && !pSnapPl->m_HideCosmetics && m_Type == WEAPON_GUN)
+	{
+		// PrevSnapPos should be a bit behind SnapPos to make the laser look continuous
+		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();
+		vec2 PrevSnapPos = GetPos(Pt);
+		if(m_LaserGun)
+		{
+			std::array<int, 2> LaserIds = {m_ExtraId, GetId()};
+			if(LaserIds[0] > LaserIds[1])
+				std::swap(LaserIds[0], LaserIds[1]);
 
+			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
+				LaserIds.at(0), PrevSnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+
+			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
+				LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+			return;
+		}
+		if(m_HeartGun || m_MixedGun)
+		{
+			int Type = POWERUP_HEALTH;
+			if(m_MixedGun)
+				Type = m_MixedShield;
+			GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
+				GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
+			return;
+		}
+	}
+	// FoxNet>
 	if(SnappingClientVersion >= VERSION_DDNET_ENTITY_NETOBJS)
 	{
 		CNetObj_DDNetProjectile *pDDNetProjectile = static_cast<CNetObj_DDNetProjectile *>(Server()->SnapNewItem(NETOBJTYPE_DDNETPROJECTILE, GetId(), sizeof(CNetObj_DDNetProjectile)));

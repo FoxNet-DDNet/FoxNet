@@ -14,7 +14,7 @@
 #include "custom_projectile.h"
 
 CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
-	bool Explosive, bool Freeze, bool Unfreeze, int Type, bool IsNormalWeapon, float Lifetime, float Accel, float Speed) :
+	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
 {
 	m_Owner = Owner;
@@ -29,7 +29,6 @@ CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos
 	m_Type = Type;
 	m_Accel = Accel;
 
-	m_Weapon = IsNormalWeapon;
 	m_PrevPos = m_Pos;
 
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
@@ -145,9 +144,6 @@ void CCustomProjectile::Snap(int SnappingClient)
 	if(!pOwnerChar || !pSnapPlayer)
 		return;
 
-	if(pSnapPlayer->m_HideCosmetics)
-		return;
-
 	if(pOwnerChar->IsPaused())
 		return;
 
@@ -168,63 +164,9 @@ void CCustomProjectile::Snap(int SnappingClient)
 			return;
 	}
 
-	if(m_Weapon)
-	{
-		if(m_Type >= NUM_WEAPONS && pSnapChar && pSnapChar->GetPlayer()->m_HideCosmetics && pOwnerChar->GetPlayer()->Cosmetics()->m_Trail == TRAIL_DOT)
-			return;
-
-		CNetObj_DDRaceProjectile DDRaceProjectile;
-		if(SnappingClientVersion >= VERSION_DDNET_ENTITY_NETOBJS)
-		{
-			CNetObj_DDNetProjectile *pDDNetProjectile = static_cast<CNetObj_DDNetProjectile *>(Server()->SnapNewItem(NETOBJTYPE_DDNETPROJECTILE, GetId(), sizeof(CNetObj_DDNetProjectile)));
-			if(!pDDNetProjectile)
-			{
-				return;
-			}
-
-			FillExtraInfo(pDDNetProjectile);
-		}
-		else if(SnappingClientVersion >= VERSION_DDNET_ANTIPING_PROJECTILE && FillExtraInfoLegacy(&DDRaceProjectile))
-		{
-			int Type = SnappingClientVersion < VERSION_DDNET_MSG_LEGACY ? (int)NETOBJTYPE_PROJECTILE : NETOBJTYPE_DDRACEPROJECTILE;
-			void *pProj = Server()->SnapNewItem(Type, GetId(), sizeof(DDRaceProjectile));
-			if(!pProj)
-			{
-				return;
-			}
-			mem_copy(pProj, &DDRaceProjectile, sizeof(DDRaceProjectile));
-		}
-		else
-		{
-			CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(GetId());
-			if(!pProj)
-			{
-				return;
-			}
-			FillInfo(pProj);
-		}
-	}
-	else if(GameServer()->GetClientVersion(SnappingClient) >= VERSION_DDNET_ENTITY_NETOBJS)
-	{
-		CNetObj_DDNetPickup *pPickup = Server()->SnapNewItem<CNetObj_DDNetPickup>(GetId());
-		if(!pPickup)
-			return;
-
-		pPickup->m_X = (int)m_Pos.x;
-		pPickup->m_Y = (int)m_Pos.y;
-		pPickup->m_Type = m_Type;
-		pPickup->m_Flags = PICKUPFLAG_NO_PREDICT;
-	}
-	else
-	{
-		CNetObj_Pickup *pPickup = Server()->SnapNewItem<CNetObj_Pickup>(GetId());
-		if(!pPickup)
-			return;
-
-		pPickup->m_X = (int)m_Pos.x;
-		pPickup->m_Y = (int)m_Pos.y;
-		pPickup->m_Type = m_Type;
-	}
+	const int SnapVer = Server()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient);
+	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, m_Type, 0, -1, PICKUPFLAG_NO_PREDICT);
 }
 
 void CCustomProjectile::FillInfo(CNetObj_Projectile *pProj)

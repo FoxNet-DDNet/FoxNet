@@ -3149,8 +3149,16 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 			-1, // SoundImpact
 			MouseTarget // InitDir
 		);
+		
+		int GunType = GetPlayer()->Cosmetics()->m_GunType;
 
-		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
+		if(GunType == GUN_HEART || GunType == GUN_MIXED)
+			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask());
+		else if(GunType == GUN_LASER)
+			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask());
+		else
+			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask());
+		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppsiteCosmeticMask());
 	}
 }
 

@@ -18,7 +18,7 @@ class CCustomProjectile : public CEntity
 {
 public:
 	CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
-		bool Explosive, bool Freeze, bool Unfreeze, int Type, bool IsNormalWeapon = false, float Lifetime = 6.0f, float Accel = 1.0f, float Speed = 10.0f);
+		bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime = 6.0f, float Accel = 1.0f, float Speed = 10.0f);
 
 	virtual void Reset() override;
 	virtual void Tick() override;
@@ -41,7 +41,6 @@ private:
 	bool m_Explosive;
 
 	int m_TuneZone;
-	bool m_Weapon;
 
 	int m_Type;
 

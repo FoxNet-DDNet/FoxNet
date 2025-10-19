@@ -644,7 +644,7 @@ void CGameContext::ConDeathEffect(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set death effect to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
-void CGameContext::ConDamageIndEffect(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConDamageIndType(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
@@ -658,6 +658,22 @@ void CGameContext::ConDamageIndEffect(IConsole::IResult *pResult, void *pUserDat
 	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
 	pPl->SetDamageIndType(Type);
 	log_info("cosmetics", "Set damage ind to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
+}
+
+void CGameContext::ConGunType(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+
+	if(!pPl)
+		return;
+
+	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
+	pPl->SetGunType(Type);
+	log_info("cosmetics", "Set gun type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
 // Not Available Normally
@@ -1608,8 +1624,9 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_emote_gun", "i[type] ?v[id]", CFGFLAG_SERVER, ConSetEmoticonGun, this, "Set a players (id) Emoticon Gun to i[type] (1-12)");
 	Console()->Register("c_confetti_gun", "?v[id]", CFGFLAG_SERVER, ConSetConfettiGun, this, "Set a players (id) Gun to shoot confetti");
 
-	Console()->Register("c_death_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDeathEffect, this, "Set a players (id) Damage Ind Type");
-	Console()->Register("c_damageind_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDamageIndEffect, this, "Set a players (id) Damage Ind Type");
+	Console()->Register("c_death_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDeathEffect, this, "Set players (id) Death Type");
+	Console()->Register("c_damageind_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDamageIndType, this, "Set players (id) Damage Ind Type");
+	Console()->Register("c_gun_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConGunType, this, "Set players (id) Gun Type");
 
 	// Player configs
 	Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");

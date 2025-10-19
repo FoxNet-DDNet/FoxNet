@@ -774,7 +774,8 @@ private:
 	static void ConHeartHat(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConDeathEffect(IConsole::IResult *pResult, void *pUserData);
-	static void ConDamageIndEffect(IConsole::IResult *pResult, void *pUserData);
+	static void ConDamageIndType(IConsole::IResult *pResult, void *pUserData);
+	static void ConGunType(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConPhaseGun(IConsole::IResult *pResult, void *pUserData);
 
