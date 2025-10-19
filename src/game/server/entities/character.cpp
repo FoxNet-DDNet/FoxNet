@@ -602,25 +602,7 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_GUN:
 	{
-		if(!m_Core.m_Jetpack || !m_pPlayer->m_NinjaJetpack || m_Core.m_HasTelegunGun)
-		{
-			int Lifetime = (int)(Server()->TickSpeed() * GetTuning(GetOverriddenTuneZone())->m_GunLifetime);
-
-			new CProjectile(
-				GameWorld(),
-				WEAPON_GUN, // Type
-				m_pPlayer->GetCid(), // Owner
-				ProjStartPos, // Pos
-				Direction, // Dir
-				Lifetime, // Span
-				false, // Freeze
-				false, // Explosive
-				-1, // SoundImpact
-				MouseTarget // InitDir
-			);
-
-			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
-		}
+		DoGunFire(ProjStartPos, Direction, MouseTarget);
 	}
 	break;
 
@@ -3146,6 +3128,29 @@ void CCharacter::HandleTelekinesis()
 			tId = -1;
 			return;
 		}
+	}
+}
+
+void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
+{
+	if(!m_Core.m_Jetpack || !m_pPlayer->m_NinjaJetpack || m_Core.m_HasTelegunGun)
+	{
+		int Lifetime = (int)(Server()->TickSpeed() * GetTuning(GetOverriddenTuneZone())->m_GunLifetime);
+
+		new CProjectile(
+			GameWorld(),
+			WEAPON_GUN, // Type
+			m_pPlayer->GetCid(), // Owner
+			ProjStartPos, // Pos
+			Direction, // Dir
+			Lifetime, // Span
+			false, // Freeze
+			false, // Explosive
+			-1, // SoundImpact
+			MouseTarget // InitDir
+		);
+
+		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
 	}
 }
 

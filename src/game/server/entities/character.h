@@ -356,6 +356,7 @@ public:
 	bool m_ShouldSolo = true;
 	void UnSpawnSolo(bool Unsolo = true);
 private:
+	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 
 	void RouletteTileHandle();
 

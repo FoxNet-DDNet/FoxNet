@@ -4,6 +4,7 @@
 #define GAME_SERVER_ENTITIES_PROJECTILE_H
 
 #include <game/server/entity.h>
+#include "character.h"
 
 class CProjectile : public CEntity
 {
@@ -30,6 +31,8 @@ public:
 	void TickPaused() override;
 	void Snap(int SnappingClient) override;
 	void SwapClients(int Client1, int Client2) override;
+
+	void HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
 
 private:
 	vec2 m_Direction;

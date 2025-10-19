@@ -136,18 +136,7 @@ void CProjectile::Tick()
 	if(pTargetChr && !pTargetChr->Core()->m_Hittable)
 		pTargetChr = nullptr;
 
-	int EmoteGun = 0;
-	bool ConfettiGun = false;
-	bool LaserGun = false;
 	bool GLClipped = GameLayerClipped(CurPos);
-
-	if(pOwnerChar)
-	{
-		GLClipped = GameLayerClipped(CurPos) && !pOwnerChar->GetPlayer()->m_IgnoreGamelayer;
-		EmoteGun = pOwnerChar->GetPlayer()->Cosmetics()->m_EmoticonGun;
-		ConfettiGun = pOwnerChar->GetPlayer()->Cosmetics()->m_ConfettiGun;
-		LaserGun = pOwnerChar->GetPlayer()->Cosmetics()->m_PhaseGun;
-	}
 	// FoxNet>
 
 	if(m_LifeSpan > -1)
@@ -262,35 +251,7 @@ void CProjectile::Tick()
 		}
 		else if(m_Type == WEAPON_GUN)
 		{
-			if(ConfettiGun && !LaserGun)
-			{
-				vec2 ActualPos;
-				GetNearestAirPos(NewPos, CurPos, &ActualPos);
-				GameServer()->CreateBirthdayEffect(ActualPos, pOwnerChar->CosmeticMask());
-			}
-			if(EmoteGun && pTargetChr)
-			{
-				GameServer()->SendEmote(pTargetChr->GetPlayer()->GetCid(), EmoteGun - 1);
-			}
-
-			bool CreateDmgInd = true;
-			if(EmoteGun && pTargetChr)
-				CreateDmgInd = false;
-			else if(LaserGun)
-				CreateDmgInd = false;
-			else if(ConfettiGun)
-				CreateDmgInd = false;
-
-			int DamageIndEffect = (pOwnerChar && pOwnerChar->GetPlayer()->Cosmetics()->m_DamageIndType) ? pOwnerChar->GetPlayer()->Cosmetics()->m_DamageIndType : 0;
-
-			if(LaserGun && pTargetChr)
-				CreateDmgInd = true;
-
-			if(CreateDmgInd)
-				GameServer()->CreateIndEffect(DamageIndEffect, CurPos, m_Direction, (m_Owner != -1) ? TeamMask : CClientMask().set());
-
-			if(!LaserGun || m_LifeSpan == -1 || pTargetChr)
-				m_MarkedForDestroy = true;
+			HandleGunHit(CurPos, NewPos, TeamMask, pOwnerChar, pTargetChr);
 			return;
 		}
 		else
@@ -336,6 +297,54 @@ void CProjectile::Tick()
 		m_Pos = GameServer()->Collision()->TeleOuts(z - 1)[TeleOut];
 		m_StartTick = Server()->Tick();
 	}
+}
+
+void CProjectile::HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr)
+{
+	int EmoteGun = 0;
+	bool ConfettiGun = false;
+	bool PhaseGun = false;
+	bool GLClipped = GameLayerClipped(CurPos);
+	int DamageIndEffect = 0;
+	bool CreateDmgInd = true;
+
+	if(pOwnerChr)
+	{
+		GLClipped = GameLayerClipped(CurPos) && !pOwnerChr->GetPlayer()->m_IgnoreGamelayer;
+		EmoteGun = pOwnerChr->GetPlayer()->Cosmetics()->m_EmoticonGun;
+		ConfettiGun = pOwnerChr->GetPlayer()->Cosmetics()->m_ConfettiGun;
+		PhaseGun = pOwnerChr->GetPlayer()->Cosmetics()->m_PhaseGun;
+		DamageIndEffect = pOwnerChr->GetPlayer()->Cosmetics()->m_DamageIndType;
+	}
+	if(EmoteGun && pTargetChr)
+	{
+		GameServer()->SendEmote(pTargetChr->GetPlayer()->GetCid(), EmoteGun - 1);
+		CreateDmgInd = false;
+	}
+
+	if(PhaseGun && !pTargetChr)
+		CreateDmgInd = false;
+
+	CClientMask CosmMask = pOwnerChr ? pOwnerChr->CosmeticMask() : Mask;
+
+	if(CreateDmgInd)
+	{
+		if(ConfettiGun)
+		{
+			vec2 AirPos;
+			GetNearestAirPos(NewPos, CurPos, &AirPos);
+			GameServer()->CreateBirthdayEffect(AirPos, CosmMask);
+		}
+		else
+		{
+			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, m_Direction, CosmMask);
+		}
+		if(pOwnerChr)
+			GameServer()->CreateDamageInd(CurPos, -std::atan2(m_Direction.x, m_Direction.y), 10, pOwnerChr->OppsiteCosmeticMask());
+	}
+
+	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)
+		m_MarkedForDestroy = true;
 }
 
 void CProjectile::TickPaused()

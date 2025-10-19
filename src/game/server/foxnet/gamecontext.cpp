@@ -695,7 +695,6 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 	else
 	{
 		CreateDamageInd(Pos, Angle, 10, Mask);
-		return;
 	}
 }
 
