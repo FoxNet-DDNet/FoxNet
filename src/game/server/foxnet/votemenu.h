@@ -96,7 +96,7 @@ class CVoteMenu
 	void SendPageSettings(int ClientId);
 	void SendPageAccount(int ClientId);
 	void SendPageShop(int ClientId);
-	const char *FormatItemVote(CItems *pItem, const CAccountSession *pAcc);
+	const char *FormatItemVote(const CItems *pItem);
 	void SendPageInventory(int ClientId);
 	void SendPageAdmin(int ClientId);
 

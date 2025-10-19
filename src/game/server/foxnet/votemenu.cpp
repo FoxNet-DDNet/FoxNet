@@ -115,7 +115,7 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(CItems *pItem, const CAccountSession *pAcc)
+const char *CVoteMenu::FormatItemVote(const CItems *pItem)
 {
 	static char aBuf[64];
 	str_format(aBuf, sizeof(aBuf), "Buy Item [%d]", pItem->Price());
@@ -205,7 +205,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
 				return true;
 			}
-			if(IsOption(pVote, FormatItemVote(m_pLastItemInfo, &Acc)))
+			if(IsOption(pVote, FormatItemVote(m_pLastItemInfo)))
 			{
 				GameServer()->m_Shop.BuyItem(ClientId, m_pLastItemInfo->Name());
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
@@ -834,7 +834,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText("╰──────────────────────────");
 		AddVoteSeperator();
 
-		str_copy(aBuf, FormatItemVote(m_pLastItemInfo, pAcc));
+		str_copy(aBuf, FormatItemVote(pItem));
 		AddVoteText(aBuf);
 
 		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->MinLevel());
