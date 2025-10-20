@@ -838,6 +838,7 @@ private:
 
 	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveItem(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConShopListItems(IConsole::IResult *pResult, void *pUserData);
 	static void ConShopEditItem(IConsole::IResult *pResult, void *pUserData);

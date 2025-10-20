@@ -197,17 +197,15 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
+	const int FromId = pResult->m_ClientId;
 	if(!CheckClientId(ClientId))
 		return;
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
-	if(!pPlayer->Acc()->m_LoggedIn)
-		return;
 
-	const int Amount = pResult->GetInteger(1);
-	if(Amount > 0)
-		pPlayer->GiveXP(Amount);
+	const char *pItemName = pResult->GetString(1);
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, FromId);
 }
 
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)

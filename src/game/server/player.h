@@ -124,9 +124,8 @@ class CInventory
 public:
 	CCosmetics m_Cosmetics;
 
-	// Ownership and equipped state per shop index
 	bool m_aOwned[NUM_ITEMS] = {false};
-	int m_aEquipped[NUM_ITEMS]; // 0 = not equipped, >0 = equipped with optional value
+	int m_aEquipped[NUM_ITEMS]; 
 
 	void Reset()
 	{
@@ -163,10 +162,7 @@ public:
 			m_aOwned[Index] = Owned;
 	}
 	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aOwned[Index] : false; }
-	bool Owns(const char *pNameOrShortcut) const
-	{
-		return OwnsIndex(IndexOf(pNameOrShortcut));
-	}
+	bool Owns(const char *pNameOrShortcut) const { return OwnsIndex(IndexOf(pNameOrShortcut)); }
 
 	// Equipped
 	void SetEquippedIndex(int Index, int Value)
@@ -175,12 +171,8 @@ public:
 			m_aEquipped[Index] = maximum(0, Value);
 	}
 	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
-	int Equipped(const char *pNameOrShortcut) const
-	{
-		return EquippedIndex(IndexOf(pNameOrShortcut));
-	}
+	int Equipped(const char *pNameOrShortcut) const { return EquippedIndex(IndexOf(pNameOrShortcut)); }
 };
-
 // FoxNet>
 
 // player object

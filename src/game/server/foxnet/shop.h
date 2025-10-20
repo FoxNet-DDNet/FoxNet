@@ -172,6 +172,8 @@ public:
 	const char *ShortcutToName(const char *pShortcut);
 
 	void BuyItem(int ClientId, const char *pName);
+	void GiveItem(int ClientId, const char *pItemName, bool Bought = true, int FromId = -1);
+
 	std::vector<CItems *> m_Items;
 
 	void Init(CGameContext *pGameServer);

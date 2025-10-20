@@ -257,8 +257,7 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	}
 
 	pPl->TakeMoney(Price);
-
-	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(ItemName), true);
+	GiveItem(ClientId, ItemName);
 
 	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
 	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d%s", ItemName, Price, g_Config.m_SvCurrencyName);
@@ -266,5 +265,44 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	str_format(aBuf, sizeof(aBuf), "│ You now have: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 	GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
+}
+
+void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromId)
+{
+	bool ItemExists = false;
+	for(const char *pItem : Items)
+	{
+		if(str_comp_nocase(pItem, pItemName) == 0)
+		{
+			ItemExists = true;
+			break;
+		}
+	}
+	if(!ItemExists)
+	{
+		log_info("shop", "Tried to give non-existing item '%s' to ClientId %d", pItemName, ClientId);
+		return;
+	}
+	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	if(!pAcc->m_LoggedIn)
+	{
+		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pItemName, ClientId);
+		return;
+	}
+	const char *ClientIdName = Server()->ClientName(ClientId);
+	if(Bought)
+	{
+		log_info("shop", "%s (%d) Bought Item '%s'", ClientIdName, ClientId, pItemName);
+	}
+	else if(FromId == -1)
+	{
+		log_info("shop", "%s (%d) Received Item '%s'", ClientIdName, ClientId, pItemName);
+	}
+	else if(FromId >= 0)
+	{
+		const char *FromName = Server()->ClientName(FromId);
+		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pItemName, ClientIdName, ClientId);
+	}
+	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(pItemName), true);
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
