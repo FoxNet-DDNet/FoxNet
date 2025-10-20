@@ -135,7 +135,7 @@ void CGameContext::ConAccDisable(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pUser = pResult->GetString(0);
-	const int pValue = pResult->GetInteger(1);
+	const int pValue = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : 1;
 
 	pSelf->m_AccountManager.DisableAccount(pUser, pValue);
 }
@@ -177,7 +177,24 @@ void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 }
 
 void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
-{ // Logs out Current Acc Session, does not work across servers
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	const int Amount = pResult->GetInteger(1);
+	if(Amount > 0)
+		pPlayer->GiveXP(Amount);
+}
+
+void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
+{
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
 	if(!CheckClientId(ClientId))
@@ -1642,9 +1659,10 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("force_login", "r[username]", CFGFLAG_SERVER, ConAccForceLogin, this, "Force Log into any account");
 	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConAccForceLogout, this, "Force logout an account thats currently active on the server");
 	Console()->Register("acc_edit", "s[username] s[variable] r[value]", CFGFLAG_SERVER, ConAccEdit, this, "Edit an account");
-	Console()->Register("acc_disable", "s[username] i[1 | 0]", CFGFLAG_SERVER, ConAccDisable, this, "Disable an account");
+	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConAccDisable, this, "Disable an account");
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
+	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
 
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
 	Console()->Register("password", "s[oldpass] s[password] s[password2]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
