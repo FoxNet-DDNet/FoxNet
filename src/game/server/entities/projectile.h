@@ -37,7 +37,7 @@ public:
 	bool m_MixedGun = false;
 	bool m_MixedShield = false; // Switching between shield and heart
 	bool m_LaserGun = false;
-	int m_ExtraId; // Needed for m_LaserGun
+	int m_ExtraId = -1; // Needed for m_LaserGun
 
 	void HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
 

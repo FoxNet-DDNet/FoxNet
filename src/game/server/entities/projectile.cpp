@@ -57,11 +57,10 @@ CProjectile::CProjectile(
 		m_HeartGun = pCosmetics->m_GunType == GUN_HEART;
 		m_MixedGun = pCosmetics->m_GunType == GUN_MIXED;
 		m_LaserGun = pCosmetics->m_GunType == GUN_LASER;
+		if(pCosmetics->m_GunType > 0 && pCosmetics->m_GunType < NUM_GUNS)
+			m_LifeSpan *= 1.25;
 		if(m_LaserGun)
-		{
-			m_LifeSpan *= 1.25; // Lasergun projectiles are slower
 			m_ExtraId = Server()->SnapNewId();
-		}
 
 		m_MixedShield = pOwnerChar->m_MixedShield;
 		pOwnerChar->m_MixedShield = !pOwnerChar->m_MixedShield;
@@ -74,6 +73,11 @@ CProjectile::CProjectile(
 void CProjectile::Reset()
 {
 	m_MarkedForDestroy = true;
+	if(m_ExtraId != -1)
+	{
+		Server()->SnapFreeId(m_ExtraId);
+		m_ExtraId = -1;
+	}
 }
 
 vec2 CProjectile::GetPos(float Time)
@@ -113,7 +117,7 @@ vec2 CProjectile::GetPos(float Time)
 
 	case WEAPON_GUN:
 		// <FoxNet
-		if(m_LaserGun)
+		if(m_LaserGun || m_HeartGun || m_MixedGun)
 		{
 			Curvature = Tuning()->m_GunCurvature;
 			Speed = Tuning()->m_GunSpeed / 1.25f;
