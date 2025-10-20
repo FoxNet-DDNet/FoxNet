@@ -1400,6 +1400,7 @@ size_t CCollision::TeleAllSize(int Number)
 void CCollision::ClearQuadLayers()
 {
 	m_vQuads.clear();
+	m_vQuads.shrink_to_fit();
 }
 
 void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const

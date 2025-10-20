@@ -1600,7 +1600,8 @@ void CGameClient::InvalidateSnapshot()
 
 void CGameClient::OnNewSnapshot()
 {
-	Collision()->SetTime((double)(Client()->GameTick(g_Config.m_ClDummy) + Client()->GetPredictionTime() / 20) / Client()->GameTickSpeed());
+	Collision()->SetTime((double)(Client()->GetPredictionTick()) / Client()->GameTickSpeed());
+	Collision()->UpdateQuadCache();
 	auto &&Evolve = [this](CNetObj_Character *pCharacter, int Tick) {
 		CWorldCore TempWorld;
 		CCharacterCore TempCore = CCharacterCore();
