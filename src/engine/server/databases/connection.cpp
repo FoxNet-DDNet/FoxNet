@@ -95,7 +95,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 {
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS foxnet_accounts ("
-		"  Version INTEGER NOT NULL DEFAULT 2, "
+		"  Version INTEGER NOT NULL DEFAULT 4, "
 		"  Username VARCHAR(32) COLLATE %s NOT NULL, "
 		"  Password VARCHAR(128) COLLATE %s NOT NULL, "
 		"  RegisterDate INTEGER NOT NULL, "
@@ -132,13 +132,13 @@ void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int Buffer
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS foxnet_account_inventory ("
 		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
-		"  CosmeticId VARCHAR(64) COLLATE %s NOT NULL,"
+		"  ItemName VARCHAR(64) COLLATE %s NOT NULL,"
 		"  Quantity INTEGER NOT NULL DEFAULT 1,"
 		"  AcquiredAt INTEGER NOT NULL,"
 		"  ExpiresAt INTEGER NOT NULL,"
 		"  Meta TEXT COLLATE %s DEFAULT '',"
 		"  Value INTEGER NOT NULL DEFAULT 0,"
-		"  PRIMARY KEY (Username, CosmeticId)"
+		"  PRIMARY KEY (Username, ItemName)"
 		")",
 		BinaryCollate(),
 		BinaryCollate(),

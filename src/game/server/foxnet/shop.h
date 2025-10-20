@@ -152,7 +152,7 @@ public:
 
 class CShop
 {
-	CGameContext *m_pGameServer;
+	CGameContext *m_pGameServer = nullptr;
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 
@@ -173,6 +173,7 @@ public:
 
 	void BuyItem(int ClientId, const char *pName);
 	void GiveItem(int ClientId, const char *pItemName, bool Bought = true, int FromId = -1);
+	void RemoveItem(int ClientId, const char *pItemName, int ById);
 
 	std::vector<CItems *> m_Items;
 

@@ -650,7 +650,7 @@ void CVoteMenu::SendPageAccount(int ClientId)
 	char aBuf[VOTE_DESC_LENGTH];
 
 	AddVoteText("╭─────────       Pʀᴏғɪʟᴇ");
-	str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_Username);
+	str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
 	AddVoteText(aBuf);
 	str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
 	AddVoteText(aBuf);

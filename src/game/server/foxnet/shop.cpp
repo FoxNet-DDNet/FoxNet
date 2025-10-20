@@ -306,3 +306,46 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(pItemName), true);
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
+
+void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
+{
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl)
+		return;
+
+	bool ItemExists = false;
+	for(const char *pItem : Items)
+	{
+		if(str_comp_nocase(pItem, pItemName) == 0)
+		{
+			ItemExists = true;
+			break;
+		}
+	}
+	if(!ItemExists)
+	{
+		log_info("shop", "Tried to remove non-existing item '%s' to ClientId %d", pItemName, ClientId);
+		return;
+	}
+	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	if(!pAcc->m_LoggedIn)
+	{
+		log_info("shop", "Tried to remove item '%s' to non-logged-in ClientId %d", pItemName, ClientId);
+		return;
+	}
+	const char *ClientIdName = Server()->ClientName(ClientId);
+	if(ById < 0)
+	{
+		log_info("shop", "%s (%d) removed Item '%s'", ClientIdName, ClientId, pItemName);
+	}
+	else
+	{
+		const char *FromName = Server()->ClientName(ById);
+		log_info("shop", "%s (%d) removed Item '%s' from %s (%d)", FromName, ById, pItemName, ClientIdName, ClientId);
+	}
+
+	int ItemIndex = CInventory::IndexOf(pItemName);
+	pAcc->m_Inventory.SetEquippedIndex(ItemIndex, false);
+	pPl->ToggleItem(Items[ItemIndex], false); // Disable Item
+	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex] /*Case Sensitive*/);
+}

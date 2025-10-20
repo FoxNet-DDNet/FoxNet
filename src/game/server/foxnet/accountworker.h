@@ -12,7 +12,7 @@ class IGameController;
 struct CAccResult : ISqlResult
 {
 	bool m_Found = false;
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
 	char m_LastPlayerName[MAX_NAME_LENGTH] = "";
 	char m_CurrentIP[46] = "";
@@ -38,7 +38,7 @@ struct CAccRegisterRequest : ISqlData
 {
 	CAccRegisterRequest(std::shared_ptr<CAccResult> pRes) :
 		ISqlData(std::move(pRes)) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PasswordHash[ACC_MAX_PASSW_LENGTH] = "";
 	long m_RegisterDate = 0;
 };
@@ -46,14 +46,14 @@ struct CAccLoginRequest : ISqlData
 {
 	CAccLoginRequest(std::shared_ptr<CAccResult> pRes) :
 		ISqlData(std::move(pRes)) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PasswordHash[256] = "";
 };
 struct CAccSelectByUser : ISqlData
 {
 	CAccSelectByUser(std::shared_ptr<ISqlResult> pRes) :
 		ISqlData(std::move(pRes)) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 struct CAccSelectByLastName : ISqlData
 {
@@ -65,13 +65,13 @@ struct CAccSelectPortByUser : ISqlData
 {
 	CAccSelectPortByUser(std::shared_ptr<ISqlResult> pRes) :
 		ISqlData(std::move(pRes)) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 struct CAccUpdLoginState : ISqlData
 {
 	CAccUpdLoginState() :
 		ISqlData(nullptr) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
 	char m_CurrentIP[46] = "";
 	long m_LastLogin = 0;
@@ -82,7 +82,7 @@ struct CAccUpdLogoutState : ISqlData
 {
 	CAccUpdLogoutState() :
 		ISqlData(nullptr) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH]{};
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
 	long m_Flags = 0;
 	int m_VoteMenuPage = 0;
 	long m_Playtime = 0;
@@ -97,7 +97,7 @@ struct CAccSaveInfo : ISqlData
 {
 	CAccSaveInfo() :
 		ISqlData(nullptr) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_Flags = 0;
 	int m_VoteMenuPage = 0;
 	long m_Playtime = 0;
@@ -112,7 +112,7 @@ struct CAccSetNameReq : ISqlData
 {
 	CAccSetNameReq() :
 		ISqlData(nullptr) {}
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_NewPlayerName[MAX_NAME_LENGTH] = "";
 };
 struct CAccShowTop5 : ISqlData
@@ -129,7 +129,14 @@ struct CAccDisable : ISqlData
 	CAccDisable() :
 		ISqlData(nullptr) {}
 	bool m_Disable;
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+struct CAccRemoveItem : ISqlData
+{
+	CAccRemoveItem() :
+		ISqlData(nullptr) {}
+	char m_aItemName[64];
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 
 struct CAccountsWorker
@@ -145,6 +152,7 @@ struct CAccountsWorker
 	static bool SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize);
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 };
 
 #endif

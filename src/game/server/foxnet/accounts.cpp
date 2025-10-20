@@ -86,11 +86,11 @@ void CAccounts::AutoLogin(int ClientId)
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
 			return;
-		if(str_comp(Res.m_Username, Name.c_str()) != 0)
+		if(str_comp(Res.m_aUsername, Name.c_str()) != 0)
 			return;
 		if(Res.m_LoggedIn || !(Res.m_Flags & ACC_FLAG_AUTOLOGIN))
 			return;
-		ForceLogin(ClientId, Res.m_Username, true, true);
+		ForceLogin(ClientId, Res.m_aUsername, true, true);
 	});
 	m_pPool->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name");
 }
@@ -101,7 +101,7 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 		return false;
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByUser>(pRes);
-	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	AddPending(pRes, [this, ClientId, Silent, Auto](CAccResult &Res) {
 		if(!Res.m_Success || !Res.m_Found)
 			return;
@@ -135,7 +135,7 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	sha256_str(HashPassword(pPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccLoginRequest>(pRes);
-	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
 		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
@@ -194,7 +194,7 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	sha256_str(HashPassword(pPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccRegisterRequest>(pRes);
-	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
 	time_t Now;
 	time(&Now);
@@ -219,7 +219,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		time_t Now;
 		time(&Now);
 
-		str_copy(Acc.m_Username, Res.m_Username);
+		str_copy(Acc.m_aUsername, Res.m_aUsername);
 		Acc.m_RegisterDate = Res.m_RegisterDate;
 		str_copy(Acc.m_Name, Res.m_PlayerName);
 		str_copy(Acc.m_LastName, Res.m_LastPlayerName);
@@ -268,7 +268,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	}
 
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
-	str_copy(pUpd->m_Username, Res.m_Username, sizeof(pUpd->m_Username));
+	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
 	str_copy(pUpd->m_PlayerName, Server()->ClientName(ClientId), sizeof(pUpd->m_PlayerName));
 	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
 	time_t Now;
@@ -296,7 +296,7 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	if(!m_pPool)
 		return;
 	auto pReq = std::make_unique<CAccUpdLogoutState>();
-	str_copy(pReq->m_Username, AccInfo.m_Username, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_VoteMenuPage = AccInfo.m_VoteMenuPage;
 	pReq->m_Playtime = AccInfo.m_Playtime;
@@ -368,7 +368,7 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 	{
 		CSqlChangePass() :
 			ISqlData(nullptr) {}
-		char m_Username[ACC_MAX_USERNAME_LENGTH];
+		char m_aUsername[ACC_MAX_USERNAME_LENGTH];
 		char m_OldHash[ACC_MAX_PASSW_LENGTH];
 		char m_NewHash[ACC_MAX_PASSW_LENGTH];
 	};
@@ -378,13 +378,13 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 			return false;
 		pSql->BindString(1, p->m_NewHash);
-		pSql->BindString(2, p->m_Username);
+		pSql->BindString(2, p->m_aUsername);
 		pSql->BindString(3, p->m_OldHash);
 		int NumUpdated = 0;
 		return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 	};
 	auto pReq = std::make_unique<CSqlChangePass>();
-	str_copy(pReq->m_Username, GameServer()->m_aAccounts[ClientId].m_Username, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, GameServer()->m_aAccounts[ClientId].m_aUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_OldHash, HashedOld, sizeof(pReq->m_OldHash));
 	str_copy(pReq->m_NewHash, HashedNew, sizeof(pReq->m_NewHash));
 	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc change password");
@@ -425,14 +425,14 @@ void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const 
 	{
 		CSqlEditReq() :
 			ISqlData(nullptr) {}
-		char m_Username[ACC_MAX_USERNAME_LENGTH];
+		char m_aUsername[ACC_MAX_USERNAME_LENGTH];
 		char m_Value[1028];
 		char m_Column[64];
 		bool m_IsInt;
 	};
-	auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool { const auto *p=dynamic_cast<const CSqlEditReq*>(pData); char aSql[384]; if(p->m_IsInt) str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = CAST(? AS INTEGER) WHERE Username = ?",p->m_Column); else str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = ? WHERE Username = ?",p->m_Column); if(!pSql->PrepareStatement(aSql,pError,ErrorSize)) return false; pSql->BindString(1,p->m_Value); pSql->BindString(2,p->m_Username); int NumUpdated=0; return pSql->ExecuteUpdate(&NumUpdated,pError,ErrorSize); };
+	auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool { const auto *p=dynamic_cast<const CSqlEditReq*>(pData); char aSql[384]; if(p->m_IsInt) str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = CAST(? AS INTEGER) WHERE Username = ?",p->m_Column); else str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = ? WHERE Username = ?",p->m_Column); if(!pSql->PrepareStatement(aSql,pError,ErrorSize)) return false; pSql->BindString(1,p->m_Value); pSql->BindString(2,p->m_aUsername); int NumUpdated=0; return pSql->ExecuteUpdate(&NumUpdated,pError,ErrorSize); };
 	auto pReq = std::make_unique<CSqlEditReq>();
-	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_Value, pValue, sizeof(pReq->m_Value));
 	str_copy(pReq->m_Column, pVariable, sizeof(pReq->m_Column));
 	pReq->m_IsInt = IsInt;
@@ -446,12 +446,12 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 	auto SendProfile = [this, ClientId, NameCopy = std::string(pName)](const CAccResult &Data) {
 		char aBuf[128];
 		GameServer()->SendChatTarget(ClientId, "╭──────     Pʀᴏғɪʟᴇ");
-		const char *UseName = Data.m_LoggedIn ? NameCopy.c_str() : (Data.m_PlayerName[0] ? Data.m_PlayerName : Data.m_Username);
+		const char *UseName = Data.m_LoggedIn ? NameCopy.c_str() : (Data.m_PlayerName[0] ? Data.m_PlayerName : Data.m_aUsername);
 		str_format(aBuf, sizeof(aBuf), "│ Name: %s", UseName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		if(Server()->GetAuthedState(ClientId) >= AUTHED_MOD)
 		{
-			str_format(aBuf, sizeof(aBuf), "│ Username: %s", Data.m_Username);
+			str_format(aBuf, sizeof(aBuf), "│ Username: %s", Data.m_aUsername);
 			GameServer()->SendChatTarget(ClientId, aBuf);
 		}
 		if(Data.m_Disabled)
@@ -494,7 +494,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 	auto QueryByUsername = [this, ClientId, pNameStr = std::string(pName), SendProfile]() {
 		auto pRes2 = std::make_shared<CAccResult>();
 		auto pReq2 = std::make_unique<CAccSelectByUser>(pRes2);
-		str_copy(pReq2->m_Username, pNameStr.c_str(), sizeof(pReq2->m_Username));
+		str_copy(pReq2->m_aUsername, pNameStr.c_str(), sizeof(pReq2->m_aUsername));
 		AddPending(pRes2, [this, ClientId, pNameStr, SendProfile](CAccResult &Res2) {
 			if(!Res2.m_Success || !Res2.m_Found)
 			{
@@ -526,7 +526,7 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	if(!m_pPool)
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
-	str_copy(pReq->m_Username, AccInfo.m_Username, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_VoteMenuPage = AccInfo.m_VoteMenuPage;
 	pReq->m_Playtime = AccInfo.m_Playtime;
@@ -568,7 +568,7 @@ void CAccounts::SetPlayerName(int ClientId, const char *pName)
 		return;
 	auto pReq = std::make_unique<CAccSetNameReq>();
 	str_copy(pReq->m_NewPlayerName, pName, sizeof(pReq->m_NewPlayerName));
-	str_copy(pReq->m_Username, GameServer()->m_aAccounts[ClientId].m_Username, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, GameServer()->m_aAccounts[ClientId].m_aUsername, sizeof(pReq->m_aUsername));
 	m_pPool->ExecuteWrite(CAccountsWorker::SetPlayerName, std::move(pReq), "acc set player name");
 }
 
@@ -578,8 +578,18 @@ void CAccounts::DisableAccount(const char *pUsername, bool Disable)
 		return;
 	auto pReq = std::make_unique<CAccDisable>();
 	pReq->m_Disable = Disable;
-	str_copy(pReq->m_Username, pUsername, sizeof(pReq->m_Username));
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	m_pPool->ExecuteWrite(CAccountsWorker::DisableAccount, std::move(pReq), "acc (un)disable");
+}
+
+void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccRemoveItem>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aItemName, pItemName, sizeof(pReq->m_aItemName));
+	m_pPool->ExecuteWrite(CAccountsWorker::RemoveItem, std::move(pReq), "acc remove item");
 }
 
 int CAccounts::NeededXP(int Level)

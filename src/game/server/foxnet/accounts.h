@@ -33,7 +33,7 @@ enum
 
 struct CAccountSession
 {
-	char m_Username[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_RegisterDate = 0;
 	char m_Name[MAX_NAME_LENGTH] = "";
 	char m_LastName[MAX_NAME_LENGTH] = "";
@@ -66,7 +66,7 @@ struct CPendingAccResult
 
 class CAccounts
 {
-	CGameContext *m_pGameServer;
+	CGameContext *m_pGameServer = nullptr;
 	CDbConnectionPool *m_pPool;
 
 	CGameContext *GameServer() const { return m_pGameServer; }
@@ -108,6 +108,7 @@ public:
 
 	void SetPlayerName(int ClientId, const char *pName);
 	void EditAccount(const char *pUsername, const char *pVariable, const char *pValue); // async
+	void RemoveItem(const char *pUsername, const char *pItemName);
 
 	// Returns XP needed for next level
 	int NeededXP(int Level);

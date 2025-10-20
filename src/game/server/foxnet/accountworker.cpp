@@ -14,7 +14,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	// Load owned items
 	{
 		char aInvSql[256];
-		str_copy(aInvSql, "SELECT CosmeticId FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
+		str_copy(aInvSql, "SELECT ItemName FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
 		if(!pSql->PrepareStatement(aInvSql, pError, ErrorSize))
 			return false;
 		pSql->BindString(1, pUsername);
@@ -39,7 +39,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	// Load equipped from inventory.Value
 	{
 		char aEqSql[256];
-		str_copy(aEqSql, "SELECT CosmeticId, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
+		str_copy(aEqSql, "SELECT ItemName, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
 		if(!pSql->PrepareStatement(aEqSql, pError, ErrorSize))
 			return false;
 		pSql->BindString(1, pUsername);
@@ -67,7 +67,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 
 static bool WriteEquippedValues(IDbConnection *pSql, const char *pUsername, const CInventory &Inv, char *pError, int ErrorSize)
 {
-	// Collect equipped pairs (CosmeticId, Value)
+	// Collect equipped pairs (ItemName, Value)
 	struct Pair
 	{
 		const char *pId;
@@ -101,7 +101,7 @@ static bool WriteEquippedValues(IDbConnection *pSql, const char *pUsername, cons
 	char aUpd[2048];
 	int Len = str_format(aUpd, sizeof(aUpd), "%s",
 		"UPDATE foxnet_account_inventory "
-		"SET Value = CASE CosmeticId");
+		"SET Value = CASE ItemName");
 
 	for(int i = 0; i < Count; i++)
 	{
@@ -113,7 +113,7 @@ static bool WriteEquippedValues(IDbConnection *pSql, const char *pUsername, cons
 		return false;
 
 	int BindIdx = 1;
-	// Bind (CosmeticId, Value) pairs
+	// Bind (ItemName, Value) pairs
 	for(int i = 0; i < Count; i++)
 	{
 		pSql->BindString(BindIdx++, aPairs[i].pId);
@@ -136,7 +136,7 @@ bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 
-	pSql->BindString(1, pReq->m_Username);
+	pSql->BindString(1, pReq->m_aUsername);
 	pSql->BindString(2, pReq->m_PasswordHash);
 	pSql->BindInt64(3, pReq->m_RegisterDate);
 	pSql->BindInt64(4, ACC_FLAG_AUTOLOGIN);
@@ -165,7 +165,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 
-	pSql->BindString(1, pReq->m_Username);
+	pSql->BindString(1, pReq->m_aUsername);
 	pSql->BindString(2, pReq->m_PasswordHash);
 
 	bool End = true;
@@ -174,7 +174,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_Username, sizeof(pRes->m_Username));
+		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
 		pRes->m_RegisterDate = pSql->GetInt64(2);
 		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
@@ -200,10 +200,10 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		// Load owned items
 		{
 			char aInvSql[256];
-			str_copy(aInvSql, "SELECT CosmeticId FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
+			str_copy(aInvSql, "SELECT ItemName FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
 			if(!pSql->PrepareStatement(aInvSql, pError, ErrorSize))
 				return false;
-			pSql->BindString(1, pRes->m_Username);
+			pSql->BindString(1, pRes->m_aUsername);
 
 			bool End2 = true;
 			if(!pSql->Step(&End2, pError, ErrorSize))
@@ -225,10 +225,10 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		// Load equipped values from inventory.Value
 		{
 			char aEqSql[256];
-			str_copy(aEqSql, "SELECT CosmeticId, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
+			str_copy(aEqSql, "SELECT ItemName, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
 			if(!pSql->PrepareStatement(aEqSql, pError, ErrorSize))
 				return false;
-			pSql->BindString(1, pRes->m_Username);
+			pSql->BindString(1, pRes->m_aUsername);
 
 			bool End2 = true;
 			if(!pSql->Step(&End2, pError, ErrorSize))
@@ -275,7 +275,7 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 	pSql->BindInt64(3, p->m_LastLogin);
 	pSql->BindInt(4, p->m_Port);
 	pSql->BindInt(5, p->m_ClientId);
-	pSql->BindString(6, p->m_Username);
+	pSql->BindString(6, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -295,12 +295,12 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
-				"%s INTO foxnet_account_inventory (Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta) "
+				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
 				"VALUES (?, ?, 1, ?, 0, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
-			pSql->BindString(1, pReq->m_Username);
+			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
 			pSql->BindInt64(3, (int64_t)Now);
 			int NumIns = 0;
@@ -310,7 +310,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	}
 
 	// Single UPDATE with CASE for all equipped values
-	if(!WriteEquippedValues(pSql, pReq->m_Username, pReq->m_Inventory, pError, ErrorSize))
+	if(!WriteEquippedValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
 		return false;
 
 	// Update scalar account fields
@@ -333,7 +333,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	pSql->BindInt64(6, pReq->m_Level);
 	pSql->BindInt64(7, pReq->m_XP);
 	pSql->BindInt64(8, pReq->m_Money);
-	pSql->BindString(9, pReq->m_Username);
+	pSql->BindString(9, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -353,12 +353,12 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
-				"%s INTO foxnet_account_inventory (Username, CosmeticId, Quantity, AcquiredAt, ExpiresAt, Meta) "
+				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
 				"VALUES (?, ?, 1, ?, 0, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
-			pSql->BindString(1, p->m_Username);
+			pSql->BindString(1, p->m_aUsername);
 			pSql->BindString(2, Items[i]);
 			pSql->BindInt64(3, (int64_t)Now);
 			int Num = 0;
@@ -368,7 +368,7 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	}
 
 	// Single UPDATE with CASE for all equipped values
-	if(!WriteEquippedValues(pSql, p->m_Username, p->m_Inventory, pError, ErrorSize))
+	if(!WriteEquippedValues(pSql, p->m_aUsername, p->m_Inventory, pError, ErrorSize))
 		return false;
 
 	char aSql[512];
@@ -389,7 +389,7 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	pSql->BindInt64(6, p->m_Level);
 	pSql->BindInt64(7, p->m_XP);
 	pSql->BindInt64(8, p->m_Money);
-	pSql->BindString(9, p->m_Username);
+	pSql->BindString(9, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -404,7 +404,7 @@ bool CAccountsWorker::SetPlayerName(IDbConnection *pSql, const ISqlData *pData, 
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	pSql->BindString(1, p->m_NewPlayerName);
-	pSql->BindString(2, p->m_Username);
+	pSql->BindString(2, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -433,7 +433,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_Username, sizeof(pRes->m_Username));
+		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
 		pRes->m_RegisterDate = pSql->GetInt64(2);
 		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
@@ -456,7 +456,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_Success = true;
 
 		// Load inventory/equipped too (was previously missing here)
-		if(!LoadInventoryAndEquipment(pSql, pRes->m_Username, pRes->m_Inventory, pError, ErrorSize))
+		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
 			return false;
 	}
 	pRes->m_Completed.store(true);
@@ -477,7 +477,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindString(1, p->m_Username);
+	pSql->BindString(1, p->m_aUsername);
 
 	bool End = true;
 	if(!pSql->Step(&End, pError, ErrorSize))
@@ -485,7 +485,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_Username, sizeof(pRes->m_Username));
+		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
 		pRes->m_RegisterDate = pSql->GetInt64(2);
 		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
@@ -507,7 +507,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
-		if(!LoadInventoryAndEquipment(pSql, pRes->m_Username, pRes->m_Inventory, pError, ErrorSize))
+		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
 			return false;
 	}
 	pRes->m_Completed.store(true);
@@ -523,7 +523,7 @@ bool CAccountsWorker::SelectPortByUsername(IDbConnection *pSql, const ISqlData *
 	str_copy(aSql, "SELECT Port FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindString(1, p->m_Username);
+	pSql->BindString(1, p->m_aUsername);
 
 	bool End = true;
 	if(!pSql->Step(&End, pError, ErrorSize))
@@ -635,7 +635,23 @@ bool CAccountsWorker::DisableAccount(IDbConnection *pSql, const ISqlData *pData,
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	pSql->BindInt(1, p->m_Disable);
-	pSql->BindString(2, p->m_Username);
+	pSql->BindString(2, p->m_aUsername);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *p = dynamic_cast<const CAccRemoveItem *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"DELETE FROM foxnet_account_inventory "
+		"WHERE Username = ? AND ItemName = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, p->m_aUsername);
+	pSql->BindString(2, p->m_aItemName);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }

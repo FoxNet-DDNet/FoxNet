@@ -208,6 +208,21 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, FromId);
 }
 
+void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	const int FromId = pResult->m_ClientId;
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	const char *pItemName = pResult->GetString(1);
+	pSelf->m_Shop.RemoveItem(ClientId, pItemName, FromId);
+}
+
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1661,6 +1676,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
 	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
+	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
 
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
 	Console()->Register("password", "s[oldpass] s[password] s[password2]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
