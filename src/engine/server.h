@@ -401,6 +401,7 @@ public:
 	virtual void OnUpdatePlayerServerInfo(CJsonWriter *pJsonWriter, int ClientId) = 0;
 
 	// <FoxNet
+	virtual void OnPreReload() = 0;	
 	virtual bool IncludedInServerInfo(int ClientId) = 0;
 	virtual void OnPreShutdown() = 0;
 	// FoxNet>

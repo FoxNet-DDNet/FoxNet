@@ -2839,6 +2839,8 @@ if(SERVER)
     foxnet/fontconvert.cpp
     foxnet/fontconvert.h
     foxnet/gamecontext.cpp
+    foxnet/persistent_data.cpp
+    foxnet/persistent_data.h
     foxnet/player.cpp
     foxnet/shop.cpp
     foxnet/shop.h

@@ -128,6 +128,10 @@ void CGameContext::Construct(int Resetting)
 		for(auto &pSavedTeam : m_apSavedTeams)
 			pSavedTeam = nullptr;
 
+		// <FoxNet
+		for(auto &pPersistentData : m_apPersistentData)
+			pPersistentData = nullptr;
+
 		std::fill(std::begin(m_aTeamMapping), std::end(m_aTeamMapping), -1);
 
 		m_NonEmptySince = 0;
@@ -1857,6 +1861,11 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 
 	delete m_apSavedTees[ClientId];
 	m_apSavedTees[ClientId] = nullptr;
+
+	// <FoxNet
+	delete m_apPersistentData[ClientId];
+	m_apPersistentData[ClientId] = nullptr;
+	// FoxNet>
 
 	m_aTeamMapping[ClientId] = -1;
 

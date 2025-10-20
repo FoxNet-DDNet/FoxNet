@@ -3166,7 +3166,11 @@ int CServer::Run()
 				const bool SameMapReload = m_SameMapReload;
 				// load map
 				if(LoadMap(Config()->m_SvMap))
-				{
+				{ 
+					// <FoxNet
+					GameServer()->OnPreReload();
+					// FoxNet>
+					
 					// new map loaded
 
 					// ask the game for the data it wants to persist past a map change

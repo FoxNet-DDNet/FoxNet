@@ -57,6 +57,7 @@ void CPlayer::FoxNetReset()
 {
 	m_IncludeServerInfo = -1;
 	m_HideCosmetics = false;
+	m_HidePowerUps = false;
 
 	m_ExtraPing = false;
 	m_Obfuscated = false;
@@ -69,6 +70,13 @@ void CPlayer::FoxNetReset()
 
 	Acc()->m_Inventory = CInventory();
 	m_vPickupDrops.clear();
+
+	if(GameServer()->m_apPersistentData[GetCid()])
+	{
+		GameServer()->m_apPersistentData[GetCid()]->Load(this);
+		delete GameServer()->m_apPersistentData[GetCid()];
+		GameServer()->m_apPersistentData[GetCid()] = nullptr;
+	}
 }
 
 void CPlayer::GivePlaytime(int Amount)

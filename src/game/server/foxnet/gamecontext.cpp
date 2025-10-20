@@ -1061,3 +1061,15 @@ int CGameContext::DirectionToEditorDeg(const vec2 &Dir)
 		Ideg += 360;
 	return Ideg; // 0..359
 }
+
+void CGameContext::OnPreReload()
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CPlayer *pPlayer = m_apPlayers[i];
+		if(!pPlayer)
+			continue;
+		m_apPersistentData[i] = new CSavePlayerData();
+		m_apPersistentData[i]->Save(pPlayer);
+	}
+}

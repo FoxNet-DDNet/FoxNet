@@ -27,6 +27,7 @@
 #include "foxnet/shop.h"
 #include "foxnet/entities/powerup.h"
 #include "foxnet/entities/roulette.h"
+#include "foxnet/persistent_data.h"
 
 /*
 	Tick
@@ -951,6 +952,10 @@ public:
 	std::optional<vec2> GetRandomAccessablePos();
 
 	int RandGeometric(std::mt19937 &rng, int Min, int Max, double p);
+
+	void OnPreReload() override;
+
+	CSavePlayerData *m_apPersistentData[MAX_CLIENTS];
 	// FoxNet>
 };
 
