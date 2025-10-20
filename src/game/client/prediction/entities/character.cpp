@@ -11,6 +11,7 @@
 
 #include <game/collision.h>
 #include <game/mapitems.h>
+#include <game/layers.h>
 
 // Character, "physical" player's part
 
@@ -1117,12 +1118,13 @@ void CCharacter::DDRacePostCoreTick()
 		m_Core.m_Jumped = 1;
 	}
 
-	// <FoxNet
-	m_InQuadFreeze = false;
-	// FoxNet>
-
 	int CurrentIndex = Collision()->GetMapIndex(m_Pos);
 	HandleSkippableTiles(CurrentIndex);
+
+	// <FoxNet
+	m_InQuadFreeze = false;
+	HandleQuads();
+	// FoxNet>
 
 	// handle Anti-Skip tiles
 	std::vector<int> vIndices = Collision()->GetMapIndices(m_PrevPos, m_Pos);
@@ -1535,13 +1537,155 @@ CCharacter::~CCharacter()
 }
 
 // <FoxNet
-void CCharacter::HandleQuads(const CMapItemLayerQuads *pQuadLayer, int QuadIndex)
+void CCharacter::HandleQuads()
 {
-	
+	m_InQuadFreeze = false;
+
+	std::vector<const CQuadData *> pQuads = Collision()->GetQuadsAt(m_Pos);
+	for(const CQuadData *pQuad : pQuads)
+	{
+		if(pQuad->m_Type < QUADTYPE_FREEZE || pQuad->m_Type >= NUM_QUADTYPES)
+			continue;
+
+		switch(pQuad->m_Type)
+		{
+		case QUADTYPE_FREEZE:
+			Freeze();
+			m_InQuadFreeze = true;
+			break;
+		case QUADTYPE_UNFREEZE:
+			if(!Core()->m_IsInFreeze)
+			{
+				UnFreeze();
+				m_InQuadFreeze = false;
+			}
+			break;
+		case QUADTYPE_DEATH:
+			// Die(GetPlayer()->GetCid(), WEAPON_WORLD);
+			break;
+		case QUADTYPE_STOPA:
+		case QUADTYPE_HOOKABLE:
+		case QUADTYPE_UNHOOKABLE:
+			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3]);
+			break;
+		case QUADTYPE_CFRM:
+			break;
+		}
+	}
 }
 
-void CCharacter::HandleQuadStopa(const CMapItemLayerQuads *pQuadLayer, int QuadIndex)
+void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR)
 {
-	
+	const float R = GetProximityRadius() * 0.55f;
+	const vec2 P = m_Pos;
+
+	const vec2 aA[4] = {TL, TR, BR, BL};
+	const vec2 aB[4] = {TR, BR, BL, TL};
+
+	float MinPenetration = std::numeric_limits<float>::infinity();
+	vec2 BestInwardNormal = vec2(0.0f, 0.0f);
+	int BestEdgeIdx = -1;
+	vec2 BestEdgeVec = vec2(0.0f, 0.0f);
+
+	for(int i = 0; i < 4; ++i)
+	{
+		vec2 E = aB[i] - aA[i];
+		const float Elen2 = dot(E, E);
+		if(Elen2 <= 1e-6f)
+			continue;
+
+		const vec2 N_in = normalize(vec2(-E.y, E.x));
+		const float d = dot(P - aA[i], N_in);
+		float Penetration = d + R;
+
+		if(Penetration < MinPenetration)
+		{
+			MinPenetration = Penetration;
+			BestInwardNormal = N_in;
+			BestEdgeIdx = i;
+			BestEdgeVec = E;
+		}
+	}
+
+	if(MinPenetration == std::numeric_limits<float>::infinity())
+		return;
+
+	if(MinPenetration > 0.0f)
+	{
+		const float Epsilon = -0.0f;
+		vec2 MTV = -BestInwardNormal * (MinPenetration + Epsilon);
+
+		auto CanPlace = [&](const vec2 &Pos) {
+			return !Collision()->TestBox(Pos, vec2(GetProximityRadius(), GetProximityRadius()));
+		};
+
+		auto MoveAxis = [&](vec2 &Pos, const vec2 &Delta) {
+			if(Delta.x == 0.0f && Delta.y == 0.0f)
+				return vec2(0.f, 0.f);
+
+			vec2 Target = Pos + Delta;
+			if(CanPlace(Target))
+			{
+				Pos = Target;
+				return Delta;
+			}
+
+			float lo = 0.0f;
+			float hi = 1.0f;
+			for(int i = 0; i < 10; ++i)
+			{
+				float Mid = (lo + hi) * 0.5f;
+				vec2 MidPos = Pos + Delta * Mid;
+				if(CanPlace(MidPos))
+					lo = Mid;
+				else
+					hi = Mid;
+			}
+			if(lo > 0.0f)
+			{
+				vec2 Applied = Delta * lo;
+				Pos += Applied;
+				return Applied;
+			}
+			return vec2(0.0f, 0.0f);
+		};
+
+		vec2 NewPos = m_Pos;
+
+		vec2 AppliedX = MoveAxis(NewPos, vec2(MTV.x, 0.0f));
+		vec2 AppliedY = MoveAxis(NewPos, vec2(0.0f, MTV.y));
+
+		const vec2 Vel = m_Core.m_Vel;
+		m_Pos = NewPos;
+		m_PrevPos = NewPos;
+
+		const float vIn = dot(Vel, BestInwardNormal);
+		if(vIn > 0.0f)
+			SetRawVelocity(Vel - BestInwardNormal * vIn);
+
+		if(AppliedX.x == 0.0f && MTV.x != 0.0f)
+			SetRawVelocity(vec2(0.0f, Vel.y));
+		if(AppliedY.y == 0.0f && MTV.y != 0.0f)
+			SetRawVelocity(vec2(Vel.x, 0.0f));
+
+		if(g_Config.m_SvQStopaGivesDj && BestEdgeIdx >= 0)
+		{
+			const float NormalThresh = 0.35f;
+			const float SlopeThresh = 0.60f;
+
+			float edgeLen = length(BestEdgeVec);
+			float edgeSlope = edgeLen > 1e-6f ? absolute(BestEdgeVec.y) / edgeLen : 1.0f;
+			bool IsFloorNormal = (BestInwardNormal.y >= NormalThresh);
+			bool IsFlatEnough = (edgeSlope <= SlopeThresh);
+			bool PushedUp = (AppliedY.y < 0.0f);
+			bool WasFallingOrRest = (Vel.y >= 0.0f);
+
+			if(IsFloorNormal && IsFlatEnough && PushedUp && WasFallingOrRest)
+			{
+				m_Core.m_JumpedTotal = 0;
+				m_Core.m_Jumped = 0;
+			}
+		}
+	}
 }
 // FoxNet>

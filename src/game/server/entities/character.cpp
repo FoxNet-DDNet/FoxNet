@@ -35,6 +35,7 @@
 #include <game/server/foxnet/entities/roulette.h>
 
 #include <string>
+#include <game/layers.h>
 // FoxNet>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 

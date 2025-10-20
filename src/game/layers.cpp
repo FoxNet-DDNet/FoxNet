@@ -155,6 +155,8 @@ void CLayers::Unload()
 	m_pFrontLayer = nullptr;
 	m_pSwitchLayer = nullptr;
 	m_pTuneLayer = nullptr;
+
+	m_vQuadLayers.clear();
 }
 
 void CLayers::InitTilemapSkip()

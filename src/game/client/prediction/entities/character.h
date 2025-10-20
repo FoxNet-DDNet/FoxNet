@@ -184,8 +184,8 @@ private:
 	int m_LastTuneZoneTick;
 
 	// <FoxNet
-	void HandleQuads(const CMapItemLayerQuads *pQuadLayer, int QuadIndex);
-	void HandleQuadStopa(const CMapItemLayerQuads *pQuadLayer, int QuadIndex);
+	void HandleQuads();
+	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR);
 	bool m_InQuadFreeze;
 	// FoxNet>
 };
