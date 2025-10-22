@@ -117,6 +117,8 @@ public:
 	bool m_StrongBloody = false;
 	bool m_StaffInd = false;
 	bool m_PickupPet = false;
+
+	void Reset() { *this = CCosmetics(); }
 };
 
 class CInventory
@@ -460,17 +462,17 @@ public:
 	void SetTelekinesisImmunity(bool Active);
 	void SetAbility(int Type);
 
-	// Death Effect
-	void SetDeathEffect(int Type);
-	void SetPickupPet(bool Active);
-	void SetHeartHat(bool Active);
-	void SetStaffInd(bool Active);
-	void SetStrongBloody(bool Active);
-
+	// Player Settings
 	void SetHideCosmetics(bool Set);
 	void SetHidePowerUps(bool Set);
 
-	// Cosmetics
+	// Death Effect
+	void SetDeathEffect(int Type);
+
+	void SetPickupPet(bool Active);
+	void SetHeartHat(bool Active);
+	void SetStaffInd(bool Active);
+
 	void SetRainbowBody(bool Active);
 	void SetRainbowFeet(bool Active);
 	void SetSparkle(bool Active);
@@ -479,6 +481,7 @@ public:
 	void SetRotatingBall(bool Active);
 	void SetEpicCircle(bool Active);
 	void SetBloody(bool Active);
+	void SetStrongBloody(bool Active);
 
 	// Trails
 	void SetTrail(int Type);

@@ -85,11 +85,11 @@ void CPlayer::GivePlaytime(int Amount)
 		return;
 
 	Acc()->m_Playtime++;
-	if(Acc()->m_Playtime % 100 == 0)
+	if(Acc()->m_Playtime % 60 == 0)
 	{
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "for reaching %ld Minutes of Playtime!", Acc()->m_Playtime);
-		GiveMoney(g_Config.m_SvPlaytimeMoney, aBuf);
+		GiveMoney(g_Config.m_SvPlaytimeMoney, aBuf, false);
 	}
 }
 
@@ -129,7 +129,7 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		Acc()->m_Level++;
 		Acc()->m_XP -= NeededXp;
 
-		GiveMoney(g_Config.m_SvLevelUpMoney);
+		GiveMoney(g_Config.m_SvLevelUpMoney, "", false);
 		LeveledUp = true;
 	}
 
@@ -799,32 +799,7 @@ void CPlayer::SetAbility(int Type)
 
 void CPlayer::DisableAllCosmetics()
 {
-	SetAbility(ABILITY_NONE);
-	SetEpicCircle(false);
-	SetLovely(false);
-	SetRotatingBall(false);
-	SetSparkle(false);
-	HookPower(HOOK_NORMAL);
-	SetBloody(false);
-	SetInverseAim(false);
-	SetHeartHat(false);
-
-	SetDeathEffect(DEATH_NONE);
-	SetDamageIndType(IND_NONE);
-
-	SetEmoticonGun(0);
-	SetConfettiGun(false);
-	SetPhaseGun(false);
-
-	SetTrail(TRAIL_NONE);
-
-	SetRainbowBody(false);
-	SetRainbowFeet(false);
-
-	// Not Available Normally
-	SetStrongBloody(false);
-	SetStaffInd(false);
-	SetPickupPet(false);
+	Cosmetics()->Reset();
 }
 int CPlayer::NumDDraceHudRows()
 {
