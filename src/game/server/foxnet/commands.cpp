@@ -1081,19 +1081,6 @@ void CGameContext::ConSetVanishQuiet(IConsole::IResult *pResult, void *pUserData
 	pPl->m_Vanish = !pPl->m_Vanish;
 }
 
-void CGameContext::ConSetObfuscated(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
-	if(!pPlayer)
-		return;
-
-	pPlayer->SetObfuscated(!pPlayer->m_Obfuscated);
-	log_info("server", "Set obfuscated to %d for player %s", pPlayer->m_Obfuscated, pSelf->Server()->ClientName(Victim));
-}
-
 void CGameContext::ConIncludeInServerInfo(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1290,16 +1277,43 @@ void CGameContext::ConPortalGun(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
+void CGameContext::ConSetObfuscated(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int ClientId = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	pPlayer->SetObfuscated(!pPlayer->m_Obfuscated);
+	log_info("server", "Set obfuscated to %d for '%s' (%d)", pPlayer->m_Obfuscated, pSelf->Server()->ClientName(ClientId), ClientId);
+}
+
 void CGameContext::ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	int ClientId = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 
 	pPlayer->m_SpiderHook = !pPlayer->m_SpiderHook;
+	log_info("server", "Set spider hook to %d for '%s' (%d)", pPlayer->m_SpiderHook, pSelf->Server()->ClientName(ClientId), ClientId);
+}
+
+void CGameContext::ConSetSpazzing(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int ClientId = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	pPlayer->m_Spazzing = !pPlayer->m_Spazzing;
+	log_info("server", "Set spazzing to %d for '%s' (%d)", pPlayer->m_Spazzing, pSelf->Server()->ClientName(ClientId), ClientId);
 }
 
 void CGameContext::ConSendFakeMessage(IConsole::IResult *pResult, void *pUserData)
@@ -1612,7 +1626,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("invisible", "?v[id]", CFGFLAG_SERVER, ConInvisible, this, "Makes a players (id) Invisible");
 	Console()->Register("vanish", "?v[id]", CFGFLAG_SERVER, ConSetVanish, this, "Completely hide player (id) from everyone on the server");
 	Console()->Register("vanish_quiet", "?v[id]", CFGFLAG_SERVER, ConSetVanishQuiet, this, "Completely hide player (id) from everyone on the server without the chat join/leave message");
-	Console()->Register("obfuscate", "?v[id]", CFGFLAG_SERVER, ConSetObfuscated, this, "Makes players (id) name obfuscated");
 	Console()->Register("include_serverinfo", "v[id] ?i[include]", CFGFLAG_SERVER, ConIncludeInServerInfo, this, "whether a player should be in the serverinfo (true by default for everyone)");
 	Console()->Register("redirect", "v[id] i[port]", CFGFLAG_SERVER, ConRedirectClient, this, "Redirect player (id) to a different Server (port)");
 
@@ -1630,7 +1643,9 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("lightsaber", "?v[id]", CFGFLAG_SERVER, ConLightsaber, this, "Gives/Takes a lightsaber to/from player (id)");
 	Console()->Register("portalgun", "?v[id]", CFGFLAG_SERVER, ConPortalGun, this, "Gives/Takes the portal gun to/from player (id)");
 
+	Console()->Register("obfuscate", "?v[id]", CFGFLAG_SERVER, ConSetObfuscated, this, "Makes players (id) name obfuscated");
 	Console()->Register("spider_hook", "?v[id]", CFGFLAG_SERVER, ConSetSpiderHook, this, "whether player (id) has spider hook");
+	Console()->Register("spazzing", "?v[id]", CFGFLAG_SERVER, ConSetSpazzing, this, "Makes players (id) spazzing");
 
 	Console()->Register("fake_message", "s[name] r[msg]", CFGFLAG_SERVER, ConSendFakeMessage, this, "Sends a message as a fake player with that name");
 

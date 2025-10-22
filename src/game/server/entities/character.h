@@ -357,6 +357,10 @@ public:
 	void UnSpawnSolo(bool Unsolo = true);
 
 	bool m_MixedShield = false; // for Mixed Gun cosmetic
+
+	vec2 GetPos();
+	vec2 GetHookPos();
+
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 

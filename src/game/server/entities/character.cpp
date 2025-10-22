@@ -1043,7 +1043,7 @@ void CCharacter::TickDeferred()
 
 		// <FoxNet
 		bool DDNetUpdate = m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0;
-		bool InstaUpdate = m_InSnake || m_Ufo.Active() || g_Config.m_SvInstantCoreUpdate;
+		bool InstaUpdate = m_InSnake || m_Ufo.Active() || GetPlayer()->m_Spazzing || g_Config.m_SvInstantCoreUpdate;
 		if(DDNetUpdate || InstaUpdate || m_Core.m_ResendCore)
 		{
 			m_ReckoningTick = Server()->Tick();
@@ -1288,6 +1288,16 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 
 		pCore->Write(pCharacter);
 
+		// <FoxNet
+		if(Id != SnappingClient || GetPlayer()->IsPaused())
+		{
+			pCharacter->m_X = GetPos().x;
+			pCharacter->m_Y = GetPos().y;
+			pCharacter->m_HookX = GetHookPos().x;
+			pCharacter->m_HookY = GetHookPos().y;
+		}
+		// FoxNet>
+
 		pCharacter->m_Tick = Tick;
 		pCharacter->m_Emote = Emote;
 
@@ -1319,6 +1329,18 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			return;
 
 		pCore->Write(reinterpret_cast<CNetObj_CharacterCore *>(static_cast<protocol7::CNetObj_CharacterCore *>(pCharacter)));
+		
+		// <FoxNet
+
+		if(Id != SnappingClient || GetPlayer()->IsPaused())
+		{
+			pCharacter->m_X = GetPos().x;
+			pCharacter->m_Y = GetPos().y;
+			pCharacter->m_HookX = GetHookPos().x;
+			pCharacter->m_HookY = GetHookPos().y;
+		}
+		// FoxNet>
+		
 		if(pCharacter->m_Angle > (int)(pi * 256.0f))
 		{
 			pCharacter->m_Angle -= (int)(2.0f * pi * 256.0f);
@@ -3632,4 +3654,24 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 				ResetJumps();
 		}
 	}
+}
+
+vec2 CCharacter::GetPos()
+{
+	vec2 OffsetPos = vec2(0,0);
+
+	if(GetPlayer()->m_Spazzing)
+		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
+
+	return m_Core.m_Pos + OffsetPos;
+}
+
+vec2 CCharacter::GetHookPos()
+{
+	vec2 OffsetPos = vec2(0,0);
+
+	if(GetPlayer()->m_Spazzing)
+		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
+
+	return m_Core.m_HookPos + OffsetPos;
 }

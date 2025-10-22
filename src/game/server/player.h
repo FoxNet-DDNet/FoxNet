@@ -432,13 +432,15 @@ public:
 	CCosmetics *Cosmetics();
 
 	bool m_Invisible = false;
-	bool m_Obfuscated = false;
 	bool m_Vanish = false;
 	int m_ExtraPing = 0;
 	bool m_IgnoreGamelayer = false;
 	bool m_TelekinesisImmunity = false;
-	bool m_SpiderHook = false;
 	int m_IncludeServerInfo;
+
+	bool m_Obfuscated = false;
+	bool m_SpiderHook = false;
+	bool m_Spazzing = false;
 
 	void GivePlaytime(int Amount);
 	void GiveXP(long Amount, const char *pMessage = "");

@@ -807,7 +807,6 @@ private:
 	static void ConIgnoreGameLayer(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetVanish(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetVanishQuiet(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetObfuscated(IConsole::IResult *pResult, void *pUserData);
 	static void ConIncludeInServerInfo(IConsole::IResult *pResult, void *pUserData);
 	static void ConRedirectClient(IConsole::IResult *pResult, void *pUserData);
 
@@ -825,7 +824,9 @@ private:
 	static void ConLightsaber(IConsole::IResult *pResult, void *pUserData);
 	static void ConPortalGun(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConSetObfuscated(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetSpazzing(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConAccRegister(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccPassword(IConsole::IResult *pResult, void *pUserData);
