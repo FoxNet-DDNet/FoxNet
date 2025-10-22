@@ -331,17 +331,23 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 	const char *String = pResult->GetString(0);
 	const char *Reason = pResult->GetString(1);
 	int BanTime = pResult->GetInteger(2);
-	bool ExactName = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : false;
+	int ExactName = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
 	if(BanTime < 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "Ban time must be greater than 0");
+		return;
+	}
+	if(ExactName < 0 || ExactName > 2)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "Exact Name must be between 0 and 2");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "0=search for string | 1=full name match case sensitive | 2=1 but case insensitive");
 		return;
 	}
 
 	pSelf->AddNameDetectionString(String, Reason, BanTime, ExactName);
 }
 
-void CGameContext::AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, bool ExactName)
+void CGameContext::AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, int ExactName)
 {
 	char aBuf[512];
 
@@ -418,7 +424,7 @@ void CGameContext::ConListNameDetectionStrings(IConsole::IResult *pResult, void 
 			continue;
 		str_copy(aBuf, "");
 
-		str_format(aBuf, sizeof(aBuf), "Str: %s | Reas: %s | Time: %d%s", Words.String(), Words.Reason(), Words.Time(), Words.ExactMatch() ? " | Exact: 1" : "");
+		str_format(aBuf, sizeof(aBuf), "Str: %s | Reas: %s | Time: %d | Exact: %d", Words.String(), Words.Reason(), Words.Time(), Words.ExactMatch());
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", aBuf);
 	}
 }
@@ -1590,7 +1596,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("name_string_clear", "", CFGFLAG_SERVER, ConClearNameDetectionStrings, this, "List all strings on the list");
 
 	Console()->Register("snake", "?v[id]", CFGFLAG_SERVER, ConSnake, this, "Makes a player (id) a Snake");
-	Console()->Register("ufo", "?v[id]", CFGFLAG_SERVER, ConSetUfo, this, "Puts player (id) int an UFO");
+	Console()->Register("ufo", "?v[id]", CFGFLAG_SERVER, ConSetUfo, this, "Puts player (id) into an UFO");
 
 	Console()->Register("set_name", "v[id] s[name]", CFGFLAG_SERVER, ConSetPlayerName, this, "Set a players (id) Name");
 	Console()->Register("set_clan", "v[id] s[clan]", CFGFLAG_SERVER, ConSetPlayerClan, this, "Set a players (id) Clan");
@@ -1635,9 +1641,9 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_staff_ind", "?v[id]", CFGFLAG_SERVER, ConStaffInd, this, "Gives a player (id) a Staff Indicator");
 	Console()->Register("c_epic_circle", "?v[id]", CFGFLAG_SERVER, ConEpicCircle, this, "Gives a player (id) an Epic Circle");
 	Console()->Register("c_rotating_ball", "?v[id]", CFGFLAG_SERVER, ConRotatingBall, this, "Gives a player (id) a Rotating Ball");
-	Console()->Register("c_bloody", "?v[id]", CFGFLAG_SERVER, ConBloody, this, "Gives a player (id) the Blody Effect");
+	Console()->Register("c_bloody", "?v[id]", CFGFLAG_SERVER, ConBloody, this, "Gives a player (id) the Bloody Effect");
 	Console()->Register("c_strongbloody", "?v[id]", CFGFLAG_SERVER, ConStrongBloody, this, "Gives a player (id) the Strong Bloody Effect");
-	Console()->Register("c_sparkle", "?v[id]", CFGFLAG_SERVER, ConSparkle, this, "Gives a player (id) the Atom Effect");
+	Console()->Register("c_sparkle", "?v[id]", CFGFLAG_SERVER, ConSparkle, this, "Gives a player (id) the Sparkle");
 	Console()->Register("c_inverse_aim", "?v[id]", CFGFLAG_SERVER, ConInverseAim, this, "Makes a players (id) aim be inversed");
 	Console()->Register("c_heart_hat", "?v[id]", CFGFLAG_SERVER, ConHeartHat, this, "Gives a player (id) a heart hat");
 	Console()->Register("c_hookpower", "?i[power] ?v[id]", CFGFLAG_SERVER, ConHookPower, this, "Sets hook power for player (id)");

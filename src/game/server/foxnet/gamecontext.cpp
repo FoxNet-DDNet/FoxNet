@@ -463,13 +463,26 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 
 		bool FoundEntry = false;
 
-		if(Entry.ExactMatch())
+		int ExactMatch = Entry.ExactMatch();
+
+		switch(ExactMatch)
 		{
+		case 0:
+			if(str_find_nocase(ClientName, Entry.String()))
+				FoundEntry = true;
+			break;
+		case 1:
 			if(!str_comp(ClientName, Entry.String()))
 				FoundEntry = true;
+			break;
+		case 2:
+			if(!str_comp_nocase(ClientName, Entry.String()))
+				FoundEntry = true;
+			break;
+
+		default:
+			break;
 		}
-		else if(str_find_nocase(ClientName, Entry.String()))
-			FoundEntry = true;
 
 		if(FoundEntry)
 		{

@@ -74,10 +74,10 @@ class CStringDetection
 	bool m_Ban = false;
 	int m_Time = 0; // in Minutes
 
-	bool m_ExactMatch = false;
+	int m_ExactMatch = false;
 
 public:
-	CStringDetection(const char *pStrings, const char *pReason, bool Ban, int Time, bool ExactMatch)
+	CStringDetection(const char *pStrings, const char *pReason, bool Ban, int Time, int ExactMatch)
 	{
 		str_copy(m_String, pStrings);
 		str_copy(m_Reason, pReason);
@@ -99,7 +99,7 @@ public:
 	bool IsBan() const { return m_Ban; }
 	float Addition() const { return m_Addition; }
 	int Time() const { return m_Time; }
-	bool ExactMatch() const { return m_ExactMatch; }
+	int ExactMatch() const { return m_ExactMatch; }
 
 	bool operator==(const CStringDetection &Other) const
 	{
@@ -753,7 +753,7 @@ private:
 
 	// Add
 	static void ConAddNameDetectionString(IConsole::IResult *pResult, void *pUserData);
-	void AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, bool ExactName);
+	void AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, int ExactName);
 	// Remove
 	static void ConClearNameDetectionStrings(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveNameDetectionString(IConsole::IResult *pResult, void *pUserData);
