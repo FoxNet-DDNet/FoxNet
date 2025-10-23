@@ -83,45 +83,43 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		TimeCount++;
 	}
 
-	// Build a single UPDATE query:
-	// - Value is always handled (reset to 0 for non-equipped).
-	// - AcquiredAt/ExpiresAt are updated only when we have owned items; otherwise left unchanged.
+	// Build UPDATE query using str_append for constant parts
 	char aUpd[4096];
-	int Len = 0;
-	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "UPDATE foxnet_account_inventory SET ");
+	aUpd[0] = '\0';
+	str_append(aUpd, "UPDATE foxnet_account_inventory SET ", sizeof(aUpd));
 
 	// Value part
 	if(EquipCount > 0)
 	{
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "Value = CASE ItemName");
+		str_append(aUpd, "Value = CASE ItemName", sizeof(aUpd));
 		for(int i = 0; i < EquipCount; i++)
-			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE 0 END");
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE 0 END", sizeof(aUpd));
 	}
 	else
 	{
 		// No equipped items -> reset all values to 0 for this user
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "Value = 0");
+		str_append(aUpd, "Value = 0", sizeof(aUpd));
 	}
 
 	// Times part (conditionally append)
 	if(TimeCount > 0)
 	{
 		// AcquiredAt
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, ", AcquiredAt = CASE ItemName");
+		str_append(aUpd, ", AcquiredAt = CASE ItemName", sizeof(aUpd));
 		for(int i = 0; i < TimeCount; i++)
-			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE AcquiredAt END");
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE AcquiredAt END", sizeof(aUpd));
 
 		// ExpiresAt
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, ", ExpiresAt = CASE ItemName");
+		str_append(aUpd, ", ExpiresAt = CASE ItemName", sizeof(aUpd));
 		for(int i = 0; i < TimeCount; i++)
-			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE ExpiresAt END");
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE ExpiresAt END", sizeof(aUpd));
 	}
 
 	// WHERE clause
-	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHERE Username = ?");
+	str_append(aUpd, " WHERE Username = ?", sizeof(aUpd));
 
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
 		return false;
@@ -162,6 +160,7 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	int Num = 0;
 	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
 }
+
 bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccRegisterRequest *>(pData);

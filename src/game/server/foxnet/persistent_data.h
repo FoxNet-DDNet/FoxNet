@@ -17,8 +17,6 @@ private:
 
 	bool m_HideCosmetics;
 	bool m_HidePowerUps;
-	int m_VoteMenuPage;	
-	int m_VoteMenuSubPage;
 };
 
 #endif // GAME_SERVER_FOXNET_PERSISTENT_DATA_H

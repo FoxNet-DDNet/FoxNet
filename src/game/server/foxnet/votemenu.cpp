@@ -834,8 +834,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		if(OwnsItem)
 		{
 			AddVoteText("├───────────────");
-			str_format(aBuf, sizeof(aBuf), "│ you already own this item!", pItem->Description());
-			AddVoteText(aBuf);
+			AddVoteText("│ you already own this item!");
 
 			int Idx = pPl->Inv()->IndexOfName(pItem->Name());
 
