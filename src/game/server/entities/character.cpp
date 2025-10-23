@@ -1289,12 +1289,12 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 		pCore->Write(pCharacter);
 
 		// <FoxNet
-		if(Id != SnappingClient || GetPlayer()->IsPaused())
+		if(GetPlayer()->m_Spazzing && (Id != SnappingClient || GetPlayer()->IsPaused()))
 		{
-			pCharacter->m_X = GetPos().x;
-			pCharacter->m_Y = GetPos().y;
-			pCharacter->m_HookX = GetHookPos().x;
-			pCharacter->m_HookY = GetHookPos().y;
+			pCharacter->m_X = GetSpazzPos(m_Pos).x;
+			pCharacter->m_Y = GetSpazzPos(m_Pos).y;
+			pCharacter->m_HookX = GetSpazzPos(m_Core.m_HookPos).x;
+			pCharacter->m_HookY = GetSpazzPos(m_Core.m_HookPos).y;
 		}
 		// FoxNet>
 
@@ -1331,13 +1331,12 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 		pCore->Write(reinterpret_cast<CNetObj_CharacterCore *>(static_cast<protocol7::CNetObj_CharacterCore *>(pCharacter)));
 		
 		// <FoxNet
-
-		if(Id != SnappingClient || GetPlayer()->IsPaused())
+		if(GetPlayer()->m_Spazzing && (Id != SnappingClient || GetPlayer()->IsPaused()))
 		{
-			pCharacter->m_X = GetPos().x;
-			pCharacter->m_Y = GetPos().y;
-			pCharacter->m_HookX = GetHookPos().x;
-			pCharacter->m_HookY = GetHookPos().y;
+			pCharacter->m_X = GetSpazzPos(m_Pos).x;
+			pCharacter->m_Y = GetSpazzPos(m_Pos).y;
+			pCharacter->m_HookX = GetSpazzPos(m_Core.m_HookPos).x;
+			pCharacter->m_HookY = GetSpazzPos(m_Core.m_HookPos).y;
 		}
 		// FoxNet>
 		
@@ -3656,22 +3655,12 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 	}
 }
 
-vec2 CCharacter::GetPos()
+vec2 CCharacter::GetSpazzPos(vec2 Pos)
 {
 	vec2 OffsetPos = vec2(0,0);
 
 	if(GetPlayer()->m_Spazzing)
 		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
 
-	return m_Core.m_Pos + OffsetPos;
-}
-
-vec2 CCharacter::GetHookPos()
-{
-	vec2 OffsetPos = vec2(0,0);
-
-	if(GetPlayer()->m_Spazzing)
-		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
-
-	return m_Core.m_HookPos + OffsetPos;
+	return Pos + OffsetPos;
 }

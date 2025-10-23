@@ -14,6 +14,7 @@
 #include "cosmetics/lovely.h"
 #include "cosmetics/pickup_pet.h"
 #include "cosmetics/rotating_ball.h"
+#include "cosmetics/lissajous.h"
 #include "cosmetics/staff_ind.h"
 #include "entities/text/text.h"
 
@@ -635,6 +636,18 @@ void CPlayer::SetTrail(int Type)
 		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
+
+
+void CPlayer::SetStaffInd(bool Active)
+{
+	if(Cosmetics()->m_StaffInd == Active)
+		return;
+	Cosmetics()->m_StaffInd = Active;
+	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
+	if(Cosmetics()->m_StaffInd)
+		new CStaffInd(&GameServer()->m_World, GetCid(), Pos);
+}
+
 void CPlayer::SetPickupPet(bool Active)
 {
 	if(Cosmetics()->m_PickupPet == Active)
@@ -645,14 +658,14 @@ void CPlayer::SetPickupPet(bool Active)
 		m_pPickupPet = new CPickupPet(&GameServer()->m_World, GetCid(), Pos);
 }
 
-void CPlayer::SetStaffInd(bool Active)
+void CPlayer::SetLissajous(bool Active)
 {
-	if(Cosmetics()->m_StaffInd == Active)
+	if(Cosmetics()->m_Lissajous == Active)
 		return;
-	Cosmetics()->m_StaffInd = Active;
+	Cosmetics()->m_Lissajous = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(Cosmetics()->m_StaffInd)
-		new CStaffInd(&GameServer()->m_World, GetCid(), Pos);
+	if(Cosmetics()->m_Lissajous)
+		new CLissajous(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetHeartHat(bool Active)

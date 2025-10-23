@@ -712,7 +712,6 @@ void CGameContext::ConGunType(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set gun type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
-// Not Available Normally
 void CGameContext::ConStaffInd(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -726,6 +725,35 @@ void CGameContext::ConStaffInd(IConsole::IResult *pResult, void *pUserData)
 	bool Set = !pPl->Cosmetics()->m_StaffInd;
 	pPl->SetStaffInd(Set);
 	log_info("cosmetics", "Set staff indicator to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
+}
+
+void CGameContext::ConSetPickupPet(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+
+	if(!pPl)
+		return;
+	bool Set = !pPl->Cosmetics()->m_PickupPet;
+	pPl->SetPickupPet(Set);
+	log_info("cosmetics", "Set pickup pet to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
+}
+
+void CGameContext::ConLissajous(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+
+	if(!pPl)
+		return;
+
+	bool Set = !pPl->Cosmetics()->m_Lissajous;
+	pPl->SetLissajous(Set);
+	log_info("cosmetics", "Set lissajous to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
@@ -876,20 +904,6 @@ void CGameContext::ConSetConfettiGun(IConsole::IResult *pResult, void *pUserData
 	bool Set = !pPl->Cosmetics()->m_ConfettiGun;
 	pPl->SetConfettiGun(Set);
 	log_info("cosmetics", "Set confetti gun to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
-}
-
-void CGameContext::ConSetPickupPet(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
-
-	if(!pPl)
-		return;
-	bool Set = !pPl->Cosmetics()->m_PickupPet;
-	pPl->SetPickupPet(Set);
-	log_info("cosmetics", "Set pickup pet to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConSetUfo(IConsole::IResult *pResult, void *pUserData)
@@ -1653,7 +1667,6 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Cosmetics
 	Console()->Register("c_lovely", "?v[id]", CFGFLAG_SERVER, ConLovely, this, "Makes a player (id) Lovely");
-	Console()->Register("c_staff_ind", "?v[id]", CFGFLAG_SERVER, ConStaffInd, this, "Gives a player (id) a Staff Indicator");
 	Console()->Register("c_epic_circle", "?v[id]", CFGFLAG_SERVER, ConEpicCircle, this, "Gives a player (id) an Epic Circle");
 	Console()->Register("c_rotating_ball", "?v[id]", CFGFLAG_SERVER, ConRotatingBall, this, "Gives a player (id) a Rotating Ball");
 	Console()->Register("c_bloody", "?v[id]", CFGFLAG_SERVER, ConBloody, this, "Gives a player (id) the Bloody Effect");
@@ -1662,7 +1675,10 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_inverse_aim", "?v[id]", CFGFLAG_SERVER, ConInverseAim, this, "Makes a players (id) aim be inversed");
 	Console()->Register("c_heart_hat", "?v[id]", CFGFLAG_SERVER, ConHeartHat, this, "Gives a player (id) a heart hat");
 	Console()->Register("c_hookpower", "?i[power] ?v[id]", CFGFLAG_SERVER, ConHookPower, this, "Sets hook power for player (id)");
+	
+	Console()->Register("c_staff_ind", "?v[id]", CFGFLAG_SERVER, ConStaffInd, this, "Gives a player (id) a Staff Indicator");
 	Console()->Register("c_pickuppet", "?v[id]", CFGFLAG_SERVER, ConSetPickupPet, this, "Gives player (id) a pet");
+	Console()->Register("c_lissajous", "?v[id]", CFGFLAG_SERVER, ConLissajous, this, "Gives player (id) a lissajous figure");
 
 	Console()->Register("c_star_trail", "?v[id]", CFGFLAG_SERVER, ConStarTrail, this, "Gives a player (id) a Star Trail");
 	Console()->Register("c_dot_trail", "?v[id]", CFGFLAG_SERVER, ConDotTrail, this, "Gives a player (id) a Dot Trail");

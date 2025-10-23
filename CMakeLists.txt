@@ -2813,6 +2813,8 @@ if(SERVER)
     foxnet/cosmetics/heart_hat.h
     foxnet/cosmetics/laserdeath.cpp
     foxnet/cosmetics/laserdeath.h
+    foxnet/cosmetics/lissajous.cpp
+    foxnet/cosmetics/lissajous.h
     foxnet/cosmetics/lovely.cpp
     foxnet/cosmetics/lovely.h
     foxnet/cosmetics/pickup_pet.cpp

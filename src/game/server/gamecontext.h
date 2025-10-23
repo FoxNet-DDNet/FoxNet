@@ -783,10 +783,13 @@ private:
 	static void ConInvisible(IConsole::IResult *pResult, void *pUserData);
 	static void ConStrongBloody(IConsole::IResult *pResult, void *pUserData);
 	static void ConHookPower(IConsole::IResult *pResult, void *pUserData);
-	static void ConStaffInd(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetConfettiGun(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetEmoticonGun(IConsole::IResult *pResult, void *pUserData);
+
+	
+	static void ConStaffInd(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPickupPet(IConsole::IResult *pResult, void *pUserData);
+	static void ConLissajous(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetPlayerName(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPlayerClan(IConsole::IResult *pResult, void *pUserData);

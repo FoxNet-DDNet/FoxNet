@@ -45,6 +45,9 @@ void CDotTrail::Tick()
 
 void CDotTrail::Snap(int SnappingClient)
 {
+	if(NetworkClipped(SnappingClient))
+		return;
+
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 	const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 

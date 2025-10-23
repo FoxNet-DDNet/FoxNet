@@ -117,6 +117,7 @@ public:
 	bool m_StrongBloody = false;
 	bool m_StaffInd = false;
 	bool m_PickupPet = false;
+	bool m_Lissajous = false; // Dummy true
 
 	void Reset() { *this = CCosmetics(); }
 };
@@ -485,9 +486,11 @@ public:
 	// Death Effect
 	void SetDeathEffect(int Type);
 
-	void SetPickupPet(bool Active);
 	void SetHeartHat(bool Active);
+
 	void SetStaffInd(bool Active);
+	void SetPickupPet(bool Active);
+	void SetLissajous(bool Active);
 
 	void SetRainbowBody(bool Active);
 	void SetRainbowFeet(bool Active);

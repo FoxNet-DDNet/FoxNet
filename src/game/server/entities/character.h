@@ -358,8 +358,7 @@ public:
 
 	bool m_MixedShield = false; // for Mixed Gun cosmetic
 
-	vec2 GetPos();
-	vec2 GetHookPos();
+	vec2 GetSpazzPos(vec2 Pos);
 
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
