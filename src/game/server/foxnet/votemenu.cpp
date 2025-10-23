@@ -655,12 +655,11 @@ void CVoteMenu::SendPageAccount(int ClientId)
 	str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
 	AddVoteText(aBuf);
 
-	char TimeBuf[64];
 
 	// Register Date
-	if(FormatUnixTime(pAcc->m_RegisterDate, TimeBuf, sizeof(TimeBuf)))
+	if(pAcc->m_RegisterDate > 0)
 	{
-		str_format(aBuf, sizeof(aBuf), "│ Register Date: %s", TimeBuf);
+		str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
 		AddVoteText(aBuf);
 	}
 	else
