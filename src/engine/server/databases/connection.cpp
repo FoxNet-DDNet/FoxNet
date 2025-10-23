@@ -98,32 +98,39 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  Version INTEGER NOT NULL DEFAULT 4, "
 		"  Username VARCHAR(32) COLLATE %s NOT NULL, "
 		"  Password VARCHAR(128) COLLATE %s NOT NULL, "
-		"  RegisterDate INTEGER NOT NULL, "
+		"  RegisterDate %s NOT NULL, "
 		"  PlayerName VARCHAR(%d) COLLATE %s DEFAULT '', "
 		"  LastPlayerName VARCHAR(%d) COLLATE %s DEFAULT '', "
 		"  CurrentIP VARCHAR(45) COLLATE %s DEFAULT '', "
 		"  LastIP VARCHAR(45) COLLATE %s DEFAULT '', "
 		"  LoggedIn INTEGER DEFAULT 0, "
-		"  LastLogin INTEGER DEFAULT 0, "
+		"  LastLogin %s DEFAULT 0, "
 		"  Port INTEGER DEFAULT 0, "
 		"  ClientId INTEGER DEFAULT -1, "
 		"  Flags INTEGER DEFAULT -1, "
 		"  VoteMenuPage INTEGER DEFAULT -1, "
-		"  Playtime INTEGER DEFAULT 0, "
-		"  Deaths INTEGER DEFAULT 0, "
-		"  Kills INTEGER DEFAULT 0, "
-		"  Level INTEGER DEFAULT 0, "
+		"  Playtime %s DEFAULT 0, "
+		"  Deaths %s DEFAULT 0, "
+		"  Kills %s DEFAULT 0, "
+		"  Level %s DEFAULT 0, "
 		"  XP INTEGER DEFAULT 0, "
-		"  Money INTEGER DEFAULT 0, "
+		"  Money %s DEFAULT 0, "
 		"  Disabled BOOL DEFAULT %s, "
 		"  PRIMARY KEY (Username)"
 		")",
 		BinaryCollate(),
 		BinaryCollate(),
+		Int64Type(),
 		MAX_NAME_LENGTH_SQL, BinaryCollate(),
 		MAX_NAME_LENGTH_SQL, BinaryCollate(),
 		BinaryCollate(),
 		BinaryCollate(),
+		Int64Type(),
+		Int64Type(),
+		Int64Type(),
+		Int64Type(),
+		Int64Type(),
+		Int64Type(),
 		False());
 }
 
@@ -134,14 +141,16 @@ void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int Buffer
 		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
 		"  ItemName VARCHAR(64) COLLATE %s NOT NULL,"
 		"  Quantity INTEGER NOT NULL DEFAULT 1,"
-		"  AcquiredAt INTEGER NOT NULL,"
-		"  ExpiresAt INTEGER NOT NULL,"
+		"  AcquiredAt %s NOT NULL,"
+		"  ExpiresAt %s NOT NULL,"
 		"  Meta TEXT COLLATE %s DEFAULT '',"
 		"  Value INTEGER NOT NULL DEFAULT 0,"
 		"  PRIMARY KEY (Username, ItemName)"
 		")",
 		BinaryCollate(),
 		BinaryCollate(),
+		Int64Type(),
+		Int64Type(),
 		BinaryCollate()
 	);
 }

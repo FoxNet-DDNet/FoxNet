@@ -11,55 +11,31 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 {
 	Inv.Reset();
 
-	// Load owned items
-	{
-		char aInvSql[256];
-		str_copy(aInvSql, "SELECT ItemName FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
-		if(!pSql->PrepareStatement(aInvSql, pError, ErrorSize))
-			return false;
-		pSql->BindString(1, pUsername);
+	char aSql[256];
+	str_copy(aSql, "SELECT ItemName, Quantity, Value, ExpiresAt FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pUsername);
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	while(!End)
+		{
+		char aItemName[64];
+		pSql->GetString(1, aItemName, sizeof(aItemName));
+		const int Owned = pSql->GetInt(2);
+		const int Value = pSql->GetInt(3);
+		const int ExpiresAt = pSql->GetInt64(4);
 
-		bool End = true;
+		const int Idx = CInventory::IndexOfName(aItemName);
+		if(Idx >= 0 && Idx < NUM_ITEMS)
+		{
+			Inv.SetOwnedIndex(Idx, Owned != 0);
+			Inv.SetEquippedIndex(Idx, Value);
+			Inv.SetExpiresAt(Idx, ExpiresAt);
+		}
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
-
-		while(!End)
-		{
-			char aFull[128] = {};
-			pSql->GetString(1, aFull, sizeof(aFull));
-			int Idx = CInventory::IndexOfName(aFull);
-			if(Idx >= 0)
-				Inv.SetOwnedIndex(Idx, true);
-
-			if(!pSql->Step(&End, pError, ErrorSize))
-				return false;
-		}
-	}
-
-	// Load equipped from inventory.Value
-	{
-		char aEqSql[256];
-		str_copy(aEqSql, "SELECT ItemName, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
-		if(!pSql->PrepareStatement(aEqSql, pError, ErrorSize))
-			return false;
-		pSql->BindString(1, pUsername);
-
-		bool End = true;
-		if(!pSql->Step(&End, pError, ErrorSize))
-			return false;
-
-		while(!End)
-		{
-			char aFull[128] = {};
-			pSql->GetString(1, aFull, sizeof(aFull));
-			const int Val = maximum(0, pSql->GetInt(2));
-			int Idx = CInventory::IndexOfName(aFull);
-			if(Idx >= 0)
-				Inv.SetEquippedIndex(Idx, Val > 0 ? Val : 1);
-
-			if(!pSql->Step(&End, pError, ErrorSize))
-				return false;
-		}
 	}
 
 	return true;
@@ -196,57 +172,11 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 		pRes->m_Inventory.Reset();
-
-		// Load owned items
-		{
-			char aInvSql[256];
-			str_copy(aInvSql, "SELECT ItemName FROM foxnet_account_inventory WHERE Username = ?", sizeof(aInvSql));
-			if(!pSql->PrepareStatement(aInvSql, pError, ErrorSize))
-				return false;
-			pSql->BindString(1, pRes->m_aUsername);
-
-			bool End2 = true;
-			if(!pSql->Step(&End2, pError, ErrorSize))
-				return false;
-
-			while(!End2)
-			{
-				char aFull[128] = "";
-				pSql->GetString(1, aFull, sizeof(aFull));
-				int Idx = CInventory::IndexOfName(aFull);
-				if(Idx >= 0)
-					pRes->m_Inventory.SetOwnedIndex(Idx, true);
-
-				if(!pSql->Step(&End2, pError, ErrorSize))
-					return false;
-			}
-		}
-
-		// Load equipped values from inventory.Value
-		{
-			char aEqSql[256];
-			str_copy(aEqSql, "SELECT ItemName, Value FROM foxnet_account_inventory WHERE Username = ? AND Value > 0", sizeof(aEqSql));
-			if(!pSql->PrepareStatement(aEqSql, pError, ErrorSize))
-				return false;
-			pSql->BindString(1, pRes->m_aUsername);
-
-			bool End2 = true;
-			if(!pSql->Step(&End2, pError, ErrorSize))
-				return false;
-
-			while(!End2)
-			{
-				char aFull[128] = "";
-				pSql->GetString(1, aFull, sizeof(aFull));
-				const int Val = maximum(0, pSql->GetInt(2));
-				int Idx = CInventory::IndexOfName(aFull);
-				if(Idx >= 0)
-					pRes->m_Inventory.SetEquippedIndex(Idx, Val > 0 ? Val : 1);
-
-				if(!pSql->Step(&End2, pError, ErrorSize))
-					return false;
-			}
-		}
+	}
+	if(pRes->m_Found)
+	{
+		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
+			return false;
 	}
 	pRes->m_Completed.store(true);
 	return true;
@@ -286,8 +216,6 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 
 	// Upsert owned items first (ensures inventory rows exist)
 	{
-		time_t Now;
-		time(&Now);
 		for(int i = 0; i < NUM_ITEMS; i++)
 		{
 			if(!pReq->m_Inventory.m_aOwned[i])
@@ -296,13 +224,14 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
 				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, 1, ?, 0, '')",
+				"VALUES (?, ?, 1, ?, ?, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
 			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, (int64_t)Now);
+			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt);
+			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt);
 			int NumIns = 0;
 			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 				return false;
@@ -344,8 +273,6 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 
 	// Upsert owned items (cheap, idempotent)
 	{
-		time_t Now;
-		time(&Now);
 		for(int i = 0; i < NUM_ITEMS; i++)
 		{
 			if(!p->m_Inventory.m_aOwned[i])
@@ -354,13 +281,14 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
 				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, 1, ?, 0, '')",
+				"VALUES (?, ?, 1, ?, ?, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
 			pSql->BindString(1, p->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, (int64_t)Now);
+			pSql->BindInt64(3, p->m_Inventory.m_AcquiredAt);
+			pSql->BindInt64(4, p->m_Inventory.m_ExpiresAt);
 			int Num = 0;
 			if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
 				return false;

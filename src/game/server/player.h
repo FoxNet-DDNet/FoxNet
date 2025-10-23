@@ -127,7 +127,10 @@ public:
 	CCosmetics m_Cosmetics;
 
 	bool m_aOwned[NUM_ITEMS] = {false};
-	int m_aEquipped[NUM_ITEMS]; 
+	int m_aEquipped[NUM_ITEMS];
+
+	int m_AcquiredAt = 0;
+	int m_ExpiresAt = -1; // -1 means never expires
 
 	void Reset()
 	{
@@ -174,6 +177,17 @@ public:
 	}
 	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
 	int Equipped(const char *pNameOrShortcut) const { return EquippedIndex(IndexOf(pNameOrShortcut)); }
+	
+	void SetAcquiredAt(int Index, int64_t _AcquiredAt)
+	{
+		if(Index >= 0 && Index < NUM_ITEMS)
+			m_AcquiredAt = _AcquiredAt;
+	}
+	void SetExpiresAt(int Index, int64_t ExpiresAt)
+	{
+		if(Index >= 0 && Index < NUM_ITEMS)
+			m_ExpiresAt = ExpiresAt;
+	}
 };
 // FoxNet>
 

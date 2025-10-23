@@ -14,7 +14,9 @@ public:
 	CSqliteConnection(const char *pFilename, bool Setup);
 	~CSqliteConnection() override;
 	void Print(IConsole *pConsole, const char *pMode) override;
-
+	// <FoxNet
+	const char *Int64Type() const override { return "INTEGER"; }
+	// >FoxNet
 	const char *BinaryCollate() const override { return "BINARY"; }
 	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override;
 	const char *InsertTimestampAsUtc() const override { return "DATETIME(?, 'utc')"; }

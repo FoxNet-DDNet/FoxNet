@@ -69,7 +69,9 @@ public:
 	explicit CMysqlConnection(CMysqlConfig m_Config);
 	~CMysqlConnection();
 	void Print(IConsole *pConsole, const char *pMode) override;
-
+	// <FoxNet
+	const char *Int64Type() const override { return "BIGINT"; }
+	// >FoxNet
 	const char *BinaryCollate() const override { return "utf8mb4_bin"; }
 	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override;
 	const char *InsertTimestampAsUtc() const override { return "?"; }

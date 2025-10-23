@@ -303,7 +303,13 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 		const char *FromName = Server()->ClientName(FromId);
 		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pItemName, ClientIdName, ClientId);
 	}
-	pAcc->m_Inventory.SetOwnedIndex(CInventory::IndexOf(pItemName), true);
+	int Index = CInventory::IndexOf(pItemName);
+	time_t Now;
+	time(&Now);
+
+	pAcc->m_Inventory.SetOwnedIndex(Index, true);
+	pAcc->m_Inventory.SetAcquiredAt(Index, Now);
+	pAcc->m_Inventory.SetExpiresAt(Index, Now + (30 * 24 * 60 * 60)); // 30 days
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
 
