@@ -118,7 +118,7 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 const char *CVoteMenu::FormatItemVote(const CItems *pItem)
 {
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item [%d]", pItem->Price());
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d]", pItem->Price());
 	return aBuf;
 }
 
@@ -248,7 +248,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			if(pItems->Price() == -1)
 				continue;
 
-			if(IsOption(pVote, pItems->Name()))
+			if(IsOptionWithSuffix(pVote, pItems->Name()))
 			{
 				pPl->ToggleItem(pItems->Name(), -1, Page == PAGE_ADMIN);
 				return true;
@@ -728,8 +728,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 				continue;
 			if(pItems->Price() == -1)
 				continue;
-			if(pPl->OwnsItem(pItems->Name()))
-				continue;
 
 			const char *pVoteName = pItems->Name();
 
@@ -811,6 +809,8 @@ void CVoteMenu::SendPageShop(int ClientId)
 			return;
 		}
 
+		bool OwnsItem = pPl->OwnsItem(m_pLastItemInfo->Name());
+
 		AddVoteText(SHOP_BACKPAGE);
 		AddVoteSeperator();
 
@@ -831,7 +831,27 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText(aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
 		AddVoteText(aBuf);
-		AddVoteText("╰──────────────────────────");
+
+		if(OwnsItem)
+		{
+			AddVoteText("├───────────────");
+			str_format(aBuf, sizeof(aBuf), "│ you already own this item!", pItem->Description());
+			AddVoteText(aBuf);
+
+			int Idx = pPl->Inv()->IndexOfName(pItem->Name());
+
+			int64_t Now = time(0);
+			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
+			int64_t Remaining = Expiry - Now;
+
+			char TimeBuf[20] = "";
+			FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
+
+			str_format(aBuf, sizeof(aBuf), "│ Expires in: %s", TimeBuf);
+			AddVoteText(aBuf);
+		}
+
+		AddVoteText("╰────────────────────");
 		AddVoteSeperator();
 
 		str_copy(aBuf, FormatItemVote(pItem));
@@ -874,12 +894,12 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 
 	// !New Cosmetic
-	std::vector<std::string> RainbowItems;
-	std::vector<std::string> GunItems;
-	std::vector<std::string> IndicatorItems;
-	std::vector<std::string> KillEffectItems;
-	std::vector<std::string> TrailItems;
-	std::vector<std::string> OtherItems;
+	std::vector<CItemVoteData> RainbowItems;
+	std::vector<CItemVoteData> GunItems;
+	std::vector<CItemVoteData> IndicatorItems;
+	std::vector<CItemVoteData> KillEffectItems;
+	std::vector<CItemVoteData> TrailItems;
+	std::vector<CItemVoteData> OtherItems;
 
 	for(const auto &pItems : GameServer()->m_Shop.m_Items)
 	{
@@ -893,18 +913,30 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 				continue;
 		}
 
+		int Idx = pPl->Inv()->IndexOfName(pItems->Name());
+
+		int64_t Now = time(0);
+		int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
+		int64_t Remaining = Expiry - Now;
+
+		char TimeBuf[20] = "";
+		FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
+
+		char aVoteName[VOTE_DESC_LENGTH];
+		str_format(aVoteName, sizeof(aVoteName), "%s [%s]", pItems->Name(), TimeBuf); 
+
 		if(pItems->Type() == TYPE_RAINBOW)
-			RainbowItems.push_back(std::string(pItems->Name()));
+			RainbowItems.push_back({pItems->Name(), aVoteName});
 		else if(pItems->Type() == TYPE_GUN)
-			GunItems.push_back(std::string(pItems->Name()));
+			GunItems.push_back({pItems->Name(), aVoteName});
 		else if(pItems->Type() == TYPE_INDICATOR)
-			IndicatorItems.push_back(std::string(pItems->Name()));
+			IndicatorItems.push_back({pItems->Name(), aVoteName});
 		else if(pItems->Type() == TYPE_DEATHS)
-			KillEffectItems.push_back(std::string(pItems->Name()));
+			KillEffectItems.push_back({pItems->Name(), aVoteName});
 		else if(pItems->Type() == TYPE_TRAIL)
-			TrailItems.push_back(std::string(pItems->Name()));
+			TrailItems.push_back({pItems->Name(), aVoteName});
 		else
-			OtherItems.push_back(std::string(pItems->Name()));
+			OtherItems.push_back({pItems->Name(), aVoteName});
 	}
 
 	if(Authed)
@@ -928,7 +960,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteValueOption("Rainbow Speed", pPl->Cosmetics()->m_RainbowSpeed, 20, BULLET_ARROW);
 		for(const auto &Item : RainbowItems)
 		{
-			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 		AddVoteSeperator();
 	}
@@ -937,10 +969,10 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSubheader("Gᴜɴs");
 		for(const auto &Item : GunItems)
 		{
-			if(!str_comp(Item.c_str(), "Emoticon Gun"))
-				AddVoteValueOption(Item.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, BULLET_NONE);
+			if(!str_comp(Item.m_pItemName.c_str(), "Emoticon Gun"))
+				AddVoteValueOption(Item.m_pItemName.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, BULLET_NONE);
 			else
-				AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+				AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 		AddVoteSeperator();
 	}
@@ -949,7 +981,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSubheader("Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs");
 		for(const auto &Item : IndicatorItems)
 		{
-			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 		AddVoteSeperator();
 	}
@@ -958,7 +990,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSubheader("Dᴇᴀᴛʜ Eғғᴇᴄᴛs");
 		for(const auto &Item : KillEffectItems)
 		{
-			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 		AddVoteSeperator();
 	}
@@ -967,7 +999,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSubheader("Tʀᴀɪʟs");
 		for(const auto &Item : TrailItems)
 		{
-			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 		AddVoteSeperator();
 	}
@@ -976,7 +1008,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSubheader("Oᴛʜᴇʀ");
 		for(const auto &Item : OtherItems)
 		{
-			AddVoteCheckBox(Item.c_str(), pPl->ItemEnabled(Item.c_str()));
+			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
 	}
 }

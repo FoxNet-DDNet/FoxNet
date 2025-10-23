@@ -25,36 +25,36 @@ void CShop::Init(CGameContext *pGameServer)
 
 void CShop::AddItems()
 {
-	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 1750, "Makes your body Rainbow", 1));
-	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 2500, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 7500, "Anyone you hook becomes Rainbow!", 5));
+	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1));
+	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4));
+	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
 
-	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 5500, "Shoot emotions at people", 10));
-	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 3250, "Your bullets defy physics", 5));
-	m_Items.push_back(new CItems("Heart Gun", TYPE_GUN, 25000, "Shoot bullets full of love", 15));
-	m_Items.push_back(new CItems("Mixed Gun", TYPE_GUN, 35000, "Shoots Hearts and Shields", 25));
-	m_Items.push_back(new CItems("Laser Gun", TYPE_GUN, 45000, "Lasertag in DDNet?", 25));
+	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 3500, "Shoot emotions at people", 10));
+	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 2250, "Your bullets defy physics", 5));
+	m_Items.push_back(new CItems("Heart Gun", TYPE_GUN, 20000, "Shoot bullets full of love", 15));
+	m_Items.push_back(new CItems("Mixed Gun", TYPE_GUN, 25000, "Shoots Hearts and Shields", 25));
+	m_Items.push_back(new CItems("Laser Gun", TYPE_GUN, 35000, "Lasertag in DDNet?", 25));
 
-	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 5500, "Gun Hit -> turns Clockwise", 5));
-	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR, 5500, "Gun Hit -> turns Counter-Clockwise", 5));
-	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 10000, "Gun Hit -> turns Inward", 15));
-	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR, 10000, "Gun Hit -> turns Outward", 15));
-	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 7500, "Gun Hit -> goes in a Line", 10));
-	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR, 7500, "Gun Hit -> goes in a Criss Cross pattern", 10));
+	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5));
+	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5));
+	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15));
+	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15));
+	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10));
+	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10));
 
-	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 5250, "Go out with a Boom!", 5));
-	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 5250, "Get Bonked on death!", 5));
-	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 7750, "Creates an octagon of damage indicators", 10));
-	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 7750, "Become wizard and summon lasers on death!", 10));
+	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 3250, "Go out with a Boom!", 5));
+	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 3250, "Get Bonked on death!", 5));
+	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10));
+	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10));
 
-	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 10000, "The Stars shall follow you", 7));
-	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 10000, "A trail made out of small dots", 7));
+	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 8000, "The Stars shall follow you", 7));
+	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 8000, "A trail made out of small dots", 7));
 
-	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 2500, "Makes you sparkle", 5));
-	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 15000, "A hat of hearts?", 10));
-	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 75000, "Shows your aim backwards for others!", 35));
-	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 17500, "Spreading love huh?", 15));
-	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 15500, "Ball rotate - life good", 15));
+	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 1500, "Makes you sparkle", 5));
+	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 12000, "A hat of hearts?", 10));
+	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
+	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 12500, "Spreading love huh?", 15));
+	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 12500, "Ball rotate - life good", 15));
 }
 
 void CShop::ResetItems()
@@ -186,14 +186,6 @@ void CShop::BuyItem(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, "╰─────────────────────────────");
 		return;
 	}
-	else if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
-	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		GameServer()->SendChatTarget(ClientId, "│ You already own that Item!");
-		GameServer()->SendChatTarget(ClientId, "│ No refunds");
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────────");
-		return;
-	}
 	else if(Price == -1)
 	{
 		// This is used to completely disable an Item, also if it has already been bought
@@ -306,10 +298,18 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 	int Index = CInventory::IndexOf(pItemName);
 
 	int64_t Now = time(0);
+	const int64_t days = int64_t(30) * 86400; // 30 days
 
 	pAcc->m_Inventory.SetOwnedIndex(Index, true);
-	pAcc->m_Inventory.SetAcquiredAt(Index, Now);
-	pAcc->m_Inventory.SetExpiresAt(Index, Now + (30 * 24 * 60 * 60)); // 30 days
+	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pItemName))
+	{
+		pAcc->m_Inventory.AddToExpiry(Index, days); // 30 days
+	}
+	else
+	{
+		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
+		pAcc->m_Inventory.SetExpiresAt(Index, Now + days); // 30 days
+	}
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
 
@@ -353,5 +353,5 @@ void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
 	int ItemIndex = CInventory::IndexOf(pItemName);
 	pAcc->m_Inventory.SetEquippedIndex(ItemIndex, false);
 	pPl->ToggleItem(Items[ItemIndex], false); // Disable Item
-	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex] /*Case Sensitive*/);
+	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex]);
 }

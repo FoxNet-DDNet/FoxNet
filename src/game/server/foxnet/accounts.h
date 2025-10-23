@@ -60,8 +60,8 @@ struct CAccountSession
 
 struct CPendingAccResult
 {
-	std::shared_ptr<CAccResult> m_pRes; // shared with sql worker
-	std::function<void(CAccResult &)> m_Callback; // executed on main thread
+	std::shared_ptr<CAccResult> m_pRes;
+	std::function<void(CAccResult &)> m_Callback;
 };
 
 class CAccounts
@@ -79,18 +79,17 @@ class CAccounts
 	void AddPending(const std::shared_ptr<CAccResult> &pRes, std::function<void(CAccResult &)> &&Cb);
 
 public:
-	// Pool-aware init. Pass the same pool used by CScore.
 	void Init(CGameContext *pGameServer, CDbConnectionPool *pPool);
 
 	void Tick();
 
 	bool Register(int ClientId, const char *pUsername, const char *pPassword);
-	bool ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword, const char *pNewPassword2); // unchanged (fire-and-forget write)
+	bool ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword, const char *pNewPassword2);
 
-	void AutoLogin(int ClientId); // async
-	bool ForceLogin(int ClientId, const char *pUsername, bool Silent = false, bool Auto = false); // async
+	void AutoLogin(int ClientId);
+	bool ForceLogin(int ClientId, const char *pUsername, bool Silent = false, bool Auto = false);
 
-	void Login(int ClientId, const char *pUsername, const char *pPassword); // async
+	void Login(int ClientId, const char *pUsername, const char *pPassword);
 	bool Logout(int ClientId); // immediate
 
 	void OnLogin(int ClientId, const struct CAccResult &Res);
@@ -100,14 +99,14 @@ public:
 	void DisableAccount(const char *pUsername, bool Disable);
 
 	void LogoutAllAccountsPort(int Port);
-	void ShowAccProfile(int ClientId, const char *pName); // async
+	void ShowAccProfile(int ClientId, const char *pName);
 
 	void SaveAllAccounts();
 
-	void Top5(int ClientId, const char *pType, int Offset = 0); // async
+	void Top5(int ClientId, const char *pType, int Offset = 0);
 
 	void SetPlayerName(int ClientId, const char *pName);
-	void EditAccount(const char *pUsername, const char *pVariable, const char *pValue); // async
+	void EditAccount(const char *pUsername, const char *pVariable, const char *pValue);
 	void RemoveItem(const char *pUsername, const char *pItemName);
 
 	// Returns XP needed for next level

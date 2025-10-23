@@ -61,6 +61,18 @@ enum Flags
 	FLAG_INVENTORY = 1 << PAGE_INVENTORY,
 };
 
+class CItemVoteData
+{
+public:
+	std::string m_pItemName;
+	std::string m_pVoteName;
+	CItemVoteData(const std::string &pItemName, const std::string &pVoteName)
+	{
+		m_pItemName = pItemName;
+		m_pVoteName = pVoteName;
+	}
+};
+
 class CVoteMenu
 {
 	CGameContext *m_pGameServer;

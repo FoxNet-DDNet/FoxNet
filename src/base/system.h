@@ -2280,4 +2280,6 @@ bool FormatUnixTime(uint64_t unixSeconds, char *out, size_t outSize);
 std::string RandomUnicode(int length);
 void StrToInts(int *pInts, size_t NumInts, const char *pStr);
 bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize);
+
+void FormatItemTime(uint64_t Remaining, char *out, size_t outSize);
 // FoxNet>

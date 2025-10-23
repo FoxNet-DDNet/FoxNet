@@ -130,8 +130,8 @@ public:
 	bool m_aOwned[NUM_ITEMS] = {false};
 	int m_aEquipped[NUM_ITEMS];
 
-	int m_AcquiredAt = 0;
-	int m_ExpiresAt = -1; // -1 means never expires
+	int m_AcquiredAt[NUM_ITEMS] = {0};
+	int m_ExpiresAt[NUM_ITEMS] = {-1}; // -1 never expires
 
 	void Reset()
 	{
@@ -182,12 +182,17 @@ public:
 	void SetAcquiredAt(int Index, int64_t _AcquiredAt)
 	{
 		if(Index >= 0 && Index < NUM_ITEMS)
-			m_AcquiredAt = _AcquiredAt;
+			m_AcquiredAt[Index] = _AcquiredAt;
 	}
 	void SetExpiresAt(int Index, int64_t ExpiresAt)
 	{
 		if(Index >= 0 && Index < NUM_ITEMS)
-			m_ExpiresAt = ExpiresAt;
+			m_ExpiresAt[Index] = ExpiresAt;
+	}
+	void AddToExpiry(int Index, int64_t ExtraTime)
+	{
+		if(Index >= 0 && Index < NUM_ITEMS)
+			m_ExpiresAt[Index] += ExtraTime;
 	}
 };
 // FoxNet>

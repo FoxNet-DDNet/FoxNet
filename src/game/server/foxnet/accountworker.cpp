@@ -12,7 +12,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	Inv.Reset();
 
 	char aSql[256];
-	str_copy(aSql, "SELECT ItemName, Quantity, Value, ExpiresAt FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
+	str_copy(aSql, "SELECT ItemName, Quantity, Value, AcquiredAt, ExpiresAt FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	pSql->BindString(1, pUsername);
@@ -25,13 +25,15 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 		pSql->GetString(1, aItemName, sizeof(aItemName));
 		const int Owned = pSql->GetInt(2);
 		const int Value = pSql->GetInt(3);
-		const int ExpiresAt = pSql->GetInt64(4);
+		const int64_t AcquiredAt = pSql->GetInt64(4);
+		const int64_t ExpiresAt = pSql->GetInt64(5);
 
 		const int Idx = CInventory::IndexOfName(aItemName);
 		if(Idx >= 0 && Idx < NUM_ITEMS)
 		{
 			Inv.SetOwnedIndex(Idx, Owned != 0);
 			Inv.SetEquippedIndex(Idx, Value);
+			Inv.SetAcquiredAt(Idx, AcquiredAt);
 			Inv.SetExpiresAt(Idx, ExpiresAt);
 		}
 		if(!pSql->Step(&End, pError, ErrorSize))
@@ -41,67 +43,125 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	return true;
 }
 
-static bool WriteEquippedValues(IDbConnection *pSql, const char *pUsername, const CInventory &Inv, char *pError, int ErrorSize)
+static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const CInventory &Inv, char *pError, int ErrorSize)
 {
 	// Collect equipped pairs (ItemName, Value)
-	struct Pair
+	struct EquipPair
 	{
 		const char *pId;
 		int Val;
 	};
-	Pair aPairs[NUM_ITEMS];
-	int Count = 0;
+	EquipPair aEquipPairs[NUM_ITEMS];
+	int EquipCount = 0;
 	for(int i = 0; i < NUM_ITEMS; i++)
 	{
 		const int Val = Inv.m_aEquipped[i];
 		if(Val > 0)
 		{
-			aPairs[Count].pId = Items[i];
-			aPairs[Count].Val = Val;
-			Count++;
+			aEquipPairs[EquipCount].pId = Items[i];
+			aEquipPairs[EquipCount].Val = Val;
+			EquipCount++;
 		}
 	}
 
-	if(Count == 0)
+	// Collect owned items with time fields (ItemName, AcquiredAt, ExpiresAt)
+	struct TimePair
 	{
-		// Only reset all to 0 for this user
-		char aReset[128];
-		str_copy(aReset, "UPDATE foxnet_account_inventory SET Value = 0 WHERE Username = ?", sizeof(aReset));
-		if(!pSql->PrepareStatement(aReset, pError, ErrorSize))
-			return false;
-		pSql->BindString(1, pUsername);
-		int NumUpd = 0;
-		return pSql->ExecuteUpdate(&NumUpd, pError, ErrorSize);
+		const char *pId;
+		int64_t Acq;
+		int64_t Exp;
+	};
+	TimePair aTimePairs[NUM_ITEMS];
+	int TimeCount = 0;
+	for(int i = 0; i < NUM_ITEMS; i++)
+	{
+		if(!Inv.m_aOwned[i])
+			continue;
+		aTimePairs[TimeCount].pId = Items[i];
+		aTimePairs[TimeCount].Acq = Inv.m_AcquiredAt[i];
+		aTimePairs[TimeCount].Exp = Inv.m_ExpiresAt[i];
+		TimeCount++;
 	}
 
-	char aUpd[2048];
-	int Len = str_format(aUpd, sizeof(aUpd), "%s",
-		"UPDATE foxnet_account_inventory "
-		"SET Value = CASE ItemName");
+	// Build a single UPDATE query:
+	// - Value is always handled (reset to 0 for non-equipped).
+	// - AcquiredAt/ExpiresAt are updated only when we have owned items; otherwise left unchanged.
+	char aUpd[4096];
+	int Len = 0;
+	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "UPDATE foxnet_account_inventory SET ");
 
-	for(int i = 0; i < Count; i++)
+	// Value part
+	if(EquipCount > 0)
 	{
-		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "%s", " WHEN ? THEN ?");
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "Value = CASE ItemName");
+		for(int i = 0; i < EquipCount; i++)
+			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE 0 END");
 	}
-	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "%s", " ELSE 0 END WHERE Username = ?");
+	else
+	{
+		// No equipped items -> reset all values to 0 for this user
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, "Value = 0");
+	}
+
+	// Times part (conditionally append)
+	if(TimeCount > 0)
+	{
+		// AcquiredAt
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, ", AcquiredAt = CASE ItemName");
+		for(int i = 0; i < TimeCount; i++)
+			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE AcquiredAt END");
+
+		// ExpiresAt
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, ", ExpiresAt = CASE ItemName");
+		for(int i = 0; i < TimeCount; i++)
+			Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHEN ? THEN ?");
+		Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " ELSE ExpiresAt END");
+	}
+
+	// WHERE clause
+	Len += str_format(aUpd + Len, sizeof(aUpd) - Len, " WHERE Username = ?");
 
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
 		return false;
 
+	// Bind parameters in the same order as constructed above
 	int BindIdx = 1;
+
 	// Bind (ItemName, Value) pairs
-	for(int i = 0; i < Count; i++)
+	if(EquipCount > 0)
 	{
-		pSql->BindString(BindIdx++, aPairs[i].pId);
-		pSql->BindInt(BindIdx++, aPairs[i].Val);
+		for(int i = 0; i < EquipCount; i++)
+		{
+			pSql->BindString(BindIdx++, aEquipPairs[i].pId);
+			pSql->BindInt(BindIdx++, aEquipPairs[i].Val);
+		}
 	}
+
+	// Bind times:
+	if(TimeCount > 0)
+	{
+		// AcquiredAt (ItemName, Acq)
+		for(int i = 0; i < TimeCount; i++)
+		{
+			pSql->BindString(BindIdx++, aTimePairs[i].pId);
+			pSql->BindInt64(BindIdx++, aTimePairs[i].Acq);
+		}
+		// ExpiresAt (ItemName, Exp)
+		for(int i = 0; i < TimeCount; i++)
+		{
+			pSql->BindString(BindIdx++, aTimePairs[i].pId);
+			pSql->BindInt64(BindIdx++, aTimePairs[i].Exp);
+		}
+	}
+
 	// Bind Username
 	pSql->BindString(BindIdx++, pUsername);
 
 	int Num = 0;
 	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
 }
-
 bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccRegisterRequest *>(pData);
@@ -230,16 +290,15 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 				return false;
 			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt);
-			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt);
+			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt[i]);
+			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt[i]);
 			int NumIns = 0;
 			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 				return false;
 		}
 	}
 
-	// Single UPDATE with CASE for all equipped values
-	if(!WriteEquippedValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
+	if(!UpdateItemValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
 		return false;
 
 	// Update scalar account fields
@@ -287,16 +346,15 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 				return false;
 			pSql->BindString(1, p->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, p->m_Inventory.m_AcquiredAt);
-			pSql->BindInt64(4, p->m_Inventory.m_ExpiresAt);
+			pSql->BindInt64(3, p->m_Inventory.m_AcquiredAt[i]);
+			pSql->BindInt64(4, p->m_Inventory.m_ExpiresAt[i]);
 			int Num = 0;
 			if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
 				return false;
 		}
 	}
 
-	// Single UPDATE with CASE for all equipped values
-	if(!WriteEquippedValues(pSql, p->m_aUsername, p->m_Inventory, pError, ErrorSize))
+	if(!UpdateItemValues(pSql, p->m_aUsername, p->m_Inventory, pError, ErrorSize))
 		return false;
 
 	char aSql[512];

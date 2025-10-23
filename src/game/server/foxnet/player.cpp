@@ -445,6 +445,28 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		return false;
 	}
 
+	// Expire Item
+	int Idx = Inv()->IndexOfName(pItemName);
+	int64_t Now = time(0);
+	int64_t Expiry = Inv()->m_ExpiresAt[Idx];
+	if(Expiry == 0) // Old items without expiry date
+	{
+		Inv()->SetExpiresAt(Idx, Now + (30 * 24 * 60 * 60)); // 30 days
+		GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
+	}
+	else
+	{
+		int64_t Remaining = Expiry - Now;
+		if(Remaining <= 0 && Expiry == -1)
+		{
+			Inv()->SetOwnedIndex(Idx, false);
+			Inv()->SetAcquiredAt(Idx, 0);
+			Inv()->SetExpiresAt(Idx, -1);
+			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, pItemName);
+			return false;
+		}
+	}
+
 	if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_SPARKLE]))
 		SetSparkle(Value);
 	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_HEARTHAT]))

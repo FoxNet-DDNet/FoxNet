@@ -4449,4 +4449,23 @@ bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize)
 	pStr[0] = '\0';
 	return false;
 }
+void FormatItemTime(uint64_t Remaining, char *out, size_t outSize)
+{
+	if(Remaining <= 0)
+		return;
+
+	int Days = Remaining / (60 * 60 * 24);
+	int Hours = (Remaining % (60 * 60 * 24)) / (60 * 60);
+	int Minutes = (Remaining % (60 * 60)) / 60;
+
+	char DayBuf[8];
+	char HourBuf[8];
+	char MinuteBuf[8];
+	str_format(DayBuf, sizeof(DayBuf), "%dd", Days);
+	str_format(HourBuf, sizeof(HourBuf), "%dh", Hours);
+	str_format(MinuteBuf, sizeof(MinuteBuf), "%dm", Minutes);
+
+	str_format(out, outSize, "%s %s %s", Days > 0 ? DayBuf : "", Hours > 0 ? HourBuf : "", Minutes > 0 ? MinuteBuf : "");
+}
+
 // FoxNet>
