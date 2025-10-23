@@ -304,8 +304,8 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pItemName, ClientIdName, ClientId);
 	}
 	int Index = CInventory::IndexOf(pItemName);
-	time_t Now;
-	time(&Now);
+
+	int64_t Now = time(0);
 
 	pAcc->m_Inventory.SetOwnedIndex(Index, true);
 	pAcc->m_Inventory.SetAcquiredAt(Index, Now);
