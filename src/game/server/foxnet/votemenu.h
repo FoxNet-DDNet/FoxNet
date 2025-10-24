@@ -87,11 +87,12 @@ class CVoteMenu
 
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
-		CCosmetics m_Cosmetics = CCosmetics();
+		CCosmetics m_Cosmetics;
+
 	};
 	ClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
-	CItems *m_pLastItemInfo = nullptr;
+	CItem *m_pLastItemInfo = nullptr;
 
 	bool IsPageAllowed(int ClientId, int Page) const;
 
@@ -108,7 +109,7 @@ class CVoteMenu
 	void SendPageSettings(int ClientId);
 	void SendPageAccount(int ClientId);
 	void SendPageShop(int ClientId);
-	const char *FormatItemVote(const CItems *pItem);
+	const char *FormatItemVote(const CItem *pItem);
 	void SendPageInventory(int ClientId);
 	void SendPageAdmin(int ClientId);
 

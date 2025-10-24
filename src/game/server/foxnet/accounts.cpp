@@ -260,9 +260,9 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 			if(Val <= 0)
 				continue;
 
-			const char *pShortcut = ItemShortcuts[i];
+			const char *pShortcut = Items[i];
 
-			if(!str_comp_nocase(pShortcut, ItemShortcuts[C_GUN_EMOTICON]))
+			if(!str_comp_nocase(pShortcut, Items[C_GUN_EMOTICON]))
 			{
 				pPl->ToggleItem(pShortcut, Val, false);
 			}

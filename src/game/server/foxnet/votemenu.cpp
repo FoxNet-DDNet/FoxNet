@@ -115,7 +115,7 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(const CItems *pItem)
+const char *CVoteMenu::FormatItemVote(const CItem *pItem)
 {
 	static char aBuf[64];
 	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d]", pItem->Price());
@@ -813,7 +813,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText(SHOP_BACKPAGE);
 		AddVoteSeperator();
 
-		const CItems *pItem = m_pLastItemInfo;
+		const CItem *pItem = m_pLastItemInfo;
 
 		char aBuf[VOTE_DESC_LENGTH];
 

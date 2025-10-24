@@ -25,36 +25,36 @@ void CShop::Init(CGameContext *pGameServer)
 
 void CShop::AddItems()
 {
-	m_Items.push_back(new CItems("Rainbow Feet", TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1));
-	m_Items.push_back(new CItems("Rainbow Body", TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItems("Rainbow Hook", TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
+	m_Items.push_back(new CItem("Rainbow Feet", "R_F", TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1));
+	m_Items.push_back(new CItem("Rainbow Body", "R_B", TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4));
+	m_Items.push_back(new CItem("Rainbow Hook", "R_H", TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
 
-	m_Items.push_back(new CItems("Emoticon Gun", TYPE_GUN, 3500, "Shoot emotions at people", 10));
-	m_Items.push_back(new CItems("Phase Gun", TYPE_GUN, 2250, "Your bullets defy physics", 5));
-	m_Items.push_back(new CItems("Heart Gun", TYPE_GUN, 20000, "Shoot bullets full of love", 15));
-	m_Items.push_back(new CItems("Mixed Gun", TYPE_GUN, 25000, "Shoots Hearts and Shields", 25));
-	m_Items.push_back(new CItems("Laser Gun", TYPE_GUN, 35000, "Lasertag in DDNet?", 25));
+	m_Items.push_back(new CItem("Emoticon Gun", "G_E", TYPE_GUN, 3500, "Shoot emotions at people", 10));
+	m_Items.push_back(new CItem("Phase Gun", "G_P", TYPE_GUN, 2250, "Your bullets defy physics", 5));
+	m_Items.push_back(new CItem("Heart Gun", "G_H", TYPE_GUN, 20000, "Shoot bullets full of love", 15, SUBTYPE_GUN));
+	m_Items.push_back(new CItem("Mixed Gun", "G_M", TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem("Laser Gun", "G_L", TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
 
-	m_Items.push_back(new CItems("Clockwise Indicator", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5));
-	m_Items.push_back(new CItems("Counter Clockwise Indicator", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5));
-	m_Items.push_back(new CItems("Inward Turning Indicator", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15));
-	m_Items.push_back(new CItems("Outward Turning Indicator", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15));
-	m_Items.push_back(new CItems("Line Indicator", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10));
-	m_Items.push_back(new CItems("Criss Cross Indicator", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10));
+	m_Items.push_back(new CItem("Clockwise Indicator", "I_C", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Counter Clockwise Indicator", "I_CC", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Inward Turning Indicator", "I_IT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Outward Turning Indicator", "I_OT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Line Indicator", "I_L", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Criss Cross Indicator", "I_CrCs", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10, SUBTYPE_IND));
 
-	m_Items.push_back(new CItems("Explosive Death", TYPE_DEATHS, 3250, "Go out with a Boom!", 5));
-	m_Items.push_back(new CItems("Hammer Hit Death", TYPE_DEATHS, 3250, "Get Bonked on death!", 5));
-	m_Items.push_back(new CItems("Indicator Death", TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10));
-	m_Items.push_back(new CItems("Laser Death", TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10));
+	m_Items.push_back(new CItem("Explosive Death", "D_E", TYPE_DEATHS, 3250, "Go out with a Boom!", 5, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("HammerHit Death", "D_H", TYPE_DEATHS, 3250, "Get Bonked on death!", 5, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("Indicator Death", "D_I", TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("Laser Death", "D_L", TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
 
-	m_Items.push_back(new CItems("Star Trail", TYPE_TRAIL, 8000, "The Stars shall follow you", 7));
-	m_Items.push_back(new CItems("Dot Trail", TYPE_TRAIL, 8000, "A trail made out of small dots", 7));
+	m_Items.push_back(new CItem("Star Trail", "T_S", TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
+	m_Items.push_back(new CItem("Dot Trail", "T_D", TYPE_TRAIL, 8000, "A trail made out of small dots", 7, SUBTYPE_TRAIL));
 
-	m_Items.push_back(new CItems("Sparkle", TYPE_OTHER, 1500, "Makes you sparkle", 5));
-	m_Items.push_back(new CItems("Heart Hat", TYPE_OTHER, 12000, "A hat of hearts?", 10));
-	m_Items.push_back(new CItems("Inverse Aim", TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
-	m_Items.push_back(new CItems("Lovely", TYPE_OTHER, 12500, "Spreading love huh?", 15));
-	m_Items.push_back(new CItems("Rotating Ball", TYPE_OTHER, 12500, "Ball rotate - life good", 15));
+	m_Items.push_back(new CItem("Sparkle", "O_S", TYPE_OTHER, 1500, "Makes you sparkle", 5));
+	m_Items.push_back(new CItem("Heart Hat", "O_H", TYPE_OTHER, 12000, "A hat of hearts?", 10));
+	m_Items.push_back(new CItem("Inverse Aim", "O_I", TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
+	m_Items.push_back(new CItem("Lovely", "O_L", TYPE_OTHER, 12500, "Spreading love huh?", 15));
+	m_Items.push_back(new CItem("Rotating Ball", "O_R", TYPE_OTHER, 12500, "Ball rotate - life good", 15));
 }
 
 void CShop::ResetItems()
@@ -71,7 +71,7 @@ void CShop::ListItems()
 		str_append(Seperator, "-");
 
 	log_info("shop", "%s", Seperator);
-	for(CItems *pItem : m_Items)
+	for(CItem *pItem : m_Items)
 	{
 		if(!str_comp(pItem->Name(), ""))
 			continue;
@@ -85,7 +85,7 @@ void CShop::EditItem(const char *pName, int Price, int MinLevel)
 	char aBuf[128];
 	bool Found = false;
 
-	for(CItems *pItem : m_Items)
+	for(CItem *pItem : m_Items)
 	{
 		if(str_comp_nocase(pItem->Name(), pName) == 0)
 		{
@@ -109,73 +109,15 @@ void CShop::EditItem(const char *pName, int Price, int MinLevel)
 	log_info("Shop", "%s", aBuf);
 }
 
-int CShop::GetItemPrice(const char *pName)
-{
-	for(CItems *pItem : m_Items)
-	{
-		if(!str_comp(pItem->Name(), ""))
-			continue;
-
-		if(!str_comp_nocase(pName, pItem->Name()) || !str_comp_nocase(ShortcutToName(pName), pItem->Name()))
-		{
-			return pItem->Price();
-		}
-	}
-
-	return -1;
-}
-
-int CShop::GetItemMinLevel(const char *pName)
-{
-	for(CItems *pItem : m_Items)
-	{
-		if(!str_comp(pItem->Name(), ""))
-			continue;
-
-		if(!str_comp_nocase(pName, pItem->Name()) || !str_comp_nocase(ShortcutToName(pName), pItem->Name()))
-		{
-			return pItem->MinLevel();
-		}
-	}
-
-	return -1;
-}
-
-const char *CShop::NameToShortcut(const char *pName)
-{
-	int Index = 0;
-	for(const char *pItem : Items)
-	{
-		if(!str_comp_nocase(pItem, pName))
-		{
-			return ItemShortcuts[Index];
-		}
-		Index++;
-	}
-
-	return "";
-}
-
-const char *CShop::ShortcutToName(const char *pShortcut)
-{
-	int Index = 0;
-	for(const char *pItemShortcut : ItemShortcuts)
-	{
-		if(!str_comp_nocase(pItemShortcut, pShortcut))
-		{
-			return Items[Index];
-		}
-		Index++;
-	}
-
-	return "";
-}
-
 void CShop::BuyItem(int ClientId, const char *pName)
 {
+	CItem *pItem = FindItem(pName);
+	if(!pItem)
+		return;
+
 	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	int Price = GetItemPrice(pName);
-	int MinLevel = GetItemMinLevel(pName);
+	int Price = pItem->Price();
+	int MinLevel = pItem->MinLevel();
 
 	if(!pAcc->m_LoggedIn)
 	{
@@ -219,15 +161,10 @@ void CShop::BuyItem(int ClientId, const char *pName)
 
 	char aBuf[256];
 
-	char ItemName[64];
-	str_copy(ItemName, pName);
-	if(str_comp(ShortcutToName(ItemName), "") != 0)
-		str_copy(ItemName, ShortcutToName(ItemName));
-
 	if(pAcc->m_Money < Price)
 	{
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		str_format(aBuf, sizeof(aBuf), "│ You don't have enough Money to buy %s", ItemName);
+		str_format(aBuf, sizeof(aBuf), "│ You don't have enough Money to buy %s", pItem->Name());
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -237,7 +174,7 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	if(pAcc->m_Level < MinLevel)
 	{
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		str_format(aBuf, sizeof(aBuf), "│ You need atleast Level %d to buy %s", MinLevel, ItemName);
+		str_format(aBuf, sizeof(aBuf), "│ You need atleast Level %d to buy %s", MinLevel, pItem->Name());
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ You are currently Level %ld", pAcc->m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -249,10 +186,10 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	}
 
 	pPl->TakeMoney(Price);
-	GiveItem(ClientId, ItemName);
+	GiveItem(ClientId, pItem->Name());
 
 	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d%s", ItemName, Price, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "│ You bought \"%s\" for %d%s", pItem->Name(), Price, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 	str_format(aBuf, sizeof(aBuf), "│ You now have: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
@@ -261,55 +198,51 @@ void CShop::BuyItem(int ClientId, const char *pName)
 
 void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromId)
 {
-	bool ItemExists = false;
-	for(const char *pItem : Items)
-	{
-		if(str_comp_nocase(pItem, pItemName) == 0)
-		{
-			ItemExists = true;
-			break;
-		}
-	}
-	if(!ItemExists)
+	CItem *pItem = FindItem(pItemName);
+	if(!pItem)
 	{
 		log_info("shop", "Tried to give non-existing item '%s' to ClientId %d", pItemName, ClientId);
 		return;
 	}
+
+	const char *pName = pItem->Name();
+
 	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 	if(!pAcc->m_LoggedIn)
 	{
-		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pItemName, ClientId);
+		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pName, ClientId);
 		return;
 	}
 	const char *ClientIdName = Server()->ClientName(ClientId);
 	if(Bought)
 	{
-		log_info("shop", "%s (%d) Bought Item '%s'", ClientIdName, ClientId, pItemName);
+		log_info("shop", "%s (%d) Bought Item '%s'", ClientIdName, ClientId, pName);
 	}
 	else if(FromId == -1)
 	{
-		log_info("shop", "%s (%d) Received Item '%s'", ClientIdName, ClientId, pItemName);
+		log_info("shop", "%s (%d) Received Item '%s'", ClientIdName, ClientId, pName);
 	}
 	else if(FromId >= 0)
 	{
 		const char *FromName = Server()->ClientName(FromId);
-		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pItemName, ClientIdName, ClientId);
+		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pName, ClientIdName, ClientId);
 	}
-	int Index = CInventory::IndexOf(pItemName);
+	int Index = CInventory::IndexOfName(pName);
 
 	int64_t Now = time(0);
 	const int64_t days = int64_t(30) * 86400; // 30 days
 
-	pAcc->m_Inventory.SetOwnedIndex(Index, true);
-	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pItemName))
+	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
 	{
-		pAcc->m_Inventory.AddToExpiry(Index, days); // 30 days
+		pAcc->m_Inventory.AddToExpiry(Index, days);
 	}
 	else
 	{
 		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
-		pAcc->m_Inventory.SetExpiresAt(Index, Now + days); // 30 days
+		pAcc->m_Inventory.SetExpiresAt(Index, Now + days);
 	}
+	pAcc->m_Inventory.SetOwnedIndex(Index, true);
+
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
 
@@ -319,39 +252,43 @@ void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
 	if(!pPl)
 		return;
 
-	bool ItemExists = false;
-	for(const char *pItem : Items)
+	CItem *pItem = FindItem(pItemName);
+	if(!pItem)
 	{
-		if(str_comp_nocase(pItem, pItemName) == 0)
-		{
-			ItemExists = true;
-			break;
-		}
-	}
-	if(!ItemExists)
-	{
-		log_info("shop", "Tried to remove non-existing item '%s' to ClientId %d", pItemName, ClientId);
+		log_info("shop", "Tried to remove non-existing item '%s' from ClientId %d", pItemName, ClientId);
 		return;
 	}
+	const char *pName = pItem->Name();
+
 	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 	if(!pAcc->m_LoggedIn)
 	{
-		log_info("shop", "Tried to remove item '%s' to non-logged-in ClientId %d", pItemName, ClientId);
+		log_info("shop", "Tried to remove item '%s' to non-logged-in ClientId %d", pName, ClientId);
 		return;
 	}
 	const char *ClientIdName = Server()->ClientName(ClientId);
 	if(ById < 0)
 	{
-		log_info("shop", "%s (%d) removed Item '%s'", ClientIdName, ClientId, pItemName);
+		log_info("shop", "%s (%d) removed Item '%s'", ClientIdName, ClientId, pName);
 	}
 	else
 	{
 		const char *FromName = Server()->ClientName(ById);
-		log_info("shop", "%s (%d) removed Item '%s' from %s (%d)", FromName, ById, pItemName, ClientIdName, ClientId);
+		log_info("shop", "%s (%d) removed Item '%s' from %s (%d)", FromName, ById, pName, ClientIdName, ClientId);
 	}
 
-	int ItemIndex = CInventory::IndexOf(pItemName);
+	int ItemIndex = CInventory::IndexOfName(pName);
 	pAcc->m_Inventory.SetEquippedIndex(ItemIndex, false);
 	pPl->ToggleItem(Items[ItemIndex], false); // Disable Item
 	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex]);
+}
+
+CItem *CShop::FindItem(const char *pName)
+{
+	for(CItem *pItem : m_Items)
+	{
+		if(!str_comp_nocase(pItem->Name(), pName) || !str_comp_nocase(pItem->Shortcut(), pName))
+			return pItem;
+	}
+	return nullptr;
 }

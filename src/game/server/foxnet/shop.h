@@ -41,39 +41,6 @@ constexpr const char *Items[NUM_ITEMS] = {
 	"Rotating Ball",
 };
 
-constexpr const char *ItemShortcuts[NUM_ITEMS] = {
-	"R_F", // Rainbow Feet
-	"R_B", // Rainbow Body
-	"R_H", // Rainbow Hook
-
-	"G_E", // Emoticon Gun
-	"G_P", // Phase Gun
-	"G_H", // Heart Gun
-	"G_M", // Mixed Gun
-	"G_L", // Laser Gun
-
-	"I_C", // Clockwise Indicator
-	"I_CC", // Counter Clockwise Indicator
-	"I_IT", // Inward Turning Indicator
-	"I_OT", // Outward Turning Indicator
-	"I_L", // Line Indicator
-	"I_CrCs", // Criss Cross Indicator
-
-	"D_E", // Explosive Death
-	"D_HH", // Hammer Hit Death
-	"D_I", // Indicator Death
-	"D_L", // Laser Death
-
-	"T_S", // Star Trail
-	"T_D", // Dot Trail
-
-	"O_S", // Sparkle
-	"O_HH", // Heart Hat
-	"O_IA", // Inverse Aim
-	"O_L", // Lovely
-	"O_RB", // Rotating Ball
-};
-
 enum Cosmetics
 {
 	C_RAINBOW_FEET = 0,
@@ -115,27 +82,43 @@ enum ItemTypes
 	NUM_TYPES
 };
 
-class CItems
+enum ItemSubTypes
+{
+	SUBTYPE_NONE = 0,
+	SUBTYPE_GUN,
+	SUBTYPE_IND,
+	SUBTYPE_DEATH,
+	SUBTYPE_TRAIL,
+	NUM_SUBTYPES
+};
+
+class CItem
 {
 	char m_aItem[32] = "";
-	char m_aDescription[64] = "";
+	char m_aShortcut[32] = "";
+	char m_aDescription[60] = "";
 	int m_Type = 0;
+	int m_SubType = 0;
 	int m_Price = 0;
 	int m_MinLevel = 0;
 
 public:
-	CItems(const char *pShopItem, int pItemType, int pPrice, const char *pDesc, int pMinLevel = 0)
+	CItem(const char *pShopItem, const char *pShortcut, int pItemType, int pPrice, const char *pDesc, int pMinLevel = 0, int pItemSubType = 0)
 	{
 		str_copy(m_aItem, pShopItem);
+		str_copy(m_aShortcut, pShortcut);
 		str_copy(m_aDescription, pDesc);
 		m_Type = pItemType;
+		m_SubType = pItemSubType;
 		m_Price = pPrice;
 		m_MinLevel = pMinLevel;
 	}
 
 	const char *Name() const { return m_aItem; }
+	const char *Shortcut() const { return m_aShortcut; }
 	const char *Description() const { return m_aDescription; }
 	int Type() const { return m_Type; }
+	int SubType() const { return m_SubType; }
 
 	int Price() const { return m_Price; }
 	int MinLevel() const { return m_MinLevel; }
@@ -143,10 +126,11 @@ public:
 	void SetPrice(int Price) { m_Price = Price; }
 	void SetMinLevel(int MinLevel) { m_MinLevel = MinLevel; }
 
-	bool operator==(const CItems &Other) const
+	bool operator==(const CItem &Other) const
 	{
 		bool NameMatch = !str_comp(Name(), Other.Name()) && str_comp(Name(), "") != 0;
-		return NameMatch;
+		bool ShortcutMatch = !str_comp(Shortcut(), Other.Shortcut()) && str_comp(Shortcut(), "") != 0;
+		return NameMatch && ShortcutMatch;
 	}
 };
 
@@ -158,9 +142,6 @@ class CShop
 
 	void AddItems();
 
-	int GetItemPrice(const char *pName);
-	int GetItemMinLevel(const char *pName);
-
 public:
 	void ResetItems();
 
@@ -168,14 +149,12 @@ public:
 
 	void EditItem(const char *pName, int Price, int MinLevel = -1);
 
-	const char *NameToShortcut(const char *pName);
-	const char *ShortcutToName(const char *pShortcut);
-
 	void BuyItem(int ClientId, const char *pName);
 	void GiveItem(int ClientId, const char *pItemName, bool Bought = true, int FromId = -1);
 	void RemoveItem(int ClientId, const char *pItemName, int ById);
 
-	std::vector<CItems *> m_Items;
+	std::vector<CItem *> m_Items;
+	CItem *FindItem(const char *pName);
 
 	void Init(CGameContext *pGameServer);
 };

@@ -126,7 +126,7 @@ class CInventory
 {
 public:
 	CCosmetics m_Cosmetics;
-
+	
 	bool m_aOwned[NUM_ITEMS] = {false};
 	int m_aEquipped[NUM_ITEMS];
 
@@ -147,28 +147,13 @@ public:
 				return i;
 		return -1;
 	}
-	static int IndexOfShortcut(const char *pShortcut)
-	{
-		for(int i = 0; i < NUM_ITEMS; i++)
-			if(!str_comp_nocase(ItemShortcuts[i], pShortcut))
-				return i;
-		return -1;
-	}
-	static int IndexOf(const char *pNameOrShortcut)
-	{
-		int Idx = IndexOfName(pNameOrShortcut);
-		if(Idx >= 0)
-			return Idx;
-		return IndexOfShortcut(pNameOrShortcut);
-	}
-
 	void SetOwnedIndex(int Index, bool Owned)
 	{
 		if(Index >= 0 && Index < NUM_ITEMS)
 			m_aOwned[Index] = Owned;
 	}
 	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aOwned[Index] : false; }
-	bool Owns(const char *pNameOrShortcut) const { return OwnsIndex(IndexOf(pNameOrShortcut)); }
+	bool Owns(const char *pNameOrShortcut) const { return OwnsIndex(IndexOfName(pNameOrShortcut)); }
 
 	// Equipped
 	void SetEquippedIndex(int Index, int Value)
@@ -177,7 +162,7 @@ public:
 			m_aEquipped[Index] = maximum(0, Value);
 	}
 	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
-	int Equipped(const char *pNameOrShortcut) const { return EquippedIndex(IndexOf(pNameOrShortcut)); }
+	int Equipped(const char *pNameOrShortcut) const { return EquippedIndex(IndexOfName(pNameOrShortcut)); }
 	
 	void SetAcquiredAt(int Index, int64_t _AcquiredAt)
 	{
@@ -470,7 +455,7 @@ public:
 
 	bool OwnsItem(const char *pItemName);
 	bool ToggleItem(const char *pItemName, int Set, bool IgnoreAccount = false);
-	bool ReachedItemLimit(const char *pItem, int Set, int Value);
+	bool ReachedItemLimit(const CItem *pItem);
 
 	int GetItemToggle(const char *pItemName);
 	bool ItemEnabled(const char *pItemName);

@@ -232,65 +232,66 @@ int CPlayer::GetItemToggle(const char *pItemName)
 {
 	int Value = -1;
 
-	char pItem[64];
-	str_copy(pItem, pItemName);
-	if(str_comp(GameServer()->m_Shop.NameToShortcut(pItem), "") != 0)
-		str_copy(pItem, GameServer()->m_Shop.NameToShortcut(pItem));
+	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
+	if(!pItem)
+		return false;
 
-	if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_SPARKLE]))
+	const char *pName = pItem->Name();
+
+	if(!str_comp_nocase(pName, Items[C_OTHER_SPARKLE]))
 		Value = (int)!Cosmetics()->m_Sparkle;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_HEARTHAT]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_HEARTHAT]))
 		Value = (int)!Cosmetics()->m_HeartHat;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_INVERSEAIM]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_INVERSEAIM]))
 		Value = (int)!Cosmetics()->m_InverseAim;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_LOVELY]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_LOVELY]))
 		Value = (int)!Cosmetics()->m_Lovely;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_ROTATINGBALL]))
 		Value = (int)!Cosmetics()->m_RotatingBall;
 
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_FEET]))
 		Value = (int)!Cosmetics()->m_RainbowFeet;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_BODY]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_BODY]))
 		Value = (int)!Cosmetics()->m_RainbowBody;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_HOOK]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_HOOK]))
 		Value = (int)Cosmetics()->m_HookPower == HOOK_RAINBOW ? HOOK_NORMAL : HOOK_RAINBOW;
 
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
+	else if(!str_comp_nocase(pName, Items[C_GUN_EMOTICON]))
 		Value = (int)Cosmetics()->m_EmoticonGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_GUN]))
+	else if(!str_comp_nocase(pName, Items[C_PHASE_GUN]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_HEART_GUN]))
-		Value = (int)!Cosmetics()->m_GunType == GUN_HEART ? GUN_NONE : GUN_HEART;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_MIXED_GUN]))
-		Value = (int)!Cosmetics()->m_GunType == GUN_MIXED ? GUN_NONE : GUN_MIXED;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_LASER_GUN]))
-		Value = (int)!Cosmetics()->m_GunType == GUN_LASER ? GUN_NONE : GUN_LASER;
+	else if(!str_comp_nocase(pName, Items[C_HEART_GUN]))
+		Value = (int)Cosmetics()->m_GunType == GUN_HEART ? GUN_NONE : GUN_HEART;
+	else if(!str_comp_nocase(pName, Items[C_MIXED_GUN]))
+		Value = (int)Cosmetics()->m_GunType == GUN_MIXED ? GUN_NONE : GUN_MIXED;
+	else if(!str_comp_nocase(pName, Items[C_LASER_GUN]))
+		Value = (int)Cosmetics()->m_GunType == GUN_LASER ? GUN_NONE : GUN_LASER;
 
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
+	else if(!str_comp_nocase(pName, Items[C_TRAIL_STAR]))
 		Value = (int)Cosmetics()->m_Trail == TRAIL_STAR ? TRAIL_NONE : TRAIL_STAR;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_DOT]))
+	else if(!str_comp_nocase(pName, Items[C_TRAIL_DOT]))
 		Value = (int)Cosmetics()->m_Trail == TRAIL_DOT ? TRAIL_NONE : TRAIL_DOT;
 
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_CLOCKWISE]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_CLOCKWISE ? IND_NONE : IND_CLOCKWISE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_COUNTERCLOCKWISE]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_COUNTERWISE ? IND_NONE : IND_COUNTERWISE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_INWARD_TURNING]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_INWARD ? IND_NONE : IND_INWARD;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_OUTWARD_TURNING]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_OUTWARD ? IND_NONE : IND_OUTWARD;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_LINE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_LINE]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_LINE ? IND_NONE : IND_LINE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_CRISSCROSS]))
 		Value = (int)Cosmetics()->m_DamageIndType == IND_CRISSCROSS ? IND_NONE : IND_CRISSCROSS;
 
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_EXPLOSIVE]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_EXPLOSIVE]))
 		Value = (int)Cosmetics()->m_DeathEffect == DEATH_EXPLOSION ? DEATH_NONE : DEATH_EXPLOSION;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_HAMMERHIT]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_HAMMERHIT]))
 		Value = (int)Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT ? DEATH_NONE : DEATH_HAMMERHIT;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_INDICATOR]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_INDICATOR]))
 		Value = (int)Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND ? DEATH_NONE : DEATH_DAMAGEIND;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_LASER]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_LASER]))
 		Value = (int)Cosmetics()->m_DeathEffect == DEATH_LASER ? DEATH_NONE : DEATH_LASER;
 
 	return Value;
@@ -299,118 +300,29 @@ int CPlayer::GetItemToggle(const char *pItemName)
 bool CPlayer::ItemEnabled(const char *pItemName)
 {
 	int Value = false;
-
-	char pItem[64];
-	str_copy(pItem, pItemName);
-	if(str_comp(GameServer()->m_Shop.NameToShortcut(pItem), "") != 0)
-		str_copy(pItem, GameServer()->m_Shop.NameToShortcut(pItem));
-
-	if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_SPARKLE]))
-		Value = Cosmetics()->m_Sparkle;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_HEARTHAT]))
-		Value = Cosmetics()->m_HeartHat;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_INVERSEAIM]))
-		Value = Cosmetics()->m_InverseAim;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_LOVELY]))
-		Value = Cosmetics()->m_Lovely;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_OTHER_ROTATINGBALL]))
-		Value = Cosmetics()->m_RotatingBall;
-
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_FEET]))
-		Value = Cosmetics()->m_RainbowFeet;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_BODY]))
-		Value = Cosmetics()->m_RainbowBody;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_RAINBOW_HOOK]))
-		Value = Cosmetics()->m_HookPower == HOOK_RAINBOW;
-
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_GUN_EMOTICON]))
-		Value = Cosmetics()->m_EmoticonGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_PHASE_GUN]))
-		Value = Cosmetics()->m_PhaseGun;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_HEART_GUN]))
-		Value = Cosmetics()->m_GunType == GUN_HEART;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_MIXED_GUN]))
-		Value = Cosmetics()->m_GunType == GUN_MIXED;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_LASER_GUN]))
-		Value = Cosmetics()->m_GunType == GUN_LASER;
-
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_STAR]))
-		Value = Cosmetics()->m_Trail == TRAIL_STAR;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_TRAIL_DOT]))
-		Value = Cosmetics()->m_Trail == TRAIL_DOT;
-
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
-		Value = Cosmetics()->m_DamageIndType == IND_CLOCKWISE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
-		Value = Cosmetics()->m_DamageIndType == IND_COUNTERWISE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
-		Value = Cosmetics()->m_DamageIndType == IND_INWARD;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
-		Value = Cosmetics()->m_DamageIndType == IND_OUTWARD;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_LINE]))
-		Value = Cosmetics()->m_DamageIndType == IND_LINE;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
-		Value = Cosmetics()->m_DamageIndType == IND_CRISSCROSS;
-
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_EXPLOSIVE]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_EXPLOSION;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_HAMMERHIT]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_HAMMERHIT;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_INDICATOR]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_DAMAGEIND;
-	else if(!str_comp_nocase(pItem, ItemShortcuts[C_DEATH_LASER]))
-		Value = Cosmetics()->m_DeathEffect == DEATH_LASER;
-
-	return Value;
+	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
+	if(!pItem)
+		return false;
+	int Idx = Inv()->IndexOfName(pItemName);
+	Value = Inv()->m_aEquipped[Idx];
+	return Value > 0;
 }
-bool CPlayer::ReachedItemLimit(const char *pItem, int Set, int Value)
+bool CPlayer::ReachedItemLimit(const CItem *pItem)
 {
 	if(Server()->GetAuthedState(GetCid()) >= AUTHED_MOD)
 		return false;
 
-	if(Set == 0 || Value == 0)
-		return false;
-
 	int Amount = 0;
 
-	if(Cosmetics()->m_Lovely)
-		Amount++;
-	if(Cosmetics()->m_RotatingBall)
-		Amount++;
-	if(Cosmetics()->m_Sparkle)
-		Amount++;
-	if(Cosmetics()->m_HookPower > 0)
-		Amount++;
-	if(Cosmetics()->m_Bloody || Cosmetics()->m_StrongBloody)
-		Amount++;
-	if(Cosmetics()->m_InverseAim)
-		Amount++;
-	if(Cosmetics()->m_HeartHat)
-		Amount++;
+	for(const auto &pOtherItem : GameServer()->m_Shop.m_Items)
+	{
+		if(pItem->SubType() != SUBTYPE_NONE && pOtherItem->SubType() == pItem->SubType())
+			continue;
 
-	if(Cosmetics()->m_DeathEffect > 0)
-		Amount++;
-	if(Cosmetics()->m_DamageIndType > 0)
-		Amount++;
-
-	if(Cosmetics()->m_EmoticonGun > 0)
-		Amount++;
-	if(Cosmetics()->m_ConfettiGun)
-		Amount++;
-	if(Cosmetics()->m_PhaseGun)
-		Amount++;
-	if(Cosmetics()->m_GunType > 0)
-		Amount++;
-
-	if(Cosmetics()->m_Trail > 0)
-		Amount++;
-	if(Cosmetics()->m_RainbowBody || Cosmetics()->m_RainbowFeet)
-		Amount++;
-
-	if(Cosmetics()->m_StaffInd)
-		Amount++;
-	if(Cosmetics()->m_PickupPet)
-		Amount++;
+		const int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
+		if(OtherIdx >= 0 && Inv()->m_aEquipped[OtherIdx])
+			Amount++;
+	}
 
 	return Amount >= g_Config.m_SvCosmeticLimit;
 }
@@ -428,106 +340,99 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	if(m_HideCosmetics)
 		return false;
 
-	char Item[64];
-	str_copy(Item, pItemName);
-	if(str_comp(GameServer()->m_Shop.NameToShortcut(Item), "") != 0)
-		str_copy(Item, GameServer()->m_Shop.NameToShortcut(Item));
-
-	if(!OwnsItem(Item) && !IgnoreAccount)
+	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
+	if(!pItem)
 		return false;
 
-	int Value = GetItemToggle(Item);
+	const char *pName = pItem->Name();
+
+	if(!OwnsItem(pName) && !IgnoreAccount)
+		return false;
+
+
+	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)
 		return false;
-	if(ReachedItemLimit(pItemName, Set, Value) && Value != 0)
+	if(ReachedItemLimit(pItem) && Value != 0)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You have reached the item limit! Disable another item first.");
 		return false;
 	}
 
-	// Expire Item
-	int Idx = Inv()->IndexOfName(pItemName);
-	int64_t Now = time(0);
-	int64_t Expiry = Inv()->m_ExpiresAt[Idx];
-	if(Expiry == 0) // Old items without expiry date
-	{
-		Inv()->SetExpiresAt(Idx, Now + (30 * 24 * 60 * 60)); // 30 days
-		GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
-	}
-	else
-	{
-		int64_t Remaining = Expiry - Now;
-		if(Remaining <= 0 && Expiry == -1)
-		{
-			Inv()->SetOwnedIndex(Idx, false);
-			Inv()->SetAcquiredAt(Idx, 0);
-			Inv()->SetExpiresAt(Idx, -1);
-			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, pItemName);
-			return false;
-		}
-	}
-
-	if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_SPARKLE]))
+	if(!str_comp_nocase(pName, Items[C_OTHER_SPARKLE]))
 		SetSparkle(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_HEARTHAT]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_HEARTHAT]))
 		SetHeartHat(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_INVERSEAIM]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_INVERSEAIM]))
 		SetInverseAim(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_LOVELY]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_LOVELY]))
 		SetLovely(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_OTHER_ROTATINGBALL]))
+	else if(!str_comp_nocase(pName, Items[C_OTHER_ROTATINGBALL]))
 		SetRotatingBall(Value);
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_RAINBOW_FEET]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_FEET]))
 		SetRainbowFeet(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_RAINBOW_BODY]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_BODY]))
 		SetRainbowBody(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_RAINBOW_HOOK]))
+	else if(!str_comp_nocase(pName, Items[C_RAINBOW_HOOK]))
 		HookPower(Value);
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_GUN_EMOTICON]))
+	else if(!str_comp_nocase(pName, Items[C_GUN_EMOTICON]))
 	{
 		Value = Set;
 		SetEmoticonGun(Value);
 	}
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_PHASE_GUN]))
+	else if(!str_comp_nocase(pName, Items[C_PHASE_GUN]))
 		SetPhaseGun(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_HEART_GUN]))
+	else if(!str_comp_nocase(pName, Items[C_HEART_GUN]))
 		SetGunType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_MIXED_GUN]))
+	else if(!str_comp_nocase(pName, Items[C_MIXED_GUN]))
 		SetGunType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_LASER_GUN]))
+	else if(!str_comp_nocase(pName, Items[C_LASER_GUN]))
 		SetGunType(Value);
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_TRAIL_STAR]))
+	else if(!str_comp_nocase(pName, Items[C_TRAIL_STAR]))
 		SetTrail(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_TRAIL_DOT]))
+	else if(!str_comp_nocase(pName, Items[C_TRAIL_DOT]))
 		SetTrail(Value);
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_CLOCKWISE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_CLOCKWISE]))
 		SetDamageIndType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_COUNTERCLOCKWISE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_COUNTERCLOCKWISE]))
 		SetDamageIndType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_INWARD_TURNING]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_INWARD_TURNING]))
 		SetDamageIndType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_OUTWARD_TURNING]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_OUTWARD_TURNING]))
 		SetDamageIndType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_LINE]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_LINE]))
 		SetDamageIndType(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_INDICATOR_CRISSCROSS]))
+	else if(!str_comp_nocase(pName, Items[C_INDICATOR_CRISSCROSS]))
 		SetDamageIndType(Value);
 
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_EXPLOSIVE]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_EXPLOSIVE]))
 		SetDeathEffect(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_HAMMERHIT]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_HAMMERHIT]))
 		SetDeathEffect(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_INDICATOR]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_INDICATOR]))
 		SetDeathEffect(Value);
-	else if(!str_comp_nocase(Item, ItemShortcuts[C_DEATH_LASER]))
+	else if(!str_comp_nocase(pName, Items[C_DEATH_LASER]))
 		SetDeathEffect(Value);
 
 	if(!IgnoreAccount)
-		Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfShortcut(Item), Value);
+		Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfName(pName), Value);
+
+	int SubType = pItem->SubType();
+	for(CItem *pOtherItem : GameServer()->m_Shop.m_Items)
+	{
+		if(pOtherItem == pItem)
+			continue;
+		if(pOtherItem->SubType() == SUBTYPE_NONE)
+			continue;
+		if(pOtherItem->SubType() != SubType)
+			continue;
+		int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
+		Acc()->m_Inventory.SetEquippedIndex(OtherIdx, 0);
+	}
 
 	return true;
 }
