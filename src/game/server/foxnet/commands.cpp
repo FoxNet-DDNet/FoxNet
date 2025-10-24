@@ -1584,7 +1584,7 @@ static void ConServerHelp(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientId, "The Shop can be found in the Vote Menu");
 		pSelf->SendChatTarget(ClientId, "There you can find Items (mostly cosmetics)");
 		pSelf->SendChatTarget(ClientId, "If you have an Idea for an Item, you can create an Issue on the Github Repository!");
-		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNetw/FoxNet/issues");
+		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNet-DDNet/FoxNet/issues");
 		pSelf->SendChatTarget(ClientId, "Note that you need a github account for that.");
 	}
 	else if(!str_comp(pCommand, "other"))
@@ -1594,7 +1594,7 @@ static void ConServerHelp(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientId, "We have support for some of the moving tiles from KoG. '/map Tuxcana' for example.");
 		pSelf->SendChatTarget(ClientId, "You can drop your weapons by pressing F4 (vote no) or '/dropweapon'");
 		pSelf->SendChatTarget(ClientId, "If you have an Idea or found a Bug, you can go to the Github Repo and make a new Issue!");
-		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNetw/FoxNet/issues");
+		pSelf->SendChatTarget(ClientId, "https://github.com/FoxNet-DDNet/FoxNet/issues");
 		pSelf->SendChatTarget(ClientId, "Note that you need a github account for that.");
 	}
 	else
