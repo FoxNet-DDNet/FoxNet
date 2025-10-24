@@ -113,6 +113,12 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
 			return;
 		}
+		if(Res.m_Disabled && Auto)
+		{
+			if(!Silent)
+				GameServer()->SendChatTarget(ClientId, "Your account is disabled");
+			return;
+		}
 		if(!Silent)
 		{
 			GameServer()->SendChatTarget(ClientId, "Logged in successfully");
