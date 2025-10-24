@@ -94,7 +94,7 @@ void CPlayer::GivePlaytime(int Amount)
 	}
 }
 
-void CPlayer::GiveXP(long Amount, const char *pMessage)
+void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
 {
 	if(!Acc()->m_LoggedIn)
 		return;

@@ -171,7 +171,7 @@ void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 
 	const int Amount = pResult->GetInteger(1);
 	if(Amount > 0)
-		pPlayer->GiveMoney(Amount);
+		pPlayer->GiveMoney(Amount, "", false);
 	else
 		pPlayer->TakeMoney(-Amount);
 }
@@ -190,7 +190,7 @@ void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 
 	const int Amount = pResult->GetInteger(1);
 	if(Amount > 0)
-		pPlayer->GiveXP(Amount);
+		pPlayer->GiveXP(Amount, "", false);
 }
 
 void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)

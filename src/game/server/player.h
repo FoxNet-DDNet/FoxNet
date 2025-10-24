@@ -448,7 +448,7 @@ public:
 	bool m_Spazzing = false;
 
 	void GivePlaytime(int Amount);
-	void GiveXP(long Amount, const char *pMessage = "");
+	void GiveXP(long Amount, const char *pMessage = "", bool Multiplier = true);
 	bool CheckLevelUp(long Amount, bool Silent = false);
 	void GiveMoney(long Amount, const char *pMessage = "", bool Multiplier = true);
 	void TakeMoney(long Amount, bool Silent = true, const char *pMessage = "");
