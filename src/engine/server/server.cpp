@@ -206,6 +206,20 @@ void CRconClientLogger::Log(const CLogMessage *pMessage)
 	m_pServer->SendRconLogLine(m_ClientId, pMessage);
 }
 
+static inline void FreeClientOverrideMap(CServer::CClient &Client)
+{
+	if(Client.m_pOverrideMapData)
+	{
+		free(Client.m_pOverrideMapData);
+		Client.m_pOverrideMapData = nullptr;
+	}
+	Client.m_OverrideMapActive = false;
+	Client.m_OverrideMapSize = 0;
+	Client.m_OverrideMapCrc = 0;
+	mem_zero(&Client.m_OverrideMapSha256, sizeof(Client.m_OverrideMapSha256));
+	Client.m_aOverrideMapName[0] = '\0';
+}
+
 void CServer::CClient::Reset()
 {
 	// reset input
@@ -223,6 +237,8 @@ void CServer::CClient::Reset()
 	m_NextMapChunk = 0;
 	m_Flags = 0;
 	m_RedirectDropTime = 0;
+
+	FreeClientOverrideMap(*this);
 }
 
 CServer::CServer()
@@ -1361,36 +1377,55 @@ void CServer::SendMap(int ClientId)
 
 void CServer::SendMapData(int ClientId, int Chunk)
 {
-	int MapType = IsSixup(ClientId) ? MAP_TYPE_SIXUP : MAP_TYPE_SIX;
+	const bool Sixup = IsSixup(ClientId);
+
+	// Use per-client override if present, else fall back to current map
+	const bool HasOverride = m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
+	const unsigned char *pMapData = nullptr;
+	unsigned int MapSize = 0;
+	unsigned int MapCrc = 0;
+
+	int MapType = Sixup ? MAP_TYPE_SIXUP : MAP_TYPE_SIX;
+	pMapData = m_apCurrentMapData[MapType];
+	MapSize = m_aCurrentMapSize[MapType];
+	MapCrc = m_aCurrentMapCrc[MapType];
+
+	if(HasOverride)
+	{
+		pMapData = m_aClients[ClientId].m_pOverrideMapData;
+		MapSize = m_aClients[ClientId].m_OverrideMapSize;
+		MapCrc = m_aClients[ClientId].m_OverrideMapCrc;
+	}
+
 	unsigned int ChunkSize = 1024 - 128;
 	unsigned int Offset = Chunk * ChunkSize;
 	int Last = 0;
 
 	// drop faulty map data requests
-	if(Chunk < 0 || Offset > m_aCurrentMapSize[MapType])
+	if(Chunk < 0 || Offset > MapSize)
 		return;
 
-	if(Offset + ChunkSize >= m_aCurrentMapSize[MapType])
+	if(Offset + ChunkSize >= MapSize)
 	{
-		ChunkSize = m_aCurrentMapSize[MapType] - Offset;
+		ChunkSize = MapSize - Offset;
 		Last = 1;
 	}
 
 	CMsgPacker Msg(NETMSG_MAP_DATA, true);
-	if(MapType == MAP_TYPE_SIX)
+	if(!Sixup)
 	{
 		Msg.AddInt(Last);
-		Msg.AddInt(m_aCurrentMapCrc[MAP_TYPE_SIX]);
+		Msg.AddInt((int)MapCrc);
 		Msg.AddInt(Chunk);
-		Msg.AddInt(ChunkSize);
+		Msg.AddInt((int)ChunkSize);
 	}
-	Msg.AddRaw(&m_apCurrentMapData[MapType][Offset], ChunkSize);
+	Msg.AddRaw(&pMapData[Offset], ChunkSize);
 	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
 	if(Config()->m_Debug)
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "sending chunk %d with size %d", Chunk, ChunkSize);
+		str_format(aBuf, sizeof(aBuf), "sending chunk %d with size %d (%s)", Chunk, ChunkSize, HasOverride ? "override" : "current");
 		Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "server", aBuf);
 	}
 }
@@ -1822,6 +1857,12 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		{
 			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && (m_aClients[ClientId].m_State == CClient::STATE_CONNECTING))
 			{
+				// Free per-client override data now that the client finished loading
+				if(m_aClients[ClientId].m_OverrideMapActive)
+				{
+					FreeClientOverrideMap(m_aClients[ClientId]);
+				}
+
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf), "player is ready. ClientId=%d addr=<{%s}> secure=%s", ClientId, ClientAddrString(ClientId, true), m_NetServer.HasSecurityToken(ClientId) ? "yes" : "no");
 				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
@@ -4375,6 +4416,7 @@ void CServer::RegisterCommands()
 	// <FoxNet
 	Console()->Register("client_infos", "", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
 	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
+	Console()->Register("send_map", "?v[id] r[name]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
 	// FoxNet>
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
@@ -4588,6 +4630,7 @@ void CServer::OverrideClientName(int ClientId, const char *pName)
 
 void CServer::CClient::ResetContent()
 {
+	FreeClientOverrideMap(*this);
 	str_copy(m_CustomClient, "DDNet");
 	m_QuietJoin = false;
 	m_HighBandwidth = true;
@@ -4732,4 +4775,111 @@ void CServer::SetQuietBan(bool Quiet)
 {
 	m_NetServer.NetBan()->m_QuietBan = Quiet;
 }
+
+void CServer::SendMapByName(int ClientId, const char *pMapName)
+{
+	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "invalid client id");
+	if(m_aClients[ClientId].m_State == CClient::STATE_EMPTY)
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "SendMapByName: client slot empty");
+		return;
+	}
+	if(!pMapName || !pMapName[0])
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "SendMapByName: empty map name");
+		return;
+	}
+
+	// Build path based on protocol of the client
+	const bool Sixup = IsSixup(ClientId);
+	char aPath[IO_MAX_PATH_LENGTH];
+	if(Sixup)
+		str_format(aPath, sizeof(aPath), "maps7/%s.map", pMapName);
+	else
+		str_format(aPath, sizeof(aPath), "maps/%s.map", pMapName);
+
+	// Validate filename (same policy as LoadMap)
+	if(!str_valid_filename(fs_filename(aPath)))
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "SendMapByName: invalid map filename '%s'", aPath);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		return;
+	}
+
+	// Load the map data into memory
+	void *pDataVoid = nullptr;
+	unsigned int Size = 0;
+	if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "SendMapByName: couldn't load '%s'", aPath);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		return;
+	}
+	unsigned char *pData = (unsigned char *)pDataVoid;
+
+	// Compute hashes and CRC
+	SHA256_DIGEST Sha = sha256(pData, Size);
+	unsigned Crc = crc32(0, pData, Size);
+
+	// Replace any previous override
+	FreeClientOverrideMap(m_aClients[ClientId]);
+
+	// Store per-client override
+	m_aClients[ClientId].m_pOverrideMapData = pData;
+	m_aClients[ClientId].m_OverrideMapSize = Size;
+	m_aClients[ClientId].m_OverrideMapSha256 = Sha;
+	m_aClients[ClientId].m_OverrideMapCrc = Crc;
+	m_aClients[ClientId].m_OverrideMapActive = true;
+	str_copy(m_aClients[ClientId].m_aOverrideMapName, pMapName, sizeof(m_aClients[ClientId].m_aOverrideMapName));
+
+	// Send MAP_DETAILS
+	{
+		CMsgPacker Msg(NETMSG_MAP_DETAILS, true);
+		Msg.AddString(pMapName, 0);
+		Msg.AddRaw(&Sha.data, sizeof(Sha.data));
+		Msg.AddInt((int)Crc);
+		Msg.AddInt(Size);
+		// Force in-band transfer to avoid mismatches with external URLs.
+		Msg.AddString("", 0);
+		SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
+	}
+
+	// Send MAP_CHANGE
+	{
+		CMsgPacker Msg(NETMSG_MAP_CHANGE, true);
+		Msg.AddString(pMapName, 0);
+		Msg.AddInt((int)Crc);
+		Msg.AddInt(Size);
+		if(Sixup)
+		{
+			Msg.AddInt(Config()->m_SvMapWindow);
+			Msg.AddInt(1024 - 128);
+			Msg.AddRaw(Sha.data, sizeof(Sha.data));
+		}
+		SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+	}
+
+	// Prepare client for chunk requests
+	m_aClients[ClientId].m_NextMapChunk = 0;
+	// Transition the client like on a real map change
+	m_aClients[ClientId].m_State = CClient::STATE_CONNECTING;
+}
+
+void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pThis = static_cast<CServer *>(pUser);
+	if(pResult->NumArguments() == 2)
+	{
+		int ClientId = pResult->GetInteger(0);
+		const char *pMapName = pResult->GetString(1);
+		pThis->SendMapByName(ClientId, pMapName);
+	}
+	else
+	{
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Usage: send_map <client_id> <map_name>");
+	}
+}
+
 // FoxNet>

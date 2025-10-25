@@ -206,6 +206,14 @@ public:
 		//{
 		//	return m_State != STATE_EMPTY && !m_DebugDummy;
 		//}
+
+		bool m_OverrideMapActive = false;
+		unsigned char *m_pOverrideMapData = nullptr;
+		unsigned int m_OverrideMapSize = 0;
+		SHA256_DIGEST m_OverrideMapSha256;
+		unsigned m_OverrideMapCrc = 0;
+		char m_aOverrideMapName[64];
+
 		void ResetContent();
 		char m_CustomClient[24];
 		bool m_QuietJoin;
@@ -267,7 +275,7 @@ public:
 	char m_aCurrentMap[IO_MAX_PATH_LENGTH];
 	const char *m_pCurrentMapName;
 	SHA256_DIGEST m_aCurrentMapSha256[NUM_MAP_TYPES];
-	unsigned m_aCurrentMapCrc[NUM_MAP_TYPES];
+	unsigned int m_aCurrentMapCrc[NUM_MAP_TYPES];
 	unsigned char *m_apCurrentMapData[NUM_MAP_TYPES];
 	unsigned int m_aCurrentMapSize[NUM_MAP_TYPES];
 	char m_aMapDownloadUrl[256];
@@ -543,6 +551,9 @@ public:
 	void SendConnLoggingCommand(CONN_LOGGING_CMD Cmd, const NETADDR *pAddr);
 #endif
 	// <FoxNet
+	void SendMapByName(int ClientId, const char *pMapName);
+	static void ConSendMap(IConsole::IResult *pResult, void *pUser);
+
 	bool IncludedInServerInfo(int ClientId);
 	bool DebugDummy(int ClientId) const override { return m_aClients[ClientId].m_DebugDummy; }
 
