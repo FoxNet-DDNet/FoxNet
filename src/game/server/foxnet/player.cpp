@@ -471,8 +471,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(pName, Items[C_DEATH_LASER]))
 		SetDeathEffect(Value);
 
-	if(!IgnoreAccount)
-		Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfName(pName), Value);
+	Acc()->m_Inventory.SetEquippedIndex(Acc()->m_Inventory.IndexOfName(pName), Value);
 
 	int SubType = pItem->SubType();
 	for(CItem *pOtherItem : GameServer()->m_Shop.m_Items)

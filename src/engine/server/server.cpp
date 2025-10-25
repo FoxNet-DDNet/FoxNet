@@ -1380,7 +1380,7 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	const bool Sixup = IsSixup(ClientId);
 
 	// Use per-client override if present, else fall back to current map
-	const bool HasOverride = m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
+	const bool HasOverride = ClientId >= 0 &&  m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
 	const unsigned char *pMapData = nullptr;
 	unsigned int MapSize = 0;
 	unsigned int MapCrc = 0;
@@ -1390,7 +1390,7 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	MapSize = m_aCurrentMapSize[MapType];
 	MapCrc = m_aCurrentMapCrc[MapType];
 
-	if(HasOverride)
+	if(HasOverride && ClientId >= 0)
 	{
 		pMapData = m_aClients[ClientId].m_pOverrideMapData;
 		MapSize = m_aClients[ClientId].m_OverrideMapSize;

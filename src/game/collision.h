@@ -54,8 +54,8 @@ public:
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
-	bool CheckPoint(float x, float y) const { return IsSolid(round_to_int(x), round_to_int(y)); }
-	bool CheckPoint(vec2 Pos) const { return CheckPoint(Pos.x, Pos.y); }
+	bool CheckPoint(float x, float y, const CQuadData **ppHitQuad = nullptr) const { return IsSolid(round_to_int(x), round_to_int(y), ppHitQuad); }
+	bool CheckPoint(vec2 Pos, const CQuadData **ppHitQuad = nullptr) const { return CheckPoint(Pos.x, Pos.y, ppHitQuad); }
 	int GetCollisionAt(float x, float y) const { return GetTile(round_to_int(x), round_to_int(y)); }
 	int GetWidth() const { return m_Width; }
 	int GetHeight() const { return m_Height; }
@@ -64,11 +64,7 @@ public:
 	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CQuadData **ppOutQuad = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	bool MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
-	bool TestBox(vec2 Pos, vec2 Size) const;
-
-	bool CheckPoint(float x, float y, bool *pHitQuad) const { return IsSolid(round_to_int(x), round_to_int(y), pHitQuad); }
-	int IsSolid(int x, int y, bool *pHitQuad) const;
-	bool TestBox(vec2 pos, vec2 size, bool *pHitQuad) const;
+	bool TestBox(vec2 Pos, vec2 Size, const CQuadData **ppHitQuad = nullptr) const;
 
 	// DDRace
 	void SetCollisionAt(float x, float y, int Index);
@@ -116,7 +112,7 @@ public:
 	int GetSwitchNumber(int Index) const;
 	int GetSwitchDelay(int Index) const;
 
-	int IsSolid(int x, int y) const;
+	int IsSolid(int x, int y, const CQuadData **ppHitQuad = nullptr) const;
 	bool IsThrough(int x, int y, int OffsetX, int OffsetY, vec2 Pos0, vec2 Pos1) const;
 	bool IsHookBlocker(int x, int y, vec2 Pos0, vec2 Pos1) const;
 	int IsWallJump(int Index) const;
@@ -195,11 +191,13 @@ private:
 	};
 	void GetAnimationTransform(float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 	std::vector<vec2> m_SpawnCandidates;
+
 	std::vector<CQuadData> m_vQuads;
+	std::vector<CQuadData> m_vNextQuads;
+
+	bool m_HasSolidQuads = false;
 
 public:
-	int IsSolidQuad(vec2 Pos) const;
-	int IsSolidQuad(int x, int y) const { return IsSolidQuad(vec2(x, y)); };
 
 	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
 	void UpdateQuadCache();
@@ -207,13 +205,15 @@ public:
 	std::vector<const CQuadData *> GetQuadsAt(vec2 Pos) const;
 
 	const CQuadData *GetQuad(vec2 Pos) const;
-	int GetSolidQuad(vec2 Pos) const;
+	const CQuadData *GetQuad(vec2 Pos, vec2 Size) const;
+	const CQuadData *GetSolidQuad(vec2 Pos, vec2 Size = vec2(0, 0)) const;
+	int QuadTypeToTile(int QuadType) const;
 
 	void ClearQuadLayers();
 	void Rotate(vec2 Center, vec2 *pPoint, float Rotation) const;
 
 	void SetTime(double Time) { m_Time = Time; }
-	bool InsideQuad(vec2 Pos, float Radius, vec2 TopLCorner, vec2 TopRCorner, vec2 BottomLCorner, vec2 BottomRCorner) const;
+	bool InsideQuad(vec2 Pos, vec2 Size, vec2 TopLCorner, vec2 TopRCorner, vec2 BottomLCorner, vec2 BottomRCorner) const;
 
 	void CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const;
 	int CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle = true) const;

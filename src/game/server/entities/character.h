@@ -373,9 +373,6 @@ private:
 
 	int m_VoteActionDelay;
 
-	void CreatePowerupExplosion(vec2 Pos, int ClientId, int Type);
-	void CreatePowerupCircle(vec2 Pos, int ClientId, int Type);
-
 	void ExtraTileHandle();
 
 	void FoxNetTick();
@@ -384,7 +381,7 @@ private:
 	void FoxNetSpawn();
 
 	void HandleQuads();
-	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR);
+	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj);
 	// FoxNet>
 };
 

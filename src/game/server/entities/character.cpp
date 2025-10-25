@@ -3496,9 +3496,11 @@ void CCharacter::HandleQuads()
 			Die(GetPlayer()->GetCid(), WEAPON_WORLD);
 			break;
 		case QUADTYPE_STOPA:
+			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3], g_Config.m_SvQStopaGivesDj);
+			break;
 		case QUADTYPE_HOOKABLE:
 		case QUADTYPE_UNHOOKABLE:
-			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3]);
+			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3], true);
 			break;
 		case QUADTYPE_CFRM:
 			// Teleport to last tele checkpoint out, or spawn if none
@@ -3544,7 +3546,7 @@ void CCharacter::HandleQuads()
 }
 
 // Should probably not be duplicated in CPickupDrop
-void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR)
+void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj)
 {
 	const float R = GetProximityRadius() * 0.55f;
 	const vec2 P = m_Pos;
@@ -3637,7 +3639,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 		if(AppliedY.y == 0.0f && MTV.y != 0.0f)
 			SetRawVelocity(vec2(Vel.x, 0.0f));
 
-		if(g_Config.m_SvQStopaGivesDj && BestEdgeIdx >= 0)
+		if(GiveDj && BestEdgeIdx >= 0)
 		{
 			const float NormalThresh = 0.35f;
 			const float SlopeThresh = 0.60f;
