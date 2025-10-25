@@ -183,8 +183,8 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 		char aText[66];
 		str_format(aText, sizeof(aText), "+%ld", Amount);
 		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 175, aText, WEAPON_HAMMER);
-		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 175);
-	}
+		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 125);
+	} 
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }

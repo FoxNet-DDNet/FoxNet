@@ -5,6 +5,7 @@
 #include <engine/shared/protocol.h>
 
 #include <game/server/player.h>
+#include "accounts.h"
 
 class CGameContext;
 class IDbConnection;
