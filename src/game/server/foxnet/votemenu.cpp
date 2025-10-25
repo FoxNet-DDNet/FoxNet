@@ -1,24 +1,30 @@
 ﻿#include "votemenu.h"
+
 #include "accounts.h"
-#include <algorithm>
+#include "shop.h"
+
 #include <base/system.h>
-#include <cstring>
+
+#include <engine/console.h>
 #include <engine/message.h>
 #include <engine/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
+
 #include <generated/protocol.h>
+
+#include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/voting.h>
+
+#include <algorithm>
+#include <cstring>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
-#include <game/gamecore.h>
-#include <optional>
-#include <engine/console.h>
-#include "shop.h"
 
 // Font: https://fsymbols.com/generators/smallcaps/
 constexpr const char *EMPTY_DESC = " ";
@@ -523,7 +529,6 @@ bool CVoteMenu::SendHeader(int ClientId)
 	if(Page == PAGE_SHOP && SubPage == SUB_SHOP_ITEMINFO)
 		return false;
 
-
 	return true;
 }
 
@@ -654,7 +659,6 @@ void CVoteMenu::SendPageAccount(int ClientId)
 	AddVoteText(aBuf);
 	str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
 	AddVoteText(aBuf);
-
 
 	// Register Date
 	if(pAcc->m_RegisterDate > 0)
@@ -921,7 +925,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
 
 		char aVoteName[VOTE_DESC_LENGTH];
-		str_format(aVoteName, sizeof(aVoteName), "%s [%s]", pItems->Name(), TimeBuf); 
+		str_format(aVoteName, sizeof(aVoteName), "%s [%s]", pItems->Name(), TimeBuf);
 
 		if(pItems->Type() == TYPE_RAINBOW)
 			RainbowItems.push_back({pItems->Name(), aVoteName});
@@ -1098,7 +1102,6 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 			if(CanUseCmd(ClientId, "Portalgun"))
 				AddVoteCheckBox(ADMIN_MISC_PORTALGUN, pChr->GetWeaponGot(WEAPON_PORTALGUN));
 		}
-
 	}
 	if(GetSubPage(ClientId) == SUB_ADMIN_COSMETICS)
 	{

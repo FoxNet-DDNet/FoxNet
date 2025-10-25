@@ -1,20 +1,21 @@
+#include "epic_circle.h"
+
 #include "game/server/entities/character.h"
-#include <game/server/entity.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
-#include <game/server/gameworld.h>
-#include <game/server/player.h>
-#include <game/server/teams.h>
+
+#include <base/math.h>
+#include <base/vmath.h>
 
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
-#include <base/math.h>
-#include <base/vmath.h>
-
-#include "epic_circle.h"
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/server/teams.h>
 
 CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, Pos)

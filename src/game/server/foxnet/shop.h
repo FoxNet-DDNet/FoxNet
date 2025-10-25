@@ -2,6 +2,7 @@
 #define GAME_SERVER_FOXNET_COSMETICHANDLER_H
 
 #include <base/system.h>
+
 #include <vector>
 
 class CGameContext;

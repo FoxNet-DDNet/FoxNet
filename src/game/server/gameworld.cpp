@@ -409,5 +409,4 @@ void CGameWorld::RemoveEntities(int Type)
 			pEnt = m_pNextTraverseEntity;
 		}
 	}
-
 }

@@ -1,9 +1,11 @@
 #include "snake.h"
+
+#include <engine/shared/config.h>
+
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-#include <engine/shared/config.h>
 
 CGameContext *CSnake::GameServer() const { return m_pCharacter->GameServer(); }
 IServer *CSnake::Server() const { return GameServer()->Server(); }
@@ -52,7 +54,7 @@ bool CSnake::SetActive(bool Active)
 		Data.m_Pos = RoundPos(m_pCharacter->Core()->m_Pos);
 		m_vSnake.push_back(Data);
 
-		//m_pCharacter->GetPlayer()->m_ShowName = false;
+		// m_pCharacter->GetPlayer()->m_ShowName = false;
 		m_pCharacter->m_InSnake = true;
 		m_pCharacter->GetPlayer()->SetInitialAfk(false);
 		m_pCharacter->GetPlayer()->SetAfk(false);
@@ -76,11 +78,11 @@ bool CSnake::SetActive(bool Active)
 
 		GameServer()->SendFakeTuningParams(m_pCharacter->GetPlayer()->GetCid(), FakeTuning);
 	}
-	else 
+	else
 	{
 		InvalidateTees();
 		for(unsigned int i = 0; i < m_vSnake.size(); i++)
-		{	
+		{
 			Zone = m_vSnake[i].m_pChr->GetOverriddenTuneZone();
 			m_vSnake[i].m_pChr->m_InSnake = false;
 			GameServer()->ResetFakeTunes(i, Zone);
@@ -101,10 +103,10 @@ void CSnake::OnInput(CNetObj_PlayerInput pNewInput)
 
 void CSnake::Tick()
 {
-	if (!Active())
+	if(!Active())
 		return;
 
-	if (m_MoveLifespan)
+	if(m_MoveLifespan)
 		m_MoveLifespan--;
 	InvalidateTees();
 	if(HandleInput())
@@ -118,9 +120,9 @@ void CSnake::Tick()
 
 void CSnake::InvalidateTees()
 {
-	for (unsigned int i = 0; i < m_vSnake.size(); i++)
+	for(unsigned int i = 0; i < m_vSnake.size(); i++)
 	{
-		if (!m_vSnake[i].m_pChr || !m_vSnake[i].m_pChr->IsAlive())
+		if(!m_vSnake[i].m_pChr || !m_vSnake[i].m_pChr->IsAlive())
 		{
 			m_vSnake.erase(m_vSnake.begin() + i);
 			i--;
@@ -172,10 +174,10 @@ bool CSnake::HandleInput()
 
 void CSnake::AddNewTees()
 {
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		CCharacter *pChr = GameServer()->GetPlayerChar(i);
-		if (!pChr || pChr->m_InSnake || pChr->Team() != m_pCharacter->Team())
+		if(!pChr || pChr->m_InSnake || pChr->Team() != m_pCharacter->Team())
 			continue;
 		if(pChr->m_Ufo.Active())
 			continue;
@@ -214,10 +216,10 @@ void CSnake::AddNewTees()
 void CSnake::UpdateTees()
 {
 	float Amount = (float)m_MoveLifespan / (Server()->TickSpeed() / GameServer()->Config()->m_SvSnakeSpeed);
-	for (unsigned int i = 0; i < m_vSnake.size(); i++)
+	for(unsigned int i = 0; i < m_vSnake.size(); i++)
 	{
 		m_vSnake[i].m_pChr->SetVelocity(vec2(0, 0));
-		if (GameServer()->Config()->m_SvSnakeSmooth)
+		if(GameServer()->Config()->m_SvSnakeSmooth)
 		{
 			vec2 PrevPos = i == (m_vSnake.size() - 1) ? m_PrevLastPos : m_vSnake[i + 1].m_Pos;
 			vec2 NewPos = vec2(mix(m_vSnake[i].m_Pos.x, PrevPos.x, Amount), mix(m_vSnake[i].m_Pos.y, PrevPos.y, Amount));

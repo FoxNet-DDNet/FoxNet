@@ -2,13 +2,13 @@
 #ifndef GAME_SERVER_FOXNET_ENTITIES_PICKUPDROP_H
 #define GAME_SERVER_FOXNET_ENTITIES_PICKUPDROP_H
 
-#include <game/mapitems.h>
-#include <game/server/entity.h>
-#include <game/server/gameworld.h>
+#include <base/vmath.h>
 
 #include <engine/shared/protocol.h>
 
-#include <base/vmath.h>
+#include <game/mapitems.h>
+#include <game/server/entity.h>
+#include <game/server/gameworld.h>
 
 class CPickupDrop : public CEntity
 {
@@ -49,7 +49,7 @@ public:
 
 	void TakeDamage(vec2 Force);
 
-	void SetRawVelocity(vec2 Vel){ m_Vel = Vel; }
+	void SetRawVelocity(vec2 Vel) { m_Vel = Vel; }
 	vec2 GetVelocity() const { return m_Vel; }
 
 	void ForceSetPos(vec2 NewPos);

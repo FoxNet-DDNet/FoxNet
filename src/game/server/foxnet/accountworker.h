@@ -3,6 +3,7 @@
 
 #include <engine/server/databases/connection_pool.h>
 #include <engine/shared/protocol.h>
+
 #include <game/server/player.h>
 
 class CGameContext;

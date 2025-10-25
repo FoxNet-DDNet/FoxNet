@@ -2,17 +2,18 @@
 #include "lissajous.h"
 
 #include "game/server/entities/character.h"
-#include <game/server/entity.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gameworld.h>
-#include <game/server/player.h>
+
+#include <base/math.h>
+#include <base/vmath.h>
 
 #include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
-#include <base/vmath.h>
-#include <base/math.h>
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
 
 #include <algorithm>
 #include <cmath>
@@ -84,8 +85,8 @@ vec2 CLissajous::LissajousPos(int Point)
 
 	float A = 75.0f;
 	float B = 75.0f;
-	float a = 2;
-	float b = 3;
+	float a = g_Config.m_SvLissajousA;
+	float b = g_Config.m_SvLissajousB;
 	float delta = Tick / Speed;
 
 	float t = 2 * pi * Point / NUM_POINTS + Flow();

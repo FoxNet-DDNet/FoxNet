@@ -2,12 +2,13 @@
 #ifndef GAME_SERVER_FOXNET_COSMETICS_LASER_DEATH_H
 #define GAME_SERVER_FOXNET_COSMETICS_LASER_DEATH_H
 
-#include <game/server/entity.h>
-#include <game/server/gameworld.h>
 #include <base/vmath.h>
 
-constexpr int MAX_PARTICLES = 13;
-constexpr float SNAPDELAY = 5.5f;
+#include <game/server/entity.h>
+#include <game/server/gameworld.h>
+
+constexpr int MAX_PARTICLES = 28;
+constexpr int TICKDELAY = 5;
 
 class CSnapData
 {

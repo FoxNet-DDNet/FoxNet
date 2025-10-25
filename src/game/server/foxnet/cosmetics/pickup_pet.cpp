@@ -1,11 +1,16 @@
 // Made by qxdFox
 #include "pickup_pet.h"
+
 #include "game/server/entities/character.h"
+
 #include <base/math.h>
 #include <base/vmath.h>
-#include <cmath>
-#include <cstdlib>
+
+#include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
 #include <game/gamecore.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
@@ -13,8 +18,9 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-#include <generated/protocol.h>
-#include <engine/shared/config.h>
+
+#include <cmath>
+#include <cstdlib>
 
 CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos)
@@ -102,7 +108,7 @@ void CPickupPet::Snap(int SnappingClient)
 
 	if(g_Config.m_SvCorruptPickupPet)
 		m_CurType = NUM_POWERUPS;
-	
+
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, m_CurType, 0, -1, PICKUPFLAG_NO_PREDICT);
 }
 

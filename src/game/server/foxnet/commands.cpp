@@ -1,11 +1,9 @@
-﻿#include <game/gamecore.h>
-#include <game/server/entities/character.h>
-#include <game/server/foxnet/entities/text/text.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
-#include <game/server/gameworld.h>
-#include <game/server/player.h>
-#include <game/server/score.h>
+﻿#include "votemenu.h"
+
+#include <base/log.h>
+#include <base/str.h>
+#include <base/system.h>
+#include <base/vmath.h>
 
 #include <engine/console.h>
 #include <engine/server.h>
@@ -14,14 +12,16 @@
 
 #include <generated/protocol.h>
 
-#include <base/log.h>
-#include <base/str.h>
-#include <base/system.h>
-#include <base/vmath.h>
+#include <game/gamecore.h>
+#include <game/server/entities/character.h>
+#include <game/server/foxnet/entities/text/text.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/server/score.h>
 
 #include <algorithm>
-
-#include "votemenu.h"
 
 void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 {
@@ -880,7 +880,6 @@ void CGameContext::ConPhaseGun(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-
 	CPlayer *pPl = pSelf->m_apPlayers[Victim];
 
 	if(!pPl)
@@ -895,7 +894,6 @@ void CGameContext::ConSetConfettiGun(IConsole::IResult *pResult, void *pUserData
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-
 
 	CPlayer *pPl = pSelf->m_apPlayers[Victim];
 
@@ -1295,7 +1293,7 @@ void CGameContext::ConSetObfuscated(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int ClientId = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-	
+
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
@@ -1609,7 +1607,7 @@ static void ConServerHelp(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::RegisterFoxNetCommands()
 {
 	Console()->Register("server", "?r[info]", CFGFLAG_CHAT, ConServerHelp, this, "Sends you info on how accounts work");
-	
+
 	Console()->Register("lasertext", "r[string]", CFGFLAG_SERVER, ConLaserText, this, "laser text");
 	Console()->Register("projectiletext", "r[string]", CFGFLAG_SERVER, ConProjectileText, this, "projectile text");
 
@@ -1675,7 +1673,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_inverse_aim", "?v[id]", CFGFLAG_SERVER, ConInverseAim, this, "Makes a players (id) aim be inversed");
 	Console()->Register("c_heart_hat", "?v[id]", CFGFLAG_SERVER, ConHeartHat, this, "Gives a player (id) a heart hat");
 	Console()->Register("c_hookpower", "?i[power] ?v[id]", CFGFLAG_SERVER, ConHookPower, this, "Sets hook power for player (id)");
-	
+
 	Console()->Register("c_staff_ind", "?v[id]", CFGFLAG_SERVER, ConStaffInd, this, "Gives a player (id) a Staff Indicator");
 	Console()->Register("c_pickuppet", "?v[id]", CFGFLAG_SERVER, ConSetPickupPet, this, "Gives player (id) a pet");
 	Console()->Register("c_lissajous", "?v[id]", CFGFLAG_SERVER, ConLissajous, this, "Gives player (id) a lissajous figure");

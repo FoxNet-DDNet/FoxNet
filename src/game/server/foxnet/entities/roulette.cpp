@@ -1,28 +1,28 @@
 ﻿// Made by qxdFox
-#include <game/server/entities/character.h>
-#include <game/server/entity.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gameworld.h>
-#include <game/server/player.h>
-
-#include <generated/protocol.h>
-
-#include <engine/server.h>
-#include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
+#include "roulette.h"
 
 #include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
 
+#include <engine/server.h>
+#include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
+#include <game/server/entities/character.h>
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/teamscore.h>
+
 #include <cmath>
 #include <random>
 #include <string>
 #include <vector>
-
-#include "roulette.h"
-#include <game/teamscore.h>
 
 // Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
 // For now it just acts like the 0xf one
@@ -54,7 +54,7 @@ void CRoulette::ResetClients()
 		CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 		if(pPl && m_aClients[ClientId].m_Active)
 			pPl->m_BetAmount = -1;
-			
+
 		m_aClients[ClientId].m_BetAmount = -1;
 		m_aClients[ClientId].m_aBetOption[0] = '\0';
 		m_aClients[ClientId].m_Active = false;
@@ -159,7 +159,7 @@ void CRoulette::SetState(RStates State)
 		return;
 
 	m_State = State;
-	
+
 	if(State == RStates::PREPARING)
 	{
 		int Close = AmountOfCloseClients();

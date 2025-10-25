@@ -1,20 +1,21 @@
 // Made by qxdFox
+#include "headitem.h"
+
 #include "game/server/entities/character.h"
-#include <game/server/entity.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
-#include <game/server/gameworld.h>
-#include <game/server/player.h>
-#include <game/server/teams.h>
+
+#include <base/vmath.h>
 
 #include <engine/server.h>
 #include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
-#include <base/vmath.h>
-
-#include "headitem.h"
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/server/teams.h>
 
 CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)

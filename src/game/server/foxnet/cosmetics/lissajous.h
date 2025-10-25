@@ -2,9 +2,10 @@
 #ifndef GAME_SERVER_FOXNET_COSMETICS_LISSAJOUS_H
 #define GAME_SERVER_FOXNET_COSMETICS_LISSAJOUS_H
 
+#include <base/vmath.h>
+
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
-#include <base/vmath.h>
 
 class CLissajous : public CEntity
 {
@@ -14,7 +15,6 @@ class CLissajous : public CEntity
 		NUM_IDS = NUM_POINTS + 1,
 	};
 
-
 	class CSnapData
 	{
 	public:
@@ -22,7 +22,6 @@ class CLissajous : public CEntity
 		vec2 m_From;
 		vec2 m_To;
 	} m_Snap[NUM_IDS];
-
 
 	int m_Owner;
 

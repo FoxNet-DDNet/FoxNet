@@ -3,10 +3,13 @@
 #define GAME_SERVER_FOXNET_ENTITIES_ROULETTE_H
 
 #include <base/vmath.h>
-#include <cstdint>
+
 #include <engine/shared/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
+
+#include <cstdint>
 
 constexpr int MAX_FIELDS = 37; // 0-36
 constexpr int MIN_SPIN_DURATION = 2 * SERVER_TICK_SPEED; // seconds
@@ -39,9 +42,8 @@ constexpr const char *RouletteOptions[] = {
 	"Even",
 	"Odd",
 	"1-12",
-	"13-24", 
-	"25-36"
-};
+	"13-24",
+	"25-36"};
 
 enum class RStates
 {
@@ -53,7 +55,6 @@ enum class RStates
 
 class CRoulette : public CEntity
 {
-
 	int m_SpinDuration = 0;
 
 	float m_SlowDownFactor = 1.0f;

@@ -1,17 +1,17 @@
 // made by fokkonaut
+#include "custom_projectile.h"
+
+#include <base/vmath.h>
+
+#include <generated/protocol.h>
+#include <generated/server_data.h>
+
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-
-#include <generated/protocol.h>
-#include <generated/server_data.h>
-
-#include <base/vmath.h>
-
-#include "custom_projectile.h"
 
 CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :

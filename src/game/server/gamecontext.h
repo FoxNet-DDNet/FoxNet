@@ -4,6 +4,12 @@
 #define GAME_SERVER_GAMECONTEXT_H
 
 #include "eventhandler.h"
+#include "foxnet/accounts.h"
+#include "foxnet/entities/powerup.h"
+#include "foxnet/entities/roulette.h"
+#include "foxnet/persistent_data.h"
+#include "foxnet/shop.h"
+#include "foxnet/votemenu.h"
 #include "gameworld.h"
 #include "teehistorian.h"
 
@@ -19,15 +25,8 @@
 
 #include <map>
 #include <memory>
-#include <string>
 #include <random>
-
-#include "foxnet/accounts.h"
-#include "foxnet/votemenu.h"
-#include "foxnet/shop.h"
-#include "foxnet/entities/powerup.h"
-#include "foxnet/entities/roulette.h"
-#include "foxnet/persistent_data.h"
+#include <string>
 
 /*
 	Tick
@@ -740,7 +739,7 @@ private:
 	static void ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSoloOnSpawn(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainCosmetics(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	
+
 	// Add
 	static void ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData);
 	void AddChatDetectionString(const char *pString, const char *pReason, bool pBan, int pBanTime, float pAddition = 1.0f);
@@ -786,7 +785,6 @@ private:
 	static void ConSetConfettiGun(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetEmoticonGun(IConsole::IResult *pResult, void *pUserData);
 
-	
 	static void ConStaffInd(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPickupPet(IConsole::IResult *pResult, void *pUserData);
 	static void ConLissajous(IConsole::IResult *pResult, void *pUserData);
@@ -919,7 +917,6 @@ public:
 		int m_Stars = 0;
 		char m_aTimestamp[24] = "Unknown";
 	} m_MapInfoCache;
-
 
 	bool m_InitRandomMap = false;
 

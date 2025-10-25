@@ -84,7 +84,7 @@ MACRO_CONFIG_INT(SvAllowEyeWheel, sv_allow_eye_wheel, 1, 0, 1, CFGFLAG_SERVER | 
 
 // Cosmetics
 MACRO_CONFIG_INT(SvCosmetics, sv_cosmetics, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow cosmetics")
-MACRO_CONFIG_INT(SvCosmeticLimit, sv_cosmetic_limit, 5, 0, 25, CFGFLAG_SERVER | CFGFLAG_GAME, "How many cosmetics a player can have at a time")
+MACRO_CONFIG_INT(SvCosmeticLimit, sv_cosmetic_limit, 6, 0, 25, CFGFLAG_SERVER | CFGFLAG_GAME, "How many cosmetics a player can have at a time")
 MACRO_CONFIG_INT(SvCorruptPickupPet, sv_corrupt_pickup_pet, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Just use c_pickup_pet and do some stuff :)")
 
 // Dummies
@@ -96,3 +96,7 @@ MACRO_CONFIG_INT(SvRouletteLength, sv_roulette_length, 140, 0, 500, CFGFLAG_SERV
 // Ban Syncing
 MACRO_CONFIG_INT(SvBanSyncing, sv_ban_syncing, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to Sync bans every fs_ban_syncing_delay mins across servers")
 MACRO_CONFIG_INT(SvBanSyncingDelay, sv_ban_syncing_delay, 15, 1, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "How long the server waits between syncs")
+
+// Lissajous
+MACRO_CONFIG_INT(SvLissajousA, sv_lissajous_a, 2, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Lissajous A")
+MACRO_CONFIG_INT(SvLissajousB, sv_lissajous_b, 3, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Lissajous B")

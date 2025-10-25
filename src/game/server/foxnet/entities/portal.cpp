@@ -1,4 +1,14 @@
 // Made by qxdFox
+#include "portal.h"
+
+#include <base/vmath.h>
+
+#include <engine/server.h>
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
+#include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
@@ -6,20 +16,10 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-
-#include <game/gamecore.h>
 #include <game/teamscore.h>
 
-#include <generated/protocol.h>
-
-#include <engine/shared/protocol.h>
-
-#include <base/vmath.h>
-#include <iterator>
-
-#include "portal.h"
 #include <algorithm>
-#include <engine/server.h>
+#include <iterator>
 
 constexpr float MaxPortalRad = 56.0f;
 constexpr float MinPortalRad = 15.0f;

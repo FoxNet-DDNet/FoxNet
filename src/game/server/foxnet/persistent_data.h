@@ -2,6 +2,7 @@
 #define GAME_SERVER_FOXNET_PERSISTENT_DATA_H
 
 #include <base/system.h>
+
 #include <vector>
 
 class CPlayer;
@@ -13,8 +14,8 @@ public:
 	~CSavePlayerData() = default;
 	void Save(CPlayer *pPl);
 	bool Load(CPlayer *pPl);
-private:
 
+private:
 	bool m_HideCosmetics;
 	bool m_HidePowerUps;
 };

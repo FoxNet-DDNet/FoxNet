@@ -1,36 +1,35 @@
-﻿#include <game/server/entities/character.h>
-#include <game/server/gamecontext.h>
-#include <game/server/player.h>
-#include <game/server/teams.h>
+﻿#include "accounts.h"
+#include "cosmetics/dot_trail.h"
+#include "cosmetics/epic_circle.h"
+#include "cosmetics/heart_hat.h"
+#include "cosmetics/lissajous.h"
+#include "cosmetics/lovely.h"
+#include "cosmetics/pickup_pet.h"
+#include "cosmetics/rotating_ball.h"
+#include "cosmetics/staff_ind.h"
+#include "entities/text/text.h"
+#include "shop.h"
+
+#include <base/str.h>
+#include <base/system.h>
+#include <base/vmath.h>
 
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
-#include "cosmetics/dot_trail.h"
-#include "cosmetics/epic_circle.h"
-#include "cosmetics/heart_hat.h"
-#include "cosmetics/lovely.h"
-#include "cosmetics/pickup_pet.h"
-#include "cosmetics/rotating_ball.h"
-#include "cosmetics/lissajous.h"
-#include "cosmetics/staff_ind.h"
-#include "entities/text/text.h"
+#include <game/server/entities/character.h>
+#include <game/server/gamecontext.h>
+#include <game/server/player.h>
+#include <game/server/teams.h>
 
-#include <base/vmath.h>
-#include <base/system.h>
-#include <base/str.h>
-
-#include <string>
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "accounts.h"
-#include "shop.h"
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
 CInventory *CPlayer::Inv() { return &Acc()->m_Inventory; }
@@ -175,7 +174,7 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 	{
 		str_format(aBuf, sizeof(aBuf), "+%ld%s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
-	}	
+	}
 
 	CCharacter *pChr = GetCharacter();
 	if(pChr)
@@ -327,7 +326,6 @@ bool CPlayer::ReachedItemLimit(const CItem *pItem)
 	return Amount >= g_Config.m_SvCosmeticLimit;
 }
 
-
 bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 {
 	if(!g_Config.m_SvCosmetics)
@@ -348,7 +346,6 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 
 	if(!OwnsItem(pName) && !IgnoreAccount)
 		return false;
-
 
 	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)
@@ -563,8 +560,6 @@ void CPlayer::SetTrail(int Type)
 		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
-
-
 void CPlayer::SetStaffInd(bool Active)
 {
 	if(Cosmetics()->m_StaffInd == Active)
@@ -763,7 +758,6 @@ int CPlayer::NumDDraceHudRows()
 
 	return Rows;
 }
-
 
 void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 {

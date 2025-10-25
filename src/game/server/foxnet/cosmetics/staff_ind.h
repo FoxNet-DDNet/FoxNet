@@ -2,7 +2,9 @@
 #define GAME_SERVER_FOXNET_COSMETICS_STAFF_IND_H
 
 #include <base/vmath.h>
+
 #include <engine/shared/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
 

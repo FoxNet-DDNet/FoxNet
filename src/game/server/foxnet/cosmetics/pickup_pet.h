@@ -2,10 +2,10 @@
 #ifndef GAME_SERVER_FOXNET_COSMETICS_PICKUPPET_H
 #define GAME_SERVER_FOXNET_COSMETICS_PICKUPPET_H
 
-#include <game/server/gameworld.h>
-#include <game/server/entity.h>
-
 #include <base/vmath.h>
+
+#include <game/server/entity.h>
+#include <game/server/gameworld.h>
 
 class CPickupPet : public CEntity
 {
@@ -17,7 +17,7 @@ class CPickupPet : public CEntity
 	};
 
 	vec2 m_aPos;
-	
+
 	float m_aSpeed;
 	int m_Owner;
 
@@ -28,7 +28,7 @@ class CPickupPet : public CEntity
 
 public:
 	CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos);
-	
+
 	virtual void Reset() override;
 	virtual void Tick() override;
 	virtual void Snap(int SnappingClient) override;

@@ -1,4 +1,19 @@
-﻿#include <game/collision.h>
+﻿#include "accounts.h"
+#include "entities/pickupdrop.h"
+#include "entities/powerup.h"
+#include "fontconvert.h"
+
+#include <base/log.h>
+#include <base/system.h>
+#include <base/vmath.h>
+
+#include <engine/server/server.h>
+#include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
+#include <game/collision.h>
 #include <game/gamecore.h>
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
@@ -10,26 +25,11 @@
 #include <game/server/score.h>
 #include <game/voting.h>
 
-#include <engine/server/server.h>
-#include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
-
-#include <base/log.h>
-#include <base/system.h>
-#include <base/vmath.h>
-
-#include <generated/protocol.h>
-
 #include <cstring>
 #include <optional>
 #include <random>
 #include <string>
 #include <vector>
-
-#include "accounts.h"
-#include "entities/pickupdrop.h"
-#include "entities/powerup.h"
-#include "fontconvert.h"
 
 void CGameContext::FoxNetTick()
 {
@@ -66,7 +66,7 @@ void CGameContext::FoxNetInit()
 	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
 
 	m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
-	
+
 	RefreshWeekendFlag();
 
 	if(Score())
@@ -130,7 +130,6 @@ void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, i
 
 		if((GetPlayerChar(Owner) ? !GetPlayerChar(Owner)->GrenadeHitDisabled() : g_Config.m_SvHit) || NoDamage)
 		{
-
 			if(Owner == -1 && ActivatedTeam != -1 && pPickup->Team() != ActivatedTeam)
 				continue;
 			// Explode at most once per team
@@ -155,11 +154,11 @@ int CGameContext::RandGeometric(std::mt19937 &rng, int Min, int Max, double p)
 	if(Max < Min)
 		std::swap(Min, Max);
 	p = std::clamp(p, 1e-9, 1.0 - 1e-9);
-	std::geometric_distribution<int> geo(p); 
+	std::geometric_distribution<int> geo(p);
 	int range = Max - Min;
 	int k = geo(rng);
 	if(k > range)
-		k = range; 
+		k = range;
 	return Min + k;
 }
 
@@ -972,7 +971,7 @@ std::optional<vec2> CGameContext::GetRandomAccessablePos()
 	};
 
 	constexpr float TileSize = 32.0f;
-	constexpr float MinPlayerDist = TileSize * 25.0f; 
+	constexpr float MinPlayerDist = TileSize * 25.0f;
 
 	for(int Tries = 0; Tries < 16; ++Tries)
 	{

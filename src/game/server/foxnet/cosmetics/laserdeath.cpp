@@ -1,17 +1,18 @@
 // Made by qxdFox
+#include "laserdeath.h"
+
 #include "game/server/entities/character.h"
+
+#include <base/vmath.h>
+
+#include <generated/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-
-#include <generated/protocol.h>
-
-#include <base/vmath.h>
-
-#include "laserdeath.h"
 
 CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASERDEATH, Pos)
@@ -30,11 +31,11 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 
 		long Random = dist(rd) + i;
 
-		m_SnapData.m_StartTick[i] = Server()->Tick() + Server()->TickSpeed() / SNAPDELAY * i;
+		m_SnapData.m_StartTick[i] = Server()->Tick() + TICKDELAY * i;
 
 		m_SnapData.m_aPos[i] = m_Pos + random_direction() * Random;
 	}
-	m_EndTick = Server()->Tick() + (Server()->TickSpeed() / SNAPDELAY * MAX_PARTICLES);
+	m_EndTick = Server()->Tick() + TICKDELAY * MAX_PARTICLES;
 
 	GameWorld()->InsertEntity(this);
 }
@@ -55,11 +56,12 @@ void CLaserDeath::Tick()
 		Reset();
 		return;
 	}
+
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
 		// Create sound when new particle appears
 		if(Server()->Tick() == m_SnapData.m_StartTick[i])
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, m_Mask);
+			GameServer()->CreateSound(m_Pos, SOUND_BODY_LAND, m_Mask);
 	}
 }
 

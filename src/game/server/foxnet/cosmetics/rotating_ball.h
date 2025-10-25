@@ -2,6 +2,7 @@
 #define GAME_SERVER_FOXNET_COSMETICS_ROTATING_BALL_H
 
 #include <base/vmath.h>
+
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
 

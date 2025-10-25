@@ -1,15 +1,20 @@
 #include "lovely.h"
+
 #include "game/server/entities/character.h"
+
 #include <base/math.h>
 #include <base/vmath.h>
+
 #include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-#include <generated/protocol.h>
 
 CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LOVELY, Pos)

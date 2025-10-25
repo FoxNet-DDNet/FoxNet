@@ -1,13 +1,13 @@
 #ifndef GAME_SERVER_FOXNET_VOTEMENU_H
 #define GAME_SERVER_FOXNET_VOTEMENU_H
-#include <game/server/player.h>
+#include "accounts.h"
+#include "shop.h"
 
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
-#include "accounts.h"
-#include "shop.h"
+#include <game/server/player.h>
 
 #include <array>
 
@@ -88,7 +88,6 @@ class CVoteMenu
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
 		CCosmetics m_Cosmetics;
-
 	};
 	ClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;

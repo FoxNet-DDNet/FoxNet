@@ -1,4 +1,13 @@
 // Made by qxdFox
+#include "powerup.h"
+
+#include <base/vmath.h>
+
+#include <engine/server.h>
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
@@ -6,21 +15,11 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-
 #include <game/teamscore.h>
-
-#include <generated/protocol.h>
-
-#include <engine/server.h>
-#include <engine/shared/protocol.h>
-
-#include <base/vmath.h>
 
 #include <algorithm>
 #include <iterator>
 #include <random>
-
-#include "powerup.h"
 
 // Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
 // For now it just acts like the 0xf one

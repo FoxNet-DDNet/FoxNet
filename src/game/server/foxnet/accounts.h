@@ -2,15 +2,18 @@
 #define GAME_SERVER_FOXNET_ACCOUNTS_H
 
 #include <base/system.h>
+
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 #include <engine/storage.h>
+
+#include <game/server/player.h>
+
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
-#include <memory>
 #include <vector>
-#include <functional>
-#include <game/server/player.h>
 
 struct CAccResult;
 class CDbConnectionPool;
@@ -75,7 +78,7 @@ class CAccounts
 	// Password hashing
 	SHA256_DIGEST HashPassword(const char *pPassword);
 
-	std::vector<CPendingAccResult> m_vPending; 
+	std::vector<CPendingAccResult> m_vPending;
 	void AddPending(const std::shared_ptr<CAccResult> &pRes, std::function<void(CAccResult &)> &&Cb);
 
 public:

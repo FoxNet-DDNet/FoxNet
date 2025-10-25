@@ -1,12 +1,7 @@
-﻿#include <engine/server.h>
-#include <engine/server/databases/connection.h>
-#include <engine/server/databases/connection_pool.h>
-#include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
+﻿#include "accounts.h"
 
+#include "accountworker.h"
 #include "game/server/gamecontext.h"
-
-#include <generated/protocol.h>
 
 #include <base/hash.h>
 #include <base/hash_ctxt.h>
@@ -14,15 +9,20 @@
 #include <base/str.h>
 #include <base/system.h>
 
+#include <engine/server.h>
+#include <engine/server/databases/connection.h>
+#include <engine/server/databases/connection_pool.h>
+#include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
 #include <ctime>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
-
-#include "accounts.h"
-#include "accountworker.h"
 #include <vector>
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }

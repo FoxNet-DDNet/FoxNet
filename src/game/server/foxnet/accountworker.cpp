@@ -1,11 +1,13 @@
-﻿#include <engine/server/databases/connection.h>
-
-#include <game/server/gamecontext.h>
+﻿#include "accountworker.h"
 
 #include "accounts.h"
-#include "accountworker.h"
 #include "shop.h"
+
 #include <base/system.h>
+
+#include <engine/server/databases/connection.h>
+
+#include <game/server/gamecontext.h>
 
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
@@ -20,7 +22,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	if(!pSql->Step(&End, pError, ErrorSize))
 		return false;
 	while(!End)
-		{
+	{
 		char aItemName[64];
 		pSql->GetString(1, aItemName, sizeof(aItemName));
 		const int Owned = pSql->GetInt(2);

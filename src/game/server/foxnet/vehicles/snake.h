@@ -4,6 +4,7 @@
 #define GAME_SERVER_SNAKE_H
 
 #include <engine/shared/protocol.h>
+
 #include <game/server/entity.h>
 
 class CCharacter;
@@ -51,4 +52,4 @@ public:
 	void OnPlayerDeath();
 	void OnInput(CNetObj_PlayerInput pNewInput);
 };
-#endif //GAME_SERVER_SNAKE_H
+#endif // GAME_SERVER_SNAKE_H

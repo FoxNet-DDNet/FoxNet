@@ -1,11 +1,11 @@
 ﻿#ifndef GAME_SERVER_FOXNET_ENTITES_TEXT_TEXT_H
 #define GAME_SERVER_FOXNET_ENTITES_TEXT_TEXT_H
 
-#include <game/server/entity.h>
-#include <game/server/gameworld.h>
-#include <game/server/gamecontext.h>
-
 #include <base/vmath.h>
+
+#include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gameworld.h>
 
 #include <vector>
 
@@ -279,7 +279,6 @@ struct FTextData
 	vec2 m_Pos;
 };
 
-
 class CText : public CEntity
 {
 public:
@@ -384,6 +383,5 @@ public:
 
 	void Snap(int SnappingClient) override;
 };
-
 
 #endif // GAME_SERVER_FOXNET_ENTITES_TEXT_TEXT_H

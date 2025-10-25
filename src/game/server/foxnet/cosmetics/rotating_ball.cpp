@@ -1,16 +1,17 @@
+#include "rotating_ball.h"
+
 #include "game/server/entities/character.h"
+
+#include <base/vmath.h>
+
+#include <engine/shared/config.h>
+
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-
-#include <engine/shared/config.h>
-
-#include <base/vmath.h>
-
-#include "rotating_ball.h"
 
 CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_ROTATING_BALL, Pos)
@@ -120,8 +121,6 @@ void CRotatingBall::Snap(int SnappingClient)
 	int Owner = m_Owner;
 	if(g_Config.m_SvCorruptPickupPet && pSnapPlayer->Cosmetics()->m_PickupPet)
 		Owner = -1; // Sets the pickuppet to the laser sprite for some reason
-
-
 
 	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), LaserPos, LaserPos, Server()->Tick(), Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 

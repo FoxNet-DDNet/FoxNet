@@ -36,15 +36,6 @@
 #include <game/mapitems.h>
 #include <game/version.h>
 
-#include <generated/protocol7.h>
-#include <generated/protocolglue.h>
-
-#include "entities/character.h"
-#include "gamemodes/DDRace.h"
-#include "gamemodes/mod.h"
-#include "player.h"
-#include "score.h"
-
 // Not thread-safe!
 class CClientChatLogger : public ILogger
 {
@@ -1559,7 +1550,7 @@ void CGameContext::ProgressVoteOptions(int ClientId)
 
 		if(!str_comp(pCurrent->m_aCommand, "map_vote_lock"))
 		{
-			str_format(aDescBuf[CurIndex], sizeof(aDescBuf[CurIndex]), "%s%s",pCurrent->m_aDescription, m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing");
+			str_format(aDescBuf[CurIndex], sizeof(aDescBuf[CurIndex]), "%s%s", pCurrent->m_aDescription, m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing");
 			pDesc = aDescBuf[CurIndex];
 		}
 
@@ -2133,7 +2124,8 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 			if(pMsg7->m_Force)
 			{
 				str_format(s_aRawMsg, sizeof(s_aRawMsg), "force_vote \"%s\" \"%s\" \"%s\"", pMsg7->m_pType, pMsg7->m_pValue, pMsg7->m_pReason);
-				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR : IConsole::EAccessLevel::HELPER);
+				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR :
+																	  IConsole::EAccessLevel::HELPER);
 				Console()->ExecuteLine(s_aRawMsg, ClientId, false);
 				Console()->SetAccessLevel(IConsole::EAccessLevel::ADMIN);
 				return nullptr;
@@ -2333,7 +2325,8 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 			Console()->SetFlagMask(CFGFLAG_CHAT);
 			int Authed = Server()->GetAuthedState(ClientId);
 			if(Authed)
-				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR : IConsole::EAccessLevel::HELPER);
+				Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR :
+																	  IConsole::EAccessLevel::HELPER);
 			else
 				Console()->SetAccessLevel(IConsole::EAccessLevel::USER);
 
@@ -2434,7 +2427,6 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 				}
 				if(g_Config.m_SvVoteSkipPrefix)
 				{
-				
 					if(str_startswith(aDesc, "│"))
 					{
 						size_t prefixLen = str_length("│");
@@ -2467,7 +2459,7 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 			}
 
 			if(!IsValid)
-			{// FoxNet>
+			{ // FoxNet>
 				if(!Server()->IsRconAuthedAdmin(ClientId)) // allow admins to call any vote they want
 				{
 					str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_pValue);
@@ -2662,7 +2654,7 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 void CGameContext::OnVoteNetMessage(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 {
 	if(!m_VoteCloseTime)
-	{	// <FoxNet
+	{ // <FoxNet
 		if(GetPlayerChar(ClientId))
 			GetPlayerChar(ClientId)->VoteAction(pMsg, ClientId);
 		// FoxNet>
@@ -2840,7 +2832,7 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 	{
 		//<FoxNet
 		if(!NameDetection(ClientId, pMsg->m_pName, true))
-		{	// FoxNet>
+		{ // FoxNet>
 			char aOldName[MAX_NAME_LENGTH];
 			str_copy(aOldName, Server()->ClientName(ClientId), sizeof(aOldName));
 
@@ -5485,7 +5477,8 @@ void CGameContext::OnUpdatePlayerServerInfo(CJsonWriter *pJsonWriter, int Client
 	pJsonWriter->WriteAttribute("afk");
 	pJsonWriter->WriteBoolValue(m_apPlayers[ClientId]->IsAfk());
 
-	const int Team = m_pController->IsTeamPlay() ? m_apPlayers[ClientId]->GetTeam() : m_apPlayers[ClientId]->GetTeam() == TEAM_SPECTATORS ? -1 : GetDDRaceTeam(ClientId);
+	const int Team = m_pController->IsTeamPlay() ? m_apPlayers[ClientId]->GetTeam() : m_apPlayers[ClientId]->GetTeam() == TEAM_SPECTATORS ? -1 :
+																		GetDDRaceTeam(ClientId);
 
 	pJsonWriter->WriteAttribute("team");
 	pJsonWriter->WriteIntValue(Team);

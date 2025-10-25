@@ -1,28 +1,27 @@
 // Made by qxdFox
-#include <game/server/entities/character.h>
-#include <game/server/player.h>
+#include "pickupdrop.h"
 
-#include <game/server/gamecontext.h>
-#include <game/server/gamemodes/DDRace.h>
-#include <game/server/teams.h>
+#include <base/vmath.h>
+
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
 #include <game/collision.h>
 #include <game/gamecore.h>
+#include <game/layers.h>
 #include <game/mapitems.h>
+#include <game/server/entities/character.h>
 #include <game/server/entities/pickup.h>
 #include <game/server/entity.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamemodes/DDRace.h>
 #include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/server/teams.h>
 #include <game/teamscore.h>
 
-#include <engine/shared/protocol.h>
-
-#include <base/vmath.h>
 #include <vector>
-
-#include "pickupdrop.h"
-#include <game/layers.h>
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
@@ -146,7 +145,6 @@ void CPickupDrop::Tick()
 
 	m_PrevPos = m_Pos;
 }
-
 
 void CPickupDrop::HandleSkippableTiles(int Index)
 {

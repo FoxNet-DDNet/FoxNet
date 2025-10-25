@@ -1,17 +1,18 @@
 // Made by qxdFox
+#include "dot_trail.h"
+
 #include "game/server/entities/character.h"
+
+#include <base/vmath.h>
+
+#include <generated/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
-
-#include <generated/protocol.h>
-
-#include <base/vmath.h>
-
-#include "dot_trail.h"
 
 CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
