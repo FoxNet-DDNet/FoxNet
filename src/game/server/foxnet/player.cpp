@@ -38,6 +38,8 @@ CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 void CPlayer::FoxNetTick()
 {
 	RainbowTick();
+	if(Server()->Tick() % (Server()->TickSpeed() * 60) == 0) // Check every minute
+		ExpireItems();
 
 	if(m_LastBet + Server()->TickSpeed() * 30 < Server()->Tick())
 		m_BetAmount = -1; // Reset bet amount every 30 seconds
@@ -52,6 +54,56 @@ void CPlayer::FoxNetTick()
 		}
 	}
 }
+void CPlayer::ExpireItem(int Idx)
+{
+	if(!Acc()->m_LoggedIn)
+		return;
+	int64_t Now = time(0);
+
+	if(Idx < 0 || Idx >= NUM_ITEMS)
+		return;
+
+	int64_t ExpiresAt = Inv()->m_ExpiresAt[Idx];
+	if(ExpiresAt == -1)
+		return; // Never expires
+	else if(ExpiresAt == 0)
+		Inv()->SetExpiresAt(Idx, time(0) + int64_t(30) * 86400);
+	else if(ExpiresAt <= Now)
+	{
+		const char *pItemName = Items[Idx];
+
+		GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, -1);
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
+		GameServer()->SendChatTarget(GetCid(), aBuf);
+	}
+}
+
+void CPlayer::ExpireItems()
+{
+	if(!Acc()->m_LoggedIn)
+		return;
+	int64_t Now = time(0);
+
+	for(int Idx = 0; Idx < NUM_ITEMS; Idx++)
+	{
+		int64_t ExpiresAt = Inv()->m_ExpiresAt[Idx];
+		if(ExpiresAt == -1)
+			continue; // Never expires
+		else if(ExpiresAt == 0)
+			continue; // Not set yet
+		if(ExpiresAt <= Now)
+		{
+			const char *pItemName = Items[Idx];
+
+			GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, -1);
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
+			GameServer()->SendChatTarget(GetCid(), aBuf);
+		}
+	}
+}
+
 
 void CPlayer::FoxNetReset()
 {
@@ -346,6 +398,10 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 
 	if(!OwnsItem(pName) && !IgnoreAccount)
 		return false;
+
+	// Give 30 days expiry if not set yet
+	int Idx = Inv()->IndexOfName(pName);
+	ExpireItem(Idx);
 
 	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)

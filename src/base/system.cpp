@@ -4430,7 +4430,7 @@ bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize)
 	pStr[0] = '\0';
 	return false;
 }
-void FormatItemTime(uint64_t Remaining, char *out, size_t outSize)
+void FormatItemTime(int64_t Remaining, char *out, size_t outSize)
 {
 	if(Remaining <= 0)
 		return;
@@ -4443,10 +4443,18 @@ void FormatItemTime(uint64_t Remaining, char *out, size_t outSize)
 	char HourBuf[8];
 	char MinuteBuf[8];
 	str_format(DayBuf, sizeof(DayBuf), "%dd", Days);
-	str_format(HourBuf, sizeof(HourBuf), "%dh", Hours);
-	str_format(MinuteBuf, sizeof(MinuteBuf), "%dm", Minutes);
+	str_format(HourBuf, sizeof(HourBuf), " %dh", Hours);
+	str_format(MinuteBuf, sizeof(MinuteBuf), " %dm", Minutes);
 
-	str_format(out, outSize, "%s %s %s", Days > 0 ? DayBuf : "", Hours > 0 ? HourBuf : "", Minutes > 0 ? MinuteBuf : "");
+	if(Days > 0)
+	{
+		Hours = 1;
+		Minutes = 1;
+	}
+	if(Hours > 0)
+		Minutes = 1;
+
+	str_format(out, outSize, "%s%s%s", Days > 0 ? DayBuf : "", Hours > 0 ? HourBuf : "", Minutes > 0 ? MinuteBuf : "");
 }
 
 // FoxNet>

@@ -921,11 +921,14 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
 		int64_t Remaining = Expiry - Now;
 
-		char TimeBuf[20] = "";
-		FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
-
 		char aVoteName[VOTE_DESC_LENGTH];
-		str_format(aVoteName, sizeof(aVoteName), "%s [%s]", pItems->Name(), TimeBuf);
+		str_copy(aVoteName, pItems->Name());
+		if(Remaining > 0)
+		{
+			char TimeBuf[20] = "";
+			FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
+			str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItems->Name(), TimeBuf);
+		}
 
 		if(pItems->Type() == TYPE_RAINBOW)
 			RainbowItems.push_back({pItems->Name(), aVoteName});

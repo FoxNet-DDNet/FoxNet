@@ -279,6 +279,9 @@ void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
 
 	int ItemIndex = CInventory::IndexOfName(pName);
 	pAcc->m_Inventory.SetEquippedIndex(ItemIndex, false);
+	pAcc->m_Inventory.SetOwnedIndex(ItemIndex, false);
+	pAcc->m_Inventory.SetAcquiredAt(ItemIndex, 0);
+	pAcc->m_Inventory.SetExpiresAt(ItemIndex, 0);
 	pPl->ToggleItem(Items[ItemIndex], false); // Disable Item
 	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex]);
 }

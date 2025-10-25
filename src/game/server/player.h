@@ -153,7 +153,7 @@ public:
 			m_aOwned[Index] = Owned;
 	}
 	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aOwned[Index] : false; }
-	bool Owns(const char *pNameOrShortcut) const { return OwnsIndex(IndexOfName(pNameOrShortcut)); }
+	bool Owns(const char *pName) const { return OwnsIndex(IndexOfName(pName)); }
 
 	// Equipped
 	void SetEquippedIndex(int Index, int Value)
@@ -162,7 +162,7 @@ public:
 			m_aEquipped[Index] = maximum(0, Value);
 	}
 	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
-	int Equipped(const char *pNameOrShortcut) const { return EquippedIndex(IndexOfName(pNameOrShortcut)); }
+	int Equipped(const char *pName) const { return EquippedIndex(IndexOfName(pName)); }
 	
 	void SetAcquiredAt(int Index, int64_t _AcquiredAt)
 	{
@@ -415,6 +415,8 @@ private:
 	int m_RainbowColor = 0;
 	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 	void RainbowTick();
+	void ExpireItems();
+	void ExpireItem(int Idx);
 	void FoxNetTick();
 
 	int m_Area = 0;
