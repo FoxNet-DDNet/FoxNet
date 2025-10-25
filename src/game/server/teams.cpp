@@ -1358,27 +1358,29 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 
 	if(ClientId == ExceptId)
 		return false; // Explicitly excluded
-	if(!GetPlayer(ClientId))
+	CPlayer *pClient = GetPlayer(ClientId);
+	if(!pClient)
 		return false; // Player doesn't exist
 	if(!((Server()->IsSixup(ClientId) && (VersionFlags & CGameContext::FLAG_SIXUP)) ||
 		   (!Server()->IsSixup(ClientId) && (VersionFlags & CGameContext::FLAG_SIX))))
 		return false;
 
 	CCharacter *pAskerChr = Asker >= 0 ? Character(Asker) : nullptr;
+	CCharacter *pClientChr = Character(ClientId);
 
-	if(!(GetPlayer(ClientId)->GetTeam() == TEAM_SPECTATORS || GetPlayer(ClientId)->IsPaused()))
+	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
 	{ // Not spectator
 		if(ClientId != Asker)
 		{ // Actions of other players
-			if(!Character(ClientId))
+			if(!pClientChr)
 				return false; // Player is currently dead
-			const bool SpawnSolo = Character(ClientId)->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(GetPlayer(ClientId)->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			const bool SpawnSolo = pClientChr->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
+			if(pClient->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
 				if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
 					return false; // In different teams
 			}
-			else if(GetPlayer(ClientId)->m_ShowOthers == SHOW_OTHERS_OFF)
+			else if(pClient->m_ShowOthers == SHOW_OTHERS_OFF)
 			{
 				if(!(Flags & IGNORE_SOLO))
 				{
@@ -1392,35 +1394,35 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 			}
 		} // See everything of yourself
 	}
-	else if(GetPlayer(ClientId)->SpectatorId() != SPEC_FREEVIEW)
+	else if(pClient->SpectatorId() != SPEC_FREEVIEW)
 	{ // Spectating specific player
-		if(GetPlayer(ClientId)->SpectatorId() != Asker)
+		if(pClient->SpectatorId() != Asker)
 		{ // Actions of other players
-			if(!Character(GetPlayer(ClientId)->SpectatorId()))
+			if(!Character(pClient->SpectatorId()))
 				return false; // Player is currently dead
-			const bool SpawnSolo = Character(GetPlayer(ClientId)->SpectatorId())->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(GetPlayer(ClientId)->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			const bool SpawnSolo = Character(pClient->SpectatorId())->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
+			if(pClient->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
-				if(m_Core.Team(GetPlayer(ClientId)->SpectatorId()) != Team && m_Core.Team(GetPlayer(ClientId)->SpectatorId()) != TEAM_SUPER)
+				if(m_Core.Team(pClient->SpectatorId()) != Team && m_Core.Team(pClient->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams
 			}
-			else if(GetPlayer(ClientId)->m_ShowOthers == SHOW_OTHERS_OFF)
+			else if(pClient->m_ShowOthers == SHOW_OTHERS_OFF)
 			{
 				if(!(Flags & IGNORE_SOLO))
 				{
 					if(m_Core.GetSolo(Asker))
 						return false; // When in solo part don't show others
-					if(m_Core.GetSolo(GetPlayer(ClientId)->SpectatorId()))
+					if(m_Core.GetSolo(pClient->SpectatorId()))
 						return false; // When in solo part don't show others
 				}
-				if(m_Core.Team(GetPlayer(ClientId)->SpectatorId()) != Team && m_Core.Team(GetPlayer(ClientId)->SpectatorId()) != TEAM_SUPER)
+				if(m_Core.Team(pClient->SpectatorId()) != Team && m_Core.Team(pClient->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams
 			}
 		} // See everything of player you're spectating
 	}
 	else
 	{ // Freeview
-		if(GetPlayer(ClientId)->m_SpecTeam)
+		if(pClient->m_SpecTeam)
 		{ // Show only players in own team when spectating
 			if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
 				return false; // in different teams

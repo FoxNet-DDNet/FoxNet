@@ -1607,49 +1607,12 @@ void CCollision::UpdateQuadCache()
 
 bool CCollision::InsideQuad(vec2 Pos, float Radius, vec2 TopLCorner, vec2 TopRCorner, vec2 BottomLCorner, vec2 BottomRCorner) const
 {
-	auto IsLeft = [](const vec2 &A, const vec2 &B, const vec2 &P) -> bool {
-		return ((B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x)) >= 0.0f;
-	};
-
-	bool Inside =
-		IsLeft(TopLCorner, TopRCorner, Pos) &&
-		IsLeft(TopRCorner, BottomRCorner, Pos) &&
-		IsLeft(BottomRCorner, BottomLCorner, Pos) &&
-		IsLeft(BottomLCorner, TopLCorner, Pos);
-
-	if(Inside)
-		return true;
-
-	if(Radius <= 0.0f)
+	if(Pos.x < std::min({TopLCorner.x, TopRCorner.x, BottomLCorner.x, BottomRCorner.x}) - Radius ||
+		Pos.x > std::max({TopLCorner.x, TopRCorner.x, BottomLCorner.x, BottomRCorner.x}) + Radius ||
+		Pos.y < std::min({TopLCorner.y, TopRCorner.y, BottomLCorner.y, BottomRCorner.y}) - Radius ||
+		Pos.y > std::max({TopLCorner.y, TopRCorner.y, BottomLCorner.y, BottomRCorner.y}) + Radius)
 		return false;
-
-	auto CircleIntersectsSegment = [](const vec2 &C, float R, const vec2 &A, const vec2 &B) -> bool {
-		vec2 AB = B - A;
-		vec2 AC = C - A;
-		float t = std::clamp(dot(AC, AB) / dot(AB, AB), 0.0f, 1.0f);
-		vec2 Closest = A + AB * t;
-		return distance(C, Closest) <= R;
-	};
-
-	if(CircleIntersectsSegment(Pos, Radius, TopLCorner, TopRCorner))
-		return true;
-	if(CircleIntersectsSegment(Pos, Radius, TopRCorner, BottomRCorner))
-		return true;
-	if(CircleIntersectsSegment(Pos, Radius, BottomRCorner, BottomLCorner))
-		return true;
-	if(CircleIntersectsSegment(Pos, Radius, BottomLCorner, TopLCorner))
-		return true;
-
-	if(distance(Pos, TopLCorner) <= Radius)
-		return true;
-	if(distance(Pos, TopRCorner) <= Radius)
-		return true;
-	if(distance(Pos, BottomLCorner) <= Radius)
-		return true;
-	if(distance(Pos, BottomRCorner) <= Radius)
-		return true;
-
-	return false;
+	return true;
 }
 
 void CCollision::CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const
