@@ -106,6 +106,8 @@ class CVoteMenu
 
 		char m_aMetaData[16] = "";
 		CItem *m_pLastItemInfo = nullptr;
+		// After executing a file with a bunch of votes, we need to resend after some ticks
+		int64_t m_RetryTick = -1;
 	};
 	ClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
@@ -143,9 +145,9 @@ class CVoteMenu
 
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
 	const char *ItemTypeToName(int Type) const;
-
-	int64_t m_RetryTick = -1;
 public:
+	
+	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }
 
 	void PrepareVoteOptions(int ClientId);
 

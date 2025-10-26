@@ -517,14 +517,14 @@ void CVoteMenu::Tick()
 	{
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 			return;
-		if(!GameServer()->m_apPlayers[ClientId] || Server()->ClientSlotEmpty(ClientId))
+		if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 			continue;
 
-		if(m_RetryTick == Server()->Tick() && m_RetryTick != -1)
+		if(m_aClientData[ClientId].m_RetryTick == Server()->Tick() && m_aClientData[ClientId].m_RetryTick != -1)
 		{
 			if(GetPage(ClientId) == PAGE_VOTES)
 				GameServer()->ClearVotes(ClientId);
-			m_RetryTick = -1;
+			m_aClientData[ClientId].m_RetryTick = -1;
 			continue;
 		}
 
@@ -802,7 +802,6 @@ void CVoteMenu::SendPageVotes(int ClientId)
 	if(GameServer()->m_pVoteOptionFirst == nullptr)
 	{
 		AddVoteText("No vote options available.");
-		m_RetryTick = Server()->Tick() + 2;
 		return;
 	}
 

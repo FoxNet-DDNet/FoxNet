@@ -3350,6 +3350,11 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	const char *pCommand = pResult->GetString(1);
 
 	pSelf->AddVote(pDescription, pCommand);
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		if(pSelf->m_apPlayers[ClientId])
+			pSelf->m_VoteMenu.SetRetryTick(ClientId, pSelf->Server()->Tick() + 2);	
+	}
 }
 
 void CGameContext::AddVote(const char *pDescription, const char *pCommand)
