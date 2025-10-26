@@ -593,6 +593,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 	float Distance = length(Vel);
 	int Max = (int)Distance;
 
+	bool ReturnValue = false;
+
 	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> int {
 		if(!m_HasSolidQuads)
 			return 0;
@@ -630,6 +632,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 	// If we are not moving ourselves but are on a moving quad, we still want to be pushed along.
 	// Peek full-frame quad displacement to decide whether to run at least one step.
 	const int FullQuadDelta = QuadStepDeltaAt(Pos, 1.0f, &HitQuad);
+	if(HitQuad)
+		ReturnValue = true;
 
 	if(Distance > 0.00001f || FullQuadDelta != 0)
 	{
@@ -643,7 +647,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 				break;
 
 			const int QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuad);
-
+			if(HitQuad)
+				ReturnValue = true;
 			vec2 NewPos = Pos + Vel * Fraction;
 			NewPos.x += QuadDelta;
 
@@ -654,9 +659,13 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 			if(TestBox(vec2(NewPos.x, NewPos.y), Size, &HitQuad))
 			{
+				if(HitQuad)
+					ReturnValue = true;
 				int Hits = 0;
 				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuad))
 				{
+					if(HitQuad)
+						ReturnValue = true;
 					if(pGrounded && (ElasticityY > 0 || HitQuad) && Vel.y > 0)
 						*pGrounded = true;
 					NewPos.y = Pos.y;
@@ -666,6 +675,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 				if(TestBox(vec2(NewPos.x, Pos.y), Size, &HitQuad))
 				{
+					if(HitQuad)
+						ReturnValue = true;
 					NewPos.x = Pos.x;
 					Vel.x *= -ElasticityX;
 					Hits++;
@@ -691,7 +702,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 	*pInoutPos = Pos;
 	*pInoutVel = Vel;
 
-	return HitQuad;
+	return ReturnValue;
 }
 
 // DDRace

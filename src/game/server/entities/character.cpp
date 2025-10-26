@@ -1050,6 +1050,8 @@ void CCharacter::TickDeferred()
 			m_SendCore = m_Core;
 			m_ReckoningCore = m_Core;
 			m_Core.m_Reset = false;
+
+			m_Core.m_ResendCore = false;
 		}
 		// FoxNet>
 	}
