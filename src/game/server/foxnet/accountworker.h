@@ -25,7 +25,6 @@ struct CAccResult : ISqlResult
 	int m_Port = 0;
 	int m_ClientId = -1;
 	long m_Flags = 0;
-	int m_VoteMenuPage = 0;
 	long m_Playtime = 0;
 	long m_Deaths = 0;
 	long m_Kills = 0;
@@ -86,7 +85,6 @@ struct CAccUpdLogoutState : ISqlData
 		ISqlData(nullptr) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
 	long m_Flags = 0;
-	int m_VoteMenuPage = 0;
 	long m_Playtime = 0;
 	long m_Deaths = 0;
 	long m_Kills = 0;
@@ -101,7 +99,6 @@ struct CAccSaveInfo : ISqlData
 		ISqlData(nullptr) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_Flags = 0;
-	int m_VoteMenuPage = 0;
 	long m_Playtime = 0;
 	long m_Deaths = 0;
 	long m_Kills = 0;

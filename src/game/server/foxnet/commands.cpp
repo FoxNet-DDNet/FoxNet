@@ -1784,9 +1784,6 @@ void CGameContext::ConchainCosmetics(IConsole::IResult *pResult, void *pUserData
 			if(pPlayer)
 			{
 				pPlayer->DisableAllCosmetics();
-				const int Page = pSelf->m_VoteMenu.GetPage(ClientId);
-				if(Page == PAGE_INVENTORY)
-					pSelf->m_VoteMenu.PrepareVoteOptions(ClientId, Page); // Resend Pages
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 #include "accounts.h"
 #include "shop.h"
 
+#include <base/str.h>
 #include <base/system.h>
 
 #include <engine/console.h>
@@ -27,8 +28,8 @@
 #include <vector>
 
 // Font: https://fsymbols.com/generators/smallcaps/
-constexpr const char *EMPTY_DESC = " ";
-constexpr const char *FANCY_LINES_DESC = "═─═─═─═─═─═─═─═─═─═─═";
+constexpr const char *EMPTY_DESC = "";
+constexpr const char *EMPTY_DESC2 = " ";
 
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_COSMETICS = "Hide Cosmetics";
@@ -80,17 +81,25 @@ constexpr const char *SHOP_ONLY_AFFORDABLE = "Only show Affordable Items";
 constexpr const char *MAIN_MENU_PAGE = "↩ Main Menu ↩";
 constexpr const char *BACKPAGE = "↩ Back ↩";
 
+// Server Info Page
+
+constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
+constexpr const char *SERVER_INFO_LEVELING = "Leveling";
+constexpr const char *SERVER_INFO_CONTRIBUTE = "Have any Ideas?";
+constexpr const char *SERVER_INFO_GITHUB = "Double click here to send the link to chat";
+
 IServer *CVoteMenu::Server() const { return GameServer()->Server(); }
 
 void CVoteMenu::Init(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 
+	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ");
 	str_copy(m_aPages[PAGE_VOTES], "Vᴏᴛᴇs");
 	str_copy(m_aPages[PAGE_SETTINGS], "Sᴇᴛᴛɪɴɢs");
-	str_copy(m_aPages[PAGE_ACCOUNT], "Aᴄᴄᴏᴜɴᴛ");
 	str_copy(m_aPages[PAGE_SHOP], "Sʜᴏᴘ");
 	str_copy(m_aPages[PAGE_INVENTORY], "Iɴᴠᴇɴᴛᴏʀʏ");
+	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
 	str_copy(m_aPages[PAGE_ADMIN], "Aᴅᴍɪɴ");
 }
 
@@ -100,7 +109,6 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 		return false;
 
 	const char *pVote = str_skip_voting_menu_prefixes(pMsg->m_pValue);
-	const int Page = m_aClientData[ClientId].m_Page;
 
 	if(!pVote)
 		return false;
@@ -114,12 +122,12 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 		}
 	}
 
-	if(IsOption(pVote, FANCY_LINES_DESC) || IsOption(pVote, EMPTY_DESC))
+	if(IsOption(pVote, EMPTY_DESC) || IsOption(pVote, EMPTY_DESC2))
 		return true;
 
 	if(IsCustomVoteOption(pMsg, ClientId))
 	{
-		PrepareVoteOptions(ClientId, Page);
+		GameServer()->ClearVotes(ClientId);
 		return true;
 	}
 	return false;
@@ -155,27 +163,49 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 
-	if(!IsPageAllowed(ClientId, Page) && Page != PAGE_VOTES)
-	{
-		return false;
-	}
-
 	if(IsOption(pVote, MAIN_MENU_PAGE))
 	{
+		SetPage(ClientId, 0);
 		SetSubPage(ClientId, 0);
 		return true;
 	}
 	if(IsOption(pVote, BACKPAGE))
 	{
+		if(Page == PAGE_ADMIN)
+		{
+			SetPage(ClientId, PAGE_MAIN);
+			return true;
+		}
+
+		if(Page == PAGE_SERVERINFO)
+		{
+			SetSubPage(ClientId, SUB_SERVERINFO_MAIN);
+			return true;
+		}
+
 		int WantedSubPage = SubPage - 1;
 		if(WantedSubPage < 0)
+		{
 			WantedSubPage = 0;
+			SetPage(ClientId, PAGE_MAIN);
+		}
 
 		SetSubPage(ClientId, WantedSubPage);
 		return true;
 	}
 
-	if(Page == PAGE_SETTINGS)
+	if(Page == PAGE_VOTES)
+		return false;
+
+	if(!IsPageAllowed(ClientId, Page))
+	{
+		return false;
+	}
+
+	if(Page == PAGE_MAIN)
+	{
+	}
+	else if(Page == PAGE_SETTINGS)
 	{
 		if(Acc.m_LoggedIn && IsOption(pVote, SETTINGS_AUTO_LOGIN))
 		{
@@ -201,9 +231,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			pPl->SetHidePowerUps(!pPl->m_HidePowerUps);
 			return true;
 		}
-	}
-	else if(Page == PAGE_ACCOUNT)
-	{
 	}
 	else if(Page == PAGE_SHOP)
 	{
@@ -293,6 +320,30 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 		}
+	}
+	if(Page == PAGE_SERVERINFO)
+	{
+		if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
+		{
+			SetSubPage(ClientId, SUB_SERVERINFO_ACCOUNTS);
+			return true;
+		}
+		if(IsOption(pVote, SERVER_INFO_LEVELING))
+		{
+			SetSubPage(ClientId, SUB_SERVERINFO_LEVELING);
+			return true;
+		}
+		if(IsOption(pVote, SERVER_INFO_CONTRIBUTE))
+		{
+			SetSubPage(ClientId, SUB_SERVERINFO_CONTRIBUTE);
+			return true;
+		}
+		if(IsOption(pVote, SERVER_INFO_GITHUB))
+		{
+			GameServer()->SendChatTarget(ClientId, "https://github.com/FoxNet-DDNet/FoxNet");
+			return true;
+		}
+
 	}
 	if(Page == PAGE_ADMIN)
 	{
@@ -467,6 +518,14 @@ void CVoteMenu::Tick()
 		if(!GameServer()->m_apPlayers[ClientId] || Server()->ClientSlotEmpty(ClientId))
 			continue;
 
+		if(m_RetryTick == Server()->Tick() && m_RetryTick != -1)
+		{
+			if(GetPage(ClientId) == PAGE_VOTES)
+				GameServer()->ClearVotes(ClientId);
+			m_RetryTick = -1;
+			continue;
+		}
+
 		if(GameServer()->m_apPlayers[ClientId]->m_PlayerFlags & PLAYERFLAG_IN_MENU)
 			UpdatePages(ClientId);
 	}
@@ -475,7 +534,7 @@ void CVoteMenu::Tick()
 void CVoteMenu::OnClientDrop(int ClientId)
 {
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
-	Data.m_Page = PAGE_VOTES;
+	Data.m_Page = PAGE_MAIN;
 	for(int i = 0; i < NUM_PAGES; i++)
 		Data.m_SubPage[i] = 0;
 	Data.m_pLastItemInfo = nullptr;
@@ -490,8 +549,8 @@ void CVoteMenu::UpdatePages(int ClientId)
 
 	if(!IsPageAllowed(ClientId, Page))
 	{
-		if(Page != PAGE_VOTES)
-			SetPage(ClientId, PAGE_VOTES);
+		if(Page != PAGE_MAIN)
+			SetPage(ClientId, PAGE_MAIN);
 		return;
 	}
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
@@ -509,7 +568,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 		if(pAcc->m_Flags != OldAcc.m_Flags)
 			Changes = true;
 	}
-	if(Page == PAGE_ACCOUNT)
+	if(Page == PAGE_MAIN)
 	{
 		if(pAcc->m_Level != OldAcc.m_Level)
 			Changes = true;
@@ -539,7 +598,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 	{
 		m_aClientData[ClientId].m_Account = GameServer()->m_aAccounts[ClientId];
 		m_aClientData[ClientId].m_Cosmetics = *pPl->Cosmetics();
-		PrepareVoteOptions(ClientId, Page);
+		GameServer()->ClearVotes(ClientId);
 	}
 }
 
@@ -550,8 +609,6 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
-	if(IsFlagSet(g_Config.m_SvVoteMenuFlags, Page) && Page != PAGE_ADMIN)
-		return false;
 	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) < AUTHED_MOD) // Allow Mod Access
 		return false;
 	if(!pAcc->m_LoggedIn && (Page == PAGE_SHOP || Page == PAGE_INVENTORY))
@@ -559,41 +616,41 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 	return true;
 }
 
-bool CVoteMenu::SendHeader(int ClientId)
-{
-	int Page = GetPage(ClientId);
-	int SubPage = GetSubPage(ClientId);
-
-	if(Page == PAGE_SHOP)
-	{
-		if(SubPage != SUB_SHOP_MAIN)
-			return false;
-	}
-
-	return true;
-}
-
-void CVoteMenu::PrepareVoteOptions(int ClientId, int Page)
+void CVoteMenu::PrepareVoteOptions(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
+	const int Page = GetPage(ClientId);
 	if(Page < 0 || Page >= NUM_PAGES)
 		return;
 
 	if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 		return;
 
-	GameServer()->ClearVotes(ClientId, SendHeader(ClientId));
 	m_vDescriptions.clear();
+
+	if(Page != PAGE_MAIN)
+	{
+		AddVoteText(MAIN_MENU_PAGE);
+		AddVoteText(BACKPAGE);
+		AddVoteSeperator();
+	}
 
 	switch(Page)
 	{
-	case PAGE_VOTES: GameServer()->m_apPlayers[ClientId]->m_SendVoteIndex = 0; return;
+	case PAGE_MAIN: SendPageMainMenu(ClientId); break;
+	case PAGE_VOTES: SendPageVotes(ClientId); break;
 	case PAGE_SETTINGS: SendPageSettings(ClientId); break;
-	case PAGE_ACCOUNT: SendPageAccount(ClientId); break;
 	case PAGE_SHOP: SendPageShop(ClientId); break;
 	case PAGE_INVENTORY: SendPageInventory(ClientId); break;
+	case PAGE_SERVERINFO: SendPageServerInfo(ClientId); break;
 	case PAGE_ADMIN: SendPageAdmin(ClientId); break;
+	}
+
+	if(Page != PAGE_MAIN)
+	{
+		AddVoteSeperator();
+		AddVoteText(BACKPAGE);
 	}
 
 	const int NumVotesToSend = m_vDescriptions.size();
@@ -610,7 +667,6 @@ void CVoteMenu::PrepareVoteOptions(int ClientId, int Page)
 		while(CurIndex < VotesLeft)
 		{
 			Msg.AddString(m_vDescriptions.at(TotalVotesSent).c_str(), VOTE_DESC_LENGTH);
-
 			CurIndex++;
 			TotalVotesSent++;
 		}
@@ -643,11 +699,8 @@ void CVoteMenu::SetPage(int ClientId, int Page)
 		return;
 
 	m_aClientData[ClientId].m_Page = Page;
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(Acc.m_LoggedIn)
-		Acc.m_VoteMenuPage = Page;
 
-	PrepareVoteOptions(ClientId, Page);
+	GameServer()->ClearVotes(ClientId);
 }
 
 int CVoteMenu::GetSubPage(int ClientId) const
@@ -668,7 +721,96 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 
 	m_aClientData[ClientId].m_SubPage[Page] = SubPage;
 	if(SendVotes)
-		PrepareVoteOptions(ClientId, Page);
+		GameServer()->ClearVotes(ClientId);
+}
+
+void CVoteMenu::SendPageMainMenu(int ClientId)
+{
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+
+	char aBuf[VOTE_DESC_LENGTH];
+	if(!pAcc->m_LoggedIn)
+	{
+		AddVoteText("You are not logged in.");
+		AddVoteSeperator();
+		AddVoteText("1 - use /register <Name> <Password>");
+		AddVoteText("2 - login using /login <Name> <Password>");
+	}
+	else
+	{
+		AddVoteText("╭─────────    Pʀᴏғɪʟᴇ");
+		str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
+		AddVoteText(aBuf);
+		str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
+		AddVoteText(aBuf);
+		// Register Date
+		if(pAcc->m_RegisterDate > 0)
+		{
+			str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
+			AddVoteText(aBuf);
+		}
+		else
+		{
+			AddVoteText("│ Register Date: n/a");
+		}
+		AddVoteText("├─────────   Sᴛᴀᴛs");
+		str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
+		AddVoteText(aBuf);
+		int CurXp = pAcc->m_XP;
+		int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
+		str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
+		AddVoteText(aBuf);
+		float PlayTimeHours = pAcc->m_Playtime / 60.0f;
+		str_format(aBuf, sizeof(aBuf), "│ Playtime: %.1f Hour%s", PlayTimeHours, PlayTimeHours == 1 ? "" : "s");
+		if(pAcc->m_Playtime < 100)
+			str_format(aBuf, sizeof(aBuf), "│ Playtime: %ld Minute%s", pAcc->m_Playtime, pAcc->m_Playtime == 1 ? "" : "s");
+		AddVoteText(aBuf);
+		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+		AddVoteText(aBuf);
+		str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
+		AddVoteText(aBuf);
+		AddVoteText("╰────────────────────");
+	}
+	AddVoteSeperator();
+
+	for(int i = 0; i < NUM_PAGES; i++)
+	{
+		if(!IsPageAllowed(ClientId, i))
+			continue;
+		if(i == PAGE_MAIN)
+			continue;
+		AddVotePrefix(m_aPages[i], PREFIX_ARROWHEAD);
+	}
+}
+
+void CVoteMenu::SendPageVotes(int ClientId)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	if(Server()->ClientSlotEmpty(ClientId))
+		return;
+
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl)
+		return;
+
+	char aBuf[VOTE_DESC_LENGTH];
+
+	if(GameServer()->m_pVoteOptionFirst == nullptr)
+	{
+		AddVoteText("No vote options available.");
+		m_RetryTick = Server()->Tick() + 2;
+		return;
+	}
+
+	for(CVoteOptionServer *pOption = GameServer()->m_pVoteOptionFirst; pOption; pOption = pOption->m_pNext)
+	{
+		str_copy(aBuf, pOption->m_aDescription);
+		if(!str_comp(pOption->m_aCommand, "map_vote_lock"))
+			str_format(aBuf, sizeof(aBuf), "%s%s", pOption->m_aDescription, GameServer()->m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing");
+		AddVoteText(aBuf);
+	}
 }
 
 void CVoteMenu::SendPageSettings(int ClientId)
@@ -682,67 +824,8 @@ void CVoteMenu::SendPageSettings(int ClientId)
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pPl->m_HidePowerUps);
 }
 
-void CVoteMenu::SendPageAccount(int ClientId)
-{
-	// CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-
-	if(!pAcc->m_LoggedIn)
-	{
-		AddVoteText("You are not logged in.");
-		AddVoteSeperator();
-		AddVoteText("1 - use /register <Name> <Password>");
-		AddVoteText("2 - login using /login <Name> <Password>");
-		return;
-	}
-
-	char aBuf[VOTE_DESC_LENGTH];
-
-	AddVoteText("╭─────────       Pʀᴏғɪʟᴇ");
-	str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
-	AddVoteText(aBuf);
-	str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
-	AddVoteText(aBuf);
-
-	// Register Date
-	if(pAcc->m_RegisterDate > 0)
-	{
-		str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
-		AddVoteText(aBuf);
-	}
-	else
-	{
-		AddVoteText("│ Register Date: n/a");
-	}
-
-	AddVoteText("├──────      Sᴛᴀᴛs");
-
-	str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
-	AddVoteText(aBuf);
-
-	int CurXp = pAcc->m_XP;
-	int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
-
-	str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
-	AddVoteText(aBuf);
-
-	float PlayTimeHours = pAcc->m_Playtime / 60.0f;
-	str_format(aBuf, sizeof(aBuf), "│ Playtime: %.1f Hour%s", PlayTimeHours, PlayTimeHours == 1 ? "" : "s");
-	if(pAcc->m_Playtime < 100)
-		str_format(aBuf, sizeof(aBuf), "│ Playtime: %ld Minute%s", pAcc->m_Playtime, pAcc->m_Playtime == 1 ? "" : "s");
-	AddVoteText(aBuf);
-
-	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
-	AddVoteText(aBuf);
-
-	str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
-	AddVoteText(aBuf);
-
-	AddVoteText("╰──────────────────────────");
-}
-
 void CVoteMenu::SendPageShop(int ClientId)
-{ 
+{
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
 
@@ -762,23 +845,14 @@ void CVoteMenu::SendPageShop(int ClientId)
 	}
 
 	char aBuf[VOTE_DESC_LENGTH];
-	if(SubPage != SUB_SHOP_MAIN)
-	{
-		AddVoteText(BACKPAGE);
-		AddVoteText(MAIN_MENU_PAGE);
-		AddVoteSeperator();
-	
+	AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
+	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
+	AddVoteText(aBuf);
+	AddVoteText("╰────────────");
+	AddVoteSeperator();
 
-
-		AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
-		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
-		AddVoteText(aBuf);
-		AddVoteText("╰────────────");
-		AddVoteSeperator();
-	}	
-	
 	if(SubPage != SUB_SHOP_ITEMINFO)
-	{ 
+	{
 		AddVoteSubheader("Fɪʟᴛᴇʀs");
 		AddVoteCheckBox(SHOP_ONLY_AFFORDABLE, Data.m_OnlyAffordable);
 		AddVoteSeperator();
@@ -786,11 +860,11 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 	if(SubPage == SUB_SHOP_MAIN)
 	{
-		const int Bulletpoint = BULLET_LONG_LINE;
+		const int Bulletpoint = PREFIX_LONG_LINE;
 
 		std::vector<std::string> AvailableCategories;
 
-		for (int i = 0; i < NUM_TYPES; i++)
+		for(int i = 0; i < NUM_TYPES; i++)
 		{
 			const char *pTypeName = ItemTypeToName(i);
 			if(Data.m_OnlyAffordable)
@@ -800,7 +874,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 			}
 			else
 				AvailableCategories.push_back(pTypeName);
-
 		}
 		if(AvailableCategories.empty())
 		{
@@ -832,7 +905,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 			if(Data.m_OnlyAffordable && pItem->Price() > pAcc->m_Money)
 				continue;
 			AmountShown++;
-			AddVotePrefix(pItem->Name(), BULLET_ARROWHEAD);
+			AddVotePrefix(pItem->Name(), PREFIX_ARROWHEAD);
 		}
 		if(AmountShown == 0)
 		{
@@ -884,12 +957,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->MinLevel());
 		AddVoteText(aBuf);
 	}
-
-	if(GetSubPage(ClientId) != SUB_SHOP_MAIN)
-	{
-		AddVoteSeperator();
-		AddVoteText(BACKPAGE);
-	}
 }
 
 void CVoteMenu::SendPageInventory(int ClientId)
@@ -904,16 +971,76 @@ void CVoteMenu::SendPageInventory(int ClientId)
 		AddVoteText("2 - login using /login <Name> <Password>");
 		return;
 	}
-	else if(!g_Config.m_SvCosmetics)
+
+	if(!g_Config.m_SvCosmetics)
 	{
 		AddVoteText("Cosmetics are currently disabled");
 		return;
 	}
 
-	AddVoteSubheader("Cᴏsᴍᴇᴛɪᴄs");
-	AddVoteSeperator();
-
 	DoCosmeticVotes(ClientId, false);
+}
+
+void CVoteMenu::SendPageServerInfo(int ClientId)
+{
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+
+
+	const int SubPage = GetSubPage(ClientId);
+	if(SubPage == SUB_SERVERINFO_MAIN)
+	{
+		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
+		AddVoteText("│ Don't discriminate others.");
+		AddVoteText("│ Don't use Bot Clients.");
+		AddVoteText("│ Don't block others.");
+		AddVoteText("│ Don't advertise anything.");
+		AddVoteText("│ Be nice.");
+		AddVoteText("╰────────────────────");
+		AddVoteSeperator();
+
+		AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
+		AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
+		AddVotePrefix(SERVER_INFO_CONTRIBUTE, PREFIX_ARROWHEAD);
+	}
+	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
+	{
+		AddVoteText("╭───────    Aᴄᴄᴏᴜɴᴛs");
+		AddVoteText("│ Accounts are used to save your");
+		AddVoteText("│ progress and earn rewards!");
+		AddVoteText("├───────────────");
+		AddVoteText("│ Having an account will grant you access");
+		AddVoteText("│ to earning money and leveling up");
+		AddVoteText("│ With money you can buy items from the shop");
+		AddVoteText("├───────────────");
+		AddVoteText("│ You can view your own account or someone");
+		AddVoteText("│ elses by using '/profile <name>' in the chat");
+		AddVoteText("╰────────────────────");
+	}
+	else if (SubPage == SUB_SERVERINFO_LEVELING)
+	{
+		AddVoteText("╭───────    Lᴇᴠᴇʟɪɴɢ");
+		AddVoteText("│ 1. You Earn XP passively every minute you're playing");
+		AddVoteText("│ 2. For Every finish, you get the amount of points as XP");
+		AddVoteText("│ 3. Powerups will randomly spawn around the map:");
+		AddVoteText("│    - They will either give you Money or XP");
+		AddVoteText("├───────────────");
+		AddVoteText("│ On weekends there is a global 2x multiplier on Money and XP");
+		AddVoteText("╰────────────────────");
+	}
+	else if(SubPage == SUB_SERVERINFO_CONTRIBUTE)
+	{
+		AddVoteText("╭───────    Cᴏɴᴛʀɪʙᴜᴛɪɴɢ");
+		AddVoteText("│ Want to contribute to the server?");
+		AddVoteText("│ Or have an Idea for a feature?");
+		AddVoteText("│ Check out our GitHub page!");
+		AddVoteText("╰────────────────────");
+
+		AddVoteText("╭───────    GɪᴛHᴜʙ");
+		AddVoteText("│ github.com/FoxNet-DDNet/FoxNet");
+		AddVotePrefix(SERVER_INFO_GITHUB, PREFIX_LONG_LINE);
+		AddVoteText("╰────────────────────");
+	}
+
 }
 
 void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
@@ -987,7 +1114,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 	if(!RainbowItems.empty())
 	{
 		AddVoteSubheader("Rᴀɪɴʙᴏᴡ");
-		AddVoteValueOption("Rainbow Speed", pPl->Cosmetics()->m_RainbowSpeed, 20, BULLET_ARROW);
+		AddVoteValueOption("Rainbow Speed", pPl->Cosmetics()->m_RainbowSpeed, 20, PREFIX_ARROW);
 		for(const auto &Item : RainbowItems)
 		{
 			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
@@ -1000,7 +1127,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		for(const auto &Item : GunItems)
 		{
 			if(!str_comp(Item.m_pItemName.c_str(), "Emoticon Gun"))
-				AddVoteValueOption(Item.m_pItemName.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, BULLET_NONE);
+				AddVoteValueOption(Item.m_pItemName.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, PREFIX_NONE);
 			else
 				AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
 		}
@@ -1092,16 +1219,15 @@ const char *CVoteMenu::ItemTypeToName(int Type) const
 	}
 }
 
-
 void CVoteMenu::SendPageAdmin(int ClientId)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 
 	AddVoteSubheader("Aᴅᴍɪɴ Pᴀɢᴇs");
-	AddVotePrefix(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? BULLET_BLACK_DIAMOND : BULLET_WHITE_DIAMOND);
-	AddVotePrefix(ADMIN_COSMETICS, GetSubPage(ClientId) == SUB_ADMIN_COSMETICS ? BULLET_BLACK_DIAMOND : BULLET_WHITE_DIAMOND);
-	AddVotePrefix(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? BULLET_BLACK_DIAMOND : BULLET_WHITE_DIAMOND);
+	AddVotePrefix(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
+	AddVotePrefix(ADMIN_COSMETICS, GetSubPage(ClientId) == SUB_ADMIN_COSMETICS ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
+	AddVotePrefix(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
 	AddVoteSeperator();
 	if(GetSubPage(ClientId) == SUB_ADMIN_UTIL)
 	{
@@ -1169,55 +1295,9 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 	}
 }
 
-void CVoteMenu::AddHeader(int ClientId)
-{
-	const int NumVotesToSend = NUM_PAGES + 3;
-
-	std::vector<std::string> Descriptions;
-
-	int CurIndex = 0;
-	for(int i = 0; i < NumVotesToSend; i++)
-	{
-		if(!IsPageAllowed(ClientId, i))
-			continue;
-
-		if(i == NUM_PAGES)
-			Descriptions.emplace_back(EMPTY_DESC);
-		else if(i == NUM_PAGES + 1)
-			Descriptions.emplace_back(FANCY_LINES_DESC);
-		else if(i == NUM_PAGES + 2)
-			Descriptions.emplace_back(EMPTY_DESC);
-		else
-		{
-			char pDesc[64];
-			str_format(pDesc, sizeof(pDesc), "%s %s", i == GetPage(ClientId) ? "☒" : "☐", m_aPages[i]);
-			Descriptions.emplace_back(pDesc);
-		}
-
-		CurIndex++;
-	}
-
-	CMsgPacker OptionMsg(NETMSGTYPE_SV_VOTEOPTIONLISTADD);
-	OptionMsg.AddInt(CurIndex);
-	for(const auto &pDesc : Descriptions)
-		OptionMsg.AddString(pDesc.c_str(), VOTE_DESC_LENGTH);
-
-	if(!Server()->IsSixup(ClientId))
-	{
-		while(CurIndex < 15)
-		{
-			OptionMsg.AddString("", VOTE_DESC_LENGTH);
-			CurIndex++;
-		}
-	}
-
-	Server()->SendMsg(&OptionMsg, MSGFLAG_VITAL, ClientId);
-	GameServer()->m_apPlayers[ClientId]->m_SendVoteIndex = 0;
-}
-
 void CVoteMenu::AddVotePrefix(const char *pDesc, int Prefix)
 {
-	const char *pPrefixes[] = {"", "•", "─","➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
+	const char *pPrefixes[] = {"", "•", "─", "➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
 
 	if(Prefix < 0 || Prefix >= (int)std::size(pPrefixes))
 	{

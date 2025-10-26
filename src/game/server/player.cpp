@@ -88,8 +88,6 @@ void CPlayer::Reset()
 	m_Halloween = false;
 	m_FirstPacket = true;
 
-	m_SendVoteIndex = -1;
-
 	if(g_Config.m_Events)
 	{
 		const ETimeSeason Season = time_season();

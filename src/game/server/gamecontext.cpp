@@ -1098,9 +1098,6 @@ void CGameContext::OnTick()
 	{
 		if(m_apPlayers[i])
 		{
-			// send vote options
-			ProgressVoteOptions(i);
-
 			m_apPlayers[i]->Tick();
 			m_apPlayers[i]->PostTick();
 		}
@@ -1472,128 +1469,6 @@ void CGameContext::OnClientPredictedEarlyInput(int ClientId, const void *pInput)
 	if(m_TeeHistorianActive)
 	{
 		m_TeeHistorian.RecordPlayerInput(ClientId, m_apPlayers[ClientId]->GetUniqueCid(), pApplyInput);
-	}
-}
-
-const CVoteOptionServer *CGameContext::GetVoteOption(int Index) const
-{
-	const CVoteOptionServer *pCurrent;
-	for(pCurrent = m_pVoteOptionFirst;
-		Index > 0 && pCurrent;
-		Index--, pCurrent = pCurrent->m_pNext)
-		;
-
-	if(Index > 0)
-		return nullptr;
-	return pCurrent;
-}
-
-void CGameContext::ProgressVoteOptions(int ClientId)
-{
-	if(Server()->ClientSlotEmpty(ClientId))
-		return;
-
-	CPlayer *pPl = m_apPlayers[ClientId];
-
-	if(pPl->m_SendVoteIndex == -1)
-		return; // we didn't start sending options yet
-
-	if(pPl->m_SendVoteIndex > m_NumVoteOptions)
-		return; // shouldn't happen / fail silently
-
-	// <FoxNet
-	if(m_VoteMenu.GetPage(ClientId) != PAGE_VOTES)
-		return;
-	// FoxNet>
-
-	int VotesLeft = m_NumVoteOptions - pPl->m_SendVoteIndex;
-	int NumVotesToSend = minimum(g_Config.m_SvSendVotesPerTick, VotesLeft);
-	// Ensure we don't exceed the 15 description slots in the message
-	NumVotesToSend = minimum(NumVotesToSend, 15);
-
-	if(!VotesLeft)
-	{
-		// player has up to date vote option list
-		return;
-	}
-
-	// build vote option list msg
-	int CurIndex = 0;
-
-	CNetMsg_Sv_VoteOptionListAdd OptionMsg;
-	OptionMsg.m_pDescription0 = "";
-	OptionMsg.m_pDescription1 = "";
-	OptionMsg.m_pDescription2 = "";
-	OptionMsg.m_pDescription3 = "";
-	OptionMsg.m_pDescription4 = "";
-	OptionMsg.m_pDescription5 = "";
-	OptionMsg.m_pDescription6 = "";
-	OptionMsg.m_pDescription7 = "";
-	OptionMsg.m_pDescription8 = "";
-	OptionMsg.m_pDescription9 = "";
-	OptionMsg.m_pDescription10 = "";
-	OptionMsg.m_pDescription11 = "";
-	OptionMsg.m_pDescription12 = "";
-	OptionMsg.m_pDescription13 = "";
-	OptionMsg.m_pDescription14 = "";
-
-	// get current vote option by index
-	const CVoteOptionServer *pCurrent = GetVoteOption(pPl->m_SendVoteIndex);
-
-	// <FoxNet
-	char aDescBuf[15][VOTE_DESC_LENGTH] = {{0}};
-	// FoxNet>
-	while(CurIndex < NumVotesToSend && pCurrent != nullptr)
-	{
-		// <FoxNet
-		const char *pDesc = pCurrent->m_aDescription;
-
-		if(!str_comp(pCurrent->m_aCommand, "map_vote_lock"))
-		{
-			str_format(aDescBuf[CurIndex], sizeof(aDescBuf[CurIndex]), "%s%s", pCurrent->m_aDescription, m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing");
-			pDesc = aDescBuf[CurIndex];
-		}
-
-		switch(CurIndex)
-		{
-		case 0: OptionMsg.m_pDescription0 = pDesc; break;
-		case 1: OptionMsg.m_pDescription1 = pDesc; break;
-		case 2: OptionMsg.m_pDescription2 = pDesc; break;
-		case 3: OptionMsg.m_pDescription3 = pDesc; break;
-		case 4: OptionMsg.m_pDescription4 = pDesc; break;
-		case 5: OptionMsg.m_pDescription5 = pDesc; break;
-		case 6: OptionMsg.m_pDescription6 = pDesc; break;
-		case 7: OptionMsg.m_pDescription7 = pDesc; break;
-		case 8: OptionMsg.m_pDescription8 = pDesc; break;
-		case 9: OptionMsg.m_pDescription9 = pDesc; break;
-		case 10: OptionMsg.m_pDescription10 = pDesc; break;
-		case 11: OptionMsg.m_pDescription11 = pDesc; break;
-		case 12: OptionMsg.m_pDescription12 = pDesc; break;
-		case 13: OptionMsg.m_pDescription13 = pDesc; break;
-		case 14: OptionMsg.m_pDescription14 = pDesc; break;
-		}
-		// FoxNet>
-
-		CurIndex++;
-		pCurrent = pCurrent->m_pNext;
-	}
-
-	// send msg
-	if(pPl->m_SendVoteIndex == 0)
-	{
-		CNetMsg_Sv_VoteOptionGroupStart StartMsg;
-		Server()->SendPackMsg(&StartMsg, MSGFLAG_VITAL, ClientId);
-	}
-
-	OptionMsg.m_NumOptions = NumVotesToSend;
-	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientId);
-
-	pPl->m_SendVoteIndex += NumVotesToSend;
-
-	if(pPl->m_SendVoteIndex == m_NumVoteOptions)
-	{
-		CNetMsg_Sv_VoteOptionGroupEnd EndMsg;
-		Server()->SendPackMsg(&EndMsg, MSGFLAG_VITAL, ClientId);
 	}
 }
 
@@ -3084,9 +2959,6 @@ void CGameContext::OnStartInfoNetMessage(const CNetMsg_Cl_StartInfo *pMsg, int C
 	ClearVotes(ClientId);
 	// FoxNet>
 
-	// begin sending vote options
-	pPlayer->m_SendVoteIndex = 0;
-
 	// send tuning parameters to client
 	SendTuningParams(ClientId, pPlayer->m_TuneZone);
 
@@ -3565,7 +3437,7 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 	for(auto &pPlayer : pSelf->m_apPlayers)
 	{
 		if(pPlayer)
-			pPlayer->m_SendVoteIndex = 0;
+			pSelf->ClearVotes(pPlayer->GetCid());
 	}
 
 	// TODO: improve this
@@ -3688,7 +3560,7 @@ void CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
 	for(auto &pPlayer : pSelf->m_apPlayers)
 	{
 		if(pPlayer)
-			pPlayer->m_SendVoteIndex = 0;
+			pSelf->ClearVotes(pPlayer->GetCid());
 	}
 }
 
@@ -4818,7 +4690,7 @@ void CGameContext::OnSetAuthed(int ClientId, int Level)
 	}
 
 	// <FoxNet
-	m_VoteMenu.PrepareVoteOptions(ClientId, m_VoteMenu.GetPage(ClientId)); // Resend Pages
+	ClearVotes(ClientId);// Resend Pages
 	// FoxNet>
 }
 

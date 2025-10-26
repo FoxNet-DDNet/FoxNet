@@ -237,8 +237,6 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.ClientId = ClientId;
 		if(Res.m_Flags != -1)
 			Acc.m_Flags = Res.m_Flags;
-		if(Res.m_VoteMenuPage != -1)
-			Acc.m_VoteMenuPage = Res.m_VoteMenuPage;
 		Acc.m_Playtime = Res.m_Playtime;
 		Acc.m_Deaths = Res.m_Deaths;
 		Acc.m_Kills = Res.m_Kills;
@@ -247,7 +245,6 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_Money = Res.m_Money;
 		Acc.m_LoginTick = Server()->Tick();
 		Acc.m_Inventory = Res.m_Inventory;
-		GameServer()->m_VoteMenu.SetPage(ClientId, Acc.m_VoteMenuPage);
 	}
 	GameServer()->OnLogin(ClientId);
 
@@ -304,7 +301,6 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	auto pReq = std::make_unique<CAccUpdLogoutState>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Flags = AccInfo.m_Flags;
-	pReq->m_VoteMenuPage = AccInfo.m_VoteMenuPage;
 	pReq->m_Playtime = AccInfo.m_Playtime;
 	pReq->m_Deaths = AccInfo.m_Deaths;
 	pReq->m_Kills = AccInfo.m_Kills;
@@ -406,7 +402,7 @@ void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const 
 		return;
 	auto IsIntCol = [](const char *pCol) {
 		static const char *s_aIntCols[] = {
-			"Version", "RegisterDate", "LoggedIn", "LastLogin", "Port", "ClientId", "Flags", "VoteMenuPage", "Playtime", "Deaths", "Kills", "Level", "XP", "Money", nullptr};
+			"Version", "RegisterDate", "LoggedIn", "LastLogin", "Port", "ClientId", "Flags", "Playtime", "Deaths", "Kills", "Level", "XP", "Money", nullptr};
 		for(const char **pp = s_aIntCols; *pp; ++pp)
 			if(!str_comp(*pp, pCol))
 				return true;
@@ -534,7 +530,6 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Flags = AccInfo.m_Flags;
-	pReq->m_VoteMenuPage = AccInfo.m_VoteMenuPage;
 	pReq->m_Playtime = AccInfo.m_Playtime;
 	pReq->m_Deaths = AccInfo.m_Deaths;
 	pReq->m_Kills = AccInfo.m_Kills;

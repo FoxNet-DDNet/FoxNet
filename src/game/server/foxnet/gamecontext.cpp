@@ -306,22 +306,21 @@ void CGameContext::BanSync()
 	Server()->SetQuietBan(false);
 }
 
-void CGameContext::ClearVotes(int ClientId, bool Header)
+void CGameContext::ClearVotes(int ClientId)
 {
 	if(ClientId == -1)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			if(m_apPlayers[i] && !Server()->ClientSlotEmpty(i))
-				ClearVotes(i, Header);
+				ClearVotes(i);
 		}
 		return;
 	}
 
 	CNetMsg_Sv_VoteClearOptions ClearMsg;
 	Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientId);
-	if(Header)
-		m_VoteMenu.AddHeader(ClientId);
+	m_VoteMenu.PrepareVoteOptions(ClientId);
 }
 
 bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
@@ -538,6 +537,8 @@ void CGameContext::OnLogin(int ClientId)
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
 		SendChatTarget(ClientId, "For more Info on Accounts, type '/server' !");
 	}
+
+	ClearVotes(ClientId);
 }
 void CGameContext::OnLogout(int ClientId)
 {

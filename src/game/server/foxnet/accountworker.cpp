@@ -195,7 +195,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, Playtime, Deaths, Kills, "
+		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
 		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE Username = ? AND Password = ?",
 		sizeof(aSql));
@@ -222,14 +222,13 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_Port = pSql->GetInt(9);
 		pRes->m_ClientId = pSql->GetInt(10);
 		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_VoteMenuPage = pSql->GetInt(12);
-		pRes->m_Playtime = pSql->GetInt64(13);
-		pRes->m_Deaths = pSql->GetInt64(14);
-		pRes->m_Kills = pSql->GetInt64(15);
-		pRes->m_Level = pSql->GetInt64(16);
-		pRes->m_XP = pSql->GetInt64(17);
-		pRes->m_Money = pSql->GetInt64(18);
-		pRes->m_Disabled = pSql->GetInt(19);
+		pRes->m_Playtime = pSql->GetInt64(12);
+		pRes->m_Deaths = pSql->GetInt64(13);
+		pRes->m_Kills = pSql->GetInt64(14);
+		pRes->m_Level = pSql->GetInt64(15);
+		pRes->m_XP = pSql->GetInt64(16);
+		pRes->m_Money = pSql->GetInt64(17);
+		pRes->m_Disabled = pSql->GetInt(18);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 		pRes->m_Inventory.Reset();
@@ -308,21 +307,20 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		"UPDATE foxnet_accounts "
 		"SET LoggedIn = 0, Port = 0, ClientId = -1, "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
-		"    Flags = ?, VoteMenuPage = ?, Playtime = ?, Deaths = ?, Kills = ?, "
+		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
 		"    Level = ?, XP = ?, Money = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	pSql->BindInt64(1, pReq->m_Flags);
-	pSql->BindInt(2, pReq->m_VoteMenuPage);
-	pSql->BindInt64(3, pReq->m_Playtime);
-	pSql->BindInt64(4, pReq->m_Deaths);
-	pSql->BindInt64(5, pReq->m_Kills);
-	pSql->BindInt64(6, pReq->m_Level);
-	pSql->BindInt64(7, pReq->m_XP);
-	pSql->BindInt64(8, pReq->m_Money);
-	pSql->BindString(9, pReq->m_aUsername);
+	pSql->BindInt64(2, pReq->m_Playtime);
+	pSql->BindInt64(3, pReq->m_Deaths);
+	pSql->BindInt64(4, pReq->m_Kills);
+	pSql->BindInt64(5, pReq->m_Level);
+	pSql->BindInt64(6, pReq->m_XP);
+	pSql->BindInt64(7, pReq->m_Money);
+	pSql->BindString(8, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -362,21 +360,20 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
 		"SET LastPlayerName = PlayerName, LastIP = CurrentIP, "
-		"    Flags = ?, VoteMenuPage = ?, Playtime = ?, Deaths = ?, Kills = ?, "
+		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
 		"    Level = ?, XP = ?, Money = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	pSql->BindInt64(1, p->m_Flags);
-	pSql->BindInt(2, p->m_VoteMenuPage);
-	pSql->BindInt64(3, p->m_Playtime);
-	pSql->BindInt64(4, p->m_Deaths);
-	pSql->BindInt64(5, p->m_Kills);
-	pSql->BindInt64(6, p->m_Level);
-	pSql->BindInt64(7, p->m_XP);
-	pSql->BindInt64(8, p->m_Money);
-	pSql->BindString(9, p->m_aUsername);
+	pSql->BindInt64(2, p->m_Playtime);
+	pSql->BindInt64(3, p->m_Deaths);
+	pSql->BindInt64(4, p->m_Kills);
+	pSql->BindInt64(5, p->m_Level);
+	pSql->BindInt64(6, p->m_XP);
+	pSql->BindInt64(7, p->m_Money);
+	pSql->BindString(8, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -404,7 +401,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, Playtime, Deaths, Kills, "
+		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
 		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE LastPlayerName = ? "
 		"ORDER BY LastLogin DESC "
@@ -431,14 +428,13 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_Port = pSql->GetInt(9);
 		pRes->m_ClientId = pSql->GetInt(10);
 		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_VoteMenuPage = pSql->GetInt(12);
-		pRes->m_Playtime = pSql->GetInt64(13);
-		pRes->m_Deaths = pSql->GetInt64(14);
-		pRes->m_Kills = pSql->GetInt64(15);
-		pRes->m_Level = pSql->GetInt64(16);
-		pRes->m_XP = pSql->GetInt64(17);
-		pRes->m_Money = pSql->GetInt64(18);
-		pRes->m_Disabled = pSql->GetInt(19);
+		pRes->m_Playtime = pSql->GetInt64(12);
+		pRes->m_Deaths = pSql->GetInt64(13);
+		pRes->m_Kills = pSql->GetInt64(14);
+		pRes->m_Level = pSql->GetInt64(15);
+		pRes->m_XP = pSql->GetInt64(16);
+		pRes->m_Money = pSql->GetInt64(17);
+		pRes->m_Disabled = pSql->GetInt(18);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
@@ -458,7 +454,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, VoteMenuPage, Playtime, Deaths, Kills, "
+		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
 		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE Username = ?",
 		sizeof(aSql));
@@ -483,14 +479,13 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_Port = pSql->GetInt(9);
 		pRes->m_ClientId = pSql->GetInt(10);
 		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_VoteMenuPage = pSql->GetInt(12);
-		pRes->m_Playtime = pSql->GetInt64(13);
-		pRes->m_Deaths = pSql->GetInt64(14);
-		pRes->m_Kills = pSql->GetInt64(15);
-		pRes->m_Level = pSql->GetInt64(16);
-		pRes->m_XP = pSql->GetInt64(17);
-		pRes->m_Money = pSql->GetInt64(18);
-		pRes->m_Disabled = pSql->GetInt(19);
+		pRes->m_Playtime = pSql->GetInt64(12);
+		pRes->m_Deaths = pSql->GetInt64(13);
+		pRes->m_Kills = pSql->GetInt64(14);
+		pRes->m_Level = pSql->GetInt64(15);
+		pRes->m_XP = pSql->GetInt64(16);
+		pRes->m_Money = pSql->GetInt64(17);
+		pRes->m_Disabled = pSql->GetInt(18);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 

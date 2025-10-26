@@ -1,4 +1,4 @@
-#ifndef GAME_SERVER_FOXNET_VOTEMENU_H
+﻿#ifndef GAME_SERVER_FOXNET_VOTEMENU_H
 #define GAME_SERVER_FOXNET_VOTEMENU_H
 #include "accounts.h"
 #include "shop.h"
@@ -18,11 +18,12 @@ enum Pages
 {
 	PAGE_NONE = -1,
 
-	PAGE_VOTES = 0,
+	PAGE_MAIN = 0,
+	PAGE_VOTES,
 	PAGE_SETTINGS,
-	PAGE_ACCOUNT,
 	PAGE_SHOP,
 	PAGE_INVENTORY,
+	PAGE_SERVERINFO,
 	PAGE_ADMIN,
 	NUM_PAGES,
 };
@@ -33,35 +34,44 @@ enum AdminSubPages
 	SUB_ADMIN_MISC,
 	SUB_ADMIN_COSMETICS,
 };
+
 enum ShopSubPages
 {
 	SUB_SHOP_MAIN = 0,
 	SUB_SHOP_SELECT,
 	SUB_SHOP_ITEMINFO,
 };
-
-enum BulletPoints
+enum ServerInfoSubPages
 {
-	BULLET_NONE = 0,
-	BULLET_POINT,
-	BULLET_DASH,
-	BULLET_ARROWHEAD,
-	BULLET_GREATER_THAN,
-	BULLET_ARROW,
-	BULLET_TRIANGLE,
-	BULLET_HYPHEN,
-	BULLET_BLACK_DIAMOND,
-	BULLET_WHITE_DIAMOND,
-	BULLET_LONG_LINE,
+	SUB_SERVERINFO_MAIN = 0,
+	SUB_SERVERINFO_ACCOUNTS,
+	SUB_SERVERINFO_LEVELING,
+	SUB_SERVERINFO_CONTRIBUTE,
 };
 
-enum Flags
+enum Prefixes
 {
-	FLAG_VOTES = 1 << PAGE_VOTES,
-	FLAG_SETTINGS = 1 << PAGE_SETTINGS,
-	FLAG_ACCOUNT = 1 << PAGE_ACCOUNT,
-	FLAG_SHOP = 1 << PAGE_SHOP,
-	FLAG_INVENTORY = 1 << PAGE_INVENTORY,
+	PREFIX_NONE = 0,
+	// •
+	PREFIX_POINT,
+	// ─
+	PREFIX_DASH,
+	// ➤
+	PREFIX_ARROWHEAD,
+	// >
+	PREFIX_GREATER_THAN,
+	// ⇨
+	PREFIX_ARROW,
+	// ‣
+	PREFIX_TRIANGLE,
+	// ⁃
+	PREFIX_HYPHEN,
+	// ◆
+	PREFIX_BLACK_DIAMOND,
+	// ◇
+	PREFIX_WHITE_DIAMOND,
+	// │
+	PREFIX_LONG_LINE,
 };
 
 class CItemVoteData
@@ -85,7 +95,7 @@ class CVoteMenu
 	std::array<char[64], NUM_PAGES> m_aPages;
 	struct ClientData
 	{
-		int m_Page = PAGE_VOTES;
+		int m_Page = PAGE_MAIN;
 		int m_SubPage[NUM_PAGES] = {0};
 
 		// Comparison data for auto updates
@@ -112,12 +122,15 @@ class CVoteMenu
 	void AddVoteCheckBox(const char *pDesc, bool Checked);
 	void AddVoteValueOption(const char *pDescription, int Value, int Max, int BulletPoint);
 
+	void SendPageMainMenu(int ClientId);
+	void SendPageVotes(int ClientId);
 	void SendPageSettings(int ClientId);
-	void SendPageAccount(int ClientId);
 	void SendPageShop(int ClientId);
-	const char *FormatItemVote(const CItem *pItem);
 	void SendPageInventory(int ClientId);
+	void SendPageServerInfo(int ClientId);
 	void SendPageAdmin(int ClientId);
+
+	const char *FormatItemVote(const CItem *pItem);
 
 	void DoCosmeticVotes(int ClientId, bool Authed);
 
@@ -131,21 +144,18 @@ class CVoteMenu
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
 	const char *ItemTypeToName(int Type) const;
 
+	int64_t m_RetryTick = -1;
 public:
 
-	void PrepareVoteOptions(int ClientId, int Page);
+	void PrepareVoteOptions(int ClientId);
 
 	int GetPage(int ClientId) const;
 	void SetPage(int ClientId, int Page);
-
-	void AddHeader(int ClientId);
 
 	void Tick();
 	void OnClientDrop(int ClientId);
 	void Init(CGameContext *pGameServer);
 	bool OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
-
-	bool SendHeader(int ClientId);
 
 	bool IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
 };

@@ -359,9 +359,6 @@ public:
 	void CheckPureTuning();
 	void SendTuningParams(int ClientId, int Zone = 0);
 
-	const CVoteOptionServer *GetVoteOption(int Index) const;
-	void ProgressVoteOptions(int ClientId);
-
 	//
 	void LoadMapSettings();
 
@@ -854,7 +851,6 @@ private:
 	static void ConSendFakeMessage(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData);
-	bool m_MapVoteLock = false;
 
 	static void ConInsertRecord(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveRecord(IConsole::IResult *pResult, void *pUserData);
@@ -899,6 +895,8 @@ private:
 	bool m_IsWeekend;
 
 public:
+	bool m_MapVoteLock = false;
+
 	CRoulette *m_pRoulette;
 	int DirectionToEditorDeg(const vec2 &Dir);
 
@@ -929,7 +927,7 @@ public:
 	bool IncludedInServerInfo(int ClientId) override;
 	void OnPreShutdown() override;
 
-	void ClearVotes(int ClientId, bool Header = true);
+	void ClearVotes(int ClientId);
 	void SendEmote(int ClientId, int Type);
 
 	void CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMask Mask);

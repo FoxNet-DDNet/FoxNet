@@ -108,7 +108,6 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  Port INTEGER DEFAULT 0, "
 		"  ClientId INTEGER DEFAULT -1, "
 		"  Flags INTEGER DEFAULT -1, "
-		"  VoteMenuPage INTEGER DEFAULT -1, "
 		"  Playtime %s DEFAULT 0, "
 		"  Deaths %s DEFAULT 0, "
 		"  Kills %s DEFAULT 0, "
