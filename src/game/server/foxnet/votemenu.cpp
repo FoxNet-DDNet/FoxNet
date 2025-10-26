@@ -74,7 +74,11 @@ constexpr const char *ADMIN_ABILITY_FIREWORK = "Firework Ability";
 constexpr const char *ADMIN_ABILITY_TELEKINESIS = "Telekinesis Ability";
 
 // Shop
-constexpr const char *SHOP_BACKPAGE = "↩ Back ↩";
+constexpr const char *SHOP_ONLY_AFFORDABLE = "Only show Affordable Items";
+
+// Navigation
+constexpr const char *MAIN_MENU_PAGE = "↩ Main Menu ↩";
+constexpr const char *BACKPAGE = "↩ Back ↩";
 
 IServer *CVoteMenu::Server() const { return GameServer()->Server(); }
 
@@ -130,7 +134,9 @@ const char *CVoteMenu::FormatItemVote(const CItem *pItem)
 
 bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 {
-	const int Page = m_aClientData[ClientId].m_Page;
+	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	const int Page = Data.m_Page;
+	const int SubPage = Data.m_SubPage[Page];
 	const char *pVote = str_skip_voting_menu_prefixes(pMsg->m_pValue);
 	const char *pReason = pMsg->m_pReason;
 
@@ -152,6 +158,21 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	if(!IsPageAllowed(ClientId, Page) && Page != PAGE_VOTES)
 	{
 		return false;
+	}
+
+	if(IsOption(pVote, MAIN_MENU_PAGE))
+	{
+		SetSubPage(ClientId, 0);
+		return true;
+	}
+	if(IsOption(pVote, BACKPAGE))
+	{
+		int WantedSubPage = SubPage - 1;
+		if(WantedSubPage < 0)
+			WantedSubPage = 0;
+
+		SetSubPage(ClientId, WantedSubPage);
+		return true;
 	}
 
 	if(Page == PAGE_SETTINGS)
@@ -186,7 +207,24 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	else if(Page == PAGE_SHOP)
 	{
-		if(GetSubPage(ClientId) == SUB_SHOP_MAIN)
+		if(IsOption(pVote, SHOP_ONLY_AFFORDABLE))
+		{
+			Data.m_OnlyAffordable = !Data.m_OnlyAffordable;
+			return true;
+		}
+		if(SubPage == SUB_SHOP_MAIN)
+		{
+			for(int i = 0; i < NUM_TYPES; i++)
+			{
+				const char *pTypeName = ItemTypeToName(i);
+				if(IsOption(pVote, pTypeName))
+				{
+					str_copy(Data.m_aMetaData, pTypeName);
+					SetSubPage(ClientId, SUB_SHOP_SELECT);
+				}
+			}
+		}
+		else if(SubPage == SUB_SHOP_SELECT)
 		{
 			for(const auto &pItem : GameServer()->m_Shop.m_Items)
 			{
@@ -198,22 +236,17 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 				if(IsOption(pVote, pVoteName))
 				{
-					m_pLastItemInfo = pItem;
+					Data.m_pLastItemInfo = pItem;
 					SetSubPage(ClientId, SUB_SHOP_ITEMINFO);
 					return true;
 				}
 			}
 		}
-		else if(GetSubPage(ClientId) == SUB_SHOP_ITEMINFO)
+		else if(SubPage == SUB_SHOP_ITEMINFO)
 		{
-			if(IsOption(pVote, SHOP_BACKPAGE))
+			if(IsOption(pVote, FormatItemVote(Data.m_pLastItemInfo)))
 			{
-				SetSubPage(ClientId, SUB_SHOP_MAIN);
-				return true;
-			}
-			if(IsOption(pVote, FormatItemVote(m_pLastItemInfo)))
-			{
-				GameServer()->m_Shop.BuyItem(ClientId, m_pLastItemInfo->Name());
+				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->Name());
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
 				return true;
 			}
@@ -279,7 +312,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			return true;
 		}
 
-		if(GetSubPage(ClientId) == SUB_ADMIN_UTIL)
+		if(SubPage == SUB_ADMIN_UTIL)
 		{
 			if(IsOption(pVote, ADMIN_UTIL_INVINCIBLE))
 			{
@@ -336,7 +369,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 		}
 
-		if(GetSubPage(ClientId) == SUB_ADMIN_MISC)
+		if(SubPage == SUB_ADMIN_MISC)
 		{
 			if(IsOption(pVote, ADMIN_MISC_SNAKE) && pChr)
 			{
@@ -389,7 +422,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 		}
 
-		if(GetSubPage(ClientId) == SUB_ADMIN_COSMETICS)
+		if(SubPage == SUB_ADMIN_COSMETICS)
 		{
 			if(IsOption(pVote, ADMIN_COSM_PICKUPPET))
 			{
@@ -441,7 +474,12 @@ void CVoteMenu::Tick()
 
 void CVoteMenu::OnClientDrop(int ClientId)
 {
-	SetPage(ClientId, PAGE_VOTES);
+	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	Data.m_Page = PAGE_VOTES;
+	for(int i = 0; i < NUM_PAGES; i++)
+		Data.m_SubPage[i] = 0;
+	Data.m_pLastItemInfo = nullptr;
+	Data.m_OnlyAffordable = true;
 }
 
 void CVoteMenu::UpdatePages(int ClientId)
@@ -526,8 +564,11 @@ bool CVoteMenu::SendHeader(int ClientId)
 	int Page = GetPage(ClientId);
 	int SubPage = GetSubPage(ClientId);
 
-	if(Page == PAGE_SHOP && SubPage == SUB_SHOP_ITEMINFO)
-		return false;
+	if(Page == PAGE_SHOP)
+	{
+		if(SubPage != SUB_SHOP_MAIN)
+			return false;
+	}
 
 	return true;
 }
@@ -537,6 +578,9 @@ void CVoteMenu::PrepareVoteOptions(int ClientId, int Page)
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
 	if(Page < 0 || Page >= NUM_PAGES)
+		return;
+
+	if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 		return;
 
 	GameServer()->ClearVotes(ClientId, SendHeader(ClientId));
@@ -698,9 +742,15 @@ void CVoteMenu::SendPageAccount(int ClientId)
 }
 
 void CVoteMenu::SendPageShop(int ClientId)
-{
+{ 
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+
+	const int SubPage = GetSubPage(ClientId);
 
 	if(!pAcc->m_LoggedIn)
 	{
@@ -711,123 +761,95 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return;
 	}
 
-	if(GetSubPage(ClientId) == SUB_SHOP_MAIN)
+	char aBuf[VOTE_DESC_LENGTH];
+	if(SubPage != SUB_SHOP_MAIN)
 	{
-		std::vector<std::string> RainbowItems;
-		std::vector<std::string> GunItems;
-		std::vector<std::string> IndicatorItems;
-		std::vector<std::string> KillEffectItems;
-		std::vector<std::string> TrailItems;
-		std::vector<std::string> OtherItems;
-
-		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "Level %ld | %ld%s", pAcc->m_Level, pAcc->m_Money, g_Config.m_SvCurrencyName);
-		AddVoteText(aBuf);
+		AddVoteText(BACKPAGE);
+		AddVoteText(MAIN_MENU_PAGE);
 		AddVoteSeperator();
+	
 
-		for(const auto &pItems : GameServer()->m_Shop.m_Items)
+
+		AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
+		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
+		AddVoteText(aBuf);
+		AddVoteText("╰────────────");
+		AddVoteSeperator();
+	}	
+	
+	if(SubPage != SUB_SHOP_ITEMINFO)
+	{ 
+		AddVoteSubheader("Fɪʟᴛᴇʀs");
+		AddVoteCheckBox(SHOP_ONLY_AFFORDABLE, Data.m_OnlyAffordable);
+		AddVoteSeperator();
+	}
+
+	if(SubPage == SUB_SHOP_MAIN)
+	{
+		const int Bulletpoint = BULLET_LONG_LINE;
+
+		std::vector<std::string> AvailableCategories;
+
+		for (int i = 0; i < NUM_TYPES; i++)
 		{
-			if(!str_comp(pItems->Name(), ""))
-				continue;
-			if(pItems->Price() == -1)
-				continue;
-
-			const char *pVoteName = pItems->Name();
-
-			if(pItems->Type() == TYPE_RAINBOW)
-				RainbowItems.push_back(std::string(pVoteName));
-			else if(pItems->Type() == TYPE_GUN)
-				GunItems.push_back(std::string(pVoteName));
-			else if(pItems->Type() == TYPE_INDICATOR)
-				IndicatorItems.push_back(std::string(pVoteName));
-			else if(pItems->Type() == TYPE_DEATHS)
-				KillEffectItems.push_back(std::string(pVoteName));
-			else if(pItems->Type() == TYPE_TRAIL)
-				TrailItems.push_back(std::string(pVoteName));
+			const char *pTypeName = ItemTypeToName(i);
+			if(Data.m_OnlyAffordable)
+			{
+				if(CanBuyAnyOfType(ClientId, i))
+					AvailableCategories.push_back(pTypeName);
+			}
 			else
-				OtherItems.push_back(std::string(pVoteName));
-		}
+				AvailableCategories.push_back(pTypeName);
 
-		const int Bulletpoint = BULLET_TRIANGLE;
+		}
+		if(AvailableCategories.empty())
+		{
+			AddVoteText("No categories available with the current filters.");
+			return;
+		}
+		AddVoteText("╭───────── Cᴀᴛᴇɢᴏʀɪᴇs");
+		for(const auto &pCategory : AvailableCategories)
+		{
+			AddVotePrefix(pCategory.c_str(), Bulletpoint);
+		}
+		AddVoteText("╰────────────");
+	}
+	else if(SubPage == SUB_SHOP_SELECT)
+	{
+		const char *pMeta = Data.m_aMetaData;
+		if(!pMeta[0])
+		{
+			SetSubPage(ClientId, SUB_SHOP_MAIN, true);
+			return;
+		}
+		int AmountShown = 0;
 
-		if(!RainbowItems.empty())
+		for(const auto &pItem : GameServer()->m_Shop.m_Items)
 		{
-			AddVoteSubheader("Rᴀɪɴʙᴏᴡ");
-			for(const auto &Item : RainbowItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
-			AddVoteSeperator();
+			if(str_comp(ItemTypeToName(pItem->Type()), pMeta) != 0)
+				continue;
+
+			if(Data.m_OnlyAffordable && pItem->Price() > pAcc->m_Money)
+				continue;
+			AmountShown++;
+			AddVotePrefix(pItem->Name(), BULLET_ARROWHEAD);
 		}
-		if(!GunItems.empty())
+		if(AmountShown == 0)
 		{
-			AddVoteSubheader("Gᴜɴs");
-			for(const auto &Item : GunItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
-			AddVoteSeperator();
-		}
-		if(!IndicatorItems.empty())
-		{
-			AddVoteSubheader("Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs");
-			for(const auto &Item : IndicatorItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
-			AddVoteSeperator();
-		}
-		if(!KillEffectItems.empty())
-		{
-			AddVoteSubheader("Dᴇᴀᴛʜ Eғғᴇᴄᴛs");
-			for(const auto &Item : KillEffectItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
-			AddVoteSeperator();
-		}
-		if(!TrailItems.empty())
-		{
-			AddVoteSubheader("Tʀᴀɪʟs");
-			for(const auto &Item : TrailItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
-			AddVoteSeperator();
-		}
-		if(!OtherItems.empty())
-		{
-			AddVoteSubheader("Oᴛʜᴇʀ");
-			for(const auto &Item : OtherItems)
-			{
-				AddVotePrefix(Item.c_str(), Bulletpoint);
-			}
+			AddVoteText("No items available in this category with the current filters.");
 		}
 	}
 	else if(GetSubPage(ClientId) == SUB_SHOP_ITEMINFO)
 	{
-		if(!m_pLastItemInfo)
+		if(!Data.m_pLastItemInfo)
 		{
 			SetSubPage(ClientId, SUB_SHOP_MAIN, true);
 			return;
 		}
 
-		bool OwnsItem = pPl->OwnsItem(m_pLastItemInfo->Name());
+		bool OwnsItem = pPl->OwnsItem(Data.m_pLastItemInfo->Name());
 
-		AddVoteText(SHOP_BACKPAGE);
-		AddVoteSeperator();
-
-		const CItem *pItem = m_pLastItemInfo;
-
-		char aBuf[VOTE_DESC_LENGTH];
-
-		AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
-		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
-		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ Level %ld", pAcc->m_Level);
-		AddVoteText(aBuf);
-		AddVoteText("╰────────────");
-		AddVoteSeperator();
+		const CItem *pItem = Data.m_pLastItemInfo;
 
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
 		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->Name());
@@ -861,9 +883,12 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->MinLevel());
 		AddVoteText(aBuf);
+	}
 
+	if(GetSubPage(ClientId) != SUB_SHOP_MAIN)
+	{
 		AddVoteSeperator();
-		AddVoteText(SHOP_BACKPAGE);
+		AddVoteText(BACKPAGE);
 	}
 }
 
@@ -1036,6 +1061,38 @@ bool CVoteMenu::CanUseCmd(int ClientId, const char *pCmd) const
 	return Required >= ClientLevel;
 }
 
+bool CVoteMenu::CanBuyAnyOfType(int ClientId, int ItemType) const
+{
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
+		return false;
+	for(const auto &pItems : GameServer()->m_Shop.m_Items)
+	{
+		if(pItems->Type() != ItemType)
+			continue;
+		if(pItems->Price() == -1)
+			continue;
+		if(pAcc->m_Money >= pItems->Price() && pAcc->m_Level >= pItems->MinLevel())
+			return true;
+	}
+	return false;
+}
+
+const char *CVoteMenu::ItemTypeToName(int Type) const
+{
+	switch(Type)
+	{
+	case TYPE_RAINBOW: return "Rainbow Effects";
+	case TYPE_GUN: return "Guns";
+	case TYPE_INDICATOR: return "Gun Hit Effects";
+	case TYPE_DEATHS: return "Death Effects";
+	case TYPE_TRAIL: return "Trails";
+	default: return "Others";
+	}
+}
+
+
 void CVoteMenu::SendPageAdmin(int ClientId)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
@@ -1160,7 +1217,7 @@ void CVoteMenu::AddHeader(int ClientId)
 
 void CVoteMenu::AddVotePrefix(const char *pDesc, int Prefix)
 {
-	const char *pPrefixes[] = {"", "•", "─", ">", "⇨", "⁃", "‣", "◆", "◇"};
+	const char *pPrefixes[] = {"", "•", "─","➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
 
 	if(Prefix < 0 || Prefix >= (int)std::size(pPrefixes))
 	{

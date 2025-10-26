@@ -36,6 +36,7 @@ enum AdminSubPages
 enum ShopSubPages
 {
 	SUB_SHOP_MAIN = 0,
+	SUB_SHOP_SELECT,
 	SUB_SHOP_ITEMINFO,
 };
 
@@ -44,12 +45,14 @@ enum BulletPoints
 	BULLET_NONE = 0,
 	BULLET_POINT,
 	BULLET_DASH,
+	BULLET_ARROWHEAD,
 	BULLET_GREATER_THAN,
 	BULLET_ARROW,
-	BULLET_HYPHEN,
 	BULLET_TRIANGLE,
+	BULLET_HYPHEN,
 	BULLET_BLACK_DIAMOND,
-	BULLET_WHITE_DIAMOND
+	BULLET_WHITE_DIAMOND,
+	BULLET_LONG_LINE,
 };
 
 enum Flags
@@ -88,10 +91,14 @@ class CVoteMenu
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
 		CCosmetics m_Cosmetics;
+
+		bool m_OnlyAffordable = false;
+
+		char m_aMetaData[16] = "";
+		CItem *m_pLastItemInfo = nullptr;
 	};
 	ClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
-	CItem *m_pLastItemInfo = nullptr;
 
 	bool IsPageAllowed(int ClientId, int Page) const;
 
@@ -121,7 +128,11 @@ class CVoteMenu
 
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
+	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
+	const char *ItemTypeToName(int Type) const;
+
 public:
+
 	void PrepareVoteOptions(int ClientId, int Page);
 
 	int GetPage(int ClientId) const;
