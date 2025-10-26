@@ -626,10 +626,14 @@ void CCharacter::FireWeapon()
 			{
 				if(pGrenade->GetOwnerId() == m_pPlayer->GetCid())
 				{
+					float Pt = (Server()->Tick() - pGrenade->StartTick() - 1) / (float)Server()->TickSpeed();
 					float Ct = (Server()->Tick() - pGrenade->StartTick()) / (float)Server()->TickSpeed();
-					vec2 CurPos = pGrenade->GetPos(Ct);
+					vec2 PrevPos = pGrenade->GetPos(Pt);
+					vec2 CurPos = pGrenade->GetPos(Ct);	
+					vec2 ColPos;
+					pGrenade->GetNearestAirPos(CurPos, PrevPos, &ColPos);
 					pGrenade->Reset();
-					ForceSetPos(CurPos);
+					ForceSetPos(ColPos);
 					ResetVelocity();
 					ReleaseHook();
 					// GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
