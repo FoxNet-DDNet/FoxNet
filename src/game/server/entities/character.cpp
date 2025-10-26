@@ -618,6 +618,27 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_GRENADE:
 	{
+		// <FoxNet
+		if(g_Config.m_SvTeleGrenade) // KoG Compatibility
+		{
+			CProjectile *pGrenade = static_cast<CProjectile *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_PROJECTILE));
+			if(pGrenade)
+			{
+				if(pGrenade->GetOwnerId() == m_pPlayer->GetCid())
+				{
+					float Ct = (Server()->Tick() - pGrenade->StartTick()) / (float)Server()->TickSpeed();
+					vec2 CurPos = pGrenade->GetPos(Ct);
+					pGrenade->Reset();
+					ForceSetPos(CurPos);
+					ResetVelocity();
+					ReleaseHook();
+					// GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
+					break;
+				}
+			}
+		}
+		// FoxNet>
+
 		int Lifetime = (int)(Server()->TickSpeed() * GetTuning(GetOverriddenTuneZone())->m_GrenadeLifetime);
 
 		new CProjectile(
@@ -2582,7 +2603,8 @@ void CCharacter::DDRacePostCoreTick()
 		return;
 
 	// <FoxNet
-	HandleQuads();
+	if(g_Config.m_SvMovingTiles)
+		HandleQuads();
 	// FoxNet>
 
 	// handle Anti-Skip tiles

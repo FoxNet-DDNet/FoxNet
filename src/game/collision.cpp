@@ -1440,6 +1440,9 @@ std::vector<const CQuadData *> CCollision::GetQuadsAt(vec2 Pos) const
 {//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1104
 	std::vector<const CQuadData *> vpQuads;
 
+	if(!g_Config.m_SvMovingTiles)
+		return vpQuads;
+
 	for(const auto &QuadData : m_vQuads)
 	{
 		vec2 TestRadius = vec2(0,0);
@@ -1456,6 +1459,8 @@ std::vector<const CQuadData *> CCollision::GetQuadsAt(vec2 Pos) const
 
 const CQuadData *CCollision::GetQuad(vec2 Pos) const
 {
+	if(!g_Config.m_SvMovingTiles)
+		return nullptr;
 	for(const auto &QuadData : m_vQuads)
 	{
 		vec2 TestRadius = vec2(0, 0);
@@ -1472,6 +1477,9 @@ const CQuadData *CCollision::GetQuad(vec2 Pos) const
 
 const CQuadData *CCollision::GetSolidQuad(vec2 Pos, vec2 Size) const
 {
+	if(!g_Config.m_SvMovingTiles)
+		return nullptr;
+
 	Size *= 0.5f;
 	for(const auto &QuadData : m_vQuads)
 	{
@@ -1645,6 +1653,9 @@ void CCollision::GetAnimationTransform(float GlobalTime, int Env, vec2 &Position
 
 void CCollision::UpdateQuadCache()
 { // https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1073
+	if(!g_Config.m_SvMovingTiles)
+		return;
+	
 	m_vQuads = m_vNextQuads;
 
 	for(auto &QuadData : m_vNextQuads)

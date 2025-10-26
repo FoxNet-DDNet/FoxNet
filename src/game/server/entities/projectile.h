@@ -62,6 +62,10 @@ private:
 	vec2 m_InitDir;
 
 public:
+	// <FoxNet
+	int StartTick() const { return m_StartTick; }
+	// FoxNet>
+
 	void SetBouncing(int Value);
 	bool FillExtraInfoLegacy(CNetObj_DDRaceProjectile *pProj);
 	void FillExtraInfo(CNetObj_DDNetProjectile *pProj);

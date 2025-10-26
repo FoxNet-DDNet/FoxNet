@@ -4513,12 +4513,19 @@ void CGameContext::LoadMapSettings()
 		int Size = pMap->GetDataSize(pItem->m_Settings);
 		char *pSettings = (char *)pMap->GetData(pItem->m_Settings);
 		char *pNext = pSettings;
+
 		while(pNext < pSettings + Size)
 		{
+			if(str_find(pNext, "sv_kog_qquads_enable 1"))
+				g_Config.m_SvMovingTiles = true;
+			if(str_find(pNext, "sv_kog_grenade_tele 1"))
+				g_Config.m_SvTeleGrenade = true;
+
 			int StrSize = str_length(pNext) + 1;
 			Console()->ExecuteLine(pNext, IConsole::CLIENT_ID_GAME);
 			pNext += StrSize;
 		}
+
 		pMap->UnloadData(pItem->m_Settings);
 		break;
 	}

@@ -588,7 +588,7 @@ void IGameController::Snap(int SnappingClient)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_SUDDENDEATH;
 	if(GameServer()->m_World.m_Paused)
 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_PAUSED;
-	pGameInfoObj->m_RoundStartTick = m_RoundStartTick;
+	// pGameInfoObj->m_RoundStartTick = m_RoundStartTick;
 	pGameInfoObj->m_WarmupTimer = m_Warmup;
 
 	pGameInfoObj->m_RoundNum = 0;
@@ -650,6 +650,12 @@ void IGameController::Snap(int SnappingClient)
 	if(g_Config.m_SvAllowEyeWheel)
 		pGameInfoEx->m_Flags |= GAMEINFOFLAG_ALLOW_EYE_WHEEL;
 	pGameInfoEx->m_Flags2 |= GAMEINFOFLAG2_ALLOW_X_SKINS;
+
+	if(g_Config.m_SvMovingTilesStopTime)
+		m_QuadStartTick = 0x7FFFFFFF;
+	else
+		m_QuadStartTick = m_RoundStartTick;
+	pGameInfoObj->m_RoundStartTick = m_QuadStartTick;
 	// FoxNet>
 
 	if(Server()->IsSixup(SnappingClient))
@@ -658,7 +664,7 @@ void IGameController::Snap(int SnappingClient)
 		if(!pGameData)
 			return;
 
-		pGameData->m_GameStartTick = m_RoundStartTick;
+		pGameData->m_GameStartTick = m_QuadStartTick;
 		pGameData->m_GameStateFlags = 0;
 		if(m_GameOverTick != -1)
 			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_GAMEOVER;

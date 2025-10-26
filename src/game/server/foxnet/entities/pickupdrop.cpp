@@ -111,7 +111,8 @@ void CPickupDrop::Tick()
 
 	HandleSkippableTiles(CurrentIndex);
 
-	HandleQuads();
+	if(g_Config.m_SvMovingTiles)
+		HandleQuads();
 
 	// tiles
 	std::vector<int> vIndices = Collision()->GetMapIndices(m_PrevPos, m_Pos);

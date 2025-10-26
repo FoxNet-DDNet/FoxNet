@@ -165,7 +165,8 @@ public:
 	CGameTeams &Teams() { return m_Teams; }
 	std::shared_ptr<CScoreLoadBestTimeResult> m_pLoadBestTimeResult;
 	// <FoxNet
-	double GetTime() { return static_cast<double>(Server()->Tick() - m_RoundStartTick + 1) / Server()->TickSpeed(); }
+	int m_QuadStartTick;
+	double GetTime() { return static_cast<double>(Server()->Tick() - m_QuadStartTick + 1) / Server()->TickSpeed(); }
 	// FoxNet>
 };
 
