@@ -10,8 +10,8 @@
 #include <generated/client_data.h>
 
 #include <game/collision.h>
-#include <game/mapitems.h>
 #include <game/layers.h>
+#include <game/mapitems.h>
 
 // Character, "physical" player's part
 
@@ -370,15 +370,15 @@ void CCharacter::FireWeapon()
 
 			new CProjectile(
 				GameWorld(),
-				WEAPON_GUN, //Type
-				GetCid(), //Owner
-				ProjStartPos, //Pos
-				Direction, //Dir
-				Lifetime, //Span
-				false, //Freeze
-				false, //Explosive
-				0, //Force
-				-1 //SoundImpact
+				WEAPON_GUN, // Type
+				GetCid(), // Owner
+				ProjStartPos, // Pos
+				Direction, // Dir
+				Lifetime, // Span
+				false, // Freeze
+				false, // Explosive
+				0, // Force
+				-1 // SoundImpact
 			);
 		}
 	}
@@ -398,14 +398,14 @@ void CCharacter::FireWeapon()
 				float Speed = mix((float)Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
 				new CProjectile(
 					GameWorld(),
-					WEAPON_SHOTGUN, //Type
-					GetCid(), //Owner
-					ProjStartPos, //Pos
-					direction(a) * Speed, //Dir
-					(int)(GameWorld()->GameTickSpeed() * Tuning()->m_ShotgunLifetime), //Span
-					false, //Freeze
-					false, //Explosive
-					-1 //SoundImpact
+					WEAPON_SHOTGUN, // Type
+					GetCid(), // Owner
+					ProjStartPos, // Pos
+					direction(a) * Speed, // Dir
+					(int)(GameWorld()->GameTickSpeed() * Tuning()->m_ShotgunLifetime), // Span
+					false, // Freeze
+					false, // Explosive
+					-1 // SoundImpact
 				);
 			}
 		}
@@ -424,15 +424,15 @@ void CCharacter::FireWeapon()
 
 		new CProjectile(
 			GameWorld(),
-			WEAPON_GRENADE, //Type
-			GetCid(), //Owner
-			ProjStartPos, //Pos
-			Direction, //Dir
-			Lifetime, //Span
-			false, //Freeze
-			true, //Explosive
-			SOUND_GRENADE_EXPLODE //SoundImpact
-		); //SoundImpact
+			WEAPON_GRENADE, // Type
+			GetCid(), // Owner
+			ProjStartPos, // Pos
+			Direction, // Dir
+			Lifetime, // Span
+			false, // Freeze
+			true, // Explosive
+			SOUND_GRENADE_EXPLODE // SoundImpact
+		); // SoundImpact
 	}
 	break;
 
@@ -471,7 +471,7 @@ void CCharacter::FireWeapon()
 
 void CCharacter::HandleWeapons()
 {
-	//ninja
+	// ninja
 	HandleNinja();
 	HandleJetpack();
 
@@ -509,7 +509,7 @@ void CCharacter::OnPredictedInput(const CNetObj_PlayerInput *pNewInput)
 
 	// copy new input
 	mem_copy(&m_Input, pNewInput, sizeof(m_Input));
-	//m_NumInputs++;
+	// m_NumInputs++;
 
 	// it is not allowed to aim in the center
 	if(m_Input.m_TargetX == 0 && m_Input.m_TargetY == 0)
@@ -1036,7 +1036,7 @@ void CCharacter::DDRaceTick()
 	{
 		m_Input.m_Direction = 0;
 		m_Input.m_Jump = 0;
-		//Hook and weapons are possible in live freeze
+		// Hook and weapons are possible in live freeze
 	}
 	if(m_FreezeTime > 0)
 	{
@@ -1153,7 +1153,8 @@ bool CCharacter::Freeze(int Seconds)
 	{
 		m_FreezeTime = Seconds * GameWorld()->GameTickSpeed();
 		m_Core.m_FreezeStart = GameWorld()->GameTick();
-		m_Core.m_FreezeEnd = m_Core.m_DeepFrozen ? -1 : m_FreezeTime == 0 ? 0 : GameWorld()->GameTick() + m_FreezeTime;
+		m_Core.m_FreezeEnd = m_Core.m_DeepFrozen ? -1 : m_FreezeTime == 0 ? 0 :
+										    GameWorld()->GameTick() + m_FreezeTime;
 		return true;
 	}
 	return false;
@@ -1565,9 +1566,11 @@ void CCharacter::HandleQuads()
 			// Die(GetPlayer()->GetCid(), WEAPON_WORLD);
 			break;
 		case QUADTYPE_STOPA:
+			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3], false);
+			break;
 		case QUADTYPE_HOOKABLE:
 		case QUADTYPE_UNHOOKABLE:
-			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3]);
+			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3], true);
 			break;
 		case QUADTYPE_CFRM:
 			break;
@@ -1575,7 +1578,7 @@ void CCharacter::HandleQuads()
 	}
 }
 
-void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR)
+void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj)
 {
 	const float R = GetProximityRadius() * 0.55f;
 	const vec2 P = m_Pos;
@@ -1659,6 +1662,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 		const vec2 Vel = m_Core.m_Vel;
 		m_Pos = NewPos;
 		m_PrevPos = NewPos;
+		m_Core.m_Pos = NewPos;
 
 		const float vIn = dot(Vel, BestInwardNormal);
 		if(vIn > 0.0f)
@@ -1669,7 +1673,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 		if(AppliedY.y == 0.0f && MTV.y != 0.0f)
 			SetRawVelocity(vec2(Vel.x, 0.0f));
 
-		if(g_Config.m_SvQStopaGivesDj && BestEdgeIdx >= 0)
+		if(GiveDj && BestEdgeIdx >= 0)
 		{
 			const float NormalThresh = 0.35f;
 			const float SlopeThresh = 0.60f;
