@@ -1030,7 +1030,7 @@ std::optional<vec2> CGameContext::GetRandomAccessablePos()
 	return std::nullopt;
 }
 
-void CGameContext::CollectedPowerup(int ClientId, const SPowerupData *pData) const
+void CGameContext::OnCollectPowerup(int ClientId, const SPowerupData *pData) const
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;

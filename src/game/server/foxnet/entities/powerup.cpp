@@ -95,7 +95,7 @@ void CPowerUp::Tick()
 
 		if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
 		{
-			GameServer()->CollectedPowerup(ClientId, &m_Data);
+			GameServer()->OnCollectPowerup(ClientId, &m_Data);
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->TeamMask());
 			Reset();
 			return;

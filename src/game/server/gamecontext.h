@@ -903,7 +903,7 @@ public:
 	int64_t m_PowerUpDelay;
 	std::vector<CPowerUp *> m_vPowerups;
 
-	void CollectedPowerup(int ClientId, const SPowerupData *pData) const;
+	void OnCollectPowerup(int ClientId, const SPowerupData *pData) const;
 
 	bool IsWeekend() const { return m_IsWeekend; }
 

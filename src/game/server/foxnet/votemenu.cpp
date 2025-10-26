@@ -1,4 +1,5 @@
-﻿#include "votemenu.h"
+﻿// Made by qxdFox, heavily inspired by Fokkonauts implementation
+#include "votemenu.h"
 
 #include "accounts.h"
 #include "shop.h"
@@ -28,6 +29,7 @@
 #include <vector>
 
 // Font: https://fsymbols.com/generators/smallcaps/
+
 constexpr const char *EMPTY_DESC = "";
 constexpr const char *EMPTY_DESC2 = " ";
 
@@ -983,9 +985,6 @@ void CVoteMenu::SendPageInventory(int ClientId)
 
 void CVoteMenu::SendPageServerInfo(int ClientId)
 {
-	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-
-
 	const int SubPage = GetSubPage(ClientId);
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
