@@ -469,7 +469,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 			int Days = (int)(Seconds / (60 * 60 * 24));
 			int Hours = (int)(Seconds / (60 * 60));
 			if(Data.m_LastLogin <= 0)
-				str_copy(aBuf, "│ Never", sizeof(aBuf));
+				str_copy(aBuf, "│ Has never been seen", sizeof(aBuf));
 			else if(Days > 0)
 				str_format(aBuf, sizeof(aBuf), "│ Last seen %d day%s ago", Days, Days == 1 ? "" : "s");
 			else if(Hours > 0)
@@ -483,11 +483,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %ld%s", Data.m_Money, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		float PlayTimeHours = Data.m_Playtime / 60.0f;
-		if(Data.m_Playtime < 100)
-			str_format(aBuf, sizeof(aBuf), "│ %ld Minutes Playtime", Data.m_Playtime);
-		else
-			str_format(aBuf, sizeof(aBuf), "│ %.1f Hours Playtime", PlayTimeHours);
+		str_format(aBuf, sizeof(aBuf), "│ %s Playtime", FormatPlaytime(Data.m_Playtime));
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %ld Deaths", Data.m_Deaths);
 		GameServer()->SendChatTarget(ClientId, aBuf);

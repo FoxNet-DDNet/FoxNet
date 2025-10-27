@@ -558,7 +558,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 
 	// Header
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "------- Top 5 by %s -------", pMetric);
+	str_format(aBuf, sizeof(aBuf), "------- Global Top %s -------", pMetric);
 	pReq->m_pGameServer->SendChatTarget(pReq->m_ClientId, aBuf);
 
 	// Iterate rows
@@ -579,13 +579,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 
 		if(!str_comp(pMetric, "Playtime"))
 		{
-			if(Metric < 100)
-				str_format(aBuf, sizeof(aBuf), "%d. %s %s: %ld Minutes", Rank, pName, pMetric, Metric);
-			else
-			{
-				const float Hours = Metric / 60.0f;
-				str_format(aBuf, sizeof(aBuf), "%d. %s %s: %.1f Hours", Rank, pName, pMetric, Hours);
-			}
+			str_format(aBuf, sizeof(aBuf), "%d. %s: %s", Rank, pName, FormatPlaytime(Metric));
 		}
 		else
 		{

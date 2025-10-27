@@ -764,10 +764,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
 		str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
 		AddVoteText(aBuf);
-		float PlayTimeHours = pAcc->m_Playtime / 60.0f;
-		str_format(aBuf, sizeof(aBuf), "│ Playtime: %.1f Hour%s", PlayTimeHours, PlayTimeHours == 1 ? "" : "s");
-		if(pAcc->m_Playtime < 100)
-			str_format(aBuf, sizeof(aBuf), "│ Playtime: %ld Minute%s", pAcc->m_Playtime, pAcc->m_Playtime == 1 ? "" : "s");
+		str_format(aBuf, sizeof(aBuf), "│ Playtime: %s", FormatPlaytime(pAcc->m_Playtime));
 		AddVoteText(aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 		AddVoteText(aBuf);
@@ -990,11 +987,24 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
 		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
-		AddVoteText("│ Don't discriminate others.");
-		AddVoteText("│ Don't use Bot Clients.");
-		AddVoteText("│ Don't block others.");
-		AddVoteText("│ Don't advertise anything.");
-		AddVoteText("│ Be nice.");
+		if(g_Config.m_SvRulesLine1[0])
+			AddVotePrefix(g_Config.m_SvRulesLine1, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine2[0])
+			AddVotePrefix(g_Config.m_SvRulesLine2, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine3[0])
+			AddVotePrefix(g_Config.m_SvRulesLine3, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine4[0])
+			AddVotePrefix(g_Config.m_SvRulesLine4, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine5[0])
+			AddVotePrefix(g_Config.m_SvRulesLine5, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine6[0])
+			AddVotePrefix(g_Config.m_SvRulesLine6, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine7[0])
+			AddVotePrefix(g_Config.m_SvRulesLine7, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine8[0])
+			AddVotePrefix(g_Config.m_SvRulesLine8, PREFIX_LONG_LINE);
+		if(g_Config.m_SvRulesLine9[0])
+			AddVotePrefix(g_Config.m_SvRulesLine9, PREFIX_LONG_LINE);
 		AddVoteText("╰────────────────────");
 		AddVoteSeperator();
 

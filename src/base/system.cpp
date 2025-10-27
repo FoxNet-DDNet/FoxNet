@@ -4456,5 +4456,19 @@ void FormatItemTime(int64_t Remaining, char *out, size_t outSize)
 
 	str_format(out, outSize, "%s%s%s", Days > 0 ? DayBuf : "", Hours > 0 ? HourBuf : "", Minutes > 0 ? MinuteBuf : "");
 }
+const char *FormatPlaytime(int64_t Time)
+{
+	Time *= 60; // playtime is saved in minutes
+
+	static char aBuf[32];
+	int Hours = (Time % (60 * 60 * 24)) / (60 * 60);
+	int Minutes = (Time % (60 * 60)) / 60;
+	if(Hours > 0)
+		str_format(aBuf, sizeof(aBuf), "%d Hours %d Mins", Hours, Minutes);
+	else
+		str_format(aBuf, sizeof(aBuf), "%Mins", Minutes);
+	return aBuf;
+
+}
 
 // FoxNet>
