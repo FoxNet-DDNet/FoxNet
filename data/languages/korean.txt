@@ -421,8 +421,6 @@ Yes
 You must restart the game for all settings to take effect.
 == 설정을 적용하기 위해 게임을 재시작해야 합니다.
 
-##### needs translation #####
-
 Game paused
 == 게임 일시정지됨
 
@@ -2166,7 +2164,7 @@ Name plates offset
 Show friend icon in name plates
 == 이름에 친구 아이콘 표시
 
-Show client IDs on a seperate line
+Show client IDs on a separate line
 == 클라이언트 ID를 별도의 줄에 표시
 
 Client IDs size
