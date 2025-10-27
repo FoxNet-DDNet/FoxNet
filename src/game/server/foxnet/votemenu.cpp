@@ -181,6 +181,8 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 		if(Page == PAGE_SERVERINFO)
 		{
+			if(SubPage == SUB_SERVERINFO_MAIN)
+				SetPage(ClientId, PAGE_MAIN);
 			SetSubPage(ClientId, SUB_SERVERINFO_MAIN);
 			return true;
 		}
