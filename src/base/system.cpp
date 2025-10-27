@@ -4466,7 +4466,7 @@ const char *FormatPlaytime(int64_t Time)
 	if(Hours > 0)
 		str_format(aBuf, sizeof(aBuf), "%d Hours %d Mins", Hours, Minutes);
 	else
-		str_format(aBuf, sizeof(aBuf), "%Mins", Minutes);
+		str_format(aBuf, sizeof(aBuf), "%d Mins", Minutes);
 	return aBuf;
 
 }

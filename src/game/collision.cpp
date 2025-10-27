@@ -453,11 +453,11 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 			if(!IsThrough(ix, iy, dx, dy, Pos0, Pos1))
 				Hit = GetCollisionAt(ix, iy);
 
-			if(!hit && pHitQuad)
+			if(!Hit && pHitQuad)
 			{
 				if(ppOutQuad)
 					*ppOutQuad = pHitQuad;
-				hit = QuadTypeToTile(pHitQuad->m_Type); // Solid quad was hit
+				Hit = QuadTypeToTile(pHitQuad->m_Type);
 			}
 		}
 		else if(IsHookBlocker(ix, iy, Pos0, Pos1))

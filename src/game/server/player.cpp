@@ -334,7 +334,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
-	if(m_Vanish && SnappingClient != id && SnappingClient >= 0)
+	if(m_Vanish && SnappingClient != TranslatedId && SnappingClient >= 0)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
