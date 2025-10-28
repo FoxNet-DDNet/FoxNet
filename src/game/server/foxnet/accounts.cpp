@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "shop.h"
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }
 
@@ -261,16 +262,12 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 			if(Val <= 0)
 				continue;
 
-			const char *pShortcut = Items[i];
+			const char *pName = Items[i];
 
-			if(!str_comp_nocase(pShortcut, Items[GUN_EMOTICON]))
-			{
-				pPl->ToggleItem(pShortcut, Val, false);
-			}
+			if(!str_comp_nocase(pName, Items[GUN_EMOTICON]))
+				pPl->ToggleItem(pName, Val, true);
 			else
-			{
-				pPl->ToggleItem(pShortcut, -1, false);
-			}
+				pPl->ToggleItem(pName, -1, true);
 		}
 	}
 

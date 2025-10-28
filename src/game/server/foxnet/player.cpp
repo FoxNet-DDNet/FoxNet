@@ -32,6 +32,7 @@
 #include <vector>
 #include "cosmetics/headitem.h"
 #include <game/gamecore.h>
+#include <base/log.h>
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
 CInventory *CPlayer::Inv() { return &Acc()->m_Inventory; }
@@ -396,7 +397,9 @@ bool CPlayer::ReachedItemLimit(const CItem *pItem)
 
 		const int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
 		if(OtherIdx >= 0 && Inv()->m_aEquipped[OtherIdx])
+		{
 			Amount++;
+		}
 	}
 
 	return Amount >= g_Config.m_SvCosmeticLimit;
@@ -417,23 +420,21 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
 	if(!pItem)
 		return false;
-
 	const char *pName = pItem->Name();
-
 	if(!OwnsItem(pName) && !IgnoreAccount)
 		return false;
-
-	int Idx = Inv()->IndexOfName(pName);
-	ExpireItem(Idx);
 
 	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)
 		return false;
-	if(ReachedItemLimit(pItem) && Value != 0)
+	if(!IgnoreAccount && ReachedItemLimit(pItem) && Value != 0)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You have reached the item limit! Disable another item first.");
 		return false;
 	}
+
+	int Idx = Inv()->IndexOfName(pName);
+	ExpireItem(Idx);
 
 	if(!str_comp_nocase(pName, Items[OTHER_SPARKLE]))
 		SetSparkle(Value);
@@ -507,7 +508,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(pName, Items[DEATH_LASER]))
 		SetDeathEffect(Value);
 
-	Inv()->SetEquippedIndex(Inv()->IndexOfName(pName), Value);
+	Inv()->SetEquippedIndex(Idx, Value);
 
 	int SubType = pItem->SubType();
 	for(CItem *pOtherItem : GameServer()->m_Shop.m_Items)
