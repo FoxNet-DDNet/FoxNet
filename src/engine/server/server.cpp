@@ -4760,7 +4760,7 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 
 		if(pThis->m_aClients[ClientId].m_State == CClient::STATE_INGAME)
 		{
-			str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId));
+			str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), pThis->m_aClients[ClientId].m_DDNetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "foxnet", aBuf);
 		}
 	}
