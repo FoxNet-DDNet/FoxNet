@@ -115,6 +115,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  XP INTEGER DEFAULT 0, "
 		"  Money %s DEFAULT 0, "
 		"  Disabled BOOL DEFAULT %s, "
+		"  HatItemFlags INTEGER DEFAULT 0, "
 		"  PRIMARY KEY (Username)"
 		")",
 		BinaryCollate(),

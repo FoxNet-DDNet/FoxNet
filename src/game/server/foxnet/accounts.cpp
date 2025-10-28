@@ -250,6 +250,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_Money = Res.m_Money;
 		Acc.m_LoginTick = Server()->Tick();
 		Acc.m_Inventory = Res.m_Inventory;
+		Acc.m_HatItemFlags = Res.m_HatItemFlags;
 	}
 	GameServer()->OnLogin(ClientId);
 
@@ -299,7 +300,7 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 {
 	if(!m_pPool)
 		return;
-	auto pReq = std::make_unique<CAccUpdLogoutState>();
+	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_Playtime = AccInfo.m_Playtime;
@@ -309,6 +310,7 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
+	pReq->m_HatItemFlags = AccInfo.m_HatItemFlags;
 	m_pPool->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 
@@ -534,6 +536,7 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
+	pReq->m_HatItemFlags = AccInfo.m_HatItemFlags;
 	m_pPool->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
 }
 

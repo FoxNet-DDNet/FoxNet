@@ -124,7 +124,8 @@ void CHeadItem::Snap(int SnappingClient)
 
 	int Type = 0;
 	int SubType = 0;
-	int Flags = PICKUPFLAG_NO_PREDICT | pOwnerChr->GetPlayer()->m_HatItemFlags;
+	int Flags = PICKUPFLAG_NO_PREDICT;
+
 	switch(m_Type)
 	{
 	case HEADITEM_SPAWNSOLO:
@@ -134,6 +135,7 @@ void CHeadItem::Snap(int SnappingClient)
 	case HEADITEM_COSMETIC:
 		Type = POWERUP_WEAPON;
 		SubType = pSnapPlayer->Cosmetics()->m_HatType - 1;
+		Flags |= pOwnerChr->GetPlayer()->Acc()->m_HatItemFlags;
 		break;
 	default:
 		break;

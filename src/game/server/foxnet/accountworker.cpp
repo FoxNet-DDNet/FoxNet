@@ -196,7 +196,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
+		"Level, XP, Money, Disabled, HatItemFlags "
 		"FROM foxnet_accounts WHERE Username = ? AND Password = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -229,6 +229,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_XP = pSql->GetInt64(16);
 		pRes->m_Money = pSql->GetInt64(17);
 		pRes->m_Disabled = pSql->GetInt(18);
+		pRes->m_HatItemFlags = pSql->GetInt(19);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 		pRes->m_Inventory.Reset();
@@ -272,7 +273,7 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 
 bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
-	const auto *pReq = dynamic_cast<const CAccUpdLogoutState *>(pData);
+	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
 
 	// Upsert owned items first (ensures inventory rows exist)
 	{
@@ -308,7 +309,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		"SET LoggedIn = 0, Port = 0, ClientId = -1, "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ? "
+		"    Level = ?, XP = ?, Money = ?, HatItemFlags = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -320,20 +321,21 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	pSql->BindInt64(5, pReq->m_Level);
 	pSql->BindInt64(6, pReq->m_XP);
 	pSql->BindInt64(7, pReq->m_Money);
-	pSql->BindString(8, pReq->m_aUsername);
+	pSql->BindInt(8, pReq->m_HatItemFlags);
+	pSql->BindString(9, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
 bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
-	const auto *p = dynamic_cast<const CAccSaveInfo *>(pData);
+	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
 
 	// Upsert owned items (cheap, idempotent)
 	{
 		for(int i = 0; i < NUM_ITEMS; i++)
 		{
-			if(!p->m_Inventory.m_aOwned[i])
+			if(!pReq->m_Inventory.m_aOwned[i])
 				continue;
 
 			char aIns[256];
@@ -343,17 +345,17 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
-			pSql->BindString(1, p->m_aUsername);
+			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, p->m_Inventory.m_AcquiredAt[i]);
-			pSql->BindInt64(4, p->m_Inventory.m_ExpiresAt[i]);
+			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt[i]);
+			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt[i]);
 			int Num = 0;
 			if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
 				return false;
 		}
 	}
 
-	if(!UpdateItemValues(pSql, p->m_aUsername, p->m_Inventory, pError, ErrorSize))
+	if(!UpdateItemValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
 		return false;
 
 	char aSql[512];
@@ -361,19 +363,20 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 		"UPDATE foxnet_accounts "
 		"SET LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ? "
+		"    Level = ?, XP = ?, Money = ?, HatItemFlags = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindInt64(1, p->m_Flags);
-	pSql->BindInt64(2, p->m_Playtime);
-	pSql->BindInt64(3, p->m_Deaths);
-	pSql->BindInt64(4, p->m_Kills);
-	pSql->BindInt64(5, p->m_Level);
-	pSql->BindInt64(6, p->m_XP);
-	pSql->BindInt64(7, p->m_Money);
-	pSql->BindString(8, p->m_aUsername);
+	pSql->BindInt64(1, pReq->m_Flags);
+	pSql->BindInt64(2, pReq->m_Playtime);
+	pSql->BindInt64(3, pReq->m_Deaths);
+	pSql->BindInt64(4, pReq->m_Kills);
+	pSql->BindInt64(5, pReq->m_Level);
+	pSql->BindInt64(6, pReq->m_XP);
+	pSql->BindInt64(7, pReq->m_Money);
+	pSql->BindInt(8, pReq->m_HatItemFlags);
+	pSql->BindString(9, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -402,7 +405,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
+		"Level, XP, Money, Disabled, HatItemFlags "
 		"FROM foxnet_accounts WHERE LastPlayerName = ?"
 		"ORDER BY LastLogin DESC "
 		"LIMIT 1",
@@ -435,6 +438,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_XP = pSql->GetInt64(16);
 		pRes->m_Money = pSql->GetInt64(17);
 		pRes->m_Disabled = pSql->GetInt(18);
+		pRes->m_HatItemFlags = pSql->GetInt(19);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
@@ -455,7 +459,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
+		"Level, XP, Money, Disabled, HatItemFlags "
 		"FROM foxnet_accounts WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -486,6 +490,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_XP = pSql->GetInt64(16);
 		pRes->m_Money = pSql->GetInt64(17);
 		pRes->m_Disabled = pSql->GetInt(18);
+		pRes->m_HatItemFlags = pSql->GetInt(19);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 

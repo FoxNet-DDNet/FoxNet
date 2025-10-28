@@ -32,6 +32,7 @@ struct CAccResult : ISqlResult
 	long m_XP = 0;
 	long m_Money = 0;
 	bool m_Disabled = false;
+	int m_HatItemFlags = 0;
 	CInventory m_Inventory;
 };
 
@@ -79,20 +80,6 @@ struct CAccUpdLoginState : ISqlData
 	int m_Port = 0;
 	int m_ClientId = -1;
 };
-struct CAccUpdLogoutState : ISqlData
-{
-	CAccUpdLogoutState() :
-		ISqlData(nullptr) {}
-	char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
-	long m_Flags = 0;
-	long m_Playtime = 0;
-	long m_Deaths = 0;
-	long m_Kills = 0;
-	long m_Level = 0;
-	long m_XP = 0;
-	long m_Money = 0;
-	CInventory m_Inventory;
-};
 struct CAccSaveInfo : ISqlData
 {
 	CAccSaveInfo() :
@@ -105,6 +92,7 @@ struct CAccSaveInfo : ISqlData
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
+	int m_HatItemFlags = 0;
 	CInventory m_Inventory;
 };
 struct CAccSetNameReq : ISqlData

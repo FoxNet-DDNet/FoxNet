@@ -138,7 +138,7 @@ class CVoteMenu
 
 		bool m_OnlyAffordable = false;
 
-		char m_aMetaData[16] = "";
+		char m_aMetaData[64] = "";
 		CItem *m_pLastItemInfo = nullptr;
 		// After executing a file with a bunch of votes, we need to resend after some ticks
 		int64_t m_RetryTick = -1;

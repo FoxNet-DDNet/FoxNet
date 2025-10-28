@@ -448,7 +448,6 @@ public:
 	bool m_WeaponIndicator = true;
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
-	int m_HatItemFlags = 0;
 
 	int m_AccLoginAttemps;
 	int m_AccRegisters;

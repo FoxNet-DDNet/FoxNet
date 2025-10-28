@@ -58,6 +58,8 @@ struct CAccountSession
 
 	int m_LoginTick = 0;
 	bool m_Disabled = false;
+
+	int m_HatItemFlags = 0;
 };
 
 struct CPendingAccResult

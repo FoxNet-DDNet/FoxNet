@@ -243,25 +243,24 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 		if(IsOption(pVote, SETTINGS_0_ROTATION))
 		{
-			pPl->m_HatItemFlags = 0;
+			Acc.m_HatItemFlags = 0;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_90_ROTATION))
 		{
-			pPl->m_HatItemFlags = PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			Acc.m_HatItemFlags = PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_180_ROTATION))
 		{
-			pPl->m_HatItemFlags = PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			Acc.m_HatItemFlags = PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_270_ROTATION))
 		{
-			pPl->m_HatItemFlags = PICKUPFLAG_ROTATE;
+			Acc.m_HatItemFlags = PICKUPFLAG_ROTATE;
 			return true;
 		}
-
 	}
 	else if(Page == PAGE_SHOP)
 	{
@@ -374,7 +373,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			GameServer()->SendChatTarget(ClientId, "https://github.com/FoxNet-DDNet/FoxNet");
 			return true;
 		}
-
 	}
 	if(Page == PAGE_ADMIN)
 	{
@@ -852,12 +850,14 @@ void CVoteMenu::SendPageSettings(int ClientId)
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pPl->m_HidePowerUps);
 
 	AddVoteSeperator();
-
-	AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
-	AddVoteCheckBox(SETTINGS_0_ROTATION, !pPl->m_HatItemFlags);
-	AddVoteCheckBox(SETTINGS_90_ROTATION, pPl->m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
-	AddVoteCheckBox(SETTINGS_180_ROTATION, pPl->m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
-	AddVoteCheckBox(SETTINGS_270_ROTATION, pPl->m_HatItemFlags == PICKUPFLAG_ROTATE);
+	if(Server()->GetClientVersion(ClientId) >= VERSION_DDNET_PICKUP_ROTATION)
+	{
+		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
+		AddVoteCheckBox(SETTINGS_0_ROTATION, !pAcc->m_HatItemFlags);
+		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+		AddVoteCheckBox(SETTINGS_270_ROTATION, pAcc->m_HatItemFlags == PICKUPFLAG_ROTATE);
+	}
 }
 
 void CVoteMenu::SendPageShop(int ClientId)
@@ -896,7 +896,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 	if(SubPage == SUB_SHOP_MAIN)
 	{
-		const int Bulletpoint = PREFIX_LONG_LINE;
+		const int Prefix = PREFIX_LONG_LINE;
 
 		std::vector<std::string> AvailableCategories;
 
@@ -918,9 +918,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		}
 		AddVoteText("╭───────── Cᴀᴛᴇɢᴏʀɪᴇs");
 		for(const auto &pCategory : AvailableCategories)
-		{
-			AddVotePrefix(pCategory.c_str(), Bulletpoint);
-		}
+			AddVotePrefix(pCategory.c_str(), Prefix);
 		AddVoteText("╰────────────");
 	}
 	else if(SubPage == SUB_SHOP_SELECT)
@@ -1062,7 +1060,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteText("│ elses by using '/profile <name>' in the chat");
 		AddVoteText("╰────────────────────");
 	}
-	else if (SubPage == SUB_SERVERINFO_LEVELING)
+	else if(SubPage == SUB_SERVERINFO_LEVELING)
 	{
 		AddVoteText("╭───────    Lᴇᴠᴇʟɪɴɢ");
 		AddVoteText("│ 1. You Earn XP passively every minute you're playing");
@@ -1086,7 +1084,6 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVotePrefix(SERVER_INFO_GITHUB, PREFIX_LONG_LINE);
 		AddVoteText("╰────────────────────");
 	}
-
 }
 
 void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
@@ -1182,7 +1179,7 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 			Votes.push_back(Data);
 		}
 	}
-	
+
 	if(Authed)
 	{
 		AddVoteSubheader("Uɴᴀᴠᴀɪʟᴀʙʟᴇ");

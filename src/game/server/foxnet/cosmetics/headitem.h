@@ -23,7 +23,7 @@ class CHeadItem : public CEntity
 	float m_Offset;
 
 public:
-	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset = 78.0f);
+	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset);
 
 	virtual void Reset() override;
 	virtual void Tick() override;
