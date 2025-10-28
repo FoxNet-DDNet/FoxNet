@@ -432,6 +432,9 @@ public:
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
 
+	int m_AccLoginAttemps;
+	int m_AccRegisters;
+
 	CAccountSession *Acc();
 	CInventory *Inv();
 	CCosmetics *Cosmetics();

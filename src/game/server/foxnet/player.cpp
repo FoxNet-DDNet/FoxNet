@@ -107,16 +107,23 @@ void CPlayer::ExpireItems()
 
 void CPlayer::FoxNetReset()
 {
+	m_AccLoginAttemps = 0;
+	m_AccRegisters = 0;
+
 	m_IncludeServerInfo = -1;
 	m_HideCosmetics = false;
 	m_HidePowerUps = false;
 
 	m_ExtraPing = false;
-	m_Obfuscated = false;
 	m_Vanish = false;
 	m_IgnoreGamelayer = false;
 	m_TelekinesisImmunity = false;
+
+	m_Obfuscated = false;
 	m_SpiderHook = false;
+	m_Spazzing = false;
+
+	m_Area = 0;
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 

@@ -211,7 +211,11 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 		if(!Res.m_Success)
 			GameServer()->SendChatTarget(ClientId, "[Err] Username is already taken");
 		else
+		{
 			GameServer()->SendChatTarget(ClientId, "Registered Successfully, use /login..");
+			if(GameServer()->m_apPlayers[ClientId])
+				GameServer()->m_apPlayers[ClientId]->m_AccRegisters++;
+		}
 	});
 	m_pPool->ExecuteWrite(CAccountsWorker::Register, std::move(pReq), "acc register");
 	return true;

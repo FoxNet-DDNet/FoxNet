@@ -41,6 +41,15 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	const char *pUser = pResult->GetString(0);
 	const char *pPass = pResult->GetString(1);
 
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(pPlayer->m_AccRegisters >= 2)
+	{
+		pSelf->Server()->Ban(ClientId, 2880 * 60, "Too many registrations.", false);
+		return;
+	}
+
 	pSelf->m_AccountManager.Register(ClientId, pUser, pPass);
 }
 
@@ -79,6 +88,17 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	if(pSelf->m_aAccounts[ClientId].m_LoggedIn)
 	{
 		pSelf->SendChatTarget(ClientId, "You are already logged in");
+		return;
+	}
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	pPlayer->m_AccLoginAttemps++;
+
+	if(pPlayer->m_AccLoginAttemps >= g_Config.m_SvRconMaxTries)
+	{
+		pSelf->Server()->Ban(ClientId, g_Config.m_SvRconBantime * 60, "Too many /login attempts.", false);
 		return;
 	}
 

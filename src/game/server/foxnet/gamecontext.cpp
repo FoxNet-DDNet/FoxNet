@@ -427,7 +427,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	if(count >= 2 && BanDuration > 0)
 	{
 		if(IsBan)
-			Server()->Ban(ClientId, BanDuration * 60, Reason, "");
+			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
 		else
 			MuteWithMessage(Server()->ClientAddr(ClientId), BanDuration * 60, Reason, ClientName);
 
@@ -511,7 +511,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 		log_info("chat-detection", "%s", aBuf);
 
 		if(!PreventNameChange && BanDuration > 0)
-			Server()->Ban(ClientId, BanDuration * 60, Reason, "");
+			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
 		return true;
 	}
 
