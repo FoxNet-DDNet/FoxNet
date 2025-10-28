@@ -16,6 +16,8 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+#include <game/server/foxnet/shop.h>
+#include <game/gamecore.h>
 
 CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
@@ -38,61 +40,75 @@ void CHeadItem::Reset()
 
 void CHeadItem::Tick()
 {
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
+	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
 
-	if(!pOwner)
-		return;
-	if(!pOwner->m_pHeadItem)
+	if(!pOwnerPl)
 	{
 		Reset();
 		return;
 	}
 
-	m_Pos = pOwner->GetPos();
+	CCharacter *pOwnerChr = pOwnerPl->GetCharacter();
+
+	switch(m_Type)
+	{
+	case HEADITEM_SPAWNSOLO:
+		if(!pOwnerChr || !pOwnerChr->m_SpawnSolo)
+		{
+			Reset();
+			return;
+		}
+		break;
+	case HEADITEM_COSMETIC:
+		if(pOwnerPl->Cosmetics()->m_HatType == HATTYPE_NONE)
+		{
+			pOwnerPl->Inv()->SetEquippedIndex(HAT_HAMMER + pOwnerPl->Cosmetics()->m_HatType - 1, 0);
+			Reset();
+			return;
+		}
+		break;
+	default: 
+		Reset();
+		return;
+	}
+
+	if(!pOwnerChr)
+		return;
+
+	m_Pos = pOwnerChr->GetPos();
 	m_Pos.y -= m_Offset;
 }
 
 void CHeadItem::Snap(int SnappingClient)
 {
+	if(SnappingClient < 0 || SnappingClient >= MAX_CLIENTS)
+		return;
+
 	if(NetworkClipped(SnappingClient))
 		return;
 
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 
-	if(!pOwnerChr)
+	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pOwnerChr->IsPaused())
+	if(pOwnerChr->IsPaused() && m_Type != HEADITEM_SPAWNSOLO)
 		return;
 
-	if(SnappingClient != SERVER_DEMO_CLIENT)
-	{
-		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		if(!pSnapPlayer)
+	if(pOwnerChr->m_SpawnSolo && m_Type != HEADITEM_SPAWNSOLO)
+		return;
+
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
+		return;
+
+	if(pSnapPlayer->GetCharacter() && pOwnerChr)
+		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
 			return;
 
-		if(!pOwnerChr->TeamMask().test(SnappingClient))
+	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
+		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
-
-		if(pSnapPlayer->GetCharacter() && pOwnerChr)
-			if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-				return;
-
-		if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-			if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-				return;
-	}
-
-	int Type = m_Type;
-	const int SubType = Type - 7;
-	if(m_Type == 8)
-		Type = POWERUP_WEAPON;
-	else if(m_Type == 9)
-		Type = POWERUP_WEAPON;
-	else if(m_Type == 10)
-		Type = POWERUP_WEAPON;
-	else if(m_Type == 11)
-		Type = POWERUP_WEAPON;
 
 	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
 	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
@@ -105,5 +121,23 @@ void CHeadItem::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), Pos, Type, SubType, -1, PICKUPFLAG_NO_PREDICT);
+
+	int Type = 0;
+	int SubType = 0;
+	int Flags = PICKUPFLAG_NO_PREDICT | pOwnerChr->GetPlayer()->m_HatItemFlags;
+	switch(m_Type)
+	{
+	case HEADITEM_SPAWNSOLO:
+		Type = POWERUP_ARMOR;
+		SubType = 0;
+		break;
+	case HEADITEM_COSMETIC:
+		Type = POWERUP_WEAPON;
+		SubType = pSnapPlayer->Cosmetics()->m_HatType - 1;
+		break;
+	default:
+		break;
+	}
+
+	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), Pos, Type, SubType, -1, Flags);
 }

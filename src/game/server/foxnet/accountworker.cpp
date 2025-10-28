@@ -403,7 +403,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
 		"Level, XP, Money, Disabled "
-		"FROM foxnet_accounts WHERE LastPlayerName = ? AND Disabled = 0"
+		"FROM foxnet_accounts WHERE LastPlayerName = ?"
 		"ORDER BY LastLogin DESC "
 		"LIMIT 1",
 		sizeof(aSql));

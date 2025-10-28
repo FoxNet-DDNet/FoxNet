@@ -74,16 +74,50 @@ enum Prefixes
 	PREFIX_LONG_LINE,
 };
 
-class CItemVoteData
+enum VoteTypes
+{
+	VOTE_TYPE_TEXT = 0,
+	VOTE_TYPE_SUBHEADER,
+	VOTE_TYPE_PREFIX,
+	VOTE_TYPE_CHECKBOX,
+	VOTE_TYPE_VALUE_OPTION,
+};
+
+class CVoteData
 {
 public:
-	std::string m_pItemName;
-	std::string m_pVoteName;
-	CItemVoteData(const std::string &pItemName, const std::string &pVoteName)
+	CItem *m_pItem = nullptr;
+
+	int m_ItemType = 0;
+	int m_VoteType = 0;
+	std::string m_sVoteName;
+	int m_Max = -1;
+	int m_Prefix = 0;
+	int m_Value = 0;
+	std::string m_sSuffixDesc;
+
+	CVoteData() = default;
+	
+	CVoteData(int VoteType, const std::string &pVoteName)
 	{
-		m_pItemName = pItemName;
-		m_pVoteName = pVoteName;
+		m_VoteType = VoteType;
+		m_sVoteName = pVoteName;
 	}
+	CVoteData(int VoteType, const std::string &pVoteName, int Prefix)
+	{
+		m_VoteType = VoteType;
+		m_sVoteName = pVoteName;
+		m_Prefix = Prefix;
+	}
+
+	CVoteData(CItem *pItem, const std::string &pVoteName, int Prefix)
+	{
+		m_pItem = pItem;
+		m_VoteType = VOTE_TYPE_CHECKBOX;
+		m_sVoteName = pVoteName;
+		m_Prefix = Prefix;
+	}
+
 };
 
 class CVoteMenu
@@ -122,7 +156,8 @@ class CVoteMenu
 	void AddVoteSubheader(const char *pDesc);
 	void AddVotePrefix(const char *pDesc, int Prefix);
 	void AddVoteCheckBox(const char *pDesc, bool Checked);
-	void AddVoteValueOption(const char *pDescription, int Value, int Max, int BulletPoint);
+	void AddVoteValueOption(const char *pDescription, int Value, int Max, int Prefix = PREFIX_NONE);
+	void AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc);
 
 	void SendPageMainMenu(int ClientId);
 	void SendPageVotes(int ClientId);
@@ -144,7 +179,6 @@ class CVoteMenu
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
-	const char *ItemTypeToName(int Type) const;
 public:
 	
 	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }

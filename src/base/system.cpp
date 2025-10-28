@@ -91,6 +91,10 @@
 #endif
 #include <random>
 
+// <FoxNet
+#include <game/server/foxnet/shop.h>
+// FoxNet>
+
 static NETSTATS network_stats = {0};
 
 #define VLEN 128
@@ -4469,6 +4473,20 @@ const char *FormatPlaytime(int64_t Time)
 		str_format(aBuf, sizeof(aBuf), "%d Mins", Minutes);
 	return aBuf;
 
+}
+
+const char *ItemTypeToName(int Type)
+{
+	switch(Type)
+	{
+	case TYPE_RAINBOW: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
+	case TYPE_GUN: return "Gᴜɴs";
+	case TYPE_INDICATOR: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
+	case TYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
+	case TYPE_TRAIL: return "Tʀᴀɪʟs";
+	case TYPE_HAT: return "Hᴀᴛs";
+	default: return "Oᴛʜᴇʀ";
+	}
 }
 
 // FoxNet>

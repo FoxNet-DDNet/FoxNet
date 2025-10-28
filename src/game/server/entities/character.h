@@ -351,7 +351,6 @@ public:
 
 	bool m_InQuadFreeze;
 
-	CHeadItem *m_pHeadItem;
 	bool m_SpawnSolo = false;
 	bool m_ShouldSolo = true;
 	void UnSpawnSolo(bool Unsolo = true);

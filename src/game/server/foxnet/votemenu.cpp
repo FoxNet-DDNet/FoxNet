@@ -37,6 +37,11 @@ constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_COSMETICS = "Hide Cosmetics";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
 
+constexpr const char *SETTINGS_0_ROTATION = "0°";
+constexpr const char *SETTINGS_90_ROTATION = "90°";
+constexpr const char *SETTINGS_180_ROTATION = "180°";
+constexpr const char *SETTINGS_270_ROTATION = "270°";
+
 // Admin SubPages
 constexpr const char *ADMIN_UTIL = "Util Page";
 constexpr const char *ADMIN_COSMETICS = "Cosmetics Page";
@@ -235,6 +240,28 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			pPl->SetHidePowerUps(!pPl->m_HidePowerUps);
 			return true;
 		}
+
+		if(IsOption(pVote, SETTINGS_0_ROTATION))
+		{
+			pPl->m_HatItemFlags = 0;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_90_ROTATION))
+		{
+			pPl->m_HatItemFlags = PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_180_ROTATION))
+		{
+			pPl->m_HatItemFlags = PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_270_ROTATION))
+		{
+			pPl->m_HatItemFlags = PICKUPFLAG_ROTATE;
+			return true;
+		}
+
 	}
 	else if(Page == PAGE_SHOP)
 	{
@@ -301,10 +328,10 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
 		}
-		if(IsOptionWithSuffix(pVote, "Emoticon Gun"))
+		if(IsOptionWithSuffix(pVote, Items[GUN_EMOTICON]))
 		{
 			if(ReasonInt.has_value())
-				pPl->ToggleItem("Emoticon Gun", ReasonInt.value(), Page == PAGE_ADMIN);
+				pPl->ToggleItem(Items[GUN_EMOTICON], ReasonInt.value(), Page == PAGE_ADMIN);
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
@@ -818,10 +845,19 @@ void CVoteMenu::SendPageSettings(int ClientId)
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
+	AddVoteText("Sᴇᴛᴛɪɴɢs");
 	if(pAcc->m_LoggedIn)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Flags & ACC_FLAG_AUTOLOGIN);
 	AddVoteCheckBox(SETTINGS_HIDE_COSMETICS, pPl->m_HideCosmetics);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pPl->m_HidePowerUps);
+
+	AddVoteSeperator();
+
+	AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
+	AddVoteCheckBox(SETTINGS_0_ROTATION, !pPl->m_HatItemFlags);
+	AddVoteCheckBox(SETTINGS_90_ROTATION, pPl->m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+	AddVoteCheckBox(SETTINGS_180_ROTATION, pPl->m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+	AddVoteCheckBox(SETTINGS_270_ROTATION, pPl->m_HatItemFlags == PICKUPFLAG_ROTATE);
 }
 
 void CVoteMenu::SendPageShop(int ClientId)
@@ -1058,54 +1094,95 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 
 	// !New Cosmetic
-	std::vector<CItemVoteData> RainbowItems;
-	std::vector<CItemVoteData> GunItems;
-	std::vector<CItemVoteData> IndicatorItems;
-	std::vector<CItemVoteData> KillEffectItems;
-	std::vector<CItemVoteData> TrailItems;
-	std::vector<CItemVoteData> OtherItems;
-
-	for(const auto &pItems : GameServer()->m_Shop.m_Items)
+	std::vector<CVoteData> Votes;
+	for(int Type = 0; Type < NUM_TYPES; Type++)
 	{
-		if(!Authed)
+		// Type | ItemType | ItemName | VoteName
 		{
-			if(!str_comp(pItems->Name(), ""))
-				continue;
-			if(pItems->Price() == -1)
-				continue;
-			if(!(pPl->OwnsItem(pItems->Name())))
-				continue;
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_SUBHEADER;
+			Data.m_sVoteName = ItemTypeToName(Type);
+			Votes.push_back(Data);
 		}
 
-		int Idx = pPl->Inv()->IndexOfName(pItems->Name());
-
-		int64_t Now = time(0);
-		int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
-		int64_t Remaining = Expiry - Now;
-
-		char aVoteName[VOTE_DESC_LENGTH];
-		str_copy(aVoteName, pItems->Name());
-		if(Remaining > 0)
+		if(Type == TYPE_RAINBOW)
 		{
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
+			Data.m_sVoteName = "Rainbow Speed";
+			Data.m_Value = pPl->Cosmetics()->m_RainbowSpeed;
+			Data.m_Max = 20;
+			Votes.push_back(Data);
+		}
+
+		for(const auto &pItem : GameServer()->m_Shop.m_Items)
+		{
+			const char *pItemName = pItem->Name();
+
+			if(!Authed)
+			{
+				if(!str_comp(pItemName, ""))
+					continue;
+				if(pItem->Price() == -1)
+					continue;
+				if(!(pPl->OwnsItem(pItemName)))
+					continue;
+			}
+			int Idx = pPl->Inv()->IndexOfName(pItemName);
+
+			int64_t Now = time(0);
+			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
+			int64_t Remaining = Expiry - Now;
+
 			char TimeBuf[20] = "";
-			FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
-			str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItems->Name(), TimeBuf);
+			char aVoteName[VOTE_DESC_LENGTH];
+			str_copy(aVoteName, pItemName);
+			if(Remaining > 0)
+			{
+				FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
+				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
+			}
+
+			if(pItem->Type() == Type && !str_comp_nocase(pItem->Name(), Items[GUN_EMOTICON]))
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
+				Data.m_sVoteName = pItemName;
+				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
+				Data.m_Prefix = PREFIX_NONE;
+				Data.m_Max = NUM_EMOTICONS;
+				str_format(aVoteName, sizeof(aVoteName), "[→ %s]", TimeBuf);
+				Data.m_sSuffixDesc = aVoteName;
+				Votes.push_back(Data);
+				continue;
+			}
+
+			if(pItem->Type() == Type)
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
+				Data.m_sVoteName = aVoteName;
+				Data.m_Value = pPl->ItemEnabled(pItemName);
+				Votes.push_back(Data);
+			}
 		}
 
-		if(pItems->Type() == TYPE_RAINBOW)
-			RainbowItems.push_back({pItems->Name(), aVoteName});
-		else if(pItems->Type() == TYPE_GUN)
-			GunItems.push_back({pItems->Name(), aVoteName});
-		else if(pItems->Type() == TYPE_INDICATOR)
-			IndicatorItems.push_back({pItems->Name(), aVoteName});
-		else if(pItems->Type() == TYPE_DEATHS)
-			KillEffectItems.push_back({pItems->Name(), aVoteName});
-		else if(pItems->Type() == TYPE_TRAIL)
-			TrailItems.push_back({pItems->Name(), aVoteName});
-		else
-			OtherItems.push_back({pItems->Name(), aVoteName});
+		if(Type != NUM_TYPES - 1)
+		{
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_TEXT;
+			Data.m_sVoteName = " ";
+			Votes.push_back(Data);
+		}
 	}
-
+	
 	if(Authed)
 	{
 		AddVoteSubheader("Uɴᴀᴠᴀɪʟᴀʙʟᴇ");
@@ -1121,61 +1198,26 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteSeperator();
 	}
 
-	if(!RainbowItems.empty())
+	for(const auto &Vote : Votes)
 	{
-		AddVoteSubheader("Rᴀɪɴʙᴏᴡ");
-		AddVoteValueOption("Rainbow Speed", pPl->Cosmetics()->m_RainbowSpeed, 20, PREFIX_ARROW);
-		for(const auto &Item : RainbowItems)
+		if(Vote.m_VoteType == VOTE_TYPE_TEXT)
 		{
-			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
+			AddVoteText(Vote.m_sVoteName.c_str());
 		}
-		AddVoteSeperator();
-	}
-	if(!GunItems.empty())
-	{
-		AddVoteSubheader("Gᴜɴs");
-		for(const auto &Item : GunItems)
+		else if(Vote.m_VoteType == VOTE_TYPE_SUBHEADER)
 		{
-			if(!str_comp(Item.m_pItemName.c_str(), "Emoticon Gun"))
-				AddVoteValueOption(Item.m_pItemName.c_str(), pPl->Cosmetics()->m_EmoticonGun, 16, PREFIX_NONE);
+			AddVoteSubheader(Vote.m_sVoteName.c_str());
+		}
+		else if(Vote.m_VoteType == VOTE_TYPE_CHECKBOX)
+		{
+			AddVoteCheckBox(Vote.m_sVoteName.c_str(), Vote.m_Value);
+		}
+		else if(Vote.m_VoteType == VOTE_TYPE_VALUE_OPTION)
+		{
+			if(Vote.m_sSuffixDesc.empty())
+				AddVoteValueOption(Vote.m_sVoteName.c_str(), Vote.m_Value, Vote.m_Max, Vote.m_Prefix);
 			else
-				AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
-		}
-		AddVoteSeperator();
-	}
-	if(!IndicatorItems.empty())
-	{
-		AddVoteSubheader("Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs");
-		for(const auto &Item : IndicatorItems)
-		{
-			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
-		}
-		AddVoteSeperator();
-	}
-	if(!KillEffectItems.empty())
-	{
-		AddVoteSubheader("Dᴇᴀᴛʜ Eғғᴇᴄᴛs");
-		for(const auto &Item : KillEffectItems)
-		{
-			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
-		}
-		AddVoteSeperator();
-	}
-	if(!TrailItems.empty())
-	{
-		AddVoteSubheader("Tʀᴀɪʟs");
-		for(const auto &Item : TrailItems)
-		{
-			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
-		}
-		AddVoteSeperator();
-	}
-	if(!OtherItems.empty())
-	{
-		AddVoteSubheader("Oᴛʜᴇʀ");
-		for(const auto &Item : OtherItems)
-		{
-			AddVoteCheckBox(Item.m_pVoteName.c_str(), pPl->ItemEnabled(Item.m_pItemName.c_str()));
+				AddVoteValueOption(Vote.m_sVoteName.c_str(), Vote.m_Value, Vote.m_Max, Vote.m_sSuffixDesc.c_str());
 		}
 	}
 }
@@ -1214,19 +1256,6 @@ bool CVoteMenu::CanBuyAnyOfType(int ClientId, int ItemType) const
 			return true;
 	}
 	return false;
-}
-
-const char *CVoteMenu::ItemTypeToName(int Type) const
-{
-	switch(Type)
-	{
-	case TYPE_RAINBOW: return "Rainbow Effects";
-	case TYPE_GUN: return "Guns";
-	case TYPE_INDICATOR: return "Gun Hit Effects";
-	case TYPE_DEATHS: return "Death Effects";
-	case TYPE_TRAIL: return "Trails";
-	default: return "Others";
-	}
 }
 
 void CVoteMenu::SendPageAdmin(int ClientId)
@@ -1319,7 +1348,7 @@ void CVoteMenu::AddVotePrefix(const char *pDesc, int Prefix)
 	AddVoteText(aBuf);
 }
 
-void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, int BulletPoint)
+void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, int Prefix)
 {
 	char aBuf[VOTE_DESC_LENGTH];
 	if(Max == -1)
@@ -1330,7 +1359,21 @@ void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max,
 	{
 		str_format(aBuf, sizeof(aBuf), "%s: %d/%d", pDescription, Value, Max);
 	}
-	AddVotePrefix(aBuf, BulletPoint);
+	AddVotePrefix(aBuf, Prefix);
+}
+
+void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc)
+{
+	char aBuf[VOTE_DESC_LENGTH];
+	if(Max == -1)
+	{
+		str_format(aBuf, sizeof(aBuf), "%s: %d %s", pDescription, Value, pSuffixDesc);
+	}
+	else
+	{
+		str_format(aBuf, sizeof(aBuf), "%s: %d/%d %s", pDescription, Value, Max, pSuffixDesc);
+	}
+	AddVoteText(aBuf);
 }
 
 void CVoteMenu::AddVoteSubheader(const char *pDesc)

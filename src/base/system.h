@@ -2282,4 +2282,6 @@ bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize);
 
 void FormatItemTime(int64_t Remaining, char *out, size_t outSize);
 const char *FormatPlaytime(int64_t Time);
+
+const char *ItemTypeToName(int Type);
 // FoxNet>

@@ -50,8 +50,16 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem("Star Trail", "T_S", TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
 	m_Items.push_back(new CItem("Dot Trail", "T_D", TYPE_TRAIL, 8000, "A trail made out of small dots", 7, SUBTYPE_TRAIL));
 
+	m_Items.push_back(new CItem("Hammer Hat", "H_O", TYPE_HAT, 4000, "Hammer above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Gun Hat", "H_G", TYPE_HAT, 4000, "Gun above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Shotgun Hat", "H_SG", TYPE_HAT, 4000, "Shotgun above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Grenade Hat", "H_GR", TYPE_HAT, 4000, "Grenade above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Laser Hat", "H_L", TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Ninja Hat", "H_N", TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
+
+	m_Items.push_back(new CItem("Heart Hat", "H_O", TYPE_HAT, 4000, "A hat of Hearts", 10, SUBTYPE_HAT));
+
 	m_Items.push_back(new CItem("Sparkle", "O_S", TYPE_OTHER, 1500, "Makes you sparkle", 5));
-	m_Items.push_back(new CItem("Heart Hat", "O_H", TYPE_OTHER, 12000, "A hat of hearts?", 10));
 	m_Items.push_back(new CItem("Inverse Aim", "O_I", TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
 	m_Items.push_back(new CItem("Lovely", "O_L", TYPE_OTHER, 12500, "Spreading love huh?", 15));
 	m_Items.push_back(new CItem("Rotating Ball", "O_R", TYPE_OTHER, 12500, "Ball rotate - life good", 15));

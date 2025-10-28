@@ -9,6 +9,13 @@
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
 
+enum HeadItemType
+{
+	HEADITEM_SPAWNSOLO = 0,
+	HEADITEM_COSMETIC = 1,
+};
+
+
 class CHeadItem : public CEntity
 {
 	int m_Owner;

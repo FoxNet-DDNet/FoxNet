@@ -20,6 +20,8 @@
 #include "foxnet/shop.h"
 
 struct CAccountSession;
+
+class CHeadItem;
 // FoxNet>
 
 class CCharacter;
@@ -58,19 +60,19 @@ enum Indicators
 
 enum KillEffects
 {
-	DEATH_NONE = 0,
-	DEATH_HAMMERHIT,
-	DEATH_EXPLOSION,
-	DEATH_DAMAGEIND,
-	DEATH_LASER,
+	DEATHS_NONE = 0,
+	DEATHS_HAMMERHIT,
+	DEATHS_EXPLOSION,
+	DEATHS_DAMAGEIND,
+	DEATHS_LASER,
 	NUM_DEATHS
 };
 
 enum TrailTypes
 {
-	TRAIL_NONE = 0,
-	TRAIL_STAR,
-	TRAIL_DOT,
+	TRAILS_NONE = 0,
+	TRAILS_STAR,
+	TRAILS_DOT,
 	NUM_TRAILS
 };
 
@@ -81,6 +83,18 @@ enum GunTypes
 	GUN_MIXED,
 	GUN_LASER,
 	NUM_GUNS
+};
+
+enum HatTypes
+{
+	HATTYPE_NONE = 0,
+	HATTYPE_HAMMER,
+	HATTYPE_GUN,
+	HATTYPE_SHOTGUN,
+	HATTYPE_GRENADE,
+	HATTYPE_LASER,
+	HATTYPE_NINJA,
+	NUM_HATTYPE
 };
 
 class CCosmetics
@@ -94,7 +108,6 @@ public:
 	int m_HookPower = 0;
 	bool m_Bloody = false;
 	bool m_InverseAim = false;
-	bool m_HeartHat = false;
 
 	int m_DeathEffect = 0;
 	int m_DamageIndType = 0;
@@ -108,6 +121,10 @@ public:
 
 	// Trails
 	int m_Trail = 0;
+
+	// Hats
+	bool m_HeartHat = false;
+	int m_HatType = 0;
 
 	// Rainbow
 	bool m_RainbowFeet = false;
@@ -431,6 +448,7 @@ public:
 	bool m_WeaponIndicator = true;
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
+	int m_HatItemFlags = 0;
 
 	int m_AccLoginAttemps;
 	int m_AccRegisters;
@@ -480,6 +498,7 @@ public:
 	void SetDeathEffect(int Type);
 
 	void SetHeartHat(bool Active);
+	void SetHatType(int Type);
 
 	void SetStaffInd(bool Active);
 	void SetPickupPet(bool Active);
@@ -526,5 +545,4 @@ public:
 	float GetClientPred();
 	// FoxNet>
 };
-
 #endif

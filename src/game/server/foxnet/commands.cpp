@@ -573,7 +573,7 @@ void CGameContext::ConDotTrail(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAIL_DOT ? TRAIL_NONE : TRAIL_DOT;
+	int Trail = pPl->Cosmetics()->m_Trail == TRAILS_DOT ? TRAILS_NONE : TRAILS_DOT;
 
 	pPl->SetTrail(Trail);
 	log_info("cosmetics", "Set trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
@@ -589,7 +589,7 @@ void CGameContext::ConStarTrail(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAIL_STAR ? TRAIL_NONE : TRAIL_STAR;
+	int Trail = pPl->Cosmetics()->m_Trail == TRAILS_STAR ? TRAILS_NONE : TRAILS_STAR;
 
 	pPl->SetTrail(Trail);
 	log_info("cosmetics", "Set rainbow feet to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));

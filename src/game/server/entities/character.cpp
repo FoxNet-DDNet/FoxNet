@@ -67,7 +67,6 @@ CCharacter::CCharacter(CGameWorld *pWorld, CNetObj_PlayerInput LastInput) :
 	m_IsRainbowHooked = false;
 	m_TuneZoneOverride = -1;
 	m_InSnake = false;
-	m_pHeadItem = nullptr;
 	// FoxNet>
 }
 
@@ -1148,30 +1147,30 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	// <FoxNet
 	switch(GetPlayer()->Cosmetics()->m_DeathEffect)
 	{
-	case DEATH_HAMMERHIT:
+	case DEATHS_HAMMERHIT:
 	{
 		GameServer()->CreateHammerHit(m_Pos, CosmeticMask());
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CosmeticMask());
 		break;
 	}
-	case DEATH_EXPLOSION:
+	case DEATHS_EXPLOSION:
 	{
 		GameServer()->Explosion(m_Pos, CosmeticMask());
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, CosmeticMask());
 		break;
 	}
-	case DEATH_LASER:
+	case DEATHS_LASER:
 	{
 		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask());
 		break;
 	}
-	case DEATH_DAMAGEIND:
+	case DEATHS_DAMAGEIND:
 	{
 		for(int i = 0; i < 8; i++)
 			GameServer()->CreateDamageInd(m_Pos, 0.84f + (i * 0.76f), 1, CosmeticMask());
 		break;
 	}
-	case DEATH_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
+	case DEATHS_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
 	}
 	// This only gets created if a player has cosmetics turned off
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppsiteCosmeticMask());
@@ -3047,8 +3046,7 @@ void CCharacter::FoxNetSpawn()
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
-		if(!m_pHeadItem)
-			m_pHeadItem = new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, POWERUP_ARMOR, 56.0f);
+			new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, 56.0f);
 	}
 	if(!m_ShouldSolo)
 		m_ShouldSolo = true; // Next spawn will be solo
@@ -3143,7 +3141,6 @@ void CCharacter::UnSpawnSolo(bool Unsolo)
 	if(Unsolo)
 		SetSolo(false);
 	m_SpawnSolo = false;
-	m_pHeadItem = nullptr;
 }
 
 void CCharacter::HandleTelekinesis()
