@@ -1536,10 +1536,14 @@ void CCollision::GetAnimationTransform(float GlobalTime, int Env, vec2 &Position
 	Position.y = 0.0f;
 	Angle = 0.0f;
 
+	if(Env < 0)
+		return;
+
 	int Start, Num;
 	m_pLayers->Map()->GetType(MAPITEMTYPE_ENVELOPE, &Start, &Num);
 	if(Env >= Num)
 		return;
+
 	CMapItemEnvelope *pItem = (CMapItemEnvelope *)m_pLayers->Map()->GetItem(Start + Env, 0, 0);
 	if(pItem->m_NumPoints == 0)
 		return;
