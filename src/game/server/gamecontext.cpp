@@ -1485,10 +1485,6 @@ void CGameContext::OnClientEnter(int ClientId)
 	}
 	m_pController->OnPlayerConnect(m_apPlayers[ClientId]);
 
-	// <FoxNet
-	m_AccountManager.AutoLogin(ClientId);
-	// FoxNet>
-
 	{
 		CNetMsg_Sv_CommandInfoGroupStart Msg;
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
@@ -1550,6 +1546,10 @@ void CGameContext::OnClientEnter(int ClientId)
 		if(OnClientDDNetVersionKnown(ClientId))
 			return; // kicked
 	}
+
+	// <FoxNet
+	m_AccountManager.AutoLogin(ClientId);
+	// FoxNet>
 
 	if(!Server()->ClientPrevIngame(ClientId))
 	{
