@@ -394,7 +394,6 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
 	{
 		int PickupFlags = TileFlagsToPickupFlags(Flags);
-		dbg_msg("game", "spawning pickup %d:%d at (%.2f, %.2f) with flags %d", Type, SubType, Pos.x, Pos.y, PickupFlags);
 		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, Layer, Number, PickupFlags);
 		pPickup->m_Pos = Pos;
 		return true; // NOLINT(clang-analyzer-unix.Malloc)
