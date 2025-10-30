@@ -40,6 +40,12 @@ CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 
 void CPlayer::FoxNetTick()
 {
+	if(m_HasBotClient)
+	{
+		SendBroadcast("\n\nDownload the official client from ddnet.org/downloads/");
+		return;
+	}
+
 	RainbowTick();
 	if(Server()->Tick() % (Server()->TickSpeed() * 60) == 0) // Check every minute
 		ExpireItems();
@@ -110,6 +116,8 @@ void CPlayer::ExpireItems()
 
 void CPlayer::FoxNetReset()
 {
+	m_HasBotClient = false;
+
 	m_AccLoginAttemps = 0;
 	m_AccRegisters = 0;
 
@@ -873,6 +881,8 @@ void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 {
 	if(pMessages.empty())
 		return;
+	if(m_HasBotClient)
+		return; // Other broadcast is being sent
 
 	char aBuf[256] = "";
 	int NextLines = Offset == -1 ? NumDDraceHudRows() : Offset;
@@ -958,6 +968,8 @@ void CPlayer::SendAreaMotd(int Area)
 
 void CPlayer::SetArea(int Area)
 {
+	if(m_HasBotClient)
+		return;
 	SendAreaMotd(Area);
 	m_Area = Area;
 }

@@ -2,20 +2,26 @@
 #include "entities/pickupdrop.h"
 #include "entities/powerup.h"
 #include "fontconvert.h"
+#include "persistent_data.h"
 
 #include <base/log.h>
+#include <base/math.h>
+#include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
 
+#include <engine/console.h>
+#include <engine/message.h>
+#include <engine/server.h>
 #include <engine/server/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
+#include <engine/storage.h>
 
 #include <generated/protocol.h>
 
 #include <game/collision.h>
 #include <game/gamecore.h>
-#include <game/mapitems.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
@@ -23,12 +29,20 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/score.h>
+#include <game/teamscore.h>
 #include <game/voting.h>
 
-#include <cstring>
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <ctime>
+#include <iterator>
+#include <limits>
 #include <optional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 void CGameContext::FoxNetTick()
@@ -36,6 +50,9 @@ void CGameContext::FoxNetTick()
 	m_VoteMenu.Tick();
 	HandleEffects();
 	PowerUpSpawner();
+
+	if(g_Config.m_SvAntiBot)
+		BotClientTick();
 
 	// process async db account results
 	m_AccountManager.Tick();
@@ -54,6 +71,43 @@ void CGameContext::FoxNetTick()
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
 	{
 		m_AccountManager.SaveAllAccounts();
+	}
+}
+
+void CGameContext::BotClientTick()
+{
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(Server()->ClientSlotEmpty(ClientId) || !pPlayer)
+			continue;
+		if(pPlayer->m_HasBotClient)
+			continue;
+
+		IServer::CClientInfo Info;
+		if(!Server()->GetClientInfo(ClientId, &Info))
+			continue;
+
+		if(Info.m_pDDNetVersionStr && str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
+		{
+			pPlayer->m_HasBotClient = true;
+			if(g_Config.m_SvAntiBot == 2)
+			{
+				Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads/", false);
+				return;
+			}
+
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
+			SendChat(-1, 0, aBuf);
+		}
+
+		if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
+			pPlayer->m_HasBotClient = true;
+
+		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
+		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->
+		//		 version manipulation -> bot client
 	}
 }
 

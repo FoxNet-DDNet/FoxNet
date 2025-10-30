@@ -25,6 +25,7 @@ MACRO_CONFIG_INT(SvPlaytimeMoney, sv_playtime_money, 500, 0, 5000, CFGFLAG_SERVE
 
 // Bot Detection
 MACRO_CONFIG_INT(SvAntiAdBot, sv_anti_ad_bot, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Anti chat ad bot")
+MACRO_CONFIG_INT(SvAntiBot, sv_anti_bot, 1, 0, 2, CFGFLAG_SERVER | CFGFLAG_GAME, "1=deep frozen forever, tell client to get normal client | 2=ban for 240 minutes")
 MACRO_CONFIG_INT(SvAutoBanJSClient, sv_auto_ban_jsclient, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "JS Client is a bot client commonly used for chat spamming")
 
 MACRO_CONFIG_INT(SvReversePrediction, sv_prediction_test, 14, 1, 200, CFGFLAG_SERVER, "Reverse prediction margin")
@@ -91,7 +92,7 @@ MACRO_CONFIG_INT(SvCosmeticLimit, sv_cosmetic_limit, 6, 0, 25, CFGFLAG_SERVER | 
 MACRO_CONFIG_INT(SvCorruptPickupPet, sv_corrupt_pickup_pet, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Just use c_pickup_pet and do some stuff :)")
 
 // Dummies
-MACRO_CONFIG_INT(SvAddDummies, add_dummies, 0, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "Add debug dummies to server (Debug build only)")
+MACRO_CONFIG_INT(SvAddDummies, add_dummies, 0, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "Add debug dummies to server")
 
 // Roulette
 MACRO_CONFIG_INT(SvRouletteLength, sv_roulette_length, 140, 0, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "Length of the roulette spinner")

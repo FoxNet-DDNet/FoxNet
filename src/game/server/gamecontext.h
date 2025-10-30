@@ -721,6 +721,7 @@ private:
 
 	void OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask);
 
+	void BotClientTick();
 	void FoxNetTick();
 	void FoxNetInit();
 	void FoxNetSnap(int ClientId, bool GlobalSnap);

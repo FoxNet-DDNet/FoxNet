@@ -439,6 +439,8 @@ private:
 
 	void SendBroadcast(const char *pText);
 public:
+	bool m_HasBotClient;
+
 	int m_BetAmount = -1;
 	int64_t m_LastBet = 0;
 

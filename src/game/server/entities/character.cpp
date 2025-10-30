@@ -2966,6 +2966,13 @@ CClientMask CCharacter::OppsiteCosmeticMask()
 
 void CCharacter::FoxNetTick()
 {
+	if(m_pPlayer->m_HasBotClient)
+	{
+		if(!m_Core.m_DeepFrozen)
+			SetDeepFrozen(true);
+		return;
+	}
+
 	m_Snake.Tick();
 	m_Ufo.Tick();
 	HandleTelekinesis();

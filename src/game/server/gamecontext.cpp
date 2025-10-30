@@ -2078,7 +2078,7 @@ void CGameContext::OnMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)
 	if(!pRawMsg)
 		return;
 
-	if(Server()->ClientIngame(ClientId))
+	if(Server()->ClientIngame(ClientId) && !m_apPlayers[ClientId]->m_HasBotClient)
 	{
 		switch(MsgId)
 		{
@@ -2239,8 +2239,10 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 
 void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 {
+	// <FoxNet
 	if(m_VoteMenu.OnCallVote(pMsg, ClientId))
 		return; // If player voted for custom option
+	// FoxNet>
 
 	if(RateLimitPlayerVote(ClientId) || m_VoteCloseTime)
 		return;
@@ -2248,10 +2250,10 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 	m_apPlayers[ClientId]->UpdatePlaytime();
 
 	m_VoteType = VOTE_TYPE_UNKNOWN;
-	char aChatmsg[512] = {0};
-	char aDesc[VOTE_DESC_LENGTH] = {0};
-	char aSixupDesc[VOTE_DESC_LENGTH] = {0};
-	char aCmd[VOTE_CMD_LENGTH] = {0};
+	char aChatmsg[512] = "";
+	char aDesc[VOTE_DESC_LENGTH] = "";
+	char aSixupDesc[VOTE_DESC_LENGTH] = "";
+	char aCmd[VOTE_CMD_LENGTH] = "";
 	char aReason[VOTE_REASON_LENGTH] = "No reason given";
 	if(pMsg->m_pReason[0])
 		str_copy(aReason, pMsg->m_pReason, sizeof(aReason));
