@@ -4468,9 +4468,9 @@ const char *FormatPlaytime(int64_t Time)
 	int Hours = (Time % (60 * 60 * 24)) / (60 * 60);
 	int Minutes = (Time % (60 * 60)) / 60;
 	if(Hours > 0)
-		str_format(aBuf, sizeof(aBuf), "%d Hours %d Mins", Hours, Minutes);
+		str_format(aBuf, sizeof(aBuf), "%d Hour%s %d Min%s", Hours, Hours == 1 ? "" : "s", Minutes, Minutes == 1 ? "" : "s");
 	else
-		str_format(aBuf, sizeof(aBuf), "%d Mins", Minutes);
+		str_format(aBuf, sizeof(aBuf), "%d Min%s", Minutes, Minutes == 1 ? "" : "s");
 	return aBuf;
 
 }
