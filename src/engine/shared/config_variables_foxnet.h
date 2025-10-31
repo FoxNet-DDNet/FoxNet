@@ -17,8 +17,8 @@ MACRO_CONFIG_STR(FoxExampleStr, fox_example_str, 100, "FoxNet", CFGFLAG_SERVER |
 MACRO_CONFIG_INT(SvRandomMapVoteOnStart, sv_random_map_vote_on_start, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Call a random map vote on server startup")
 MACRO_CONFIG_INT(SvVoteSkipPrefix, sv_vote_skip_prefix, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Skips Prefixes for the vote message when calling a vote")
 
+// Accounts & Currency
 MACRO_CONFIG_INT(SvAccounts, sv_accounts, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Enable optional player accounts")
-
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER | CFGFLAG_GAME, "How much money a player should get if they level up")
 MACRO_CONFIG_INT(SvPlaytimeMoney, sv_playtime_money, 500, 0, 5000, CFGFLAG_SERVER | CFGFLAG_GAME, "How much money a player should get every hour if playtime")
@@ -28,6 +28,7 @@ MACRO_CONFIG_INT(SvAntiAdBot, sv_anti_ad_bot, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_
 MACRO_CONFIG_INT(SvAntiBot, sv_anti_bot, 1, 0, 2, CFGFLAG_SERVER | CFGFLAG_GAME, "1=deep frozen forever, tell client to get normal client | 2=ban for 240 minutes")
 MACRO_CONFIG_INT(SvAutoBanJSClient, sv_auto_ban_jsclient, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "JS Client is a bot client commonly used for chat spamming")
 
+// Prediction
 MACRO_CONFIG_INT(SvReversePrediction, sv_prediction_test, 14, 1, 200, CFGFLAG_SERVER, "Reverse prediction margin")
 MACRO_CONFIG_INT(SvExperimentalPrediction, sv_experimental_prediction, 1, 0, 1, CFGFLAG_SERVER, "Experimental Prediction for cosmetics, tries to use clients ping to nudge cosmetics to the correct position")
 
@@ -63,6 +64,7 @@ MACRO_CONFIG_INT(SvInstantCoreUpdate, sv_instant_core_update, 0, 0, 1, CFGFLAG_S
 MACRO_CONFIG_INT(SvDebugQuadPos, sv_debug_quad_pos, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Shows interactive quad positions using lasers")
 MACRO_CONFIG_INT(SvQStopaGivesDj, sv_qstopa_gives_dj, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether the QStopa quad should give dj back")
 
+// Debug Id Pool
 MACRO_CONFIG_INT(SvDebugIdPool, sv_debug_id_pool, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Debug Id allocation")
 
 // Abilities
@@ -100,6 +102,7 @@ MACRO_CONFIG_INT(SvRouletteLength, sv_roulette_length, 140, 0, 500, CFGFLAG_SERV
 // Ban Syncing
 MACRO_CONFIG_INT(SvBanSyncing, sv_ban_syncing, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to Sync bans every fs_ban_syncing_delay mins across servers")
 MACRO_CONFIG_INT(SvBanSyncingDelay, sv_ban_syncing_delay, 15, 1, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "How long the server waits between syncs")
+MACRO_CONFIG_INT(SvQuietBanExpire, sv_quiet_ban_expire, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether the server should log ban expirations in the console")
 
 // Lissajous
 MACRO_CONFIG_INT(SvLissajousA, sv_lissajous_a, 2, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Lissajous A")

@@ -306,14 +306,20 @@ void CNetBan::Update()
 	char aBuf[256], aNetStr[256];
 	while(m_BanAddrPool.First() && m_BanAddrPool.First()->m_Info.m_Expires != CBanInfo::EXPIRES_NEVER && m_BanAddrPool.First()->m_Info.m_Expires < Now)
 	{
-		str_format(aBuf, sizeof(aBuf), "ban %s expired", NetToString(&m_BanAddrPool.First()->m_Data, aNetStr, sizeof(aNetStr)));
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		if(!g_Config.m_SvQuietBanExpire)
+		{
+			str_format(aBuf, sizeof(aBuf), "ban %s expired", NetToString(&m_BanAddrPool.First()->m_Data, aNetStr, sizeof(aNetStr)));
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		}
 		m_BanAddrPool.Remove(m_BanAddrPool.First());
 	}
 	while(m_BanRangePool.First() && m_BanRangePool.First()->m_Info.m_Expires != CBanInfo::EXPIRES_NEVER && m_BanRangePool.First()->m_Info.m_Expires < Now)
 	{
-		str_format(aBuf, sizeof(aBuf), "ban %s expired", NetToString(&m_BanRangePool.First()->m_Data, aNetStr, sizeof(aNetStr)));
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		if(!g_Config.m_SvQuietBanExpire)
+		{
+			str_format(aBuf, sizeof(aBuf), "ban %s expired", NetToString(&m_BanRangePool.First()->m_Data, aNetStr, sizeof(aNetStr)));
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		}
 		m_BanRangePool.Remove(m_BanRangePool.First());
 	}
 }
