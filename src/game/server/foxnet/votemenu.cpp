@@ -370,7 +370,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(IsOption(pVote, SERVER_INFO_GITHUB))
 		{
-			GameServer()->SendChatTarget(ClientId, "https://github.com/FoxNet-DDNet/FoxNet");
+			GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
 			return true;
 		}
 	}
@@ -1080,7 +1080,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteText("╰────────────────────");
 
 		AddVoteText("╭───────    GɪᴛHᴜʙ");
-		AddVoteText("│ github.com/FoxNet-DDNet/FoxNet");
+		AddVotePrefix(g_Config.m_SvGithubRepo, PREFIX_LONG_LINE);
 		AddVotePrefix(SERVER_INFO_GITHUB, PREFIX_LONG_LINE);
 		AddVoteText("╰────────────────────");
 	}

@@ -107,3 +107,6 @@ MACRO_CONFIG_INT(SvQuietBanExpire, sv_quiet_ban_expire, 0, 0, 1, CFGFLAG_SERVER 
 // Lissajous
 MACRO_CONFIG_INT(SvLissajousA, sv_lissajous_a, 2, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Lissajous A")
 MACRO_CONFIG_INT(SvLissajousB, sv_lissajous_b, 3, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Lissajous B")
+
+// Social
+MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "https://github.com/FoxNet-DDNet/FoxNet", CFGFLAG_SERVER | CFGFLAG_GAME, "GitHub repository URL")
