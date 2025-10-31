@@ -4462,17 +4462,21 @@ void FormatItemTime(int64_t Remaining, char *out, size_t outSize)
 }
 const char *FormatPlaytime(int64_t Time)
 {
-	Time *= 60; // playtime is saved in minutes
+	// playtime is saved in minutes
+	static char aBuf[64];
 
-	static char aBuf[32];
-	int Hours = (Time % (60 * 60 * 24)) / (60 * 60);
-	int Minutes = (Time % (60 * 60)) / 60;
+	if(Time < 0)
+		Time = 0;
+
+	int64_t Hours = Time / 60;
+	int64_t Minutes = Time % 60;
+
 	if(Hours > 0)
-		str_format(aBuf, sizeof(aBuf), "%d Hour%s %d Min%s", Hours, Hours == 1 ? "" : "s", Minutes, Minutes == 1 ? "" : "s");
+		str_format(aBuf, sizeof(aBuf), "%" PRId64 " Hour%s %" PRId64 " Min%s", Hours, Hours == 1 ? "" : "s", Minutes, Minutes == 1 ? "" : "s");
 	else
-		str_format(aBuf, sizeof(aBuf), "%d Min%s", Minutes, Minutes == 1 ? "" : "s");
-	return aBuf;
+		str_format(aBuf, sizeof(aBuf), "%" PRId64 " Min%s",	Minutes, Minutes == 1 ? "" : "s");
 
+	return aBuf;
 }
 
 const char *ItemTypeToName(int Type)

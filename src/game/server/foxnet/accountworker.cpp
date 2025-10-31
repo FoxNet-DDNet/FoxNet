@@ -546,7 +546,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 		return false;
 
 	const int Page = pReq->m_Offset < 0 ? 0 : pReq->m_Offset;
-	const int LimitStart = Page * 5;
+	const int LimitStart = Page;
 
 	char aSql[512];
 	str_format(
