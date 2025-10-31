@@ -93,11 +93,17 @@ void CHeadItem::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pOwnerChr->IsPaused() && m_Type != HEADITEM_SPAWNSOLO)
-		return;
+	if(m_Type != HEADITEM_SPAWNSOLO)
+	{
+		if(pSnapPlayer->m_HideCosmetics)
+			return;
 
-	if(pOwnerChr->m_SpawnSolo && m_Type != HEADITEM_SPAWNSOLO)
-		return;
+		if(pOwnerChr->IsPaused())
+			return;
+
+		if(pOwnerChr->m_SpawnSolo)
+			return;
+	}
 
 	if(!pOwnerChr->TeamMask().test(SnappingClient))
 		return;
@@ -134,8 +140,8 @@ void CHeadItem::Snap(int SnappingClient)
 		break;
 	case HEADITEM_COSMETIC:
 		Type = POWERUP_WEAPON;
-		SubType = pSnapPlayer->Cosmetics()->m_HatType - 1;
-		Flags |= pOwnerChr->GetPlayer()->Acc()->m_HatItemFlags;
+		SubType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType - 1;
+		Flags |= pOwnerChr->Acc()->m_HatItemFlags;
 		break;
 	default:
 		break;
