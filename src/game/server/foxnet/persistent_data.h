@@ -18,6 +18,19 @@ public:
 private:
 	bool m_HideCosmetics;
 	bool m_HidePowerUps;
+
+	bool m_Invisible;
+	bool m_Vanish;
+	bool m_IgnoreGamelayer;
+	bool m_TelekinesisImmunity;
+	int m_IncludeServerInfo;
+
+	bool m_Obfuscated;
+	bool m_SpiderHook;
+	bool m_Spazzing;
+
+	int m_AccLoginAttemps;
+	int m_AccRegisters;
 };
 
 #endif // GAME_SERVER_FOXNET_PERSISTENT_DATA_H
