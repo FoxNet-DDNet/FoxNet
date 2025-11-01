@@ -636,3 +636,20 @@ bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Wri
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
+
+bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *p = dynamic_cast<const CAccSetPassword *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_accounts "
+		"SET Password = ? "
+		"WHERE Username = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, p->m_aNewPasswordHash);
+	pSql->BindString(2, p->m_aUsername);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}

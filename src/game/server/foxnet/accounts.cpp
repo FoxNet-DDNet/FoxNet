@@ -444,6 +444,20 @@ void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const 
 	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc edit");
 }
 
+void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
+{
+	if(!m_pPool)
+		return;
+	if(!pUsername[0] || !pNewPassword[0])
+		return;
+	char HashedPassword[ACC_MAX_PASSW_LENGTH];
+	sha256_str(HashPassword(pNewPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
+	auto pReq = std::make_unique<CAccSetPassword>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aNewPasswordHash, HashedPassword, sizeof(pReq->m_aNewPasswordHash));
+	m_pPool->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
+}
+
 void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 {
 	if(!m_pPool || !pName[0])

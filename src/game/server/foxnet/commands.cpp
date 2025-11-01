@@ -160,6 +160,15 @@ void CGameContext::ConAccDisable(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_AccountManager.DisableAccount(pUser, pValue);
 }
 
+void CGameContext::ConAccForcePassword(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pUser = pResult->GetString(0);
+	const char *pNewPassword = pResult->GetString(1);
+
+	pSelf->m_AccountManager.SetPassword(pUser, pNewPassword);
+}
+
 void CGameContext::ConAccForceLogin(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1728,6 +1737,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConAccForceLogout, this, "Force logout an account thats currently active on the server");
 	Console()->Register("acc_edit", "s[username] s[variable] r[value]", CFGFLAG_SERVER, ConAccEdit, this, "Edit an account");
 	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConAccDisable, this, "Disable an account");
+	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConAccForcePassword, this, "Disable an account");
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
 	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");

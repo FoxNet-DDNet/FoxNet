@@ -835,6 +835,7 @@ private:
 	static void ConAccProfile(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccEdit(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccDisable(IConsole::IResult *pResult, void *pUserData);
+	static void ConAccForcePassword(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccForceLogin(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccForceLogout(IConsole::IResult *pResult, void *pUserData);
 

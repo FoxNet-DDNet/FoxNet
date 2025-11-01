@@ -126,6 +126,14 @@ struct CAccRemoveItem : ISqlData
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 
+struct CAccSetPassword : ISqlData
+{
+	CAccSetPassword() :
+		ISqlData(nullptr) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aNewPasswordHash[ACC_MAX_PASSW_LENGTH] = "";
+};
+
 struct CAccountsWorker
 {
 	static bool Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize);
@@ -140,6 +148,7 @@ struct CAccountsWorker
 	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize);
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 };
 
 #endif

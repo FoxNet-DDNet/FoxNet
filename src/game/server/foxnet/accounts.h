@@ -113,6 +113,8 @@ public:
 	void EditAccount(const char *pUsername, const char *pVariable, const char *pValue);
 	void RemoveItem(const char *pUsername, const char *pItemName);
 
+	void SetPassword(const char *pUsername, const char *pNewPassword);
+
 	// Returns XP needed for next level
 	int NeededXP(int Level);
 };
