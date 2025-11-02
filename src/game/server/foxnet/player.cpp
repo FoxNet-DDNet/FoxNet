@@ -856,7 +856,7 @@ void CPlayer::SetAbility(int Type)
 	str_format(aBuf, sizeof(aBuf), "Ability set to %s", GetAbilityName(Cosmetics()->m_Ability));
 	GameServer()->SendChatTarget(ClientId, aBuf);
 
-	GameServer()->SendChatTarget(ClientId, "Use f4 (Vote No) to use your Ability");
+	GameServer()->SendChatTarget(ClientId, "Use f3 (Vote Yes) to use your Ability");
 }
 
 void CPlayer::DisableAllCosmetics()
