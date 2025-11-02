@@ -88,13 +88,16 @@ void CGameContext::BotClientTick()
 		if(!Server()->GetClientInfo(ClientId, &Info))
 			continue;
 
+		if(!Info.m_GotDDNetVersion)
+			continue;
+
 		if(Info.m_pDDNetVersionStr && str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
 		{
 			pPlayer->m_HasBotClient = true;
 			if(g_Config.m_SvAntiBot == 2)
 			{
 				Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads/", false);
-				return;
+				continue;
 			}
 
 			char aBuf[128];
