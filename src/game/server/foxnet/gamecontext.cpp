@@ -104,6 +104,11 @@ void CGameContext::BotClientTick()
 
 		if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
 			pPlayer->m_HasBotClient = true;
+		if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet"))
+		{
+			if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
+				pPlayer->m_HasBotClient = true;
+		}
 
 		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
 		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->

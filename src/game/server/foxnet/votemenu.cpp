@@ -866,7 +866,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return;
 
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	const int SubPage = GetSubPage(ClientId);
@@ -954,8 +953,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 			return;
 		}
 
-		bool OwnsItem = pPl->OwnsItem(Data.m_pLastItemInfo->Name());
-
 		const CItem *pItem = Data.m_pLastItemInfo;
 
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
@@ -963,25 +960,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText(aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
 		AddVoteText(aBuf);
-
-		if(OwnsItem)
-		{
-			AddVoteText("├───────────────");
-			AddVoteText("│ you already own this item!");
-
-			int Idx = pPl->Inv()->IndexOfName(pItem->Name());
-
-			int64_t Now = time(0);
-			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
-			int64_t Remaining = Expiry - Now;
-
-			char TimeBuf[20] = "";
-			FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
-
-			str_format(aBuf, sizeof(aBuf), "│ Expires in: %s", TimeBuf);
-			AddVoteText(aBuf);
-		}
-
 		AddVoteText("╰────────────────────");
 		AddVoteSeperator();
 
@@ -1078,6 +1056,8 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteText("│ Or have an Idea for a feature?");
 		AddVoteText("│ Check out our GitHub page!");
 		AddVoteText("╰────────────────────");
+
+		AddVoteSeperator();
 
 		AddVoteText("╭───────    GɪᴛHᴜʙ");
 		AddVotePrefix(g_Config.m_SvGithubRepo, PREFIX_LONG_LINE);
