@@ -91,27 +91,28 @@ void CGameContext::BotClientTick()
 		if(!Info.m_GotDDNetVersion)
 			continue;
 
-		if(Info.m_pDDNetVersionStr && str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
+		if(Info.m_pDDNetVersionStr)
 		{
-			pPlayer->m_HasBotClient = true;
-			if(g_Config.m_SvAntiBot == 2)
+			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet") && str_find(Info.m_pDDNetVersionStr, "18.9.1"))
+				pPlayer->m_HasBotClient = true;
+			
+			if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
 			{
-				Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads/", false);
-				continue;
-			}
+				pPlayer->m_HasBotClient = true;
+				if(g_Config.m_SvAntiBot == 2)
+				{
+					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
+					continue;
+				}
 
-			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
-			SendChat(-1, 0, aBuf);
+				char aBuf[128];
+				str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
+				SendChat(-1, 0, aBuf);
+			}
 		}
 
 		if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
 			pPlayer->m_HasBotClient = true;
-		if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet"))
-		{
-			if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
-				pPlayer->m_HasBotClient = true;
-		}
 
 		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
 		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->
