@@ -21,7 +21,7 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	static constexpr const char *CREDITS[] = {
 		"Credits: fokkonaut, Pointer31, Schnupp, +KZ",
-		"FoxNetwork is made by qxdFox,",
+		"FoxNetwork developed by qxdFox,",
 		"Which is based on DDNet by the DDNet developers,",
 		"Which is based on DDRace by the DDRace developers,",
 		"which is a mod of Teeworlds by the Teeworlds developers.",

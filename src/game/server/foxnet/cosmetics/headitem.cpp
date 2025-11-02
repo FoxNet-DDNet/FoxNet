@@ -121,7 +121,8 @@ void CHeadItem::Snap(int SnappingClient)
 	{
 		double Pred = pOwnerChr->GetPlayer()->GetClientPred();
 		float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
+		vec2 Dir = normalize(pOwnerChr->m_Pos - pOwnerChr->m_PrevPos);
+		vec2 nVel = Dir * Pred * dist / 2.0f;
 		Pos = m_Pos + nVel;
 	}
 

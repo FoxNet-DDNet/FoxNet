@@ -898,6 +898,8 @@ private:
 	bool m_IsWeekend;
 
 public:
+	const char *GameTypeStr();
+
 	bool m_MapVoteLock = false;
 
 	CRoulette *m_pRoulette;

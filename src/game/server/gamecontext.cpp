@@ -4147,7 +4147,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 		GameInfo.m_ServerPort = Server()->Port();
 		// <FoxNet
 		// GameInfo.m_pGameType = m_pController->m_pGameType;
-		GameInfo.m_pGameType = "FoxNetwork";
+		GameInfo.m_pGameType = GameTypeStr();
 		// FoxNet>
 
 		GameInfo.m_pConfig = &g_Config;
@@ -4666,7 +4666,7 @@ bool CGameContext::IsClientHighBandwidth(int ClientId) const
 }
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
-const char *CGameContext::GameType() const { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
+const char *CGameContext::GameType() const { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : "FoxNetwork"; }
 const char *CGameContext::Version() const { return FOXNET_VERSION; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 

@@ -1148,3 +1148,17 @@ void CGameContext::OnPreReload()
 		m_apPersistentData[i]->Save(pPlayer);
 	}
 }
+
+const char *CGameContext::GameTypeStr()
+{
+	static char aGameType[32];
+
+	static const char GameTypes[2][16] = {
+		"FoxNet Gores",
+		"FoxNet DDRace",
+	};
+
+	str_copy(aGameType, GameTypes[g_Config.m_SvFoxNetType], sizeof(aGameType));
+
+	return aGameType;
+}
