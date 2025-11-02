@@ -594,7 +594,7 @@ void CGameContext::OnLogin(int ClientId)
 	{
 		SendChatTarget(ClientId, "This seems to be your first Login, so welcome to FoxNetwork!");
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
-		SendChatTarget(ClientId, "For more Info on Accounts, type '/server' !");
+		SendChatTarget(ClientId, "For more Info about this server head to the votemenu and double click on 'Server Info'");
 	}
 
 	ClearVotes(ClientId);

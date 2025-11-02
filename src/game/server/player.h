@@ -428,6 +428,7 @@ private:
 	void OverrideName(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 
 	int m_RainbowColor = 0;
+	void OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 	void RainbowTick();
 	void ExpireItems();

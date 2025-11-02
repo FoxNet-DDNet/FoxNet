@@ -534,6 +534,27 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	return true;
 }
 
+void CPlayer::RainbowTick()
+{
+	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
+		return;
+
+	if(Cosmetics()->m_RainbowSpeed < 1)
+		Cosmetics()->m_RainbowSpeed = 1;
+
+	if(Server()->Tick() % 2 == 1)
+		m_RainbowColor = (m_RainbowColor + Cosmetics()->m_RainbowSpeed) % 256;
+}
+
+void CPlayer::OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
+{
+	OverrideName(SnappingClient, pClientInfo);
+	RainbowSnap(SnappingClient, pClientInfo);
+
+	if(g_Config.m_SvForceSkin[0])
+		StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), g_Config.m_SvForceSkin);
+}
+
 void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 {
 	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
@@ -557,18 +578,6 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 				pClientInfo->m_ColorFeet = BaseColor + Color;
 		}
 	}
-}
-
-void CPlayer::RainbowTick()
-{
-	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
-		return;
-
-	if(Cosmetics()->m_RainbowSpeed < 1)
-		Cosmetics()->m_RainbowSpeed = 1;
-
-	if(Server()->Tick() % 2 == 1)
-		m_RainbowColor = (m_RainbowColor + Cosmetics()->m_RainbowSpeed) % 256;
 }
 
 void CPlayer::OverrideName(int SnappingClient, CNetObj_ClientInfo *pClientInfo)

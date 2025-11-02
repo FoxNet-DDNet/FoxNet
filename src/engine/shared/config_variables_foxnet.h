@@ -57,7 +57,7 @@ MACRO_CONFIG_STR(SvQuietJoinPassword, sv_quiet_join_password, 128, "", CFGFLAG_S
 
 // Quads
 MACRO_CONFIG_INT(SvMovingTiles, sv_moving_tiles, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use moving tiles using quads or not")
-MACRO_CONFIG_INT(SvMovingTilesStopTime, sv_moving_tiles_stop_time, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use moving tiles using quads or not")
+MACRO_CONFIG_INT(SvMovingTilesStopTime, sv_moving_tiles_stop_time, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Stops every quad")
 MACRO_CONFIG_INT(SvTeleGrenade, sv_tele_grenade, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use tele grenade")
 
 MACRO_CONFIG_INT(SvInstantCoreUpdate, sv_instant_core_update, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Sends Info about a player every tick, even if not doing anything")
@@ -110,3 +110,6 @@ MACRO_CONFIG_INT(SvLissajousB, sv_lissajous_b, 3, 0, 15, CFGFLAG_SERVER | CFGFLA
 
 // Social
 MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "https://github.com/FoxNet-DDNet/FoxNet", CFGFLAG_SERVER | CFGFLAG_GAME, "GitHub repository URL")
+
+// Force
+MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Force skin for all players (Leave empty to disable)")

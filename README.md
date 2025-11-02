@@ -2,14 +2,17 @@
 
 # Features
 - Accounts
+- Cosmetics
 - Shop
 - Inventory
 - Custom vote menu
 - UFO
 - Snake
-- Moving tiles using quads (like KoG) - still missing moving hookable/unhookable
+- Moving tiles using quads (Fully KoG compatible!)
+- Tele grenade (KoG Feature)
 - Custom weapons
 - Dropping weapons
+- And much more!
 
 # Commands/Configs
 
@@ -24,8 +27,6 @@
 |sv_playtime_money|How much money a player gets as playtime bonus|
 |sv_anti_ad_bot|whether to ban and hide bot client advertisement mesasges|
 |sv_prediction_test|Used for ufos visuals so the lasers are ontop of the player|
-|sv_ban_syncing|Whether to automatically exec and save bans across multiple servers|
-|sv_ban_syncing_delay|How long to wait before syncing bans|
 |sv_snake_auto_move|Whether the snake can stand still or not|
 |sv_snake_speed|How fast the snake should move|
 |sv_snake_diagonal|Whether the snake can move diagonally|
@@ -41,7 +42,10 @@
 |sv_ufo_laser_type|Ufos laser type|
 |sv_ufo_hide_hook_coll|Whether to hide hook coll while flying down|
 |sv_ufo_brakes|Whether pressing every button should stop the ufo completely|
-|sv_instant_core_update|Sends an update to clients instantly always|
+|sv_moving_tiles|Whether to use moving tiles using quads or not|
+|sv_moving_tiles_stop_time|Whether to have quads move or not|
+|sv_tele_grenade|Whether to use tele grenade (KoG Feature)|
+|sv_instant_core_update|Sends an update to clients instantly, always|
 |sv_debug_quad_pos|Shows a laser on every top left corner of a valid interactable quad|
 |sv_qstopa_gives_dj|Whether standing on a Quad Stopa gives back double jump|
 |sv_no_auth_cooldown|Whether authed players have a cooldown on abilities|
@@ -52,9 +56,26 @@
 |sv_drops_in_freeze_float|Whether dropped weapons should float up inside freeze|
 |sv_spawn_powerups|Whether to spawn random Powerups (gives xp) on the map|
 |sv_solo_on_spawn|Whether to spawn players in solo for a set seconds (value is used as delay in seconds)|
+|sv_allow_zoom|Whether to allow zoom or not|
+|sv_allow_hook_coll|Whether to allow hook coll or not|
+|sv_allow_eye_wheel|Whether to allow eye wheel or not|
+|sv_cosmetics|Whether to allow cosmetics or not|
+|sv_cosmetic_limit|How many cosmetics a player can have at a time|
+|sv_corrupt_pickup_pet|Just use c_pickup_pet and do some stuff :)|
+|add_dummies|Add debug dummies to server|
+|sv_roulette_length|Length of the roulette spinner|
+|sv_ban_syncing|Whether to automatically exec and save bans across multiple servers|
+|sv_ban_syncing_delay|How long to wait before syncing bans|
+|sv_quiet_ban_expire|Whether the server should log ban expirations in the console|
+|sv_lissajous_a|Use c_lissajous and try some combinations|
+|sv_lissajous_b|Use c_lissajous and try some combinations|
+|sv_github_repo|Github repo link that will be used everywhere|
+|sv_force_skin|Force a skin for all players (Leave empty to disable)|
 
 |Commands|Description|
 |-|-|
+|lasertext|Write Text using Lasers|
+|projectiletext|Write text using hammer hit projectiles|
 |chat_string_add|Adds a string to the chat detection list|
 |chat_string_remove|Remove a string from the chat list|
 |chat_strings_list|List all chat strings|
@@ -92,12 +113,18 @@
 |heartgun|Toggle heartgun for a player|
 |lightsaber|Toggle heartgun for a player|
 |portalgun|Toggle heartgun for a player|
+|obfuscate|Makes a players name obfuscated
 |spider_hook|Toggle spider hook for a player|
+|spazzing|Makes a players character spazz around|
 |fake_message|Send a message as a player that doesn't exist|
 |map_vote_lock|Lock changing maps trough normal votes|
 |cleanup_pickupdrops|Deletes all dropped weapons|
 |hide_cosmetics|Hides all cosmetics for a player|
 |hide_powerups|Hides all powerups for a player|
+|record_insert|insert a new record for that name on the given map with given time|
+|record_remove|remove all records a name has on the given map|
+|record_remove_time|remove records a name has on given map with given time|
+|record_remove_all|remove all records a name has|
 
 |Chat Commands|Description|
 |-|-|
@@ -108,10 +135,12 @@
 |profile|View anyones profile|
 |top5money|show top 5 accounts with most money|
 |top5level|show top 5 accounts with highest level|
-|top5playtime|Vshow top 5 accounts with highest playtime|
+|top5playtime|show top 5 accounts with highest playtime|
+|bet|Used to set your wager on the roulette|
 |buyitem|Buy an Item from the shop|
 |toggleitem|Toggle any item you own|
 |dropweapon|Drop the weapon youre holding|
+|repredict|Use this command along side your prediction margin to better predict cosmetics|
 
 |Cosmetic Commands|
 |-|
@@ -130,9 +159,10 @@
 |c_dot_trail|
 |c_rainbow_body|
 |c_rainbow_feet|
-|c_rainbow_feet|
+|c_rainbow_speed|
 |c_phase_gun|
 |c_emote_gun|
 |c_confetti_gun|
 |c_death_type|
 |c_damageind_type|
+|c_gun_type|
