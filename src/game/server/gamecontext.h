@@ -422,7 +422,7 @@ public:
 	int PersistentClientDataSize() const override { return sizeof(CPersistentClientData); }
 
 	CUuid GameUuid() const override;
-	const char *GameType() const override;
+	const char *GameType() override;
 	const char *Version() const override;
 	const char *NetVersion() const override;
 
@@ -735,6 +735,8 @@ private:
 
 	void RefreshWeekendFlag();
 
+	static void ConchainExpireServerInfo(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
 	static void ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSoloOnSpawn(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainCosmetics(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
@@ -898,7 +900,6 @@ private:
 	bool m_IsWeekend;
 
 public:
-	const char *GameTypeStr();
 
 	bool m_MapVoteLock = false;
 

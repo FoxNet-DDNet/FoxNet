@@ -368,7 +368,7 @@ public:
 	virtual int PersistentClientDataSize() const = 0;
 
 	virtual CUuid GameUuid() const = 0;
-	virtual const char *GameType() const = 0;
+	virtual const char *GameType() = 0;
 	virtual const char *Version() const = 0;
 	virtual const char *NetVersion() const = 0;
 

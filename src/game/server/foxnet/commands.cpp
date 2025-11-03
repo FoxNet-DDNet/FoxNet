@@ -1722,6 +1722,17 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
+	Console()->Chain("sv_foxnet_type", ConchainExpireServerInfo, this);
+}
+
+void CGameContext::ConchainExpireServerInfo(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(pResult->NumArguments())
+	{
+		CGameContext *pSelf = (CGameContext *)pUserData;
+		pSelf->Server()->ExpireServerInfo();
+	}
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

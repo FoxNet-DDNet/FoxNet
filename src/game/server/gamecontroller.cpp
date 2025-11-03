@@ -30,7 +30,7 @@ IGameController::IGameController(class CGameContext *pGameServer) :
 	m_pGameServer = pGameServer;
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
-	m_pGameType = m_pGameServer->GameTypeStr();
+	m_pGameType = "FoxNetwork";
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
