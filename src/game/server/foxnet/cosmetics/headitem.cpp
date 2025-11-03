@@ -19,7 +19,7 @@
 #include <game/server/foxnet/shop.h>
 #include <game/gamecore.h>
 
-CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset) :
+CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
 {
 	m_Pos = Pos;
@@ -76,7 +76,6 @@ void CHeadItem::Tick()
 		return;
 
 	m_Pos = pOwnerChr->GetPos();
-	m_Pos.y -= m_Offset;
 }
 
 void CHeadItem::Snap(int SnappingClient)
@@ -117,14 +116,9 @@ void CHeadItem::Snap(int SnappingClient)
 			return;
 
 	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
-	{
-		double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-		float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		vec2 Dir = normalize(pOwnerChr->m_Pos - pOwnerChr->m_PrevPos);
-		vec2 nVel = Dir * Pred * dist / 2.0f;
-		Pos = m_Pos + nVel;
-	}
+	if(m_Owner == SnappingClient)
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+	Pos += m_Offset;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

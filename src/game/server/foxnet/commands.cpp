@@ -578,7 +578,6 @@ void CGameContext::ConDotTrail(IConsole::IResult *pResult, void *pUserData)
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
 	CPlayer *pPl = pSelf->m_apPlayers[Victim];
-
 	if(!pPl)
 		return;
 
@@ -601,7 +600,7 @@ void CGameContext::ConStarTrail(IConsole::IResult *pResult, void *pUserData)
 	int Trail = pPl->Cosmetics()->m_Trail == TRAILS_STAR ? TRAILS_NONE : TRAILS_STAR;
 
 	pPl->SetTrail(Trail);
-	log_info("cosmetics", "Set rainbow feet to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
+	log_info("cosmetics", "Set star trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConInverseAim(IConsole::IResult *pResult, void *pUserData)

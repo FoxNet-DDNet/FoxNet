@@ -21,7 +21,6 @@ class CHeartHat : public CEntity
 	int m_Ids[NUM_HEARTS];
 	float m_Dist[NUM_HEARTS];
 	bool m_switch;
-	vec2 m_aPos[NUM_HEARTS];
 
 public:
 	CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos);

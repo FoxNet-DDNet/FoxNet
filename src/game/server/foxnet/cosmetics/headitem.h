@@ -20,10 +20,10 @@ class CHeadItem : public CEntity
 {
 	int m_Owner;
 	int m_Type;
-	float m_Offset;
+	vec2 m_Offset;
 
 public:
-	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, float Offset);
+	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
 
 	virtual void Reset() override;
 	virtual void Tick() override;

@@ -13,6 +13,7 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+#include <game/server/foxnet/shop.h>
 
 CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
@@ -32,7 +33,7 @@ void CDotTrail::Reset()
 void CDotTrail::Tick()
 {
 	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || pOwnerPl->Cosmetics()->m_Trail != TRAIL_DOT)
+	if(!pOwnerPl || pOwnerPl->Cosmetics()->m_Trail != TRAILS_DOT)
 	{
 		Reset();
 		return;
@@ -77,13 +78,8 @@ void CDotTrail::Snap(int SnappingClient)
 		return;
 
 	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
-	{
-		double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-		float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
-		Pos = m_Pos + nVel;
-	}
+	if(m_Owner == SnappingClient)
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
 
 	pProj->m_X = round_to_int(Pos.x * 100.0f);
 	pProj->m_Y = round_to_int(Pos.y * 100.0f);

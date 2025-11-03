@@ -665,7 +665,7 @@ void CPlayer::SetTrail(int Type)
 		return;
 	Cosmetics()->m_Trail = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(Cosmetics()->m_Trail == TRAIL_DOT)
+	if(Cosmetics()->m_Trail == TRAILS_DOT)
 		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
@@ -723,7 +723,7 @@ void CPlayer::SetHatType(int Type)
 	{
 		SetHeartHat(false);
 		if(PrevType == HATTYPE_NONE)
-			new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, 48.0f);
+			new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -48.0f));
 	}
 }
 
@@ -979,8 +979,8 @@ void CPlayer::SetArea(int Area)
 
 float CPlayer::GetClientPred()
 {
-	float Ping = (m_Latency.m_Min) / 10.0f + 1.2f;
-	return std::max(Ping + m_PredMargin, 4.0f);
+	float Ping = (m_Latency.m_Min) / 10.0f - 1.2f;
+	return Ping + m_PredMargin;
 }
 
 int CPlayer::GetSubPage()

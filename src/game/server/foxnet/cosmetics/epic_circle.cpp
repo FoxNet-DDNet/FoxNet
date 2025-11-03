@@ -94,14 +94,11 @@ void CEpicCircle::Snap(int SnappingClient)
 		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_aIds[i]);
 		if(!pProj)
 			return;
+
 		vec2 Pos = m_Pos + m_RotatePos[i] + pOwnerChr->GetVelocity();
-		if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
-		{
-			double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-			float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-			vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
-			Pos = m_Pos + m_RotatePos[i] + nVel;
-		}
+		if(m_Owner == SnappingClient)
+			Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		Pos += m_RotatePos[i];
 
 		pProj->m_X = round_to_int(Pos.x * 100.0f);
 		pProj->m_Y = round_to_int(Pos.y * 100.0f);

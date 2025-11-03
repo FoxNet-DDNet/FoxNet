@@ -60,7 +60,7 @@ void CStaffInd::Tick()
 
 	m_TeamMask = pOwner->TeamMask();
 	m_Pos = pOwner->GetPos();
-	m_aPos[ARMOR] = vec2(m_Pos.x, m_Pos.y - 70.f);
+	m_aPos[ARMOR] = vec2(0, -70.f);
 
 	if(m_BallFirst)
 	{
@@ -75,7 +75,7 @@ void CStaffInd::Tick()
 			m_BallFirst = true;
 	}
 
-	m_aPos[BALL] = vec2(m_Pos.x + m_Dist, m_aPos[ARMOR].y);
+	m_aPos[BALL] = vec2(m_Dist, m_aPos[ARMOR].y);
 }
 
 void CStaffInd::Snap(int SnappingClient)
@@ -105,19 +105,18 @@ void CStaffInd::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-	float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-	vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
-
 	const int BallId = m_BallFirst ? m_aIds[BALL_FRONT] : m_aIds[BALL];
 
-	vec2 Pos = m_aPos[ARMOR] + pOwnerChr->GetVelocity();
-	vec2 LaserPos = m_aPos[BALL] + pOwnerChr->GetVelocity();
-	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
+	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
+	vec2 LaserPos = m_Pos + pOwnerChr->GetVelocity();
+	if(m_Owner == SnappingClient)
 	{
-		Pos = m_aPos[ARMOR] + nVel;
-		LaserPos = m_aPos[BALL] + nVel;
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
 	}
+	Pos += m_aPos[ARMOR];
+	LaserPos += m_aPos[BALL];
+
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[ARMOR], Pos, POWERUP_ARMOR, -1, -1, PICKUPFLAG_NO_PREDICT);
 	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), BallId, LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 }

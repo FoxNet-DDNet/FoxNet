@@ -3007,9 +3007,9 @@ void CCharacter::FoxNetTick()
 	}
 
 	float Angle = std::atan2(m_Core.m_Vel.x, -m_Core.m_Vel.y);
-	bool Moving = m_Pos != m_PrevPos;
+	bool Moving = m_Pos != m_PrevPos && GetVelocity() != vec2(0,0);
 
-	if(GetPlayer()->Cosmetics()->m_Trail == TRAIL_STAR && Moving && Server()->Tick() % 20 == 0) // every second
+	if(GetPlayer()->Cosmetics()->m_Trail == TRAILS_STAR && Moving && Server()->Tick() % 20 == 0) // every second
 		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
 
 	if(GetPlayer()->m_SpiderHook)
@@ -3053,7 +3053,7 @@ void CCharacter::FoxNetSpawn()
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
-			new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, 56.0f);
+			new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
 	}
 	if(!m_ShouldSolo)
 		m_ShouldSolo = true; // Next spawn will be solo
@@ -3697,4 +3697,18 @@ vec2 CCharacter::GetSpazzPos(vec2 Pos)
 		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
 
 	return Pos + OffsetPos;
+}
+
+vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos)
+{
+	if(!g_Config.m_SvExperimentalPrediction)
+		return Pos;
+	if(GetPlayer()->IsPaused())
+		return Pos;
+
+	double Pred = GetPlayer()->GetClientPred();
+	float dist = distance(Pos, PrevPos) * 0.5f;
+	vec2 Dir = normalize(Pos - PrevPos);
+	vec2 nVel = Dir * Pred * dist;
+	return Pos + nVel;
 }

@@ -359,6 +359,8 @@ public:
 
 	vec2 GetSpazzPos(vec2 Pos);
 
+	vec2 GetPredictedPos(vec2 Pos, vec2 PrevPos);
+
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 

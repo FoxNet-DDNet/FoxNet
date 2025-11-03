@@ -69,8 +69,8 @@ void CRotatingBall::Tick()
 	if(m_IsRotating)
 		m_LaserDirAngle += m_LaserInputDir;
 
-	m_LaserPos.x = pOwner->GetPos().x + 65 * sin(m_LaserDirAngle * pi / 180.0f);
-	m_LaserPos.y = pOwner->GetPos().y + 65 * cos(m_LaserDirAngle * pi / 180.0f);
+	m_LaserPos.x = 65 * sin(m_LaserDirAngle * pi / 180.0f);
+	m_LaserPos.y = 65 * cos(m_LaserDirAngle * pi / 180.0f);
 
 	m_ProjPos.x = m_LaserPos.x + 22 * sin(Server()->Tick() * 13 * pi / 180.0f);
 	m_ProjPos.y = m_LaserPos.y + 22 * cos(Server()->Tick() * 13 * pi / 180.0f);
@@ -106,17 +106,16 @@ void CRotatingBall::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-	float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-	vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
 
-	vec2 Pos = m_ProjPos + pOwnerChr->GetVelocity();
-	vec2 LaserPos = m_LaserPos + pOwnerChr->GetVelocity();
-	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
+	vec2 Pos = pOwnerChr->m_Pos + pOwnerChr->GetVelocity();
+	vec2 LaserPos = pOwnerChr->m_Pos + pOwnerChr->GetVelocity();
+	if(m_Owner == SnappingClient)
 	{
-		Pos = m_ProjPos + nVel;
-		LaserPos = m_LaserPos + nVel;
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
 	}
+	Pos += m_ProjPos;
+	LaserPos += m_LaserPos;
 
 	int Owner = m_Owner;
 	if(g_Config.m_SvCorruptPickupPet && pSnapPlayer->Cosmetics()->m_PickupPet)

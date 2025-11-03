@@ -123,13 +123,8 @@ void CLissajous::Snap(int SnappingClient)
 			return;
 
 	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
-	{
-		double Pred = pOwnerChr->GetPlayer()->GetClientPred();
-		float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist / 2.0f;
-		Pos = m_Pos + nVel;
-	}
+	if(m_Owner == SnappingClient)
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{

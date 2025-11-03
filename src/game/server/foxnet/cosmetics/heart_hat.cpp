@@ -15,6 +15,9 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+
+static constexpr float HeartOffset = -42.0f;
+
 CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEART_HAT, Pos)
 {
@@ -23,10 +26,7 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_Owner = Owner;
 	m_Ids[0] = GetId();
 	for(int i = 0; i < NUM_HEARTS - 1; i++)
-	{
 		m_Ids[i + 1] = Server()->SnapNewId();
-		m_aPos[i] = Pos;
-	}
 
 	GameWorld()->InsertEntity(this);
 }
@@ -72,12 +72,6 @@ void CHeartHat::Tick()
 		if(m_Dist[HEART_BACK] < -24.0f)
 			m_switch = false;
 	}
-
-	for(int i = 0; i < NUM_HEARTS; i++)
-	{
-		m_aPos[i] = pOwner->GetPos();
-		m_aPos[i].x += (int)m_Dist[i];
-	}
 }
 
 void CHeartHat::Snap(int SnappingClient)
@@ -114,15 +108,11 @@ void CHeartHat::Snap(int SnappingClient)
 		if(m_switch && i == HEART_FRONT)
 			continue;
 
-		vec2 Pos = m_aPos[i] + pOwnerChr->GetVelocity() + vec2(0, -42);
+		vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
 
-		if(g_Config.m_SvExperimentalPrediction && m_Owner == SnappingClient && !pOwnerChr->GetPlayer()->IsPaused())
-		{
-			float Pred = pOwnerChr->GetPlayer()->GetClientPred();
-			float dist = distance(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos) / 2.0f;
-			vec2 nVel = normalize(pOwnerChr->GetVelocity()) * Pred * dist;
-			Pos = m_aPos[i] + vec2(0, -42) + nVel;
-		}
+		if(m_Owner == SnappingClient)
+			Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		Pos += vec2(m_Dist[i], HeartOffset);
 
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
