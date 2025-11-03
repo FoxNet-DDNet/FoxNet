@@ -31,6 +31,9 @@ private:
 
 	int m_AccLoginAttemps;
 	int m_AccRegisters;
+
+	int m_Page;
+	int m_SubPage;
 };
 
 #endif // GAME_SERVER_FOXNET_PERSISTENT_DATA_H

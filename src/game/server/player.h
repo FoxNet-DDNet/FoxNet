@@ -545,6 +545,11 @@ public:
 	float m_PredMargin;
 	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; };
 	float GetClientPred();
+
+	int GetSubPage();
+	int GetPage();
+	void SetPage(int Page);
+	void SetSubPage(int SubPage);
 	// FoxNet>
 };
 #endif

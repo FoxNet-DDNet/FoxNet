@@ -173,9 +173,6 @@ class CVoteMenu
 
 	void UpdatePages(int ClientId);
 
-	int GetSubPage(int ClientId) const;
-	void SetSubPage(int ClientId, int Page, bool SendVotes = false);
-
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
@@ -185,6 +182,8 @@ public:
 
 	void PrepareVoteOptions(int ClientId);
 
+	int GetSubPage(int ClientId) const;
+	void SetSubPage(int ClientId, int Page, bool SendVotes = false);
 	int GetPage(int ClientId) const;
 	void SetPage(int ClientId, int Page);
 

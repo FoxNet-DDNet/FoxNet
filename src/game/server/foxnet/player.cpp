@@ -923,12 +923,6 @@ void CPlayer::SendBroadcast(const char *pText)
 	GameServer()->SendBroadcast(pText, GetCid());
 }
 
-float CPlayer::GetClientPred()
-{
-	float Ping = (m_Latency.m_Min) / 10.0f + 1.2f;
-	return std::max(Ping + m_PredMargin, 4.0f);
-}
-
 void CPlayer::SendAreaMotd(int Area)
 {
 	if(m_Area == Area)
@@ -981,4 +975,28 @@ void CPlayer::SetArea(int Area)
 		return;
 	SendAreaMotd(Area);
 	m_Area = Area;
+}
+
+float CPlayer::GetClientPred()
+{
+	float Ping = (m_Latency.m_Min) / 10.0f + 1.2f;
+	return std::max(Ping + m_PredMargin, 4.0f);
+}
+
+int CPlayer::GetSubPage()
+{
+	return GameServer()->m_VoteMenu.GetSubPage(m_ClientId);
+}
+int CPlayer::GetPage()
+{
+	return GameServer()->m_VoteMenu.GetPage(m_ClientId);
+}
+
+void CPlayer::SetPage(int Page)
+{
+	GameServer()->m_VoteMenu.SetPage(m_ClientId, Page);
+}
+void CPlayer::SetSubPage(int SubPage)
+{
+	GameServer()->m_VoteMenu.SetSubPage(m_ClientId, SubPage);
 }

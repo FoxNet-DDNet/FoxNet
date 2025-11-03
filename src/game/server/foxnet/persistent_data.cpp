@@ -19,6 +19,9 @@ void CSavePlayerData::Save(CPlayer *pPl)
 
 	m_AccLoginAttemps = pPl->m_AccLoginAttemps;
 	m_AccRegisters = pPl->m_AccRegisters;
+
+	m_Page = pPl->GetPage();
+	m_SubPage = pPl->GetSubPage();
 }
 
 bool CSavePlayerData::Load(CPlayer *pPl)
@@ -38,5 +41,8 @@ bool CSavePlayerData::Load(CPlayer *pPl)
 
 	pPl->m_AccLoginAttemps = m_AccLoginAttemps;
 	pPl->m_AccRegisters = m_AccRegisters;
+
+	pPl->SetPage(m_Page);
+	pPl->SetSubPage(m_SubPage);
 	return true;
 }
