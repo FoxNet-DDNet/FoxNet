@@ -4426,7 +4426,7 @@ void CServer::RegisterCommands()
 	// <FoxNet
 	Console()->Register("client_infos", "", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
 	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
-	Console()->Register("send_map", "?v[id] r[name]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
+	Console()->Register("send_map", "r[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
 	// FoxNet>
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
@@ -4885,16 +4885,10 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pThis = static_cast<CServer *>(pUser);
-	if(pResult->NumArguments() == 2)
-	{
-		int ClientId = pResult->GetInteger(0);
-		const char *pMapName = pResult->GetString(1);
-		pThis->SendMapByName(ClientId, pMapName);
-	}
-	else
-	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Usage: send_map <client_id> <map_name>");
-	}
+
+	const char *pMapName = pResult->GetString(0);
+	int ClientId = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : pResult->m_ClientId;
+	pThis->SendMapByName(ClientId, pMapName);
 }
 
 // FoxNet>
