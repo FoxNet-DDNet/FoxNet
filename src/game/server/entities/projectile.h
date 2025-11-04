@@ -39,7 +39,7 @@ public:
 	bool m_LaserGun = false;
 	int m_ExtraId = -1; // Needed for m_LaserGun
 
-	void HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
+	void HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
 
 private:
 	vec2 m_Direction;

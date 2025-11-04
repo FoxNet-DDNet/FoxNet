@@ -282,7 +282,7 @@ void CProjectile::Tick()
 		}
 		else if(m_Type == WEAPON_GUN)
 		{
-			HandleGunHit(CurPos, NewPos, TeamMask, pOwnerChar, pTargetChr);
+			HandleGunHit(NewPos, TeamMask, pOwnerChar, pTargetChr);
 			return;
 		}
 		else
@@ -330,13 +330,20 @@ void CProjectile::Tick()
 	}
 }
 
-void CProjectile::HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr)
+void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr)
 {
+	float Pt = (Server()->Tick() - m_StartTick - 1) / (float)Server()->TickSpeed();
+	float Ct = (Server()->Tick() - m_StartTick) / (float)Server()->TickSpeed();
+	vec2 PrevPos = GetPos(Pt);
+	vec2 CurPos = GetPos(Ct);
+
 	int EmoteGun = 0;
 	bool ConfettiGun = false;
 	bool PhaseGun = false;
 	int DamageIndEffect = 0;
 	bool CreateDmgInd = true;
+
+	vec2 Direction = normalize(NewPos - PrevPos);
 
 	if(pOwnerChr)
 	{
@@ -366,10 +373,10 @@ void CProjectile::HandleGunHit(vec2 CurPos, vec2 NewPos, CClientMask Mask, CChar
 		}
 		else
 		{
-			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, m_Direction, CosmMask);
+			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, CosmMask);
 		}
 		if(pOwnerChr)
-			GameServer()->CreateDamageInd(CurPos, -std::atan2(m_Direction.x, m_Direction.y), 10, pOwnerChr->OppsiteCosmeticMask());
+			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppsiteCosmeticMask());
 	}
 
 	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)
