@@ -43,9 +43,10 @@ CProjectile::CProjectile(
 	m_Freeze = Freeze;
 
 	m_InitDir = InitDir;
-	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	// m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
 
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
 	m_DDRaceTeam = m_Owner == -1 ? 0 : GameServer()->GetDDRaceTeam(m_Owner);
 	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
