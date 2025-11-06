@@ -980,7 +980,7 @@ void CPlayer::SetArea(int Area)
 float CPlayer::GetClientPred()
 {
 	float Ping = (m_Latency.m_Min) / 10.0f - 1.2f;
-	return Ping + m_PredMargin;
+	return std::max(Ping + m_PredMargin, 2.2f);
 }
 
 int CPlayer::GetSubPage()
