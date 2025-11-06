@@ -208,6 +208,58 @@ typename CNetBan::CBan<T> *CNetBan::CBanPool<T, HashCount>::Get(int Index) const
 }
 
 template<class T>
+int CNetBan::BanTimestamp(T *pBanPool, const typename T::CDataType *pData, int64_t Timestamp, const char *pReason, bool VerbatimReason)
+{
+	// do not ban localhost
+	if(NetMatch(pData, &m_LocalhostIpV4) || NetMatch(pData, &m_LocalhostIpV6))
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban failed (localhost)");
+		return -1;
+	}
+
+	// set up info
+	CBanInfo Info = {0};
+	Info.m_Expires = Timestamp;
+	Info.m_VerbatimReason = VerbatimReason;
+	str_copy(Info.m_aReason, pReason);
+
+	// check if it already exists
+	CNetHash NetHash(pData);
+	CBan<typename T::CDataType> *pBan = pBanPool->Find(pData, &NetHash);
+	if(pBan)
+	{
+		// adjust the ban
+		pBanPool->Update(pBan, &Info);
+		// <FoxNet
+		if(!m_QuietBan)
+		{ // FoxNet>
+			char aBuf[256];
+			MakeBanInfo(pBan, aBuf, sizeof(aBuf), MSGTYPE_LIST);
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		}
+		return 1;
+	}
+
+	// add ban and print result
+	pBan = pBanPool->Add(pData, &Info, &NetHash);
+	if(pBan)
+	{
+		// <FoxNet
+		if(!m_QuietBan)
+		{ // FoxNet>
+			char aBuf[256];
+			MakeBanInfo(pBan, aBuf, sizeof(aBuf), MSGTYPE_BANADD);
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		}
+		return 0;
+	}
+	else
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban failed (full banlist)");
+	return -1;
+
+}
+
+template<class T>
 int CNetBan::Ban(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason, bool VerbatimReason)
 {
 	// do not ban localhost
@@ -287,6 +339,14 @@ void CNetBan::Init(IConsole *pConsole, IStorage *pStorage)
 
 	net_host_lookup("localhost", &m_LocalhostIpV4, NETTYPE_IPV4);
 	net_host_lookup("localhost", &m_LocalhostIpV6, NETTYPE_IPV6);
+	
+	// <FoxNet
+	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBanTimestamp, this, "Ban ip until an absolute UNIX timestamp");
+	Console()->Register("ban_range_timestamp", "s[first ip] s[last ip] i[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBanRangeTimestamp, this, "Ban ip range until an absolute UNIX timestamp");
+
+	Console()->Register("bans_save_old", "s[file]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBansSaveOld, this, "Save banlist in a file");
+	Console()->Register("bans_save", "s[file]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBansSave, this, "Save banlist in a file");
+	// FoxNet>
 
 	Console()->Register("ban", "s[ip|id] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBan, this, "Ban ip for x minutes for any reason");
 	Console()->Register("ban_range", "s[first ip] s[last ip] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBanRange, this, "Ban ip range for x minutes for any reason");
@@ -295,7 +355,6 @@ void CNetBan::Init(IConsole *pConsole, IStorage *pStorage)
 	Console()->Register("unban_all", "", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConUnbanAll, this, "Unban all entries");
 	Console()->Register("bans", "?i[page]", CFGFLAG_SERVER | CFGFLAG_MASTER, ConBans, this, "Show banlist (page 1 by default, 20 entries per page)");
 	Console()->Register("bans_find", "s[ip]", CFGFLAG_SERVER | CFGFLAG_MASTER, ConBansFind, this, "Find all ban records for the specified IP address");
-	Console()->Register("bans_save", "s[file]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBansSave, this, "Save banlist in a file");
 }
 
 void CNetBan::Update()
@@ -328,6 +387,21 @@ int CNetBan::BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason, boo
 {
 	return Ban(&m_BanAddrPool, pAddr, Seconds, pReason, VerbatimReason);
 }
+
+// <FoxNet
+int CNetBan::BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason)
+{
+	return BanTimestamp(&m_BanAddrPool, pAddr, Timestamp, pReason, VerbatimReason);
+}
+int CNetBan::BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason)
+{
+	if(pRange->IsValid())
+		return BanTimestamp(&m_BanRangePool, pRange, Timestamp, pReason, false);
+
+	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban failed (invalid range)");
+	return -1;
+}
+// FoxNet>
 
 int CNetBan::BanRange(const CNetRange *pRange, int Seconds, const char *pReason)
 {
@@ -425,6 +499,49 @@ bool CNetBan::IsBanned(const NETADDR *pOrigAddr, char *pBuf, unsigned BufferSize
 
 	return false;
 }
+
+// <FoxNet
+void CNetBan::ConBanTimestamp(IConsole::IResult *pResult, void *pUser)
+{
+	CNetBan *pThis = static_cast<CNetBan *>(pUser);
+
+	const char *pStr = pResult->GetString(0);
+	int64_t Timestamp = pResult->GetInteger64(1);
+	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "No reason given";
+
+	NETADDR Addr;
+	if(net_addr_from_str(&Addr, pStr) == 0)
+	{
+		if(Timestamp == -1 || Timestamp > time_timestamp())
+			pThis->BanAddrTimestamp(&Addr, Timestamp, pReason, false);
+		else
+			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban_timestamp error (timestamp not in future and not -1)");
+	}
+	else
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban_timestamp error (invalid network address)");
+}
+
+void CNetBan::ConBanRangeTimestamp(IConsole::IResult *pResult, void *pUser)
+{
+	CNetBan *pThis = static_cast<CNetBan *>(pUser);
+
+	const char *pStr1 = pResult->GetString(0);
+	const char *pStr2 = pResult->GetString(1);
+	int64_t Timestamp = pResult->GetInteger64(2);
+	const char *pReason = pResult->NumArguments() > 3 ? pResult->GetString(3) : "No reason given";
+
+	CNetRange Range;
+	if(net_addr_from_str(&Range.m_LB, pStr1) == 0 && net_addr_from_str(&Range.m_UB, pStr2) == 0)
+	{
+		if(Range.IsValid() && (Timestamp == -1 || Timestamp > time_timestamp()))
+			pThis->BanRangeTimestamp(&Range, Timestamp, pReason);
+		else
+			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban_range_timestamp error (invalid range or timestamp)");
+	}
+	else
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban_range_timestamp error (invalid network address)");
+}
+// FoxNet>
 
 void CNetBan::ConBan(IConsole::IResult *pResult, void *pUser)
 {
@@ -603,7 +720,7 @@ void CNetBan::ConBansFind(IConsole::IResult *pResult, void *pUser)
 	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aMsg);
 }
 
-void CNetBan::ConBansSave(IConsole::IResult *pResult, void *pUser)
+void CNetBan::ConBansSaveOld(IConsole::IResult *pResult, void *pUser)
 {
 	CNetBan *pThis = static_cast<CNetBan *>(pUser);
 
@@ -638,5 +755,42 @@ void CNetBan::ConBansSave(IConsole::IResult *pResult, void *pUser)
 
 	io_close(File);
 	str_format(aBuf, sizeof(aBuf), "saved banlist to '%s'", pResult->GetString(0));
+	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+}
+
+void CNetBan::ConBansSave(IConsole::IResult *pResult, void *pUser)
+{
+	CNetBan *pThis = static_cast<CNetBan *>(pUser);
+
+	char aBuf[256];
+	IOHANDLE File = pThis->Storage()->OpenFile(pResult->GetString(0), IOFLAG_WRITE, IStorage::TYPE_SAVE);
+	if(!File)
+	{
+		str_format(aBuf, sizeof(aBuf), "failed to save banlist to '%s'", pResult->GetString(0));
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
+		return;
+	}
+
+	char aAddrStr1[NETADDR_MAXSTRSIZE], aAddrStr2[NETADDR_MAXSTRSIZE];
+	for(CBanAddr *pBan = pThis->m_BanAddrPool.First(); pBan; pBan = pBan->m_pNext)
+	{
+		int64_t Timestamp = pBan->m_Info.m_Expires;
+		net_addr_str(&pBan->m_Data, aAddrStr1, sizeof(aAddrStr1), false);
+		str_format(aBuf, sizeof(aBuf), "ban_timestamp %s %" PRId64 " %s", aAddrStr1, Timestamp, pBan->m_Info.m_aReason);
+		io_write(File, aBuf, str_length(aBuf));
+		io_write_newline(File);
+	}
+	for(CBanRange *pBan = pThis->m_BanRangePool.First(); pBan; pBan = pBan->m_pNext)
+	{
+		int64_t Timestamp = pBan->m_Info.m_Expires;
+		net_addr_str(&pBan->m_Data.m_LB, aAddrStr1, sizeof(aAddrStr1), false);
+		net_addr_str(&pBan->m_Data.m_UB, aAddrStr2, sizeof(aAddrStr2), false);
+		str_format(aBuf, sizeof(aBuf), "ban_range_timestamp %s %s %" PRId64 " %s", aAddrStr1, aAddrStr2, Timestamp, pBan->m_Info.m_aReason);
+		io_write(File, aBuf, str_length(aBuf));
+		io_write_newline(File);
+	}
+
+	io_close(File);
+	str_format(aBuf, sizeof(aBuf), "saved banlist to '%s' (absolute timestamps)", pResult->GetString(0));
 	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
 }

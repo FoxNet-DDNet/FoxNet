@@ -69,6 +69,13 @@ int CConsole::CResult::GetInteger(unsigned Index) const
 	return str_toint(m_apArgs[Index]);
 }
 
+int64_t CConsole::CResult::GetInteger64(unsigned Index) const
+{
+	if(Index >= m_NumArgs)
+		return 0;
+	return str_toint64_base(m_apArgs[Index]);
+}
+
 float CConsole::CResult::GetFloat(unsigned Index) const
 {
 	if(Index >= m_NumArgs)
@@ -265,7 +272,7 @@ int CConsole::ParseArgs(CResult *pResult, const char *pFormat, bool IsColor)
 
 				if(Command == 'r') // rest of the string
 					break;
-				else if(Command == 'v' || Command == 'i' || Command == 'f' || Command == 's')
+				else if(Command == 'v' || Command == 'i' || Command == 'l' || Command == 'f' || Command == 's')
 					pStr = str_skip_to_whitespace(pStr);
 
 				if(pStr[0] != 0) // check for end of string
@@ -289,6 +296,26 @@ int CConsole::ParseArgs(CResult *pResult, const char *pFormat, bool IsColor)
 						}
 					}
 				}
+				// <FoxNet
+				else if(Command == 'l') 
+				{
+					const char *pNum = pResult->GetString(pResult->NumArguments() - 1);
+					if(!*pNum) 
+					{
+						Error = PARSEARGS_INVALID_INTEGER;
+						break;
+						
+					}
+					char *pEnd = nullptr;
+					errno = 0;
+					if(pEnd == nullptr || *pEnd != '\0' || errno == ERANGE) 
+					{
+						Error = PARSEARGS_INVALID_INTEGER;
+						break;
+						
+					}
+				}
+				// FoxNet>
 				else if(Command == 'f')
 				{
 					float Value;

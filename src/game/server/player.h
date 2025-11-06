@@ -452,7 +452,7 @@ public:
 	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
 
-	int m_AccLoginAttemps;
+	int m_AccLoginAttempts;
 	int m_AccRegisters;
 
 	CAccountSession *Acc();

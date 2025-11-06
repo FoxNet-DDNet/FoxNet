@@ -29,7 +29,7 @@ private:
 	bool m_SpiderHook;
 	bool m_Spazzing;
 
-	int m_AccLoginAttemps;
+	int m_AccLoginAttempts;
 	int m_AccRegisters;
 
 	int m_Page;

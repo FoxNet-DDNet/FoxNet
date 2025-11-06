@@ -64,6 +64,7 @@ public:
 		virtual ~IResult() = default;
 
 		virtual int GetInteger(unsigned Index) const = 0;
+		virtual int64_t GetInteger64(unsigned Index) const = 0;
 		virtual float GetFloat(unsigned Index) const = 0;
 		virtual const char *GetString(unsigned Index) const = 0;
 		virtual std::optional<ColorHSLA> GetColor(unsigned Index, float DarkestLighting) const = 0;

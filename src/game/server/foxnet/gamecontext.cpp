@@ -126,8 +126,8 @@ void CGameContext::FoxNetInit()
 	m_VoteMenu.Init(this);
 	m_Shop.Init(this);
 	m_vPowerups.clear();
-	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
 
+	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
 	m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
 
 	RefreshWeekendFlag();
@@ -593,6 +593,8 @@ void CGameContext::OnLogin(int ClientId)
 		pPl->m_HideCosmetics = true;
 	if(Flags & ACC_FLAG_HIDE_POWERUPS)
 		pPl->m_HidePowerUps = true;
+
+	pPl->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
 	if(pPl->Acc()->m_LastName[0] == '\0')
 	{

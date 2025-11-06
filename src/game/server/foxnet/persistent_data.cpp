@@ -17,7 +17,7 @@ void CSavePlayerData::Save(CPlayer *pPl)
 	m_SpiderHook = pPl->m_SpiderHook;
 	m_Spazzing = pPl->m_Spazzing;
 
-	m_AccLoginAttemps = pPl->m_AccLoginAttemps;
+	m_AccLoginAttempts = pPl->m_AccLoginAttempts;
 	m_AccRegisters = pPl->m_AccRegisters;
 
 	m_Page = pPl->GetPage();
@@ -39,7 +39,7 @@ bool CSavePlayerData::Load(CPlayer *pPl)
 	pPl->m_SpiderHook = m_SpiderHook;
 	pPl->m_Spazzing = m_Spazzing;
 
-	pPl->m_AccLoginAttemps = m_AccLoginAttemps;
+	pPl->m_AccLoginAttempts = m_AccLoginAttempts;
 	pPl->m_AccRegisters = m_AccRegisters;
 
 	pPl->SetPage(m_Page);

@@ -156,6 +156,11 @@ protected:
 	template<class T>
 	int Unban(T *pBanPool, const typename T::CDataType *pData);
 
+	// <FoxNet
+	template<class T>
+	int BanTimestamp(T *pBanPool, const typename T::CDataType *pData, int64_t Timestamp, const char *pReason, bool VerbatimReason);
+	// FoxNet>
+
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
 	CBanAddrPool m_BanAddrPool;
@@ -193,9 +198,14 @@ public:
 	static void ConUnbanAll(class IConsole::IResult *pResult, void *pUser);
 	static void ConBans(class IConsole::IResult *pResult, void *pUser);
 	static void ConBansFind(class IConsole::IResult *pResult, void *pUser);
-	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
 
 	// <FoxNet
+	virtual int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason);
+	virtual int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason);
+	static void ConBansSaveOld(class IConsole::IResult *pResult, void *pUser);
+	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
+	static void ConBanTimestamp(class IConsole::IResult *pResult, void *pUser);
+	static void ConBanRangeTimestamp(class IConsole::IResult *pResult, void *pUser);
 	bool m_QuietBan;
 	// FoxNet>
 };

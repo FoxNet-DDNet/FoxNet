@@ -118,7 +118,7 @@ void CPlayer::FoxNetReset()
 {
 	m_HasBotClient = false;
 
-	m_AccLoginAttemps = 0;
+	m_AccLoginAttempts = 0;
 	m_AccRegisters = 0;
 
 	m_IncludeServerInfo = -1;

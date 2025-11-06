@@ -46,7 +46,7 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 		return;
 	if(pPlayer->m_AccRegisters >= 2)
 	{
-		pSelf->Server()->Ban(ClientId, 2880 * 60, "Too many registrations.", false);
+		pSelf->Server()->Ban(ClientId, 1440 * 60, "Too many registrations.", false);
 		return;
 	}
 
@@ -94,9 +94,8 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
-	pPlayer->m_AccLoginAttemps++;
 
-	if(pPlayer->m_AccLoginAttemps >= g_Config.m_SvRconMaxTries)
+	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvRconMaxTries)
 	{
 		pSelf->Server()->Ban(ClientId, g_Config.m_SvRconBantime * 60, "Too many /login attempts.", false);
 		return;
