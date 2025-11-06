@@ -117,14 +117,6 @@ vec2 CProjectile::GetPos(float Time)
 		break;
 
 	case WEAPON_GUN:
-		// <FoxNet
-		if(m_LaserGun || m_HeartGun || m_MixedGun)
-		{
-			Curvature = Tuning()->m_GunCurvature;
-			Speed = Tuning()->m_GunSpeed / 1.25f;
-			break;
-		}
-		// FoxNet>
 		if(!m_TuneZone)
 		{
 			Curvature = Tuning()->m_GunCurvature;
@@ -135,6 +127,10 @@ vec2 CProjectile::GetPos(float Time)
 			Curvature = TuningList()[m_TuneZone].m_GunCurvature;
 			Speed = TuningList()[m_TuneZone].m_GunSpeed;
 		}
+		// <FoxNet
+		if(m_LaserGun || m_HeartGun || m_MixedGun)
+			Speed = 1100.0f;
+		// FoxNet>
 		break;
 	}
 
