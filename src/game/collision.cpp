@@ -595,10 +595,10 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	bool ReturnValue = false;
 
-	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> int {
+	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> vec2 {
+		vec2 Delta = vec2(0, 0);
 		if(!m_HasSolidQuads)
-			return 0;
-		int Delta = 0;
+			return Delta;
 		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
 			return Delta;
 
@@ -616,10 +616,13 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 		if(idx < 0 || (size_t)idx >= m_vNextQuads.size())
 			return Delta;
 
-		const int CurCenter = round_to_int(m_vQuads[(size_t)idx].m_Pos[4].x);
-		const int NextCenter = round_to_int(m_vNextQuads[(size_t)idx].m_Pos[4].x);
+		const vec2 CurCenter = vec2(round_to_int(m_vQuads[(size_t)idx].m_Pos[4].x * 100) / 100, round_to_int(m_vQuads[(size_t)idx].m_Pos[4].y * 100) / 100);
+		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[(size_t)idx].m_Pos[4].x * 100) / 100, round_to_int(m_vNextQuads[(size_t)idx].m_Pos[4].y * 100) / 100);
 
-		if(abs(NextCenter - CurCenter) > 32 * 1.5 /*1.5 blocks*/)
+		if(CurCenter.y > NextCenter.y) // causes entities to float a bit above the platform? dunno dont care - it works
+			return Delta;
+
+		if(distance(NextCenter, CurCenter) > 32 /*1 tile*/)
 			return Delta;
 
 		Delta += (NextCenter - CurCenter) * StepFraction;
@@ -631,11 +634,11 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	// If we are not moving ourselves but are on a moving quad, we still want to be pushed along.
 	// Peek full-frame quad displacement to decide whether to run at least one step.
-	const int FullQuadDelta = QuadStepDeltaAt(Pos, 1.0f, &HitQuad);
+	const vec2 FullQuadDelta = QuadStepDeltaAt(Pos, 1.0f, &HitQuad);
 	if(HitQuad)
 		ReturnValue = true;
 
-	if(Distance > 0.00001f || FullQuadDelta != 0)
+	if(Distance > 0.00001f || FullQuadDelta != vec2(0,0))
 	{
 		float Fraction = 1.f / (float)(Max + 1);
 		float ElasticityX = std::clamp(Elasticity.x, -1.0f, 1.0f);
@@ -643,14 +646,14 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		for(int i = 0; i <= Max; i++)
 		{
-			if(Vel == vec2(0, 0) && FullQuadDelta == 0)
+			if(Vel == vec2(0, 0) && FullQuadDelta == vec2(0,0))
 				break;
 
-			const int QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuad);
+			const vec2 QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuad);
 			if(HitQuad)
 				ReturnValue = true;
 			vec2 NewPos = Pos + Vel * Fraction;
-			NewPos.x += QuadDelta;
+			NewPos += QuadDelta;
 
 			if(NewPos == Pos)
 			{
