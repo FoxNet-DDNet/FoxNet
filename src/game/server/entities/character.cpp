@@ -2966,6 +2966,7 @@ CClientMask CCharacter::OppsiteCosmeticMask()
 
 void CCharacter::FoxNetTick()
 {
+	HandleSpawnSolo();
 	if(m_pPlayer->m_HasBotClient)
 	{
 		if(!m_Core.m_DeepFrozen)
@@ -2976,7 +2977,6 @@ void CCharacter::FoxNetTick()
 	m_Snake.Tick();
 	m_Ufo.Tick();
 	HandleTelekinesis();
-	HandleSpawnSolo();
 
 	if(m_VoteActionDelay >= 0)
 		m_VoteActionDelay--;
