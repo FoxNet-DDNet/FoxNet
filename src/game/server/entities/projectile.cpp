@@ -340,6 +340,8 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 	bool CreateDmgInd = true;
 
 	vec2 Direction = normalize(NewPos - PrevPos);
+	if(Direction == vec2(0,0))
+		Direction = m_Direction;
 
 	if(pOwnerChr)
 	{
