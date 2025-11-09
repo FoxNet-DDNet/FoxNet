@@ -118,3 +118,4 @@ MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER | CFGFLAG_G
 
 // Discord Webhooks
 MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook reports get sent to")
+MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook automated-bans get sent to")

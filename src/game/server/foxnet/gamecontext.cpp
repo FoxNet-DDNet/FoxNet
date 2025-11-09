@@ -101,6 +101,10 @@ void CGameContext::BotClientTick()
 				pPlayer->m_HasBotClient = true;
 				if(g_Config.m_SvAntiBot == 2)
 				{
+					char aBanBuf[256];
+					str_format(aBanBuf, sizeof(aBanBuf), "'%s' [%s] was banned for 240 minutes for too many /login attempts.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
+					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
+
 					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
 					continue;
 				}
@@ -490,7 +494,20 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	if(count >= 2 && BanDuration > 0)
 	{
 		if(IsBan)
+		{
+			char aBanBuf[256];
+			str_format(aBanBuf, sizeof(aBanBuf),
+				"'%s' [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
+				"Strings: %s",
+				Server()->ClientName(ClientId),
+				Server()->ClientAddrString(ClientId, false),
+				BanDuration,
+				InfoMsg);
+
+			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
+
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
+		}
 		else
 			MuteWithMessage(Server()->ClientAddr(ClientId), BanDuration * 60, Reason, ClientName);
 
@@ -564,17 +581,32 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 
 	if(FoundStrings.size() > 0)
 	{
-		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "Name: %s | Banned String Found: ", ClientName);
-		for(const auto &str : FoundStrings)
+		char InfoMsg[256] = "";
+		if(FoundStrings.size() > 0)
 		{
-			str_append(aBuf, str.c_str());
-			str_append(aBuf, ", ");
+			for(const auto &str : FoundStrings)
+			{
+				str_append(InfoMsg, str.c_str());
+				if(&str != &FoundStrings.back())
+					str_append(InfoMsg, ", ");
+			}
+			log_info("name-detection", "Name: %s | Strings Found: %s", ClientName, InfoMsg);
 		}
-		log_info("chat-detection", "%s", aBuf);
 
 		if(!PreventNameChange && BanDuration > 0)
+		{
+			char aBanBuf[256];
+			str_format(aBanBuf, sizeof(aBanBuf),
+				"'%s' [%s] was banned for %d minutes for triggering the Name-detection.\n"
+				"Strings: %s",
+				Server()->ClientName(ClientId),
+				Server()->ClientAddrString(ClientId, false),
+				BanDuration,
+				InfoMsg);
+			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Name Detection");
+
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
+		}
 		return true;
 	}
 
