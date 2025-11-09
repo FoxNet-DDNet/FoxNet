@@ -102,7 +102,7 @@ void CGameContext::BotClientTick()
 				if(g_Config.m_SvAntiBot == 2)
 				{
 					char aBanBuf[256];
-					str_format(aBanBuf, sizeof(aBanBuf), "'%s' [%s] was banned for 240 minutes for too many /login attempts.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
+					str_format(aBanBuf, sizeof(aBanBuf), "'%s' [%s] was banned for 240 minutes for using a bot client.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
 					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
 
 					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
