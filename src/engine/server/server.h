@@ -568,6 +568,17 @@ public:
 	static void ConHighBandwidth(IConsole::IResult *pResult, void *pUser);
 	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
 	bool NetMsgCustomClient(int ClientId, int Msg, CUnpacker Unpacker);
+	
+	class CWebhook : public IJob
+	{
+		void Run() override;
+
+	public:
+		CWebhook(const char *pCommand) { str_copy(m_aCommand, pCommand, sizeof(m_aCommand)); }
+		char m_aCommand[1024];
+	};
+	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
+
 	// FoxNet>
 };
 

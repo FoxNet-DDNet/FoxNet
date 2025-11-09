@@ -116,6 +116,8 @@ void CPlayer::ExpireItems()
 
 void CPlayer::FoxNetReset()
 {
+	m_LastReport = 0;
+
 	m_HasBotClient = false;
 
 	m_AccLoginAttempts = 0;

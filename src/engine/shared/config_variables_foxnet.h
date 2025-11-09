@@ -115,3 +115,6 @@ MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "https://github.com/FoxNet-D
 
 // Force
 MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Force skin for all players (Leave empty to disable)")
+
+// Discord Webhooks
+MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook reports get sent to")

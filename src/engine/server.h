@@ -301,6 +301,7 @@ public:
 	virtual void OverrideClientName(int ClientId, const char *pName) = 0;
 	virtual const char *GetCustomClient(int ClientId) = 0;
 	virtual bool QuietJoin(int ClientId) = 0;
+	virtual void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
 	// FoxNet>
 };
 

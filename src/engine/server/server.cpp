@@ -10,21 +10,18 @@
 #include <base/math.h>
 #include <base/system.h>
 
-#include <engine/config.h>
 #include <engine/console.h>
 #include <engine/engine.h>
 #include <engine/map.h>
 #include <engine/server.h>
 #include <engine/shared/compression.h>
 #include <engine/shared/config.h>
-#include <engine/shared/console.h>
 #include <engine/shared/demo.h>
 #include <engine/shared/econ.h>
 #include <engine/shared/fifo.h>
 #include <engine/shared/filecollection.h>
 #include <engine/shared/host_lookup.h>
 #include <engine/shared/http.h>
-#include <engine/shared/json.h>
 #include <engine/shared/jsonwriter.h>
 #include <engine/shared/linereader.h>
 #include <engine/shared/masterserver.h>
@@ -44,6 +41,34 @@
 
 #include <chrono>
 #include <vector>
+#include <malloc.h>
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
+#include <iterator>
+#include <memory>
+#include <optional>
+#include <string>
+#include <type_traits>
+#include <generated/protocol.h>
+#include <generated/protocol7.h>
+#include <generated/protocolglue.h>
+#include <antibot/antibot_data.h>
+#include <base/detect.h>
+#include <base/hash.h>
+#include <base/log.h>
+#include <base/str.h>
+#include <base/types.h>
+#include <engine/antibot.h>
+#include <engine/demo.h>
+#include <engine/http.h>
+#include <engine/message.h>
+#include "authmanager.h"
+#include "name_ban.h"
+#include <engine/shared/jobs.h>
+#include <engine/shared/protocol_ex_msgs.h>
+#include <engine/shared/uuid_manager.h>
 
 using namespace std::chrono_literals;
 
@@ -4913,4 +4938,84 @@ void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
 	pThis->SendMapByName(ClientId, pMapName);
 }
 
+static const char *EscapeMessage(const char *pMessage)
+{
+	static char aEscaped[2048];
+	char *pDst = aEscaped;
+	const unsigned char *pSrc = (const unsigned char *)pMessage;
+
+	while(*pSrc && (size_t)(pDst - aEscaped) < sizeof(aEscaped) - 7) // up to 6 chars for \u00XX plus null
+	{
+		unsigned char c = *pSrc++;
+		switch(c)
+		{
+		case '\"': *pDst++ = '\\'; *pDst++ = '\"'; break;
+		case '\\': *pDst++ = '\\'; *pDst++ = '\\'; break;
+		case '\b': *pDst++ = '\\'; *pDst++ = 'b';  break;
+		case '\f': *pDst++ = '\\'; *pDst++ = 'f';  break;
+		case '\n': *pDst++ = '\\'; *pDst++ = 'n';  break;
+		case '\r': *pDst++ = '\\'; *pDst++ = 'r';  break;
+		case '\t': *pDst++ = '\\'; *pDst++ = 't';  break;
+		case '<':
+			*pDst++ = '\\'; *pDst++ = 'u'; *pDst++ = '0'; *pDst++ = '0'; *pDst++ = '3'; *pDst++ = 'c';
+			break;
+		case '>':
+			*pDst++ = '\\'; *pDst++ = 'u'; *pDst++ = '0'; *pDst++ = '0'; *pDst++ = '3'; *pDst++ = 'e';
+			break;
+		default:
+			if(c < 0x20) // other control chars -> \u00XX
+			{
+				*pDst++ = '\\';
+				*pDst++ = 'u';
+				*pDst++ = '0';
+				*pDst++ = '0';
+				static const char HEX[] = "0123456789abcdef";
+				*pDst++ = HEX[(c >> 4) & 0xF];
+				*pDst++ = HEX[c & 0xF];
+			}
+			else
+			{
+				*pDst++ = (char)c;
+			}
+			break;
+		}
+	}
+	*pDst = '\0';
+	return aEscaped;
+}
+
+void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
+{
+	if(pUrl[0] == '\0' || pMessage[0] == '\0')
+		return;
+
+	std::string url = pUrl;
+	std::string Message = EscapeMessage(pMessage);
+	std::string Username = EscapeMessage(pUsername);
+	std::string AvatarUrl = pAvatarURL;
+	const std::string Base = "curl -i -H \"Accept: application/json\" -H \"Content-Type: application/json; charset=UTF-8\" -X POST --data ";
+
+	// Things like "äöü" or any special characters wont get sent properly on windows, Linux on top
+	std::string Data = "\"{\\\"username\\\": \\\"" + Username + "\\\", \\\"content\\\": \\\"" + Message + "\\\", \\\"avatar_url\\\": \\\"" + AvatarUrl + "\\\"}\" ";
+
+	// Makes the console shut up
+#if defined(_WIN32) || defined(_WIN64)
+	std::string command = Base + Data + url + " > NUL 2>&1";
+#else
+	std::string command = Base + Data + url + " > /dev/null 2>&1";
+#endif
+
+	IEngine *pEngine = Kernel()->RequestInterface<IEngine>();
+	pEngine->AddJob(std::make_shared<CWebhook>(command.c_str()));
+}
+
+void CServer::CWebhook::Run()
+{
+	int ret = system(m_aCommand);
+	if(ret)
+	{
+		dbg_msg("webhook", "Sending webhook message failed, returned %d", ret);
+		dbg_msg("webhook", "%s", m_aCommand);
+	}
+}
 // FoxNet>

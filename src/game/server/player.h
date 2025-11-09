@@ -440,6 +440,8 @@ private:
 
 	void SendBroadcast(const char *pText);
 public:
+	int64_t m_LastReport = 0;
+
 	bool m_HasBotClient;
 
 	int m_BetAmount = -1;

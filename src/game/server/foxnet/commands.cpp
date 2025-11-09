@@ -22,6 +22,7 @@
 #include <game/server/score.h>
 
 #include <algorithm>
+#include <string>
 
 void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 {
@@ -1548,6 +1549,85 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->m_LastBet = pSelf->Server()->Tick();
 }
 
+void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!CheckClientId(ClientId))
+		return;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+
+	if(!g_Config.m_DcReportsWebhookUrl[0])
+	{
+		pSelf->SendChatTarget(ClientId, "Reporting is not enabled on this server.");
+		return;
+	}
+
+	const char *pFrom = pSelf->Server()->ClientName(ClientId);
+	const char *pAgainst = pResult->GetString(0);
+	const char *pReportText = pResult->GetString(1);
+
+	if(!str_comp_nocase(pAgainst, pFrom))
+	{
+		pSelf->SendChatTarget(ClientId, "You can't report yourself.");
+		return;
+	}
+
+	if(!pPlayer->Acc()->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(ClientId, "You need to be logged in for this.");
+		return;
+	}
+
+	if(pPlayer->m_LastReport + pSelf->Server()->TickSpeed() * 60 > pSelf->Server()->Tick())
+	{
+		pSelf->SendChatTarget(ClientId, "Wait a bit until you can report again.");
+		return;
+	}
+
+	bool Found = false;
+	for(int ClientId2 = 0; ClientId2 < MAX_CLIENTS; ClientId2++)
+	{
+		if(!pSelf->Server()->ClientIngame(ClientId2))
+			continue;
+
+		if(!str_comp(pSelf->Server()->ClientName(ClientId2), pAgainst))
+		{
+			Found = true;
+			break;
+		}
+	}
+	if(!Found)
+	{
+		pSelf->SendChatTarget(ClientId, "Player not found.");
+		return;
+	}
+
+	char aBuf[256];
+
+	str_format(aBuf, sizeof(aBuf), "From: '%s' (Acc: '%s')\n"
+		"against: '%s'\n\n"
+		"%s\n\n"
+		"Port: %d\n"
+		"-----------------------------------",
+		pFrom,
+		pPlayer->Acc()->m_aUsername,
+		pAgainst,
+		pReportText,
+		pSelf->Server()->Port());
+
+	char aNameBuf[32] = "";
+	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Id:%d)", ClientId);
+
+	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
+
+	pPlayer->m_LastReport = pSelf->Server()->Tick();
+	pSelf->SendChatTarget(ClientId, "Report sent!");
+}
+
 void CGameContext::ConLaserText(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1703,6 +1783,8 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("top5playtime", "?i[offset]", CFGFLAG_CHAT, ConAccTop5Playtime, this, "Show someones profile");
 
 	Console()->Register("bet", "i[amount]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
+
+	Console()->Register("report", "s[player] r[message]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConReport, this, "Report a player");
 
 	// Shop
 	Console()->Register("shop_edit_item", "s[Name] i[Price] ?i[Minimum Level]", CFGFLAG_SERVER, ConShopEditItem, this, "Edit a shop item");
