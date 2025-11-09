@@ -41,7 +41,6 @@
 
 #include <chrono>
 #include <vector>
-#include <malloc.h>
 #include <algorithm>
 #include <array>
 #include <cstdint>
