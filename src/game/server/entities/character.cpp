@@ -2394,16 +2394,9 @@ void CCharacter::HandleTuneLayer()
 	}
 
 	if(m_TuneZoneOverride != -1)
-	{
 		m_Core.m_Tuning = TuningList()[m_TuneZoneOverride];
-	}
 	else
-	{
-		if(m_TuneZone)
-			m_Core.m_Tuning = TuningList()[m_TuneZone]; // throw tunings from specific zone into gamecore
-		else
-			m_Core.m_Tuning = *Tuning();
-	}
+		m_Core.m_Tuning = TuningList()[m_TuneZone]; // throw tunings from specific zone into gamecore
 	// FoxNet>
 	if(m_TuneZone != m_TuneZoneOld) // don't send tunigs all the time
 	{

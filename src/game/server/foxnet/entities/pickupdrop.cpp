@@ -105,7 +105,7 @@ void CPickupDrop::Tick()
 	m_MoveRestrictions = Collision()->GetMoveRestrictions(IsSwitchActiveCb, this, m_Pos, 18.0f, CurrentIndex);
 
 	if(!m_TuneZone)
-		m_Vel.y += GameServer()->Tuning()->m_Gravity;
+		m_Vel.y += GameServer()->GlobalTuning()->m_Gravity;
 	else
 		m_Vel.y += GameServer()->TuningList()[m_TuneZone].m_Gravity;
 
@@ -138,7 +138,7 @@ void CPickupDrop::Tick()
 	{
 		m_Vel.y -= 0.05f; // slowly float up
 		if(!m_TuneZone)
-			m_Vel.y -= GameServer()->Tuning()->m_Gravity;
+			m_Vel.y -= GameServer()->GlobalTuning()->m_Gravity;
 		else
 			m_Vel.y -= GameServer()->TuningList()[m_TuneZone].m_Gravity;
 		m_InsideFreeze = false; // Reset for the next tick

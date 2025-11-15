@@ -152,7 +152,7 @@ void CPickupPet::FollowMode(CCharacter *pOwner)
 		vec2 Direction = TargetPos - PlayerPos;
 		float Distance = length(Direction);
 
-		CTuningParams FakeTuning = Zone > 0 ? GameServer()->TuningList()[Zone] : *GameServer()->Tuning();
+		CTuningParams FakeTuning = GameServer()->TuningList()[Zone];
 
 		if(Distance > MaxDistance)
 		{
