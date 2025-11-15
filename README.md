@@ -139,7 +139,7 @@
 |bet|Used to set your wager on the roulette|
 |buyitem|Buy an Item from the shop|
 |toggleitem|Toggle any item you own|
-|dropweapon|Drop the weapon youre holding|
+|dropweapon|Drop the weapon you're holding|
 |repredict|Use this command along side your prediction margin to better predict cosmetics|
 
 |Cosmetic Commands|

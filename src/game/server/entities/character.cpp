@@ -1188,7 +1188,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	case DEATHS_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
 	}
 	// This only gets created if a player has cosmetics turned off
-	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppsiteCosmeticMask());
+	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask());
 	// FoxNet>
 
 	// this is to rate limit respawning to 3 secs
@@ -2968,7 +2968,7 @@ CClientMask CCharacter::CosmeticMask()
 {
 	return Teams()->CosmeticMask(Team(), -1, GetPlayer()->GetCid(), 3, false);
 }
-CClientMask CCharacter::OppsiteCosmeticMask()
+CClientMask CCharacter::OppositeCosmeticMask()
 {
 	return Teams()->CosmeticMask(Team(), -1, GetPlayer()->GetCid(), 3, true);
 }
@@ -3221,7 +3221,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask());
 		else
 			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask());
-		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppsiteCosmeticMask());
+		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppositeCosmeticMask());
 	}
 }
 

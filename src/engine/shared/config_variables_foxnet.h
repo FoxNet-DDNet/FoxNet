@@ -46,7 +46,7 @@ MACRO_CONFIG_INT(SvSnakeCollision, sv_snake_collision, 1, 0, 1, CFGFLAG_SERVER, 
 MACRO_CONFIG_INT(SvUfoMaxSpeed, sv_ufo_max_speed, 16, 1, 50, CFGFLAG_SERVER, "Ufos maximum speed")
 MACRO_CONFIG_INT(SvUfoFriction, sv_ufo_friction, 90, 0, 100, CFGFLAG_SERVER, "Ufos friction (how fast it slows down when theres no movement)")
 MACRO_CONFIG_INT(SvUfoAccel, sv_ufo_accel, 12, 1, 200, CFGFLAG_SERVER, "Ufos acceleration in any direction")
-MACRO_CONFIG_INT(SvUfoTranslateVel, sv_ufo_translate_vel, 1, 0, 1, CFGFLAG_SERVER, "Whether to use normal chararcter velocity aswell as UFOs")
+MACRO_CONFIG_INT(SvUfoTranslateVel, sv_ufo_translate_vel, 1, 0, 1, CFGFLAG_SERVER, "Whether to use normal character velocity aswell as UFOs")
 MACRO_CONFIG_INT(SvUfoDisableFreeze, sv_ufo_disable_freeze, 1, 0, 1, CFGFLAG_SERVER, "Whether the character gets affected by freeze (cant move)")
 MACRO_CONFIG_INT(SvAutoUfo, sv_auto_ufo, 0, 0, 1, CFGFLAG_SERVER, "Automatically gives every player an UFO (always)")
 MACRO_CONFIG_INT(SvUfoLaserType, sv_ufo_laser_type, 0, 0, 6, CFGFLAG_SERVER, "Ufos laser type")

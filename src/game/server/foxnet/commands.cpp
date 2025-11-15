@@ -1588,13 +1588,14 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(pPlayer->m_LastReport + pSelf->Server()->TickSpeed() * 60 > pSelf->Server()->Tick())
+	if(pPlayer->m_LastReport > 0 && pPlayer->m_LastReport + pSelf->Server()->TickSpeed() * 60 > pSelf->Server()->Tick())
 	{
-		pSelf->SendChatTarget(ClientId, "Wait a bit until you can report again.");
+		pSelf->SendChatTarget(ClientId, "You need to wait a bit until you can report.");
 		return;
 	}
 
 	bool Found = false;
+	CPlayer *pAgainstPl = nullptr;
 	for(int ClientId2 = 0; ClientId2 < MAX_CLIENTS; ClientId2++)
 	{
 		if(!pSelf->Server()->ClientIngame(ClientId2))
@@ -1603,6 +1604,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		if(!str_comp(pSelf->Server()->ClientName(ClientId2), pAgainst))
 		{
 			Found = true;
+			pAgainstPl = pSelf->m_apPlayers[ClientId2];	
 			break;
 		}
 	}
@@ -1614,19 +1616,20 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[256];
 
-	str_format(aBuf, sizeof(aBuf), "From: '%s' (Acc: '%s')\n"
-		"against: '%s'\n\n"
-		"%s\n\n"
-		"Port: %d\n"
-		"-----------------------------------",
+	str_format(aBuf, sizeof(aBuf), "From: `%s` (Acc: `%s`)\n"
+				       "against: `%s` (Acc: `%s`)\n"
+				       "\n"
+				       "Reason: %s\n"
+				       "\n"
+				       "-----------------------------------",
 		pFrom,
 		pPlayer->Acc()->m_aUsername,
 		pAgainst,
-		pReportText,
-		pSelf->Server()->Port());
+		pAgainstPl ? pAgainstPl->Acc()->m_aUsername : "No Account",
+		pReportText);
 
 	char aNameBuf[32] = "";
-	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Id:%d)", ClientId);
+	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d)", pSelf->Server()->Port());
 
 	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
 

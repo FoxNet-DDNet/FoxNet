@@ -186,8 +186,8 @@ void CGameContext::Clear()
 	CMutes VoteMutes = m_VoteMutes;
 
 	// <FoxNet
-	std::vector<CStringDetection> vChatDection = m_vChatDetection;
-	std::vector<CStringDetection> vNameDection = m_vNameDetection;
+	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
+	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
@@ -206,8 +206,8 @@ void CGameContext::Clear()
 	m_VoteMutes = VoteMutes;
 
 	// <FoxNet
-	m_vChatDetection = vChatDection;
-	m_vNameDetection = vNameDection;
+	m_vChatDetection = vChatDetection;
+	m_vNameDetection = vNameDetection;
 	m_vQuadDebugIds = vQuadDebugIds;
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;

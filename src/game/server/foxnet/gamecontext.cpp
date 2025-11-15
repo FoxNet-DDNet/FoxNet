@@ -238,7 +238,7 @@ void CGameContext::PowerUpSpawner()
 	if(m_PowerUpDelay > Server()->Tick())
 		return;
 
-	const auto RandomPos = GetRandomAccessablePos();
+	const auto RandomPos = GetRandomAccessiblePos();
 	if(!RandomPos)
 	{
 		m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
@@ -471,7 +471,8 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			if(str_length(pText) > 70) // Usually it pings alot of people
 			{
 				// try to not remove their message if they are just trying to be funny
-				if(!str_find_nocase(pText, "github.com") && !str_find_nocase(pText, "tater") && !str_find_nocase(pText, "tclient") && !str_find_nocase(pText, "t-client") && !str_find_nocase(pText, "tclient.app") // TClient
+				if(!str_find_nocase(pText, "ddnet.org")
+					&& !str_find_nocase(pText, "github.com") && !str_find_nocase(pText, "tater") && !str_find_nocase(pText, "tclient") && !str_find_nocase(pText, "t-client") && !str_find_nocase(pText, "tclient.app") // TClient
 					&& !str_find_nocase(pText, "aiodob") && !str_find_nocase(pText, "aidob") && !str_find_nocase(pText, "a-client") && !str_find(pText, "A Client") && !str_find(pText, "A client") // AClient
 					&& !str_find_nocase(pText, "eclient") && !str_find_nocase(pText, "e client") && !str_find_nocase(pText, "entity client") && !str_find_nocase(pText, "e-client") // Other
 					&& !str_find_nocase(pText, "chillerbot") && !str_find_nocase(pText, "cactus")) // Other
@@ -1060,7 +1061,7 @@ void CGameContext::OnPreShutdown()
 	m_AccountManager.LogoutAllAccountsPort(Server()->Port()); // Save all info before CPlayer is destroyed
 }
 
-std::optional<vec2> CGameContext::GetRandomAccessablePos()
+std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 {
 	const auto Dist2 = [](const vec2 &a, const vec2 &b) {
 		const float dx = a.x - b.x;

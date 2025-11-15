@@ -964,7 +964,7 @@ public:
 	bool AddFakeMessage(const char *pName, const char *pMessage, const char *pSkinName, bool CustomColor = false, int ColorBody = 0, int ColorFeet = 0);
 
 	int GetWeaponType(int Weapon);
-	std::optional<vec2> GetRandomAccessablePos();
+	std::optional<vec2> GetRandomAccessiblePos();
 
 	int RandGeometric(std::mt19937 &rng, int Min, int Max, double p);
 

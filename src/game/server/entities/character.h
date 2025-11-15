@@ -313,7 +313,7 @@ public:
 	void SetTuneOverride(int pZone);
 
 	CClientMask CosmeticMask();
-	CClientMask OppsiteCosmeticMask();
+	CClientMask OppositeCosmeticMask();
 
 	// Telekinesis
 	int m_TelekinesisId; // Should be a CEntity so PickupDrops can be telekinesised

@@ -66,7 +66,7 @@ constexpr const char *ADMIN_MISC_SNAKE = "Snake";
 constexpr const char *ADMIN_MISC_UFO = "Ufo";
 
 constexpr const char *ADMIN_MISC_OBFUSCATED = "Obfuscate Name";
-constexpr const char *ADMIN_MISC_IGN_KILL_BORD = "Ignore Kill Border";
+constexpr const char *ADMIN_MISC_IGN_KILL_BORDER = "Ignore Kill Border";
 
 constexpr const char *ADMIN_MISC_HEARTGUN = "Heart Gun";
 constexpr const char *ADMIN_MISC_LIGHTSABER = "Lightsaber";
@@ -463,7 +463,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 
-			if(IsOption(pVote, ADMIN_MISC_IGN_KILL_BORD))
+			if(IsOption(pVote, ADMIN_MISC_IGN_KILL_BORDER))
 			{
 				pPl->m_IgnoreGamelayer = !pPl->m_IgnoreGamelayer;
 				return true;
@@ -662,7 +662,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 	{
 		AddVoteText(MAIN_MENU_PAGE);
 		AddVoteText(BACKPAGE);
-		AddVoteSeperator();
+		AddVoteSeparator();
 	}
 
 	switch(Page)
@@ -678,7 +678,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 
 	if(Page != PAGE_MAIN)
 	{
-		AddVoteSeperator();
+		AddVoteSeparator();
 		AddVoteText(BACKPAGE);
 	}
 
@@ -761,7 +761,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 	if(!pAcc->m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
-		AddVoteSeperator();
+		AddVoteSeparator();
 		AddVoteText("1 - use /register <Name> <Password>");
 		AddVoteText("2 - login using /login <Name> <Password>");
 	}
@@ -797,7 +797,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 	}
-	AddVoteSeperator();
+	AddVoteSeparator();
 
 	for(int i = 0; i < NUM_PAGES; i++)
 	{
@@ -849,7 +849,7 @@ void CVoteMenu::SendPageSettings(int ClientId)
 	AddVoteCheckBox(SETTINGS_HIDE_COSMETICS, pPl->m_HideCosmetics);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pPl->m_HidePowerUps);
 
-	AddVoteSeperator();
+	AddVoteSeparator();
 	if(Server()->GetClientVersion(ClientId) >= VERSION_DDNET_PICKUP_ROTATION)
 	{
 		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
@@ -873,7 +873,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 	if(!pAcc->m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
-		AddVoteSeperator();
+		AddVoteSeparator();
 		AddVoteText("1 - use /register <Name> <Password>");
 		AddVoteText("2 - login using /login <Name> <Password>");
 		return;
@@ -884,13 +884,13 @@ void CVoteMenu::SendPageShop(int ClientId)
 	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
 	AddVoteText(aBuf);
 	AddVoteText("╰────────────");
-	AddVoteSeperator();
+	AddVoteSeparator();
 
 	if(SubPage != SUB_SHOP_ITEMINFO)
 	{
 		AddVoteSubheader("Fɪʟᴛᴇʀs");
 		AddVoteCheckBox(SHOP_ONLY_AFFORDABLE, Data.m_OnlyAffordable);
-		AddVoteSeperator();
+		AddVoteSeparator();
 	}
 
 	if(SubPage == SUB_SHOP_MAIN)
@@ -961,7 +961,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
-		AddVoteSeperator();
+		AddVoteSeparator();
 
 		str_copy(aBuf, FormatItemVote(pItem));
 		AddVoteText(aBuf);
@@ -978,7 +978,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 	if(!pAcc->m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
-		AddVoteSeperator();
+		AddVoteSeparator();
 		AddVoteText("1 - use /register <Name> <Password>");
 		AddVoteText("2 - login using /login <Name> <Password>");
 		return;
@@ -1018,7 +1018,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		if(g_Config.m_SvRulesLine9[0])
 			AddVotePrefix(g_Config.m_SvRulesLine9, PREFIX_LONG_LINE);
 		AddVoteText("╰────────────────────");
-		AddVoteSeperator();
+		AddVoteSeparator();
 
 		AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
 		AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
@@ -1057,7 +1057,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteText("│ Check out our GitHub page!");
 		AddVoteText("╰────────────────────");
 
-		AddVoteSeperator();
+		AddVoteSeparator();
 
 		AddVoteText("╭───────    GɪᴛHᴜʙ");
 		AddVotePrefix(g_Config.m_SvGithubRepo, PREFIX_LONG_LINE);
@@ -1167,12 +1167,12 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteCheckBox(ADMIN_COSM_STAFFIND, pPl->Cosmetics()->m_StaffInd);
 		if(pPl->GetCharacter())
 			AddVoteCheckBox(ADMIN_COSM_HEARTGUN, pPl->GetCharacter()->GetWeaponGot(WEAPON_HEARTGUN));
-		AddVoteSeperator();
+		AddVoteSeparator();
 
 		AddVoteSubheader("Aʙɪʟɪᴛɪᴇs");
 		AddVoteCheckBox(ADMIN_ABILITY_FIREWORK, pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK);
 		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS);
-		AddVoteSeperator();
+		AddVoteSeparator();
 	}
 
 	for(const auto &Vote : Votes)
@@ -1244,7 +1244,7 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 	AddVotePrefix(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
 	AddVotePrefix(ADMIN_COSMETICS, GetSubPage(ClientId) == SUB_ADMIN_COSMETICS ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
 	AddVotePrefix(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
-	AddVoteSeperator();
+	AddVoteSeparator();
 	if(GetSubPage(ClientId) == SUB_ADMIN_UTIL)
 	{
 		if(pChr && CanUseCmd(ClientId, "invincible"))
@@ -1259,12 +1259,12 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 				AddVoteCheckBox(ADMIN_UTIL_TELEKINESIS, pChr->GetWeaponGot(WEAPON_TELEKINESIS));
 			if(CanUseCmd(ClientId, "telekinesis_immunity"))
 				AddVoteCheckBox(ADMIN_UTIL_TELEK_IMMUNITY, pPlayer->m_TelekinesisImmunity);
-			AddVoteSeperator();
+			AddVoteSeparator();
 
 			if(CanUseCmd(ClientId, "passive"))
 			{
 				AddVoteCheckBox(ADMIN_UTIL_PASSIVE, pChr->Core()->m_Passive);
-				AddVoteSeperator();
+				AddVoteSeparator();
 			}
 
 			if(CanUseCmd(ClientId, "collidable") && CanUseCmd(ClientId, "hittable") && CanUseCmd(ClientId, "hookable"))
@@ -1287,14 +1287,14 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 				AddVoteCheckBox(ADMIN_MISC_UFO, pChr->m_Ufo.Active());
 		}
 
-		AddVoteSeperator();
+		AddVoteSeparator();
 		if(CanUseCmd(ClientId, "obfuscate"))
 			AddVoteCheckBox(ADMIN_MISC_OBFUSCATED, pPlayer->m_Obfuscated);
 
 		if(CanUseCmd(ClientId, "ignore_gamelayer"))
-			AddVoteCheckBox(ADMIN_MISC_IGN_KILL_BORD, pPlayer->m_IgnoreGamelayer);
+			AddVoteCheckBox(ADMIN_MISC_IGN_KILL_BORDER, pPlayer->m_IgnoreGamelayer);
 
-		AddVoteSeperator();
+		AddVoteSeparator();
 		if(pChr)
 		{
 			if(CanUseCmd(ClientId, "heartgun"))

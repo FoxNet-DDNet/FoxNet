@@ -50,7 +50,7 @@ void CFirework::Reset()
 	for(int i = 0; i < MAX_FIREWORKS; i++)
 		Server()->SnapFreeId(m_Ids[i]);
 
-	// Always alocated when entity is created
+	// Always allocated when entity is created
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }

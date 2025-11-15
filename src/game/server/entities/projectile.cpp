@@ -347,7 +347,7 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, CosmMask);
 		}
 		if(pOwnerChr)
-			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppsiteCosmeticMask());
+			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppositeCosmeticMask());
 	}
 
 	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)

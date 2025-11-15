@@ -152,7 +152,7 @@ class CVoteMenu
 	bool IsOption(const char *pDesc, const char *pWantedOption) { return !str_comp(pDesc, pWantedOption); }
 
 	void AddVoteText(const char *pDesc) { m_vDescriptions.emplace_back(pDesc); }
-	void AddVoteSeperator() { m_vDescriptions.emplace_back(" "); }
+	void AddVoteSeparator() { m_vDescriptions.emplace_back(" "); }
 	void AddVoteSubheader(const char *pDesc);
 	void AddVotePrefix(const char *pDesc, int Prefix);
 	void AddVoteCheckBox(const char *pDesc, bool Checked);

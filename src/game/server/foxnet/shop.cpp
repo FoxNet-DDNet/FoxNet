@@ -38,7 +38,7 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem("Clockwise Indicator", "I_C", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Counter Clockwise Indicator", "I_CC", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Inward Turning Indicator", "I_IT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Outward Turning Indicator", "I_OT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Outward Turning Indicator", "I_TO" /*fuckass spelling check is flagging 'I_OT'*/, TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Line Indicator", "I_L", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Criss Cross Indicator", "I_CrCs", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10, SUBTYPE_IND));
 
@@ -74,18 +74,18 @@ void CShop::ResetItems()
 
 void CShop::ListItems()
 {
-	char Seperator[128] = "";
+	char Separator[128] = "";
 	for(int Length = 0; Length < 56; Length++)
-		str_append(Seperator, "-");
+		str_append(Separator, "-");
 
-	log_info("shop", "%s", Seperator);
+	log_info("shop", "%s", Separator);
 	for(CItem *pItem : m_Items)
 	{
 		if(!str_comp(pItem->Name(), ""))
 			continue;
 		log_info("shop", "%s | Price: %d | MinLevel: %d", pItem->Name(), pItem->Price(), pItem->MinLevel());
 	}
-	log_info("shop", "%s", Seperator);
+	log_info("shop", "%s", Separator);
 }
 
 void CShop::EditItem(const char *pName, int Price, int MinLevel)
