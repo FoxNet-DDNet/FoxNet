@@ -473,6 +473,8 @@ public:
 	bool m_SpiderHook = false;
 	bool m_Spazzing = false;
 
+	bool CanUseMoney();
+
 	void GivePlaytime(int Amount);
 	void GiveXP(long Amount, const char *pMessage = "", bool Multiplier = true);
 	bool CheckLevelUp(long Amount, bool Silent = false);

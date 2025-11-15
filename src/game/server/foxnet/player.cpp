@@ -261,6 +261,17 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }
 
+bool CPlayer::CanUseMoney()
+{
+	if(!Acc()->m_LoggedIn)
+		return false;
+	if(GameServer()->m_pRoulette && GameServer()->m_pRoulette->ClientBetting(GetCid()))
+		return false;
+
+	return true;
+}
+
+
 void CPlayer::TakeMoney(long Amount, bool Silent, const char *pMessage)
 {
 	if(!Acc()->m_LoggedIn)

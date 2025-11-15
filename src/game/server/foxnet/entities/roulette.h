@@ -96,6 +96,8 @@ class CRoulette : public CEntity
 public:
 	CRoulette(CGameWorld *pGameWorld, vec2 Pos);
 
+	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
+
 	bool AddClient(int ClientId, int BetAmount, const char *pBetOption);
 	RStates State() const { return m_State; }
 

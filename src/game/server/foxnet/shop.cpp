@@ -166,6 +166,14 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	if(!pPl)
 		return;
+	if(!pPl->CanUseMoney())
+	{
+		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
+		GameServer()->SendChatTarget(ClientId, "│ You cannot use Money right now");
+		GameServer()->SendChatTarget(ClientId, "│ Try again later");
+		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
+		return;
+	}
 
 	char aBuf[256];
 
