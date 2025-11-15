@@ -44,6 +44,7 @@
 #include "components/freezebars.h"
 #include "components/ghost.h"
 #include "components/hud.h"
+#include "components/important_alert.h"
 #include "components/infomessages.h"
 #include "components/items.h"
 #include "components/key_binder.h"
@@ -152,6 +153,7 @@ public:
 	CCountryFlags m_CountryFlags;
 	CFlow m_Flow;
 	CHud m_Hud;
+	CImportantAlert m_ImportantAlert;
 	CDebugHud m_DebugHud;
 	CControls m_Controls;
 	CEffects m_Effects;
@@ -556,12 +558,12 @@ public:
 		{
 			m_Active = true;
 			m_JoinTick = Tick;
-		};
+		}
 		void JoinSpec(int Tick)
 		{
 			m_Active = false;
 			m_IngameTicks += Tick - m_JoinTick;
-		};
+		}
 		int GetIngameTicks(int Tick) const { return m_IngameTicks + Tick - m_JoinTick; }
 		float GetFPM(int Tick, int TickSpeed) const { return (float)(m_Frags * TickSpeed * 60) / GetIngameTicks(Tick); }
 	};
@@ -876,6 +878,7 @@ private:
 
 	bool m_aDDRaceMsgSent[NUM_DUMMIES];
 	int m_aShowOthers[NUM_DUMMIES];
+	int m_aEnableSpectatorCount[NUM_DUMMIES]; // current setting as sent to the server, -1 if not yet sent
 
 	std::vector<std::shared_ptr<CManagedTeeRenderInfo>> m_vpManagedTeeRenderInfos;
 	void UpdateManagedTeeRenderInfos();

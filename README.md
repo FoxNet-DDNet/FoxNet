@@ -1,4 +1,4 @@
-﻿### FoxNet, a DDNet server modification
+### FoxNet, a DDNet server modification
 
 # Features
 - Accounts
