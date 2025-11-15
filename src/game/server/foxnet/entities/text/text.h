@@ -384,4 +384,4 @@ public:
 	void Snap(int SnappingClient) override;
 };
 
-#endif // GAME_SERVER_FOXNET_ENTITES_TEXT_TEXT_H
+#endif // GAME_SERVER_FOXNET_ENTITY_TEXT_TEXT_H

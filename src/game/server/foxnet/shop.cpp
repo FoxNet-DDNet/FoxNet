@@ -38,7 +38,7 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem("Clockwise Indicator", "I_C", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Counter Clockwise Indicator", "I_CC", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Inward Turning Indicator", "I_IT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Outward Turning Indicator", "I_TO" /*fuckass spelling check is flagging 'I_OT'*/, TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Outward Turning Indicator", "I_OT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Line Indicator", "I_L", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10, SUBTYPE_IND));
 	m_Items.push_back(new CItem("Criss Cross Indicator", "I_CrCs", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10, SUBTYPE_IND));
 
