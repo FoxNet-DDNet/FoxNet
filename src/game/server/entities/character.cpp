@@ -9,22 +9,28 @@
 #include <antibot/antibot_data.h>
 
 #include <base/log.h>
+#include <base/math.h>
+#include <base/str.h>
+#include <base/system.h>
+#include <base/vmath.h>
 
 #include <engine/antibot.h>
+#include <engine/console.h>
+#include <engine/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
+#include <generated/protocol7.h>
 #include <generated/server_data.h>
 
+#include <game/alloc.h>
+#include <game/collision.h>
+#include <game/gamecore.h>
+#include <game/layers.h>
 #include <game/mapitems.h>
-#include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
-#include <game/server/player.h>
-#include <game/server/score.h>
-#include <game/server/teams.h>
-#include <game/team_state.h>
-
-// <FoxNet
+#include <game/race_state.h>
+#include <game/server/entity.h>
 #include <game/server/foxnet/accounts.h>
 #include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
@@ -32,11 +38,26 @@
 #include <game/server/foxnet/entities/custom_projectile.h>
 #include <game/server/foxnet/entities/light_saber.h>
 #include <game/server/foxnet/entities/pickupdrop.h>
+#include <game/server/foxnet/entities/portal.h>
 #include <game/server/foxnet/entities/roulette.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
+#include <game/server/save.h>
+#include <game/server/score.h>
+#include <game/server/scoreworker.h>
+#include <game/server/teams.h>
+#include <game/team_state.h>
+#include <game/teamscore.h>
 
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+#include <limits>
+#include <optional>
 #include <string>
-#include <game/layers.h>
-// FoxNet>
+#include <vector>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -634,7 +655,6 @@ void CCharacter::FireWeapon()
 		// <FoxNet
 		if(g_Config.m_SvTeleGrenade) // KoG Compatibility
 		{
-
 			bool Teleported = false;
 			std::vector<CEntity *> vpEntities = GameWorld()->FindEntitiesWithOwner(CGameWorld::ENTTYPE_PROJECTILE, GetPlayer()->GetCid());
 			std::vector<CProjectile *> vpGrenades;
@@ -1386,7 +1406,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			return;
 
 		pCore->Write(reinterpret_cast<CNetObj_CharacterCore *>(static_cast<protocol7::CNetObj_CharacterCore *>(pCharacter)));
-		
+
 		// <FoxNet
 		if(GetPlayer()->m_Spazzing && (Id != SnappingClient || GetPlayer()->IsPaused()))
 		{
@@ -1396,7 +1416,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			pCharacter->m_HookY = GetSpazzPos(m_Core.m_HookPos).y;
 		}
 		// FoxNet>
-		
+
 		if(pCharacter->m_Angle > (int)(pi * 256.0f))
 		{
 			pCharacter->m_Angle -= (int)(2.0f * pi * 256.0f);
@@ -3032,7 +3052,7 @@ void CCharacter::FoxNetTick()
 	}
 
 	float Angle = std::atan2(m_Core.m_Vel.x, -m_Core.m_Vel.y);
-	bool Moving = m_Pos != m_PrevPos && GetVelocity() != vec2(0,0);
+	bool Moving = m_Pos != m_PrevPos && GetVelocity() != vec2(0, 0);
 
 	if(GetPlayer()->Cosmetics()->m_Trail == TRAILS_STAR && Moving && Server()->Tick() % 20 == 0) // every second
 		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
@@ -3078,7 +3098,7 @@ void CCharacter::FoxNetSpawn()
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
-			new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
+		new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
 	}
 	if(!m_ShouldSolo)
 		m_ShouldSolo = true; // Next spawn will be solo
@@ -3228,7 +3248,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 			-1, // SoundImpact
 			MouseTarget // InitDir
 		);
-		
+
 		int GunType = GetPlayer()->Cosmetics()->m_GunType;
 
 		if(GunType == GUN_HEART || GunType == GUN_MIXED)
@@ -3716,7 +3736,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 
 vec2 CCharacter::GetSpazzPos(vec2 Pos)
 {
-	vec2 OffsetPos = vec2(0,0);
+	vec2 OffsetPos = vec2(0, 0);
 
 	if(GetPlayer()->m_Spazzing)
 		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
