@@ -4310,4 +4310,49 @@ const char *ItemTypeToName(int Type)
 	}
 }
 
+std::vector<const char *> StrSplit(const char *pMsg, char Delim)
+{
+	std::vector<const char *> v;
+	const char *pStart = pMsg;
+	const char *pCur = pMsg;
+	while(*pCur)
+	{
+		if(*pCur == Delim)
+		{
+			size_t Len = pCur - pStart;
+			char *pPart = (char *)malloc(Len + 1);
+			str_copy(pPart, pStart, Len + 1);
+			v.push_back(pPart);
+			pStart = pCur + 1;
+		}
+		pCur++;
+	}
+	if(pStart != pCur)
+	{
+		size_t Len = pCur - pStart;
+		char *pPart = (char *)malloc(Len + 1);
+		str_copy(pPart, pStart, Len + 1);
+		v.push_back(pPart);
+	}
+	return v;
+}
+
+void UnescapeNewlines(char *pBuf)
+{
+	int i, j;
+	for(i = 0, j = 0; pBuf[i]; i++, j++)
+	{
+		if(pBuf[i] == '\\' && pBuf[i + 1] == 'n')
+		{
+			pBuf[j] = '\n';
+			i++;
+		}
+		else if(i != j)
+		{
+			pBuf[j] = pBuf[i];
+		}
+	}
+	pBuf[j] = '\0';
+}
+
 // FoxNet>

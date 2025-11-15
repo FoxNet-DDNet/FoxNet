@@ -1,4 +1,5 @@
 ﻿#include "accountworker.h"
+#include "accountworker.h"
 
 #include "accounts.h"
 #include "shop.h"
@@ -163,6 +164,34 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
 }
 
+static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &MailBox, char *pError, int ErrorSize)
+{
+	MailBox.Clear();
+	char aSql[256];
+	str_copy(aSql, "SELECT MailId, Subject, Message, Command, CommandName, UsedCommand, Unread FROM foxnet_account_mailbox WHERE Username = ?", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pUsername);
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	while(!End)
+	{
+		CMailBox::CMail Mail;
+		Mail.m_MailId = pSql->GetInt64(1);
+		pSql->GetString(2, Mail.m_aSubject, sizeof(Mail.m_aSubject));
+		pSql->GetString(3, Mail.m_aMessage, sizeof(Mail.m_aMessage));
+		pSql->GetString(4, Mail.m_aCmd, sizeof(Mail.m_aCmd));
+		pSql->GetString(5, Mail.m_aCmdName, sizeof(Mail.m_aCmdName));
+		Mail.m_UsedCmd = pSql->GetInt(6) != 0;
+		Mail.m_Unread = pSql->GetInt(7) != 0;
+		MailBox.m_vMails.push_back(Mail);
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+	}
+	return true;
+}
+
 bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccRegisterRequest *>(pData);
@@ -237,6 +266,8 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	if(pRes->m_Found)
 	{
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
+			return false;
+		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))
 			return false;
 	}
 	pRes->m_Completed.store(true);
@@ -368,15 +399,16 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindInt64(1, pReq->m_Flags);
-	pSql->BindInt64(2, pReq->m_Playtime);
-	pSql->BindInt64(3, pReq->m_Deaths);
-	pSql->BindInt64(4, pReq->m_Kills);
-	pSql->BindInt64(5, pReq->m_Level);
-	pSql->BindInt64(6, pReq->m_XP);
-	pSql->BindInt64(7, pReq->m_Money);
-	pSql->BindInt(8, pReq->m_HatItemFlags);
-	pSql->BindString(9, pReq->m_aUsername);
+	int Param = 1;
+	pSql->BindInt64(Param++, pReq->m_Flags);
+	pSql->BindInt64(Param++, pReq->m_Playtime);
+	pSql->BindInt64(Param++, pReq->m_Deaths);
+	pSql->BindInt64(Param++, pReq->m_Kills);
+	pSql->BindInt64(Param++, pReq->m_Level);
+	pSql->BindInt64(Param++, pReq->m_XP);
+	pSql->BindInt64(Param++, pReq->m_Money);
+	pSql->BindInt(Param++, pReq->m_HatItemFlags);
+	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -420,30 +452,32 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(2);
-		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
-		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
-		pSql->GetString(5, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
-		pSql->GetString(6, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(7);
-		pRes->m_LastLogin = pSql->GetInt64(8);
-		pRes->m_Port = pSql->GetInt(9);
-		pRes->m_ClientId = pSql->GetInt(10);
-		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_Playtime = pSql->GetInt64(12);
-		pRes->m_Deaths = pSql->GetInt64(13);
-		pRes->m_Kills = pSql->GetInt64(14);
-		pRes->m_Level = pSql->GetInt64(15);
-		pRes->m_XP = pSql->GetInt64(16);
-		pRes->m_Money = pSql->GetInt64(17);
-		pRes->m_Disabled = pSql->GetInt(18);
-		pRes->m_HatItemFlags = pSql->GetInt(19);
+		int Param = 1;
+		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
+		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
+		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
+		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
+		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
+		pRes->m_LoggedIn = pSql->GetInt(Param++);
+		pRes->m_LastLogin = pSql->GetInt64(Param++);
+		pRes->m_Port = pSql->GetInt(Param++);
+		pRes->m_ClientId = pSql->GetInt(Param++);
+		pRes->m_Flags = pSql->GetInt64(Param++);
+		pRes->m_Playtime = pSql->GetInt64(Param++);
+		pRes->m_Deaths = pSql->GetInt64(Param++);
+		pRes->m_Kills = pSql->GetInt64(Param++);
+		pRes->m_Level = pSql->GetInt64(Param++);
+		pRes->m_XP = pSql->GetInt64(Param++);
+		pRes->m_Money = pSql->GetInt64(Param++);
+		pRes->m_Disabled = pSql->GetInt(Param++);
+		pRes->m_HatItemFlags = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
-		// Load inventory/equipped too (was previously missing here)
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
+			return false;
+		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))
 			return false;
 	}
 	pRes->m_Completed.store(true);
@@ -472,29 +506,32 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(2);
-		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
-		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
-		pSql->GetString(5, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
-		pSql->GetString(6, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(7);
-		pRes->m_LastLogin = pSql->GetInt64(8);
-		pRes->m_Port = pSql->GetInt(9);
-		pRes->m_ClientId = pSql->GetInt(10);
-		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_Playtime = pSql->GetInt64(12);
-		pRes->m_Deaths = pSql->GetInt64(13);
-		pRes->m_Kills = pSql->GetInt64(14);
-		pRes->m_Level = pSql->GetInt64(15);
-		pRes->m_XP = pSql->GetInt64(16);
-		pRes->m_Money = pSql->GetInt64(17);
-		pRes->m_Disabled = pSql->GetInt(18);
-		pRes->m_HatItemFlags = pSql->GetInt(19);
+		int Param = 1;
+		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
+		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
+		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
+		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
+		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
+		pRes->m_LoggedIn = pSql->GetInt(Param++);
+		pRes->m_LastLogin = pSql->GetInt64(Param++);
+		pRes->m_Port = pSql->GetInt(Param++);
+		pRes->m_ClientId = pSql->GetInt(Param++);
+		pRes->m_Flags = pSql->GetInt64(Param++);
+		pRes->m_Playtime = pSql->GetInt64(Param++);
+		pRes->m_Deaths = pSql->GetInt64(Param++);
+		pRes->m_Kills = pSql->GetInt64(Param++);
+		pRes->m_Level = pSql->GetInt64(Param++);
+		pRes->m_XP = pSql->GetInt64(Param++);
+		pRes->m_Money = pSql->GetInt64(Param++);
+		pRes->m_Disabled = pSql->GetInt(Param++);
+		pRes->m_HatItemFlags = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
+			return false;
+		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))
 			return false;
 	}
 	pRes->m_Completed.store(true);
@@ -576,9 +613,10 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 	{
 		char aUsername[ACC_MAX_USERNAME_LENGTH]{};
 		char aPlayerName[MAX_NAME_LENGTH]{};
-		pSql->GetString(1, aUsername, sizeof(aUsername));
-		pSql->GetString(2, aPlayerName, sizeof(aPlayerName));
-		const long Metric = pSql->GetInt64(3);
+		int Param = 1;
+		pSql->GetString(Param++, aUsername, sizeof(aUsername));
+		pSql->GetString(Param++, aPlayerName, sizeof(aPlayerName));
+		const long Metric = pSql->GetInt64(Param++);
 
 		const char *pName = aPlayerName[0] ? aPlayerName : aUsername;
 
@@ -615,8 +653,9 @@ bool CAccountsWorker::DisableAccount(IDbConnection *pSql, const ISqlData *pData,
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindInt(1, p->m_Disable);
-	pSql->BindString(2, p->m_aUsername);
+	int Param = 1;
+	pSql->BindInt(Param++, p->m_Disable);
+	pSql->BindString(Param++, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -631,8 +670,9 @@ bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Wri
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindString(1, p->m_aUsername);
-	pSql->BindString(2, p->m_aItemName);
+	int Param = 1;
+	pSql->BindString(Param++, p->m_aUsername);
+	pSql->BindString(Param++, p->m_aItemName);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -648,8 +688,131 @@ bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Wr
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindString(1, p->m_aNewPasswordHash);
-	pSql->BindString(2, p->m_aUsername);
+	int Param = 1;
+	pSql->BindString(Param++, p->m_aNewPasswordHash);
+	pSql->BindString(Param++, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccNewMail *>(pData);
+	auto *pRes = dynamic_cast<CAccMailAcknowledge *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "NewMail: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// Acquire next MailId for user
+	int64_t MailId = pReq->m_MailId;
+	if(MailId == 0)
+	{
+		char aSelect[128];
+		str_copy(aSelect, "SELECT COALESCE(MAX(MailId), 0) + 1 FROM foxnet_account_mailbox WHERE Username = ?", sizeof(aSelect));
+		if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aUsername);
+		bool End = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+		MailId = End ? 1 : pSql->GetInt64(1);
+	}
+
+	char aInsert[512];
+	str_copy(aInsert,
+		"INSERT INTO foxnet_account_mailbox "
+		"(Username, MailId, Subject, Message, Command, CommandName) "
+		"VALUES (?, ?, ?, ?, ?, ?)",
+		sizeof(aInsert));
+	if(!pSql->PrepareStatement(aInsert, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, MailId);
+	pSql->BindString(Param++, pReq->m_aSubject);
+	pSql->BindString(Param++, pReq->m_aMessage);
+	pSql->BindString(Param++, pReq->m_aCmd);
+	pSql->BindString(Param++, pReq->m_aCmdName);
+
+	int NumInserted = 0;
+	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
+		return false;
+
+	pRes->m_Success = (NumInserted == 1);
+	pRes->m_MailId = MailId;
+	str_copy(pRes->m_aUsername, pReq->m_aUsername, sizeof(pRes->m_aUsername));
+	pRes->m_MailBox.Clear();
+	{
+		CMailBox::CMail M{};
+		M.m_MailId = MailId;
+		str_copy(M.m_aSubject, pReq->m_aSubject, sizeof(M.m_aSubject));
+		str_copy(M.m_aMessage, pReq->m_aMessage, sizeof(M.m_aMessage));
+		str_copy(M.m_aCmd, pReq->m_aCmd, sizeof(M.m_aCmd));
+		str_copy(M.m_aCmdName, pReq->m_aCmdName, sizeof(M.m_aCmdName));
+		M.m_UsedCmd = false;
+		M.m_Unread = true;
+		pRes->m_MailBox.m_vMails.push_back(M);
+	}
+
+	pRes->m_Completed.store(true);
+	return pRes->m_Success;
+}
+
+bool CAccountsWorker::SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccSetMailRead *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET Unread = ? "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindInt(Param++, pReq->m_Read);
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccSetMailUsedCmd *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET UsedCommand = ? "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindInt(Param++, pReq->m_UsedCmd);
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccDeleteMail *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"DELETE FROM foxnet_account_mailbox "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername); 
+	pSql->BindInt64(Param++, pReq->m_MailId);
+	int NumDeleted = 0;
+	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
 }

@@ -646,6 +646,7 @@ void CGameContext::OnLogout(int ClientId)
 	if(!pPl)
 		return;
 	pPl->DisableAllCosmetics();
+	ClearVotes(ClientId);
 }
 
 void CGameContext::SendEmote(int ClientId, int Type)

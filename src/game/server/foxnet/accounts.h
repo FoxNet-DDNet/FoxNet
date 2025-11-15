@@ -34,8 +34,31 @@ enum
 	ACC_FLAG_HIDE_POWERUPS = 1 << 2,
 };
 
-struct CAccountSession
+class CMailBox
 {
+public:
+	CMailBox() = default;
+	class CMail
+	{
+	public:
+		int64_t m_MailId;
+		char m_aSubject[64];
+		char m_aMessage[512];
+		char m_aCmd[256];
+		char m_aCmdName[128];
+		bool m_UsedCmd;
+		bool m_Unread;
+	};
+	std::vector<CMail> m_vMails;
+	void Clear()
+	{
+		m_vMails.clear();
+	}
+};
+
+class CAccountSession
+{
+public:
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_RegisterDate = 0;
 	char m_Name[MAX_NAME_LENGTH] = "";
@@ -56,10 +79,16 @@ struct CAccountSession
 
 	CInventory m_Inventory;
 
+
+
 	int m_LoginTick = 0;
 	bool m_Disabled = false;
 
 	int m_HatItemFlags = 0;
+
+	CMailBox m_MailBox;
+	long m_LastMailboxFetch = 0; // unix seconds of last successful fetch
+	bool m_MailboxFetchPending = false;
 };
 
 struct CPendingAccResult
@@ -117,6 +146,13 @@ public:
 
 	// Returns XP needed for next level
 	int NeededXP(int Level);
+
+	void FetchMailBox();
+
+	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
+	void SetMailRead(const char *pUsername, int64_t MailId, bool Read);
+	void SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used);
+	void DeleteMail(const char *pUsername, int64_t MailId);
 };
 
 #endif // GAME_SERVER_FOXNET_ACCOUNTS_H

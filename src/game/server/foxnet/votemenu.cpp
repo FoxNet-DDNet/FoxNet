@@ -81,6 +81,11 @@ constexpr const char *ADMIN_COSM_HEARTGUN = "Heart Gun";
 constexpr const char *ADMIN_ABILITY_FIREWORK = "Firework Ability";
 constexpr const char *ADMIN_ABILITY_TELEKINESIS = "Telekinesis Ability";
 
+// Mailbox
+constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
+constexpr const char *MAIL_CLAIM_REWARD = "✔ Claim Reward";
+constexpr const char *MAIL_DELETE = "✘ Delete Mail";
+
 // Shop
 constexpr const char *SHOP_ONLY_AFFORDABLE = "Only show Affordable Items";
 
@@ -105,6 +110,7 @@ void CVoteMenu::Init(CGameContext *pGameServer)
 	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
 	str_copy(m_aPages[PAGE_SETTINGS], "Sᴇᴛᴛɪɴɢs");
 	str_copy(m_aPages[PAGE_VOTES], "Vᴏᴛᴇs");
+	str_copy(m_aPages[PAGE_MAILBOX], "Mᴀɪʟʙᴏx");
 	str_copy(m_aPages[PAGE_SHOP], "Sʜᴏᴘ");
 	str_copy(m_aPages[PAGE_INVENTORY], "Iɴᴠᴇɴᴛᴏʀʏ");
 	str_copy(m_aPages[PAGE_ADMIN], "Aᴅᴍɪɴ");
@@ -122,7 +128,7 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 
 	for(int i = 0; i < NUM_PAGES; i++)
 	{
-		if(IsOption(pVote, m_aPages[i]))
+		if(IsOptionWithSuffix(pVote, m_aPages[i]))
 		{
 			SetPage(ClientId, i);
 			return true;
@@ -262,6 +268,113 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			return true;
 		}
 	}
+	else if (Page == PAGE_MAILBOX)
+	{
+		if(SubPage == SUB_MAILBOX_MAIN)
+		{
+			if(IsOption(pVote, MAIL_ONLY_UNREAD))
+			{
+				Data.m_OnlyUnreadMails = !Data.m_OnlyUnreadMails;
+				return true;
+			}
+
+			for(int i = 0; i < (int)Acc.m_MailBox.m_vMails.size(); i++)
+			{
+				char aBuf[VOTE_DESC_LENGTH];
+				str_format(aBuf, sizeof(aBuf), "%d.", i + 1);
+
+				if(str_startswith(pVote, aBuf))
+				{
+					str_copy(Data.m_aMetaData, std::to_string(i).c_str());
+					SetSubPage(ClientId, SUB_MAILBOX_VIEW);
+					Acc.m_MailBox.m_vMails[i].m_Unread = false;
+					GameServer()->m_AccountManager.SetMailRead(Acc.m_aUsername, Acc.m_MailBox.m_vMails[i].m_MailId, false);
+					return true;
+				}
+			}
+		}		
+		else if(SubPage == SUB_MAILBOX_VIEW)
+		{
+			if(!Data.m_aMetaData[0])
+				return false;
+
+			int MailIdx = str_toint(Data.m_aMetaData);
+			if(MailIdx < 0 || MailIdx >= (int)Acc.m_MailBox.m_vMails.size())
+				return false;
+
+			CMailBox::CMail &TargetMail = Acc.m_MailBox.m_vMails[MailIdx];
+
+			if(IsOption(pVote, MAIL_CLAIM_REWARD))
+			{
+				if(TargetMail.m_UsedCmd)
+				{
+					GameServer()->SendChatTarget(ClientId, "This mails rewards have already been claimed.");
+				}
+				else
+				{
+					const char *pTemplate = TargetMail.m_aCmd;
+					char aCmd[256] = "";
+					char *pDst = aCmd;
+					size_t DstRemain = sizeof(aCmd) - 1;
+					for(const char *p = pTemplate; *p && DstRemain;)
+					{
+						if(*p == '%')
+						{
+							if(p[1] == '%')
+							{
+								if(DstRemain)
+								{
+									*pDst++ = '%';
+									--DstRemain;
+								}
+								p += 2;
+								continue;
+							}
+							else if(p[1] == 'd' || p[1] == 'i')
+							{
+								std::string Id = std::to_string(ClientId);
+								size_t IdLen = str_length(Id.c_str());
+								if(IdLen > DstRemain)
+									IdLen = DstRemain;
+								if(IdLen)
+								{
+									mem_copy(pDst, Id.c_str(), IdLen);
+									pDst += IdLen;
+									DstRemain -= IdLen;
+								}
+								p += 2;
+								continue;
+							}
+							if(DstRemain)
+							{
+								*pDst++ = *p++;
+								--DstRemain;
+							}
+							continue;
+						}
+
+						*pDst++ = *p++;
+						--DstRemain;
+					}
+					*pDst = '\0';
+
+					TargetMail.m_UsedCmd = true;
+					GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, TargetMail.m_MailId, TargetMail.m_UsedCmd);
+					GameServer()->Console()->ExecuteLine(aCmd);
+				}
+
+				return true;
+			}
+			if(IsOption(pVote, MAIL_DELETE))
+			{
+				GameServer()->m_AccountManager.DeleteMail(Acc.m_aUsername, TargetMail.m_MailId);
+				Acc.m_MailBox.m_vMails.erase(Acc.m_MailBox.m_vMails.begin() + MailIdx);
+				SetSubPage(ClientId, SUB_MAILBOX_MAIN);
+				return true;
+			}
+		}
+	}
+
 	else if(Page == PAGE_SHOP)
 	{
 		if(IsOption(pVote, SHOP_ONLY_AFFORDABLE))
@@ -610,6 +723,24 @@ void CVoteMenu::UpdatePages(int ClientId)
 		if(pAcc->m_Deaths != OldAcc.m_Deaths)
 			Changes = true;
 	}
+	if(Page == PAGE_MAILBOX || Page == PAGE_MAIN)
+	{
+		if(pAcc->m_MailBox.m_vMails.size() != OldAcc.m_MailBox.m_vMails.size())
+			Changes = true;
+		else
+		{
+			for(size_t i = 0; i < pAcc->m_MailBox.m_vMails.size(); i++)
+			{
+				const CMailBox::CMail &NewMail = pAcc->m_MailBox.m_vMails[i];
+				const CMailBox::CMail &OldMail = OldAcc.m_MailBox.m_vMails[i];
+				if(NewMail.m_Unread != OldMail.m_Unread || NewMail.m_UsedCmd != OldMail.m_UsedCmd)
+				{
+					Changes = true;
+					break;
+				}
+			}
+		}
+	}
 	if(Page == PAGE_SHOP)
 	{
 		if(pAcc->m_Money != OldAcc.m_Money)
@@ -638,10 +769,15 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
+	if(Page == PAGE_MAIN || Page == PAGE_SERVERINFO || Page == PAGE_SETTINGS || Page == PAGE_VOTES)
+		return true;
+
 	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) < AUTHED_MOD) // Allow Mod Access
 		return false;
-	if(!pAcc->m_LoggedIn && (Page == PAGE_SHOP || Page == PAGE_INVENTORY))
+
+	if(!pAcc->m_LoggedIn)
 		return false;
+
 	return true;
 }
 
@@ -670,6 +806,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 	case PAGE_MAIN: SendPageMainMenu(ClientId); break;
 	case PAGE_VOTES: SendPageVotes(ClientId); break;
 	case PAGE_SETTINGS: SendPageSettings(ClientId); break;
+	case PAGE_MAILBOX: SendPageMailbox(ClientId); break;
 	case PAGE_SHOP: SendPageShop(ClientId); break;
 	case PAGE_INVENTORY: SendPageInventory(ClientId); break;
 	case PAGE_SERVERINFO: SendPageServerInfo(ClientId); break;
@@ -805,7 +942,22 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 			continue;
 		if(i == PAGE_MAIN)
 			continue;
-		AddVotePrefix(m_aPages[i], PREFIX_ARROWHEAD);
+
+		std::string PageName = m_aPages[i];
+
+		if(i == PAGE_MAILBOX)
+		{
+			int UnreadMails = 0;
+			for(const auto &Mail : pAcc->m_MailBox.m_vMails)
+			{
+				if(Mail.m_Unread)
+					UnreadMails++;
+			}
+			if(UnreadMails > 0)
+				PageName += " [" + std::to_string(UnreadMails) + "]";
+		}
+
+		AddVotePrefix(PageName.c_str(), PREFIX_ARROWHEAD);
 	}
 }
 
@@ -857,6 +1009,87 @@ void CVoteMenu::SendPageSettings(int ClientId)
 		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
 		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
 		AddVoteCheckBox(SETTINGS_270_ROTATION, pAcc->m_HatItemFlags == PICKUPFLAG_ROTATE);
+	}
+}
+
+void CVoteMenu::SendPageMailbox(int ClientId)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+
+	const int SubPage = GetSubPage(ClientId);
+
+	if(SubPage == SUB_MAILBOX_MAIN)
+	{
+		if(pAcc->m_MailBox.m_vMails.empty())
+		{
+			AddVoteText("No mails in your mailbox.");
+			return;
+		}
+
+		AddVoteSubheader("Fɪʟᴛᴇʀs");
+		AddVoteCheckBox(MAIL_ONLY_UNREAD, Data.m_OnlyUnreadMails);
+		AddVoteSeparator();
+
+		int Idx = 0;
+		for(const CMailBox::CMail &Mail : pAcc->m_MailBox.m_vMails)
+		{
+			if(Data.m_OnlyUnreadMails && !Mail.m_Unread)
+			{
+				Idx++;
+				continue;
+			}
+
+			char aBuf[VOTE_DESC_LENGTH];
+			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, Mail.m_Unread ? " [!]" : "");
+
+			AddVoteText(aBuf);
+			Idx++;
+		}
+	}
+	else if(SubPage == SUB_MAILBOX_VIEW)
+	{
+		const char *pMeta = Data.m_aMetaData;
+		if(!pMeta[0])
+		{
+			SetSubPage(ClientId, SUB_MAILBOX_MAIN, true);
+			return;
+		}
+		int MailIdx = str_toint(pMeta);
+		if(MailIdx < 0 || MailIdx >= (int)pAcc->m_MailBox.m_vMails.size())
+		{
+			SetSubPage(ClientId, SUB_MAILBOX_MAIN, true);
+			return;
+		}
+		const auto &Mail = pAcc->m_MailBox.m_vMails[MailIdx];
+
+		char aBuf[VOTE_DESC_LENGTH];
+		AddVoteText("╭─────── Mᴀɪʟ Iɴғᴏ");
+		if(!Mail.m_UsedCmd)
+			AddVotePrefix(MAIL_CLAIM_REWARD, PREFIX_LONG_LINE);
+		AddVotePrefix(MAIL_DELETE, PREFIX_LONG_LINE);
+		AddVoteText("╰────────────────────");
+		AddVoteSeparator();
+		AddVoteSubheader(Mail.m_aSubject);
+		char aUnescaped[1024] = "";
+		str_copy(aUnescaped, Mail.m_aMessage, sizeof(aUnescaped));
+		UnescapeNewlines(aUnescaped);
+		std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
+		for(const auto &Line : Lines)
+			AddVoteText(Line);
+		AddVoteSeparator();
+
+		AddVoteSubheader("Rᴇᴡᴀʀᴅ");
+
+		str_copy(aUnescaped, Mail.m_aCmdName, sizeof(aUnescaped));
+		UnescapeNewlines(aUnescaped);
+		Lines = StrSplit(aUnescaped, '\n');
+
+		for(const auto &Line : Lines)
+			AddVoteText(Line);
 	}
 }
 

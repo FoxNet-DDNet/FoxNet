@@ -22,6 +22,7 @@ enum Pages
 	PAGE_SERVERINFO,
 	PAGE_SETTINGS,
 	PAGE_VOTES,
+	PAGE_MAILBOX,
 	PAGE_SHOP,
 	PAGE_INVENTORY,
 	PAGE_ADMIN,
@@ -33,6 +34,12 @@ enum AdminSubPages
 	SUB_ADMIN_UTIL = 0,
 	SUB_ADMIN_MISC,
 	SUB_ADMIN_COSMETICS,
+};
+
+enum MailboxSubPages
+{
+	SUB_MAILBOX_MAIN = 0,
+	SUB_MAILBOX_VIEW,
 };
 
 enum ShopSubPages
@@ -135,6 +142,8 @@ class CVoteMenu
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
 		CCosmetics m_Cosmetics;
+		
+		bool m_OnlyUnreadMails = false;
 
 		bool m_OnlyAffordable = false;
 
@@ -162,6 +171,7 @@ class CVoteMenu
 	void SendPageMainMenu(int ClientId);
 	void SendPageVotes(int ClientId);
 	void SendPageSettings(int ClientId);
+	void SendPageMailbox(int ClientId);
 	void SendPageShop(int ClientId);
 	void SendPageInventory(int ClientId);
 	void SendPageServerInfo(int ClientId);

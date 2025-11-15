@@ -34,6 +34,7 @@ struct CAccResult : ISqlResult
 	bool m_Disabled = false;
 	int m_HatItemFlags = 0;
 	CInventory m_Inventory;
+	CMailBox m_MailBox;
 };
 
 struct CAccRegisterRequest : ISqlData
@@ -134,6 +135,62 @@ struct CAccSetPassword : ISqlData
 	char m_aNewPasswordHash[ACC_MAX_PASSW_LENGTH] = "";
 };
 
+struct CAccMailAcknowledge : CAccResult
+{
+	int64_t m_MailId = 0;
+};
+
+// Request stays the same, carries a result ptr
+struct CAccNewMail : ISqlData
+{
+	CAccNewMail(std::shared_ptr<CAccMailAcknowledge> pRes) :
+		ISqlData(std::move(pRes))
+	{
+		m_MailId = 0;
+		m_aUsername[0] = 0;
+		m_aSubject[0] = 0;
+		m_aMessage[0] = 0;
+		m_aCmd[0] = 0;
+		m_aCmdName[0] = 0;
+		m_UsedCmd = false;
+		m_Unread = true;
+	}
+	int64_t m_MailId;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH];
+	char m_aSubject[64];
+	char m_aMessage[512];
+	char m_aCmd[256];
+	char m_aCmdName[64];
+	bool m_UsedCmd;
+	bool m_Unread;
+};
+
+struct CAccSetMailRead : ISqlData
+{
+	CAccSetMailRead() :
+		ISqlData(nullptr) {}
+	int64_t m_MailId = 0;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	int m_Read = 0;
+};
+
+struct CAccSetMailUsedCmd : ISqlData
+{
+	CAccSetMailUsedCmd() :
+		ISqlData(nullptr) {}
+	int64_t m_MailId = 0;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	int m_UsedCmd = 0;
+};
+
+struct CAccDeleteMail : ISqlData
+{
+	CAccDeleteMail() :
+		ISqlData(nullptr) {}
+	int64_t m_MailId = 0;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+
 struct CAccountsWorker
 {
 	static bool Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize);
@@ -149,6 +206,12 @@ struct CAccountsWorker
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
 };
 
 #endif

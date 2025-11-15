@@ -258,6 +258,18 @@ void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_Shop.RemoveItem(ClientId, pItemName, FromId);
 }
 
+void CGameContext::ConNewMail(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pUsername = pResult->GetString(0);
+	const char *pSubject = pResult->GetString(1);
+	const char *pMessage = pResult->GetString(2);
+	const char *pCmdName = pResult->GetString(3);
+	const char *pCmd = pResult->GetString(4);
+
+	pSelf->m_AccountManager.NewMail(pUsername, pSubject, pMessage, pCmdName, pCmd);
+}
+
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1780,6 +1792,8 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
 	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
 	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
+
+	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
 
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
 	Console()->Register("password", "s[oldpass] s[password] s[password2]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");

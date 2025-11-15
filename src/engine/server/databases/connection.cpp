@@ -131,7 +131,8 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		Int64Type(),
 		Int64Type(),
 		Int64Type(),
-		False());
+		False()
+	);
 }
 
 void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const
@@ -154,4 +155,28 @@ void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int Buffer
 		BinaryCollate()
 	);
 }
+
+void IDbConnection::FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_account_mailbox ("
+		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
+		"  MailId %s NOT NULL,"
+		"  Subject VARCHAR(64) COLLATE %s NOT NULL,"
+		"  Message TEXT COLLATE %s NOT NULL,"
+		"  Command VARCHAR(256) COLLATE %s DEFAULT ''," // Console command, will use %d for ClientId inside the command
+		"  CommandName VARCHAR(128) COLLATE %s DEFAULT '',"
+		"  UsedCommand INTEGER NOT NULL DEFAULT 0,"
+		"  Unread INTEGER NOT NULL DEFAULT 1,"
+		"  PRIMARY KEY (Username, MailId)"
+		")",
+		BinaryCollate(),
+		Int64Type(),
+		BinaryCollate(),
+		BinaryCollate(),
+		BinaryCollate(),
+		BinaryCollate()
+	);
+}
+
 // FoxNet>

@@ -300,6 +300,7 @@ bool CMysqlConnection::ConnectImpl()
 		// <FoxNet
 		char aCreateAccounts[1024];
 		char aCreateInventory[1024];
+		char aCreateMailbox[1024];
 		// FoxNet>
 		FormatCreateRace(aCreateRace, sizeof(aCreateRace), /* Backup */ false);
 		FormatCreateTeamrace(aCreateTeamrace, sizeof(aCreateTeamrace), "VARBINARY(16)", /* Backup */ false);
@@ -309,6 +310,7 @@ bool CMysqlConnection::ConnectImpl()
 		// <FoxNet
 		FormatCreateAccounts(aCreateAccounts, sizeof(aCreateAccounts));
 		FormatCreateAccountInventory(aCreateInventory, sizeof(aCreateInventory));
+		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox))
 		// FoxNet>
 
 		if(!PrepareAndExecuteStatement(aCreateRace) ||
@@ -318,7 +320,8 @@ bool CMysqlConnection::ConnectImpl()
 			!PrepareAndExecuteStatement(aCreatePoints) ||
 			// <FoxNet
 			!PrepareAndExecuteStatement(aCreateAccounts) ||
-			!PrepareAndExecuteStatement(aCreateInventory)
+			!PrepareAndExecuteStatement(aCreateInventory) ||
+			!PrepareAndExecuteStatement(aCreateMailbox)
 			// FoxNet>
 			) 
 		{

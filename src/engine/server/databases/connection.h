@@ -105,6 +105,7 @@ protected:
 	// <FoxNet
 	void FormatCreateAccounts(char *aBuf, unsigned int BufferSize) const;
 	void FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const;
+	void FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSize) const;
 	// FoxNet>
 };
 

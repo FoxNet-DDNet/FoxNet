@@ -3335,24 +3335,6 @@ void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_pController->StartRound();
 }
 
-static void UnescapeNewlines(char *pBuf)
-{
-	int i, j;
-	for(i = 0, j = 0; pBuf[i]; i++, j++)
-	{
-		if(pBuf[i] == '\\' && pBuf[i + 1] == 'n')
-		{
-			pBuf[j] = '\n';
-			i++;
-		}
-		else if(i != j)
-		{
-			pBuf[j] = pBuf[i];
-		}
-	}
-	pBuf[j] = '\0';
-}
-
 void CGameContext::ConServerAlert(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;

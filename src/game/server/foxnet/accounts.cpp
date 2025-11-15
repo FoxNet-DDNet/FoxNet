@@ -52,7 +52,10 @@ void CAccounts::Init(CGameContext *pGameServer, CDbConnectionPool *pPool)
 void CAccounts::Tick()
 {
 	if(m_vPending.empty())
+	{
+		FetchMailBox();
 		return;
+	}
 	std::vector<std::pair<std::shared_ptr<CAccResult>, std::function<void(CAccResult &)>>> vReady;
 	vReady.reserve(m_vPending.size());
 	for(auto it = m_vPending.begin(); it != m_vPending.end();)
@@ -254,6 +257,10 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_LoginTick = Server()->Tick();
 		Acc.m_Inventory = Res.m_Inventory;
 		Acc.m_HatItemFlags = Res.m_HatItemFlags;
+
+		Acc.m_MailBox = Res.m_MailBox;
+		Acc.m_LastMailboxFetch = Now;
+		Acc.m_MailboxFetchPending = false;
 	}
 	GameServer()->OnLogin(ClientId);
 
@@ -292,8 +299,8 @@ bool CAccounts::Logout(int ClientId)
 	if(GameServer()->m_aAccounts[ClientId].m_LoggedIn)
 	{
 		OnLogout(ClientId, GameServer()->m_aAccounts[ClientId]);
-		GameServer()->OnLogout(ClientId);
 		GameServer()->m_aAccounts[ClientId] = CAccountSession();
+		GameServer()->OnLogout(ClientId);
 		return true;
 	}
 	return false;
@@ -622,4 +629,185 @@ int CAccounts::NeededXP(int Level)
 		return 150;
 	else
 		return 150 + Level * 2;
+}
+
+void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
+{
+	if(!m_pPool)
+		return;
+
+	auto pRes = std::make_shared<CAccMailAcknowledge>();
+	auto pReq = std::make_unique<CAccNewMail>(pRes);
+
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aSubject, pSubject, sizeof(pReq->m_aSubject));
+	str_copy(pReq->m_aMessage, pMessage, sizeof(pReq->m_aMessage));
+	str_copy(pReq->m_aCmdName, pCmdName, sizeof(pReq->m_aCmdName));
+	str_copy(pReq->m_aCmd, pCmd, sizeof(pReq->m_aCmd));
+	pReq->m_UsedCmd = false;
+	pReq->m_Unread = true;
+
+	AddPending(pRes, [this](CAccResult &AckBase) {
+		if(!AckBase.m_Success)
+		{
+			log_info("mail", "insert failed");
+			return;
+		}
+
+		// Find online user on this server
+		int Target = -1;
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			auto &Acc = GameServer()->m_aAccounts[i];
+			if(!Acc.m_LoggedIn)
+				continue;
+			if(!str_comp(Acc.m_aUsername, AckBase.m_aUsername))
+			{
+				Target = i;
+				break;
+			}
+		}
+		if(Target < 0)
+			return;
+
+		// Push the new mail into the session's mailbox if not already present
+		if(!AckBase.m_MailBox.m_vMails.empty())
+		{
+			const auto &NewMail = AckBase.m_MailBox.m_vMails.front();
+
+			auto &Box = GameServer()->m_aAccounts[Target].m_MailBox;
+			bool Exists = false;
+			for(const auto &M : Box.m_vMails)
+			{
+				if(M.m_MailId == NewMail.m_MailId)
+				{
+					Exists = true;
+					break;
+				}
+			}
+			if(!Exists)
+				Box.m_vMails.push_back(NewMail);
+
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "You received a new mail: %s", NewMail.m_aSubject);
+			GameServer()->SendChatTarget(Target, aBuf);
+		}
+	});
+
+	m_pPool->ExecuteWrite(CAccountsWorker::NewMail, std::move(pReq), "acc new mail");
+}
+
+void CAccounts::SetMailRead(const char *pUsername, int64_t MailId, bool Read)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccSetMailRead>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	pReq->m_Read = Read;
+	m_pPool->ExecuteWrite(CAccountsWorker::SetMailRead, std::move(pReq), "acc set mail read");
+}
+
+void CAccounts::SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccSetMailUsedCmd>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	pReq->m_UsedCmd = Used;
+	m_pPool->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
+}
+
+void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccDeleteMail>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
+}
+
+void CAccounts::FetchMailBox()
+{
+	if(!m_pPool)
+		return;
+
+	time_t Now;
+	time(&Now);
+
+	struct CSqlLoadMailbox : ISqlData
+	{
+		CSqlLoadMailbox(std::shared_ptr<CAccResult> pRes) :
+			ISqlData(std::move(pRes)) {}
+		char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
+	};
+
+	auto FnLoadMailbox = [](IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize) -> bool {
+		const auto *p = dynamic_cast<const CSqlLoadMailbox *>(pData);
+		auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+		if(!p || !pRes)
+			return false;
+
+		pRes->m_MailBox.Clear();
+
+		char aSql[256];
+		str_copy(aSql, "SELECT MailId, Subject, Message, Command, CommandName, UsedCommand, Unread FROM foxnet_account_mailbox WHERE Username = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, p->m_aUsername);
+
+		bool End = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+
+		while(!End)
+		{
+			CMailBox::CMail Mail{};
+			Mail.m_MailId = pSql->GetInt64(1);
+			pSql->GetString(2, Mail.m_aSubject, sizeof(Mail.m_aSubject));
+			pSql->GetString(3, Mail.m_aMessage, sizeof(Mail.m_aMessage));
+			pSql->GetString(4, Mail.m_aCmd, sizeof(Mail.m_aCmd));
+			pSql->GetString(5, Mail.m_aCmdName, sizeof(Mail.m_aCmdName));
+			Mail.m_UsedCmd = pSql->GetInt(6) != 0;
+			Mail.m_Unread = pSql->GetInt(7) != 0;
+			pRes->m_MailBox.m_vMails.push_back(Mail);
+
+			if(!pSql->Step(&End, pError, ErrorSize))
+				return false;
+		}
+
+		pRes->m_Success = true;
+		pRes->m_Completed.store(true);
+		return true;
+	};
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		auto &Acc = GameServer()->m_aAccounts[i];
+		if(!Acc.m_LoggedIn)
+			continue;
+		if(Acc.m_MailboxFetchPending)
+			continue;
+		if(Acc.m_LastMailboxFetch != 0 && (Now - Acc.m_LastMailboxFetch) < 10 * 60)
+			continue;
+
+		Acc.m_MailboxFetchPending = true;
+
+		auto pRes = std::make_shared<CAccResult>();
+		auto pReq = std::make_unique<CSqlLoadMailbox>(pRes);
+		str_copy(pReq->m_aUsername, Acc.m_aUsername, sizeof(pReq->m_aUsername));
+
+		AddPending(pRes, [this, i, Now](CAccResult &Res) {
+			if(Server()->ClientSlotEmpty(i))
+				return;
+			auto &AccRef = GameServer()->m_aAccounts[i];
+			AccRef.m_MailBox = Res.m_MailBox;
+			AccRef.m_LastMailboxFetch = Now;
+			AccRef.m_MailboxFetchPending = false;
+		});
+
+		m_pPool->Execute(FnLoadMailbox, std::move(pReq), "acc mailbox refresh");
+	}
 }

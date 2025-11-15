@@ -176,6 +176,10 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateAccountInventory(aBuf, sizeof(aBuf));
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+
+		FormatCreateAccountMailbox(aBuf, sizeof(aBuf));
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 		// FoxNet>
 
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);
