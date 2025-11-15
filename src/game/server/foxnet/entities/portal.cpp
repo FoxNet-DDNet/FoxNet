@@ -195,8 +195,6 @@ void CPortal::HandleTele()
 				if(pOtherChr->Core()->HookedPlayer() == ClientId)
 					pOtherChr->ReleaseHook();
 			}
-
-
 			Can = false;
 
 			if(distance(m_aData[0].m_Pos, m_aData[1].m_Pos) > 550.0f)

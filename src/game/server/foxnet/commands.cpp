@@ -273,12 +273,17 @@ void CGameContext::ConNewMail(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pSubject = pResult->GetString(0);
-	const char *pMessage = pResult->GetString(1);
-	const char *pCmdName = pResult->GetString(2);
-	const char *pCmd = pResult->GetString(3);
+	int Param = 0;
+	const char *pSubject = pResult->GetString(Param++);
+	const char *pMessage = pResult->GetString(Param++);
+	const char *pCmdName = pResult->GetString(Param++);
+	const char *pCmd = pResult->GetString(Param++);
 
-	pSelf->m_AccountManager.NewGlobalMail(pSubject, pMessage, pCmdName, pCmd);
+	int MinLevel = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) : 0;
+	bool OnlyOnline = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
+	bool IncludeDisabled = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
+
+	pSelf->m_AccountManager.NewGlobalMail(pSubject, pMessage, pCmdName, pCmd, IncludeDisabled, OnlyOnline, MinLevel);
 }
 
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)
@@ -1805,7 +1810,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
 
 	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
-	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
+	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
 
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
 	Console()->Register("password", "s[oldpass] s[password] s[password2]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
