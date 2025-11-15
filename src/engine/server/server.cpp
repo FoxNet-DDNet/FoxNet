@@ -4998,20 +4998,18 @@ void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const c
 	if(pUrl[0] == '\0' || pMessage[0] == '\0')
 		return;
 
-	std::string url = pUrl;
 	std::string Message = EscapeMessage(pMessage);
 	std::string Username = EscapeMessage(pUsername);
-	std::string AvatarUrl = pAvatarURL;
 	const std::string Base = "curl -i -H \"Accept: application/json\" -H \"Content-Type: application/json; charset=UTF-8\" -X POST --data ";
 
 	// Things like "äöü" or any special characters wont get sent properly on windows, Linux on top
-	std::string Data = "\"{\\\"username\\\": \\\"" + Username + "\\\", \\\"content\\\": \\\"" + Message + "\\\", \\\"avatar_url\\\": \\\"" + AvatarUrl + "\\\"}\" ";
+	std::string Data = "\"{\\\"username\\\": \\\"" + Username + "\\\", \\\"content\\\": \\\"" + Message + "\\\", \\\"avatar_url\\\": \\\"" + pAvatarURL + "\\\"}\" ";
 
 	// Makes the console shut up
 #if defined(_WIN32) || defined(_WIN64)
-	std::string command = Base + Data + url + " > NUL 2>&1";
+	std::string command = Base + Data + pUrl + " > NUL 2>&1";
 #else
-	std::string command = Base + Data + url + " > /dev/null 2>&1";
+	std::string command = Base + Data + pUrl + " > /dev/null 2>&1";
 #endif
 
 	IEngine *pEngine = Kernel()->RequestInterface<IEngine>();

@@ -63,6 +63,7 @@ private:
 public:
 	// <FoxNet
 	int StartTick() const { return m_StartTick; }
+	int Type() const { return m_Type; }
 	// FoxNet>
 
 	void SetBouncing(int Value);

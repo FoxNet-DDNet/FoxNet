@@ -634,25 +634,41 @@ void CCharacter::FireWeapon()
 		// <FoxNet
 		if(g_Config.m_SvTeleGrenade) // KoG Compatibility
 		{
-			CProjectile *pGrenade = static_cast<CProjectile *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_PROJECTILE));
-			if(pGrenade)
+
+			bool Teleported = false;
+			std::vector<CEntity *> vpEntities = GameWorld()->FindEntitiesWithOwner(CGameWorld::ENTTYPE_PROJECTILE, GetPlayer()->GetCid());
+			std::vector<CProjectile *> vpGrenades;
+			for(CEntity *pEnt : vpEntities)
 			{
-				if(pGrenade->GetOwnerId() == m_pPlayer->GetCid())
+				if(auto *pProj = dynamic_cast<CProjectile *>(pEnt))
 				{
-					float Pt = (Server()->Tick() - pGrenade->StartTick() - 1) / (float)Server()->TickSpeed();
-					float Ct = (Server()->Tick() - pGrenade->StartTick()) / (float)Server()->TickSpeed();
-					vec2 PrevPos = pGrenade->GetPos(Pt);
-					vec2 CurPos = pGrenade->GetPos(Ct);	
+					if(pProj->Type() == WEAPON_GRENADE)
+						vpGrenades.push_back(pProj);
+				}
+			}
+			if(!vpGrenades.empty())
+			{
+				for(const auto &pGren : vpGrenades)
+				{
+					float Pt = (Server()->Tick() - pGren->StartTick() - 1) / (float)Server()->TickSpeed();
+					float Ct = (Server()->Tick() - pGren->StartTick()) / (float)Server()->TickSpeed();
+					vec2 PrevPos = pGren->GetPos(Pt);
+					vec2 CurPos = pGren->GetPos(Ct);
 					vec2 ColPos;
-					pGrenade->GetNearestAirPos(CurPos, PrevPos, &ColPos);
-					pGrenade->Reset();
+					pGren->GetNearestAirPos(CurPos, PrevPos, &ColPos);
+					pGren->Reset();
 					ForceSetPos(ColPos);
 					ResetVelocity();
 					ReleaseHook();
-					// GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
+
+					GameServer()->CreateSound(ColPos, SOUND_WEAPON_SPAWN, TeamMask());
+					GameServer()->CreateDeath(ColPos, m_pPlayer->GetCid(), TeamMask());
+					Teleported = true;
 					break;
 				}
 			}
+			if(Teleported)
+				break;
 		}
 		// FoxNet>
 

@@ -413,3 +413,16 @@ void CGameWorld::RemoveEntities(int Type)
 		}
 	}
 }
+
+std::vector<CEntity *> CGameWorld::FindEntitiesWithOwner(int Type, int Owner) const
+{
+	std::vector<CEntity *> vEntities;
+	CEntity *pEnt = m_apFirstEntityTypes[Type];
+	for(; pEnt; pEnt = pEnt->m_pNextTypeEntity)
+	{
+		if(pEnt->GetOwnerId() == Owner)
+			vEntities.push_back(pEnt);
+	}
+	return vEntities;
+
+}
