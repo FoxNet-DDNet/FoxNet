@@ -2,6 +2,7 @@
 
 #include "accountworker.h"
 #include "game/server/gamecontext.h"
+#include "shop.h"
 
 #include <base/hash.h>
 #include <base/hash_ctxt.h>
@@ -17,6 +18,8 @@
 
 #include <generated/protocol.h>
 
+#include <game/server/player.h>
+
 #include <ctime>
 #include <functional>
 #include <memory>
@@ -24,8 +27,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "shop.h"
-#include <game/server/player.h>
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }
 
@@ -727,6 +728,46 @@ void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	pReq->m_MailId = MailId;
 	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
+}
+
+void CAccounts::NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled, bool OnlyLoggedIn, int MinLevel)
+{
+	if(!m_pPool)
+		return;
+
+	auto pResBulk = std::make_shared<CBulkMailResult>();
+	auto pReq = std::make_unique<CAccBulkNewMail>(pResBulk);
+	str_copy(pReq->m_aSubject, pSubject, sizeof(pReq->m_aSubject));
+	str_copy(pReq->m_aMessage, pMessage, sizeof(pReq->m_aMessage));
+	str_copy(pReq->m_aCmdName, pCmdName, sizeof(pReq->m_aCmdName));
+	str_copy(pReq->m_aCmd, pCmd, sizeof(pReq->m_aCmd));
+	pReq->m_IncludeDisabled = IncludeDisabled;
+	pReq->m_OnlyLoggedIn = OnlyLoggedIn;
+	pReq->m_MinLevel = MinLevel;
+
+	AddPending(std::static_pointer_cast<CAccResult>(pResBulk), [this](CAccResult &BaseRes) {
+		auto *pBulk = static_cast<CBulkMailResult *>(&BaseRes);
+		if(!pBulk->m_Success)
+		{
+			log_info("mail", "bulk mail failed");
+			return;
+		}
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			auto &Acc = GameServer()->m_aAccounts[i];
+			if(!Acc.m_LoggedIn)
+				continue;
+			Acc.m_LastMailboxFetch = 0; // force refresh
+			if(GameServer()->m_apPlayers[i])
+			{
+				char aBuf[128];
+				str_format(aBuf, sizeof(aBuf), "You received a new global mail: %s", pBulk->m_aSubject);
+				GameServer()->SendChatTarget(i, aBuf);
+			}
+		}
+	});
+
+	m_pPool->ExecuteWrite(CAccountsWorker::NewGlobalMail, std::move(pReq), "acc bulk new mail");
 }
 
 void CAccounts::FetchMailBox()

@@ -855,6 +855,7 @@ private:
 	static void ConRemoveItem(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConNewMail(IConsole::IResult *pResult, void *pUserData);
+	static void ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConShopListItems(IConsole::IResult *pResult, void *pUserData);
 	static void ConShopEditItem(IConsole::IResult *pResult, void *pUserData);

@@ -1,11 +1,12 @@
 #ifndef GAME_SERVER_FOXNET_ACCOUNTWORKER_H
 #define GAME_SERVER_FOXNET_ACCOUNTWORKER_H
 
+#include "accounts.h"
+
 #include <engine/server/databases/connection_pool.h>
 #include <engine/shared/protocol.h>
 
 #include <game/server/player.h>
-#include "accounts.h"
 
 class CGameContext;
 class IDbConnection;
@@ -191,6 +192,42 @@ struct CAccDeleteMail : ISqlData
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 
+struct CBulkMailResult : public CAccResult
+{
+	int m_Inserted = 0;
+	char m_aSubject[64]{};
+
+	CBulkMailResult()
+	{
+		m_Inserted = 0;
+		m_aSubject[0] = 0;
+		m_Success = false;
+		m_Completed.store(false);
+	}
+};
+
+struct CAccBulkNewMail : ISqlData
+{
+	CAccBulkNewMail(std::shared_ptr<CBulkMailResult> pRes) :
+		ISqlData(std::move(pRes))
+	{
+		m_IncludeDisabled = false;
+		m_OnlyLoggedIn = false;
+		m_MinLevel = -1;
+		m_aSubject[0] = 0;
+		m_aMessage[0] = 0;
+		m_aCmd[0] = 0;
+		m_aCmdName[0] = 0;
+	}
+	char m_aSubject[64];
+	char m_aMessage[512];
+	char m_aCmd[256];
+	char m_aCmdName[64];
+	bool m_IncludeDisabled;
+	bool m_OnlyLoggedIn;
+	int m_MinLevel;
+};
+
 struct CAccountsWorker
 {
 	static bool Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize);
@@ -208,10 +245,10 @@ struct CAccountsWorker
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
-
 };
 
 #endif

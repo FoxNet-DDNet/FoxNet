@@ -644,7 +644,6 @@ void CGameContext::OnLogin(int ClientId)
 				UnreadMails++;
 		}
 
-
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "Welcome back %s! You have %d unread mail%s.", Server()->ClientName(ClientId), UnreadMails, UnreadMails == 1 ? "" : "s");
 		SendChatTarget(ClientId, aBuf);

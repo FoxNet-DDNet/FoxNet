@@ -1080,8 +1080,10 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 		}
 		const auto &Mail = pAcc->m_MailBox.m_vMails[MailIdx];
 
+		const bool HasReward = Mail.m_aCmdName[0] && Mail.m_aCmd[0];
+
 		AddVoteText("╭───────── Mᴀɪʟ Dᴇᴛᴀɪʟs");
-		if(!Mail.m_UsedCmd)
+		if(!Mail.m_UsedCmd && HasReward)
 			AddVotePrefix(MAIL_CLAIM_REWARD, PREFIX_LONG_LINE);
 		AddVotePrefix(MAIL_DELETE, PREFIX_LONG_LINE);
 		AddVoteText("╰────────────────────");
@@ -1095,7 +1097,7 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 			AddVoteText(Line);
 		AddVoteSeparator();
 
-		if(Mail.m_aCmdName[0] && Mail.m_aCmd[0])
+		if(HasReward)
 		{
 			AddVoteSubheader("Rᴇᴡᴀʀᴅ");
 

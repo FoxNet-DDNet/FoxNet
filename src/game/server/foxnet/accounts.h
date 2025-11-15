@@ -79,8 +79,6 @@ public:
 
 	CInventory m_Inventory;
 
-
-
 	int m_LoginTick = 0;
 	bool m_Disabled = false;
 
@@ -150,6 +148,7 @@ public:
 	void FetchMailBox();
 
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
+	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
 	void SetMailRead(const char *pUsername, int64_t MailId, bool Read);
 	void SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used);
 	void DeleteMail(const char *pUsername, int64_t MailId);

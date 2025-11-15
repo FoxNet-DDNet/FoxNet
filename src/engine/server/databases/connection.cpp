@@ -131,8 +131,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		Int64Type(),
 		Int64Type(),
 		Int64Type(),
-		False()
-	);
+		False());
 }
 
 void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const
@@ -152,8 +151,7 @@ void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int Buffer
 		BinaryCollate(),
 		Int64Type(),
 		Int64Type(),
-		BinaryCollate()
-	);
+		BinaryCollate());
 }
 
 void IDbConnection::FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSize) const
@@ -175,8 +173,6 @@ void IDbConnection::FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSi
 		BinaryCollate(),
 		BinaryCollate(),
 		BinaryCollate(),
-		BinaryCollate()
-	);
+		BinaryCollate());
 }
-
 // FoxNet>

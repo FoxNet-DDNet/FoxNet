@@ -1,7 +1,7 @@
 ﻿#include "accountworker.h"
-#include "accountworker.h"
 
 #include "accounts.h"
+#include "accountworker.h"
 #include "shop.h"
 
 #include <base/system.h>
@@ -761,6 +761,62 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 	return pRes->m_Success;
 }
 
+bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccBulkNewMail *>(pData);
+	auto *pRes = dynamic_cast<CBulkMailResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "BulkNewMail: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// Build conditional WHERE parts
+	char aWhere[256];
+	aWhere[0] = '\0';
+	str_append(aWhere, "WHERE 1=1", sizeof(aWhere));
+	if(!pReq->m_IncludeDisabled)
+		str_append(aWhere, " AND Disabled = 0", sizeof(aWhere));
+	if(pReq->m_OnlyLoggedIn)
+		str_append(aWhere, " AND LoggedIn = 1", sizeof(aWhere));
+	if(pReq->m_MinLevel >= 0)
+	{
+		char aBuf[64];
+		str_format(aBuf, sizeof(aBuf), " AND Level >= %d", pReq->m_MinLevel);
+		str_append(aWhere, aBuf, sizeof(aWhere));
+	}
+
+	// We rely on column defaults for Unread (1) and UsedCommand (0).
+	// MailId: correlated subquery gives next id per Username.
+	char aSql[1024];
+	str_format(aSql, sizeof(aSql),
+		"INSERT INTO foxnet_account_mailbox (Username, MailId, Subject, Message, Command, CommandName) "
+		"SELECT a.Username, "
+		"       COALESCE((SELECT MAX(m.MailId)+1 FROM foxnet_account_mailbox m WHERE m.Username = a.Username), 1), "
+		"       ?, ?, ?, ? "
+		"FROM foxnet_accounts a %s",
+		aWhere);
+
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aSubject);
+	pSql->BindString(Param++, pReq->m_aMessage);
+	pSql->BindString(Param++, pReq->m_aCmd);
+	pSql->BindString(Param++, pReq->m_aCmdName);
+
+	int NumInserted = 0;
+	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
+		return false;
+
+	pRes->m_Inserted = NumInserted;
+	pRes->m_Success = NumInserted > 0;
+	str_copy(pRes->m_aSubject, pReq->m_aSubject, sizeof(pRes->m_aSubject));
+	pRes->m_Completed.store(true);
+	return true;
+}
+
 bool CAccountsWorker::SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccSetMailRead *>(pData);
@@ -811,7 +867,7 @@ bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Wri
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	int Param = 1;
-	pSql->BindString(Param++, pReq->m_aUsername); 
+	pSql->BindString(Param++, pReq->m_aUsername);
 	pSql->BindInt64(Param++, pReq->m_MailId);
 	int NumDeleted = 0;
 	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
