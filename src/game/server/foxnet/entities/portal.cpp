@@ -182,6 +182,21 @@ void CPortal::HandleTele()
 			const vec2 Target = InP0 ? m_aData[1].m_Pos : m_aData[0].m_Pos;
 			pChr->ForceSetPos(Target);
 			pChr->ReleaseHook();
+
+			for(int i = 0; i < MAX_CLIENTS; i++)
+			{
+				if(!Server()->ClientIngame(i))
+					continue;
+
+				CCharacter *pOtherChr = GameServer()->GetPlayerChar(i);
+				if (!pOtherChr || !pOtherChr->IsAlive() || i == ClientId)
+					continue;
+				
+				if(pOtherChr->Core()->HookedPlayer() == ClientId)
+					pOtherChr->ReleaseHook();
+			}
+
+
 			Can = false;
 
 			if(distance(m_aData[0].m_Pos, m_aData[1].m_Pos) > 550.0f)
