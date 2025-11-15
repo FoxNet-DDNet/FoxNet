@@ -271,7 +271,6 @@ bool CPlayer::CanUseMoney()
 	return true;
 }
 
-
 void CPlayer::TakeMoney(long Amount, bool Silent, const char *pMessage)
 {
 	if(!Acc()->m_LoggedIn)

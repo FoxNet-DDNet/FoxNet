@@ -296,22 +296,21 @@ int CConsole::ParseArgs(CResult *pResult, const char *pFormat, bool IsColor)
 					}
 				}
 				// <FoxNet
-				else if(Command == 'l') 
+				else if(Command == 'l')
 				{
 					const char *pNum = pResult->GetString(pResult->NumArguments() - 1);
-					if(!*pNum) 
+					if(!*pNum)
 					{
 						Error = PARSEARGS_INVALID_INTEGER;
 						break;
-						
 					}
 					char *pEnd = nullptr;
 					errno = 0;
-					if(pEnd == nullptr || *pEnd != '\0' || errno == ERANGE) 
+					(void)strtoll(pNum, &pEnd, 10);
+					if(pEnd == nullptr || *pEnd != '\0' || errno == ERANGE)
 					{
 						Error = PARSEARGS_INVALID_INTEGER;
 						break;
-						
 					}
 				}
 				// FoxNet>
