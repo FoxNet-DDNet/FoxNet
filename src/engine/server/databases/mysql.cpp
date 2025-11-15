@@ -310,7 +310,7 @@ bool CMysqlConnection::ConnectImpl()
 		// <FoxNet
 		FormatCreateAccounts(aCreateAccounts, sizeof(aCreateAccounts));
 		FormatCreateAccountInventory(aCreateInventory, sizeof(aCreateInventory));
-		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox))
+		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox));
 		// FoxNet>
 
 		if(!PrepareAndExecuteStatement(aCreateRace) ||

@@ -83,7 +83,13 @@ constexpr const char *ADMIN_ABILITY_TELEKINESIS = "Telekinesis Ability";
 
 // Mailbox
 constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
-constexpr const char *MAIL_CLAIM_REWARD = "✔ Claim Reward";
+
+// ToDo: @qxdFox: Implement these when bulk actions are added
+// constexpr const char *MAIL_MARK_ALL_READ = "✔ Mark all as read";
+// constexpr const char *MAIL_CLAIM_ALL_REWARDS = "⬇️ Claim all Rewards";;
+// constexpr const char *MAIL_DELETE_ALL_READ = "✘ Delete all read Mails";
+
+constexpr const char *MAIL_CLAIM_REWARD = "⬇️ Claim Reward";
 constexpr const char *MAIL_DELETE = "✘ Delete Mail";
 
 // Shop
@@ -1030,10 +1036,18 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 			return;
 		}
 
+		// ToDo: @qxdFox: Implement these when bulk actions are added
+		/*╭───────  Options
+		* │ Mark all as read
+		* │ Receive all items
+		* │ Delete all read mails
+		* ╰──────────────────── */
+
 		AddVoteSubheader("Fɪʟᴛᴇʀs");
 		AddVoteCheckBox(MAIL_ONLY_UNREAD, Data.m_OnlyUnreadMails);
 		AddVoteSeparator();
 
+		AddVoteText("Mᴀɪʟs:");
 		int Idx = 0;
 		for(const CMailBox::CMail &Mail : pAcc->m_MailBox.m_vMails)
 		{
@@ -1066,8 +1080,7 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 		}
 		const auto &Mail = pAcc->m_MailBox.m_vMails[MailIdx];
 
-		char aBuf[VOTE_DESC_LENGTH];
-		AddVoteText("╭─────── Mᴀɪʟ Iɴғᴏ");
+		AddVoteText("╭───────── Mᴀɪʟ Dᴇᴛᴀɪʟs");
 		if(!Mail.m_UsedCmd)
 			AddVotePrefix(MAIL_CLAIM_REWARD, PREFIX_LONG_LINE);
 		AddVotePrefix(MAIL_DELETE, PREFIX_LONG_LINE);
@@ -1082,14 +1095,17 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 			AddVoteText(Line);
 		AddVoteSeparator();
 
-		AddVoteSubheader("Rᴇᴡᴀʀᴅ");
+		if(Mail.m_aCmdName[0] && Mail.m_aCmd[0])
+		{
+			AddVoteSubheader("Rᴇᴡᴀʀᴅ");
 
-		str_copy(aUnescaped, Mail.m_aCmdName, sizeof(aUnescaped));
-		UnescapeNewlines(aUnescaped);
-		Lines = StrSplit(aUnescaped, '\n');
+			str_copy(aUnescaped, Mail.m_aCmdName, sizeof(aUnescaped));
+			UnescapeNewlines(aUnescaped);
+			Lines = StrSplit(aUnescaped, '\n');
 
-		for(const auto &Line : Lines)
-			AddVoteText(Line);
+			for(const auto &Line : Lines)
+				AddVoteText(Line);
+		}
 	}
 }
 

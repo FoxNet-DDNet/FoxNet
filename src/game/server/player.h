@@ -19,7 +19,7 @@
 #include "foxnet/entities/pickupdrop.h"
 #include "foxnet/shop.h"
 
-struct CAccountSession;
+class CAccountSession;
 
 class CHeadItem;
 // FoxNet>

@@ -635,6 +635,20 @@ void CGameContext::OnLogin(int ClientId)
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
 		SendChatTarget(ClientId, "For more Info about this server head to the votemenu and double click on 'Server Info'");
 	}
+	else
+	{
+		int UnreadMails = 0;
+		for(int i = 0; i < (int)pPl->Acc()->m_MailBox.m_vMails.size(); i++)
+		{
+			if(pPl->Acc()->m_MailBox.m_vMails[i].m_Unread)
+				UnreadMails++;
+		}
+
+
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "Welcome back %s! You have %d unread mail%s.", Server()->ClientName(ClientId), UnreadMails, UnreadMails == 1 ? "" : "s");
+		SendChatTarget(ClientId, aBuf);
+	}
 
 	ClearVotes(ClientId);
 }
