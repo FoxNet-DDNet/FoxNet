@@ -852,6 +852,7 @@ private:
 	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveItem(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveItemDays(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveItem(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConNewMail(IConsole::IResult *pResult, void *pUserData);

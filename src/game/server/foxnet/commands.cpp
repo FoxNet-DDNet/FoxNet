@@ -243,6 +243,23 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, FromId);
 }
 
+void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	const int FromId = pResult->m_ClientId;
+	const int Days = pResult->GetInteger(1);
+	const char *pItemName = pResult->GetString(2);
+
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days);
+}
+
 void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1808,6 +1825,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
 	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
 	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
+	Console()->Register("give_item_days", "v[id] i[days] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item");
 
 	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
 	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");

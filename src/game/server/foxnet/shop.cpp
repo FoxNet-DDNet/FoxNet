@@ -262,6 +262,41 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
 }
 
+void CShop::GiveItem(int ClientId, const char *pItemName, int Days)
+{
+	CItem *pItem = FindItem(pItemName);
+	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	if(!pItem)
+	{
+		log_info("shop", "Tried to give non-existing item '%s' to ClientId %d", pItemName, ClientId);
+		return;
+	}
+	const char *pName = pItem->Name();
+	if(!pAcc->m_LoggedIn)
+	{
+		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pName, ClientId);
+		return;
+	}
+	const char *ClientIdName = Server()->ClientName(ClientId);
+	int Index = CInventory::IndexOfName(pName);
+
+	int64_t Now = time(0);
+	const int64_t NumDays = int64_t(Days) * 86400; // 30 days
+
+	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
+	{
+		pAcc->m_Inventory.AddToExpiry(Index, NumDays);
+	}
+	else
+	{
+		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
+		pAcc->m_Inventory.SetExpiresAt(Index, Now + NumDays);
+	}
+	pAcc->m_Inventory.SetOwnedIndex(Index, true);
+
+	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
+}
+
 void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
 {
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
