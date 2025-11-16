@@ -733,7 +733,7 @@ void CPlayer::SetHatType(int Type)
 	{
 		SetHeartHat(false);
 		if(PrevType == HATTYPE_NONE)
-			new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -48.0f));
+			new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
 	}
 }
 
