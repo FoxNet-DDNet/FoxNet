@@ -185,6 +185,7 @@ class CVoteMenu
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
+	bool OwnsAnyOfType(int ClientId, int ItemType) const;
 
 public:
 	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }

@@ -1049,6 +1049,15 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 		AddVoteText("Mᴀɪʟs:");
 		int Idx = 0;
+
+		if(pAcc->m_MailBox.m_vMails.empty())
+		{
+			AddVoteText("You have no mails in your mailbox.");
+			return;
+		}
+
+
+		int ShownMails = 0;
 		for(const CMailBox::CMail &Mail : pAcc->m_MailBox.m_vMails)
 		{
 			if(Data.m_OnlyUnreadMails && !Mail.m_Unread)
@@ -1056,6 +1065,7 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 				Idx++;
 				continue;
 			}
+			ShownMails++;
 
 			char aBuf[VOTE_DESC_LENGTH];
 			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, Mail.m_Unread ? " [!]" : "");
@@ -1063,6 +1073,8 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 			AddVoteText(aBuf);
 			Idx++;
 		}
+		if(ShownMails == 0)
+			AddVoteText("No Mails available with the current filters.");
 	}
 	else if(SubPage == SUB_MAILBOX_VIEW)
 	{
@@ -1323,9 +1335,13 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 
 	// !New Cosmetic
 	std::vector<CVoteData> Votes;
+	int OwnedItems = 0;
 	for(int Type = 0; Type < NUM_TYPES; Type++)
 	{
 		// Type | ItemType | ItemName | VoteName
+		if(!OwnsAnyOfType(ClientId, Type))
+			continue;
+
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;
@@ -1358,6 +1374,8 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 				if(!(pPl->OwnsItem(pItemName)))
 					continue;
 			}
+			OwnedItems++;
+
 			int Idx = pPl->Inv()->IndexOfName(pItemName);
 
 			int64_t Now = time(0);
@@ -1425,6 +1443,11 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS);
 		AddVoteSeparator();
 	}
+	else if(!OwnedItems)
+	{
+		AddVoteText("You don't own any cosmetics.");
+		return;
+	}
 
 	for(const auto &Vote : Votes)
 	{
@@ -1466,24 +1489,6 @@ bool CVoteMenu::CanUseCmd(int ClientId, const char *pCmd) const
 	default: ClientLevel = IConsole::EAccessLevel::USER; break;
 	}
 	return Required >= ClientLevel;
-}
-
-bool CVoteMenu::CanBuyAnyOfType(int ClientId, int ItemType) const
-{
-	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
-		return false;
-	for(const auto &pItems : GameServer()->m_Shop.m_Items)
-	{
-		if(pItems->Type() != ItemType)
-			continue;
-		if(pItems->Price() == -1)
-			continue;
-		if(pAcc->m_Money >= pItems->Price() && pAcc->m_Level >= pItems->MinLevel())
-			return true;
-	}
-	return false;
 }
 
 void CVoteMenu::SendPageAdmin(int ClientId)
@@ -1560,6 +1565,40 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 	{
 		DoCosmeticVotes(ClientId, true);
 	}
+}
+
+bool CVoteMenu::CanBuyAnyOfType(int ClientId, int ItemType) const
+{
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
+		return false;
+	for(const auto &pItems : GameServer()->m_Shop.m_Items)
+	{
+		if(pItems->Type() != ItemType)
+			continue;
+		if(pItems->Price() == -1)
+			continue;
+		if(pAcc->m_Money >= pItems->Price() && pAcc->m_Level >= pItems->MinLevel())
+			return true;
+	}
+	return false;
+}
+
+bool CVoteMenu::OwnsAnyOfType(int ClientId, int ItemType) const
+{
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
+		return false;
+	for(const auto &pItems : GameServer()->m_Shop.m_Items)
+	{
+		if(pItems->Type() != ItemType)
+			continue;
+		if(pPl->OwnsItem(pItems->Name()))
+			return true;
+	}
+	return false;
 }
 
 void CVoteMenu::AddVotePrefix(const char *pDesc, int Prefix)
