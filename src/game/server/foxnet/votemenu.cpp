@@ -274,7 +274,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			return true;
 		}
 	}
-	else if (Page == PAGE_MAILBOX)
+	else if(Page == PAGE_MAILBOX)
 	{
 		if(SubPage == SUB_MAILBOX_MAIN)
 		{
@@ -298,7 +298,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 					return true;
 				}
 			}
-		}		
+		}
 		else if(SubPage == SUB_MAILBOX_VIEW)
 		{
 			if(!Data.m_aMetaData[0])
@@ -1038,10 +1038,10 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 		// ToDo: @qxdFox: Implement these when bulk actions are added
 		/*╭───────  Options
-		* │ Mark all as read
-		* │ Receive all items
-		* │ Delete all read mails
-		* ╰──────────────────── */
+		 * │ Mark all as read
+		 * │ Receive all items
+		 * │ Delete all read mails
+		 * ╰──────────────────── */
 
 		AddVoteSubheader("Fɪʟᴛᴇʀs");
 		AddVoteCheckBox(MAIL_ONLY_UNREAD, Data.m_OnlyUnreadMails);

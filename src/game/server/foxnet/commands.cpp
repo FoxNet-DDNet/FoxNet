@@ -247,7 +247,6 @@ void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
-	const int FromId = pResult->m_ClientId;
 	const int Days = pResult->GetInteger(1);
 	const char *pItemName = pResult->GetString(2);
 

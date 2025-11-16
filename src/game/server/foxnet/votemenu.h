@@ -104,7 +104,7 @@ public:
 	std::string m_sSuffixDesc;
 
 	CVoteData() = default;
-	
+
 	CVoteData(int VoteType, const std::string &pVoteName)
 	{
 		m_VoteType = VoteType;
@@ -124,7 +124,6 @@ public:
 		m_sVoteName = pVoteName;
 		m_Prefix = Prefix;
 	}
-
 };
 
 class CVoteMenu
@@ -142,7 +141,7 @@ class CVoteMenu
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
 		CCosmetics m_Cosmetics;
-		
+
 		bool m_OnlyUnreadMails = false;
 
 		bool m_OnlyAffordable = false;
@@ -186,8 +185,8 @@ class CVoteMenu
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
 	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
+
 public:
-	
 	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }
 
 	void PrepareVoteOptions(int ClientId);

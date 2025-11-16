@@ -277,7 +277,6 @@ void CShop::GiveItem(int ClientId, const char *pItemName, int Days)
 		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pName, ClientId);
 		return;
 	}
-	const char *ClientIdName = Server()->ClientName(ClientId);
 	int Index = CInventory::IndexOfName(pName);
 
 	int64_t Now = time(0);

@@ -1,6 +1,7 @@
 ﻿#include "accounts.h"
 #include "cosmetics/dot_trail.h"
 #include "cosmetics/epic_circle.h"
+#include "cosmetics/headitem.h"
 #include "cosmetics/heart_hat.h"
 #include "cosmetics/lissajous.h"
 #include "cosmetics/lovely.h"
@@ -19,20 +20,18 @@
 
 #include <generated/protocol.h>
 
+#include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+#include <game/teamscore.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
 #include <string>
-#include <unordered_map>
 #include <vector>
-#include "cosmetics/headitem.h"
-#include <game/gamecore.h>
-#include <base/log.h>
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
 CInventory *CPlayer::Inv() { return &Acc()->m_Inventory; }
@@ -112,7 +111,6 @@ void CPlayer::ExpireItems()
 		}
 	}
 }
-
 
 void CPlayer::FoxNetReset()
 {
@@ -256,7 +254,7 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 		str_format(aText, sizeof(aText), "+%ld", Amount);
 		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 175, aText, WEAPON_HAMMER);
 		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 125);
-	} 
+	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }
@@ -363,7 +361,7 @@ int CPlayer::GetItemToggle(const char *pItemName)
 		Value = (int)Cosmetics()->m_HatType == HATTYPE_LASER ? HATTYPE_NONE : HATTYPE_LASER;
 	else if(!str_comp_nocase(pName, Items[HAT_NINJA]))
 		Value = (int)Cosmetics()->m_HatType == HATTYPE_NINJA ? HATTYPE_NONE : HATTYPE_NINJA;
-	
+
 	else if(!str_comp_nocase(pName, Items[HAT_HEART]))
 		Value = (int)!Cosmetics()->m_HeartHat;
 
