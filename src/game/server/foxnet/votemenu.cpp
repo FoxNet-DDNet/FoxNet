@@ -115,10 +115,10 @@ void CVoteMenu::Init(CGameContext *pGameServer)
 	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ");
 	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
 	str_copy(m_aPages[PAGE_SETTINGS], "Sᴇᴛᴛɪɴɢs");
-	str_copy(m_aPages[PAGE_VOTES], "Vᴏᴛᴇs");
 	str_copy(m_aPages[PAGE_MAILBOX], "Mᴀɪʟʙᴏx");
 	str_copy(m_aPages[PAGE_SHOP], "Sʜᴏᴘ");
 	str_copy(m_aPages[PAGE_INVENTORY], "Iɴᴠᴇɴᴛᴏʀʏ");
+	str_copy(m_aPages[PAGE_VOTES], "Vᴏᴛᴇs");
 	str_copy(m_aPages[PAGE_ADMIN], "Aᴅᴍɪɴ");
 }
 
@@ -1055,7 +1055,6 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 			AddVoteText("You have no mails in your mailbox.");
 			return;
 		}
-
 
 		int ShownMails = 0;
 
