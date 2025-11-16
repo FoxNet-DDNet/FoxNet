@@ -723,8 +723,8 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 	char aInsert[512];
 	str_copy(aInsert,
 		"INSERT INTO foxnet_account_mailbox "
-		"(Username, MailId, Subject, Message, Command, CommandName) "
-		"VALUES (?, ?, ?, ?, ?, ?)",
+		"(Username, MailId, Subject, Message, Command, CommandName, UsedCommand) "
+		"VALUES (?, ?, ?, ?, ?, ?, ?)",
 		sizeof(aInsert));
 	if(!pSql->PrepareStatement(aInsert, pError, ErrorSize))
 		return false;
@@ -736,6 +736,7 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 	pSql->BindString(Param++, pReq->m_aMessage);
 	pSql->BindString(Param++, pReq->m_aCmd);
 	pSql->BindString(Param++, pReq->m_aCmdName);
+	pSql->BindInt(Param++, pReq->m_UsedCmd); // UsedCommand = false
 
 	int NumInserted = 0;
 	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))

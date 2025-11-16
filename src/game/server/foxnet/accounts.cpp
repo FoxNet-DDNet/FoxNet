@@ -645,7 +645,7 @@ void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char 
 	str_copy(pReq->m_aMessage, pMessage, sizeof(pReq->m_aMessage));
 	str_copy(pReq->m_aCmdName, pCmdName, sizeof(pReq->m_aCmdName));
 	str_copy(pReq->m_aCmd, pCmd, sizeof(pReq->m_aCmd));
-	pReq->m_UsedCmd = false;
+	pReq->m_UsedCmd = pCmdName[0] == '\0' && pCmd[0] == '\0';
 	pReq->m_Unread = true;
 
 	AddPending(pRes, [this](CAccResult &AckBase) {

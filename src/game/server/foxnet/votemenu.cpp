@@ -1058,17 +1058,19 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 
 		int ShownMails = 0;
+
 		for(const CMailBox::CMail &Mail : pAcc->m_MailBox.m_vMails)
 		{
-			if(Data.m_OnlyUnreadMails && !Mail.m_Unread)
+			const bool Unread = Mail.m_Unread || (!Mail.m_UsedCmd && Mail.m_aCmd[0] != '\0');
+			if(Data.m_OnlyUnreadMails && !Unread)
 			{
 				Idx++;
-				continue;
+				continue;	
 			}
 			ShownMails++;
 
 			char aBuf[VOTE_DESC_LENGTH];
-			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, Mail.m_Unread ? " [!]" : "");
+			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, Unread ? " [!]" : "");
 
 			AddVoteText(aBuf);
 			Idx++;
@@ -1107,10 +1109,10 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 		std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
 		for(const auto &Line : Lines)
 			AddVoteText(Line);
-		AddVoteSeparator();
 
 		if(HasReward)
 		{
+			AddVoteSeparator();
 			AddVoteSubheader("Rᴇᴡᴀʀᴅ");
 
 			str_copy(aUnescaped, Mail.m_aCmdName, sizeof(aUnescaped));
