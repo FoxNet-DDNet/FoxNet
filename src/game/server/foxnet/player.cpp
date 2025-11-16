@@ -956,10 +956,10 @@ void CPlayer::SendAreaMotd(int Area)
 	Msg.m_pMessage = "\0";
 	switch(Area)
 	{
-	case 1:
+	case AREA_ROULETTE:
 		Msg.m_pMessage =
 			"\n"
-			"[Veiwable in Server info Tab]\n"
+			"[Viewable in Server info Tab]\n"
 			"\n"
 			"\n"
 			"--  Rᴏᴜʟᴇᴛᴛᴇ  --\n"
