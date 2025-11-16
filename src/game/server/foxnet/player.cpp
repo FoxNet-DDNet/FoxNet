@@ -160,7 +160,7 @@ void CPlayer::GivePlaytime(int Amount)
 	if(Acc()->m_Playtime % 60 == 0)
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "for reaching %ld Minutes of Playtime!", Acc()->m_Playtime);
+		str_format(aBuf, sizeof(aBuf), "for reaching %ld Hours of Playtime!", Acc()->m_Playtime / 60);
 		GiveMoney(g_Config.m_SvPlaytimeMoney, aBuf, false);
 	}
 }
