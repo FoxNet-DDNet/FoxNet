@@ -25,44 +25,44 @@ void CShop::Init(CGameContext *pGameServer)
 
 void CShop::AddItems()
 {
-	m_Items.push_back(new CItem("Rainbow Feet", "R_F", TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1));
-	m_Items.push_back(new CItem("Rainbow Body", "R_B", TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4));
-	m_Items.push_back(new CItem("Rainbow Hook", "R_H", TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
+	m_Items.push_back(new CItem("Rainbow Feet", "R_F", RARITY_COMMON, 1, TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1));
+	m_Items.push_back(new CItem("Rainbow Body", "R_B", RARITY_COMMON, 2, TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4));
+	m_Items.push_back(new CItem("Rainbow Hook", "R_H", RARITY_COMMON, 4, TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5));
 
-	m_Items.push_back(new CItem("Emoticon Gun", "G_E", TYPE_GUN, 3500, "Shoot emotions at people", 10));
-	m_Items.push_back(new CItem("Phase Gun", "G_P", TYPE_GUN, 2250, "Your bullets defy physics", 5));
-	m_Items.push_back(new CItem("Heart Gun", "G_H", TYPE_GUN, 20000, "Shoot bullets full of love", 15, SUBTYPE_GUN));
-	m_Items.push_back(new CItem("Mixed Gun", "G_M", TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
-	m_Items.push_back(new CItem("Laser Gun", "G_L", TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem("Emoticon Gun", "G_E", RARITY_UNCOMMON, 1, TYPE_GUN, 3500, "Shoot emotions at people", 10));
+	m_Items.push_back(new CItem("Phase Gun", "G_P", RARITY_EPIC, 1, TYPE_GUN, 2250, "Your bullets defy physics", 5));
+	m_Items.push_back(new CItem("Heart Gun", "G_H", RARITY_MYTHIC, 1, TYPE_GUN, 20000, "Shoot bullets full of love", 15, SUBTYPE_GUN));
+	m_Items.push_back(new CItem("Mixed Gun", "G_M", RARITY_MYTHIC, 2, TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem("Laser Gun", "G_L", RARITY_MYTHIC, 4, TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
 
-	m_Items.push_back(new CItem("Clockwise Indicator", "I_C", TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Counter Clockwise Indicator", "I_CC", TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Inward Turning Indicator", "I_IT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Outward Turning Indicator", "I_OT", TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Line Indicator", "I_L", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10, SUBTYPE_IND));
-	m_Items.push_back(new CItem("Criss Cross Indicator", "I_CrCs", TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Clockwise Indicator", "I_C", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Counter Clockwise Indicator", "I_CC", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Inward Turning Indicator", "I_IT", RARITY_UNCOMMON, 3, TYPE_INDICATOR, 8000, "Gun Hit -> turns Inward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Outward Turning Indicator", "I_OT", RARITY_UNCOMMON, 3, TYPE_INDICATOR, 8000, "Gun Hit -> turns Outward", 15, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Line Indicator", "I_L", RARITY_UNCOMMON, 2, TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Line", 10, SUBTYPE_IND));
+	m_Items.push_back(new CItem("Criss Cross Indicator", "I_CrCs", RARITY_UNCOMMON, 2, TYPE_INDICATOR, 6500, "Gun Hit -> goes in a Criss Cross pattern", 10, SUBTYPE_IND));
 
-	m_Items.push_back(new CItem("Explosive Death", "D_E", TYPE_DEATHS, 3250, "Go out with a Boom!", 5, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem("HammerHit Death", "D_H", TYPE_DEATHS, 3250, "Get Bonked on death!", 5, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem("Indicator Death", "D_I", TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem("Laser Death", "D_L", TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("Explosive Death", "D_E", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Go out with a Boom!", 5, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("HammerHit Death", "D_H", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Get Bonked on death!", 5, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("Indicator Death", "D_I", RARITY_UNCOMMON, 2, TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem("Laser Death", "D_L", RARITY_EPIC, 1, TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
 
-	m_Items.push_back(new CItem("Star Trail", "T_S", TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
-	m_Items.push_back(new CItem("Dot Trail", "T_D", TYPE_TRAIL, 8000, "A trail made out of small dots", 7, SUBTYPE_TRAIL));
+	m_Items.push_back(new CItem("Star Trail", "T_S", RARITY_COMMON, 3, TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
+	m_Items.push_back(new CItem("Dot Trail", "T_D", RARITY_COMMON, 3, TYPE_TRAIL, 8000, "A trail made out of small dots", 7, SUBTYPE_TRAIL));
 
-	m_Items.push_back(new CItem("Hammer Hat", "H_O", TYPE_HAT, 4000, "Hammer above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem("Gun Hat", "H_G", TYPE_HAT, 4000, "Gun above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem("Shotgun Hat", "H_SG", TYPE_HAT, 4000, "Shotgun above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem("Grenade Hat", "H_GR", TYPE_HAT, 4000, "Grenade above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem("Laser Hat", "H_L", TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem("Ninja Hat", "H_N", TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Hammer Hat", "H_O", RARITY_COMMON, 3, TYPE_HAT, 4000, "Hammer above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Gun Hat", "H_G", RARITY_COMMON, 3, TYPE_HAT, 4000, "Gun above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Shotgun Hat", "H_SG", RARITY_COMMON, 3, TYPE_HAT, 4000, "Shotgun above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Grenade Hat", "H_GR", RARITY_COMMON, 3, TYPE_HAT, 4000, "Grenade above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Laser Hat", "H_L", RARITY_COMMON, 3, TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Ninja Hat", "H_N", RARITY_COMMON, 3, TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
 
-	m_Items.push_back(new CItem("Heart Hat", "H_O", TYPE_HAT, 4000, "A hat of Hearts", 10, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Heart Hat", "H_O", RARITY_EPIC, 4, TYPE_HAT, 12000, "A hat of Hearts", 10, SUBTYPE_HAT));
 
-	m_Items.push_back(new CItem("Sparkle", "O_S", TYPE_OTHER, 1500, "Makes you sparkle", 5));
-	m_Items.push_back(new CItem("Inverse Aim", "O_I", TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
-	m_Items.push_back(new CItem("Lovely", "O_L", TYPE_OTHER, 12500, "Spreading love huh?", 15));
-	m_Items.push_back(new CItem("Rotating Ball", "O_R", TYPE_OTHER, 12500, "Ball rotate - life good", 15));
+	m_Items.push_back(new CItem("Sparkle", "O_S", RARITY_COMMON, 1, TYPE_OTHER, 1500, "Makes you sparkle", 5));
+	m_Items.push_back(new CItem("Inverse Aim", "O_I", RARITY_LEGENDARY, 2, TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
+	m_Items.push_back(new CItem("Lovely", "O_L", RARITY_RARE, 3, TYPE_OTHER, 12500, "Spreading love huh?", 15));
+	m_Items.push_back(new CItem("Rotating Ball", "O_R", RARITY_UNCOMMON, 2, TYPE_OTHER, 12500, "Ball rotate - life good", 15));
 }
 
 void CShop::ResetItems()

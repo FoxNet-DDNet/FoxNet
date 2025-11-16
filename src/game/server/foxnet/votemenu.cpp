@@ -155,7 +155,7 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 const char *CVoteMenu::FormatItemVote(const CItem *pItem)
 {
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d]", pItem->Price());
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d%s]", pItem->Price(), g_Config.m_SvCurrencyName);
 	return aBuf;
 }
 
@@ -1222,6 +1222,9 @@ void CVoteMenu::SendPageShop(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->Name());
 		AddVoteText(aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
+		AddVoteText(aBuf);
+		AddVoteText("├────── Rarity");
+		str_format(aBuf, sizeof(aBuf), "│ %s %s", pItem->RarityChar(), pItem->StarChar());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();

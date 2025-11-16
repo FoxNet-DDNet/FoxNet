@@ -1,4 +1,4 @@
-#ifndef GAME_SERVER_FOXNET_COSMETICHANDLER_H
+﻿#ifndef GAME_SERVER_FOXNET_COSMETICHANDLER_H
 #define GAME_SERVER_FOXNET_COSMETICHANDLER_H
 
 #include <base/system.h>
@@ -7,6 +7,8 @@
 
 class CGameContext;
 class IServer;
+
+constexpr int MAX_ITEM_STARS = 5;
 
 enum Cosmetics
 {
@@ -107,6 +109,17 @@ enum ItemSubTypes
 	NUM_SUBTYPES
 };
 
+enum ItemRarity
+{
+	RARITY_COMMON = 0,
+	RARITY_UNCOMMON,
+	RARITY_RARE,
+	RARITY_EPIC,
+	RARITY_MYTHIC,
+	RARITY_LEGENDARY,
+	NUM_RARITIES
+};
+
 class CItem
 {
 	char m_aItem[32] = "";
@@ -117,16 +130,21 @@ class CItem
 	int m_Price = 0;
 	int m_MinLevel = 0;
 
+	int m_Rarity = 0;
+	int m_Stars = 0;
+
 public:
-	CItem(const char *pShopItem, const char *pShortcut, int pItemType, int pPrice, const char *pDesc, int pMinLevel = 0, int pItemSubType = 0)
+	CItem(const char *pShopItem, const char *pShortcut, int Rarity, int Stars, int ItemType, int Price, const char *pDesc, int MinLevel = 0, int ItemSubType = 0)
 	{
 		str_copy(m_aItem, pShopItem);
 		str_copy(m_aShortcut, pShortcut);
 		str_copy(m_aDescription, pDesc);
-		m_Type = pItemType;
-		m_SubType = pItemSubType;
-		m_Price = pPrice;
-		m_MinLevel = pMinLevel;
+		m_Type = ItemType;
+		m_SubType = ItemSubType;
+		m_Price = Price;
+		m_MinLevel = MinLevel;
+		m_Rarity = Rarity;
+		m_Stars = Stars;
 	}
 
 	const char *Name() const { return m_aItem; }
@@ -137,6 +155,40 @@ public:
 
 	int Price() const { return m_Price; }
 	int MinLevel() const { return m_MinLevel; }
+
+	int Rarity() const { return m_Rarity; }
+	int Stars() const { return m_Stars; }
+	const char *RarityChar() const
+	{
+		switch(m_Rarity)
+		{
+		case RARITY_COMMON:
+			return "Common";
+		case RARITY_UNCOMMON:
+			return "Uncommon";
+		case RARITY_RARE:
+			return "Rare";
+		case RARITY_EPIC:
+			return "Epic";
+		case RARITY_MYTHIC:
+			return "Mythic";
+		case RARITY_LEGENDARY:
+			return "Legendary";
+		default:
+			return "Unknown";
+		}
+	}
+	const char *StarChar() const
+	{
+		// ★✪✦✹✵✷
+		static char StarBuf[16] = "";
+		StarBuf[0] = '\0';
+		for(int Num = 0; Num < m_Stars; Num++)
+			str_append(StarBuf, "★", sizeof(StarBuf));
+		for(int Num = m_Stars; Num < MAX_ITEM_STARS; Num++)
+			str_append(StarBuf, "☆", sizeof(StarBuf));
+		return StarBuf;
+	}
 
 	void SetPrice(int Price) { m_Price = Price; }
 	void SetMinLevel(int MinLevel) { m_MinLevel = MinLevel; }
