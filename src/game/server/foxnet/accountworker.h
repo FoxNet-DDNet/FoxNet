@@ -159,9 +159,9 @@ struct CAccNewMail : ISqlData
 	int64_t m_MailId;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH];
 	char m_aSubject[64];
-	char m_aMessage[512];
-	char m_aCmd[256];
-	char m_aCmdName[64];
+	char m_aMessage[1024];
+	char m_aCmd[512];
+	char m_aCmdName[512];
 	bool m_UsedCmd;
 	bool m_Unread;
 };

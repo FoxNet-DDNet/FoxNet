@@ -162,8 +162,8 @@ void IDbConnection::FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSi
 		"  MailId %s NOT NULL,"
 		"  Subject VARCHAR(64) COLLATE %s NOT NULL,"
 		"  Message TEXT COLLATE %s NOT NULL,"
-		"  Command VARCHAR(256) COLLATE %s DEFAULT ''," // Console command, will use %d for ClientId inside the command
-		"  CommandName VARCHAR(128) COLLATE %s DEFAULT '',"
+		"  Command VARCHAR(512) COLLATE %s DEFAULT ''," // Console command, will use %d for ClientId inside the command
+		"  CommandName VARCHAR(512) COLLATE %s DEFAULT '',"
 		"  UsedCommand INTEGER NOT NULL DEFAULT 0,"
 		"  Unread INTEGER NOT NULL DEFAULT 1,"
 		"  PRIMARY KEY (Username, MailId)"
