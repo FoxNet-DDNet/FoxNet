@@ -57,7 +57,7 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem("Laser Hat", "H_L", RARITY_COMMON, 3, TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
 	m_Items.push_back(new CItem("Ninja Hat", "H_N", RARITY_COMMON, 3, TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
 
-	m_Items.push_back(new CItem("Heart Hat", "H_O", RARITY_EPIC, 4, TYPE_HAT, 12000, "A hat of Hearts", 10, SUBTYPE_HAT));
+	m_Items.push_back(new CItem("Heart Hat", "H_O", RARITY_EPIC, 4, TYPE_HAT, 25000, "A hat of Hearts", 12, SUBTYPE_HAT));
 
 	m_Items.push_back(new CItem("Sparkle", "O_S", RARITY_COMMON, 1, TYPE_OTHER, 1500, "Makes you sparkle", 5));
 	m_Items.push_back(new CItem("Inverse Aim", "O_I", RARITY_LEGENDARY, 2, TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35));
