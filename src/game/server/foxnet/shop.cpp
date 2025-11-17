@@ -32,8 +32,8 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem(Items[EMOTICON_GUN], "G_E", RARITY_UNCOMMON, 2, TYPE_GUN, 3500, "Shoot emotions at people", 10, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[PHASE_GUN], "G_P", RARITY_UNCOMMON, 1, TYPE_GUN, 2250, "Your bullets defy physics", 5, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[HEART_GUN], "G_H", RARITY_EPIC, 1, TYPE_GUN, 20000, "Shoot bullets full of love", 15, SUBTYPE_GUN));
-	m_Items.push_back(new CItem(Items[GUN_MIXED], "G_M", RARITY_EPIC, 2, TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
-	m_Items.push_back(new CItem(Items[GUN_LASER], "G_L", RARITY_EPIC, 5, TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem(Items[GUNTYPE_MIXED], "G_M", RARITY_EPIC, 2, TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem(Items[GUNTYPE_LASER], "G_L", RARITY_EPIC, 5, TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
 
 	m_Items.push_back(new CItem(Items[INDICATOR_CLOCKWISE], "I_C", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem(Items[INDICATOR_COUNTERCLOCKWISE], "I_CC", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
@@ -44,7 +44,7 @@ void CShop::AddItems()
 
 	m_Items.push_back(new CItem(Items[DEATH_EXPLOSIVE], "D_E", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Go out with a Boom!", 5, SUBTYPE_DEATH));
 	m_Items.push_back(new CItem(Items[DEATH_HAMMERHIT], "D_H", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Get Bonked on death!", 5, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem(Items[DEATHS_DAMAGEIND], "D_I", RARITY_UNCOMMON, 4, TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem(Items[DEATHTYPE_DAMAGEIND], "D_I", RARITY_UNCOMMON, 4, TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
 	m_Items.push_back(new CItem(Items[DEATH_LASER], "D_L", RARITY_EPIC, 4, TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
 
 	m_Items.push_back(new CItem(Items[TRAIL_STAR], "T_S", RARITY_UNCOMMON, 4, TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
@@ -58,7 +58,6 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem(Items[HAT_NINJA], "H_N", RARITY_COMMON, 5, TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
 
 	m_Items.push_back(new CItem(Items[HAT_HEART], "H_O", RARITY_EPIC, 2, TYPE_HAT, 25000, "A hat of Hearts", 12, SUBTYPE_HAT));
-
 	m_Items.push_back(new CItem(Items[OTHER_SPARKLE], "O_S", RARITY_COMMON, 1, TYPE_OTHER, 1500, "Makes you sparkle", 5, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[OTHER_INVERSEAIM], "O_I", RARITY_LEGENDARY, 1, TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[OTHER_LOVELY], "O_L", RARITY_RARE, 3, TYPE_OTHER, 12500, "Spreading love huh?", 15, SUBTYPE_NONE));

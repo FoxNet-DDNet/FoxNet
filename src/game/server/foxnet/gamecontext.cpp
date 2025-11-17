@@ -709,13 +709,13 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 
 	DamageIndEffects effect;
 	effect.m_Mask = Mask;
-	if(Type >= IND_CLOCKWISE && Type <= IND_COUNTERWISE)
+	if(Type >= INDTYPE_CLOCKWISE && Type <= INDTYPE_COUNTERWISE)
 	{
 		AngleOffset = 0.80f;
 		effect.m_Remaining = 10;
 		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
 		{
-			if(Type == IND_CLOCKWISE)
+			if(Type == INDTYPE_CLOCKWISE)
 				effect.m_vAngles.push_back(Angle - AngleOffset + (Remaining * StarDistance));
 			else
 				effect.m_vAngles.push_back(Angle + AngleOffset - (Remaining * StarDistance));
@@ -725,7 +725,7 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 		effect.m_NextTick = Server()->Tick();
 		m_vDamageIndEffects.push_back(effect);
 	}
-	else if(Type == IND_INWARD)
+	else if(Type == INDTYPE_INWARD)
 	{
 		AngleOffset = -0.90f;
 
@@ -745,7 +745,7 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 			m_vDamageIndEffects.push_back(effect);
 		}
 	}
-	else if(Type == IND_OUTWARD)
+	else if(Type == INDTYPE_OUTWARD)
 	{
 		AngleOffset = 0.20f;
 
@@ -765,7 +765,7 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 			m_vDamageIndEffects.push_back(effect);
 		}
 	}
-	else if(Type == IND_LINE)
+	else if(Type == INDTYPE_LINE)
 	{
 		effect.m_Remaining = 6;
 		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
@@ -780,7 +780,7 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 		effect.m_NextTick = Server()->Tick();
 		m_vDamageIndEffects.push_back(effect);
 	}
-	else if(Type == IND_CRISSCROSS)
+	else if(Type == INDTYPE_CRISSCROSS)
 	{
 		effect.m_Remaining = 3;
 		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
@@ -825,18 +825,18 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 
 bool CGameContext::IsValidHookPower(int HookPower)
 {
-	return HookPower == HOOK_NORMAL || HookPower == HOOK_RAINBOW || HookPower == HOOK_BLOODY;
+	return HookPower == HOOKTYPE_NORMAL || HookPower == HOOKTYPE_RAINBOW || HookPower == HOOKTYPE_BLOODY;
 }
 
 const char *CGameContext::HookTypeName(int HookType)
 {
 	switch(HookType)
 	{
-	case HOOK_NORMAL:
+	case HOOKTYPE_NORMAL:
 		return "Normal Hook";
-	case HOOK_RAINBOW:
+	case HOOKTYPE_RAINBOW:
 		return "Rainbow Hook";
-	case HOOK_BLOODY:
+	case HOOKTYPE_BLOODY:
 		return "Bloody Hook";
 	}
 	return "Unknown";

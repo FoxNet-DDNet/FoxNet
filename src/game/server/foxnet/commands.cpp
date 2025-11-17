@@ -631,7 +631,7 @@ void CGameContext::ConDotTrail(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAILS_DOT ? TRAILS_NONE : TRAILS_DOT;
+	int Trail = pPl->Cosmetics()->m_Trail == TRAILTYPE_DOT ? TRAILTYPE_NONE : TRAILTYPE_DOT;
 
 	pPl->SetTrail(Trail);
 	log_info("cosmetics", "Set trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
@@ -647,7 +647,7 @@ void CGameContext::ConStarTrail(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAILS_STAR ? TRAILS_NONE : TRAILS_STAR;
+	int Trail = pPl->Cosmetics()->m_Trail == TRAILTYPE_STAR ? TRAILTYPE_NONE : TRAILTYPE_STAR;
 
 	pPl->SetTrail(Trail);
 	log_info("cosmetics", "Set star trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
@@ -850,7 +850,7 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 	if(Power == -1)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", "~~~ Hook Powers ~~~");
-		for(int i = 0; i < NUM_HOOKS; i++)
+		for(int i = 0; i < NUM_HOOKTYPES; i++)
 		{
 			char aBuf[64];
 			str_format(aBuf, sizeof(aBuf), "%d = %s", i, pSelf->HookTypeName(i));
@@ -860,7 +860,7 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		if(pPl->Cosmetics()->m_HookPower == Power)
-			Power = HOOK_NORMAL;
+			Power = HOOKTYPE_NORMAL;
 		pPl->HookPower(Power);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "hook-power", pSelf->HookTypeName(Power));
 	}

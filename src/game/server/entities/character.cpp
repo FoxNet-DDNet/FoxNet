@@ -1198,30 +1198,30 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	// <FoxNet
 	switch(GetPlayer()->Cosmetics()->m_DeathEffect)
 	{
-	case DEATHS_HAMMERHIT:
+	case DEATHTYPE_HAMMERHIT:
 	{
 		GameServer()->CreateHammerHit(m_Pos, CosmeticMask());
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CosmeticMask());
 		break;
 	}
-	case DEATHS_EXPLOSION:
+	case DEATHTYPE_EXPLOSION:
 	{
 		GameServer()->Explosion(m_Pos, CosmeticMask());
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, CosmeticMask());
 		break;
 	}
-	case DEATHS_LASER:
+	case DEATHTYPE_LASER:
 	{
 		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask());
 		break;
 	}
-	case DEATHS_DAMAGEIND:
+	case DEATHTYPE_DAMAGEIND:
 	{
 		for(int i = 0; i < 8; i++)
 			GameServer()->CreateDamageInd(m_Pos, 0.84f + (i * 0.76f), 1, CosmeticMask());
 		break;
 	}
-	case DEATHS_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
+	case DEATHTYPE_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
 	}
 	// This only gets created if a player has cosmetics turned off
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask());
@@ -3033,7 +3033,7 @@ void CCharacter::FoxNetTick()
 		(*pPickup)->Reset(false);
 	}
 
-	if(m_IsRainbowHooked && GetPowerHooked() != HOOK_RAINBOW)
+	if(m_IsRainbowHooked && GetPowerHooked() != HOOKTYPE_RAINBOW)
 	{
 		m_IsRainbowHooked = false;
 	}
@@ -3044,7 +3044,7 @@ void CCharacter::FoxNetTick()
 		{
 			GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
 		}
-		else if(GetPlayer()->Cosmetics()->m_Bloody || GetPowerHooked() == HOOK_BLOODY)
+		else if(GetPlayer()->Cosmetics()->m_Bloody || GetPowerHooked() == HOOKTYPE_BLOODY)
 		{
 			if(Server()->Tick() % 6 == 0)
 				GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
@@ -3054,7 +3054,7 @@ void CCharacter::FoxNetTick()
 	float Angle = std::atan2(m_Core.m_Vel.x, -m_Core.m_Vel.y);
 	bool Moving = m_Pos != m_PrevPos && GetVelocity() != vec2(0, 0);
 
-	if(GetPlayer()->Cosmetics()->m_Trail == TRAILS_STAR && Moving && Server()->Tick() % 20 == 0) // every second
+	if(GetPlayer()->Cosmetics()->m_Trail == TRAILTYPE_STAR && Moving && Server()->Tick() % 20 == 0) // every second
 		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
 
 	if(GetPlayer()->m_SpiderHook)
@@ -3251,9 +3251,9 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 
 		int GunType = GetPlayer()->Cosmetics()->m_GunType;
 
-		if(GunType == GUN_HEART || GunType == GUN_MIXED)
+		if(GunType == GUNTYPE_HEART || GunType == GUNTYPE_MIXED)
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask());
-		else if(GunType == GUN_LASER)
+		else if(GunType == GUNTYPE_LASER)
 			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask());
 		else
 			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask());
@@ -3317,7 +3317,7 @@ void CCharacter::OnPlayerHook()
 	if(!pHookedTee)
 		return;
 
-	if(GetPlayer()->Cosmetics()->m_HookPower != HOOK_NORMAL)
+	if(GetPlayer()->Cosmetics()->m_HookPower != HOOKTYPE_NORMAL)
 		pHookedTee->m_PowerHookedId = m_pPlayer->GetCid();
 
 	// set hook extra stuff
@@ -3330,13 +3330,13 @@ void CCharacter::OnPlayerHook()
 int CCharacter::GetPowerHooked()
 {
 	if(m_PowerHookedId == -1)
-		return HOOK_NORMAL;
+		return HOOKTYPE_NORMAL;
 
 	CCharacter *pHooker = GameServer()->GetPlayerChar(m_PowerHookedId);
 	if(!pHooker || pHooker->Core()->HookedPlayer() != m_pPlayer->GetCid())
 	{
 		m_PowerHookedId = -1;
-		return HOOK_NORMAL;
+		return HOOKTYPE_NORMAL;
 	}
 
 	return pHooker->GetPlayer()->Cosmetics()->m_HookPower;

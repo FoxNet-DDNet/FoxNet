@@ -54,10 +54,10 @@ CProjectile::CProjectile(
 	if(pOwnerChar)
 	{
 		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
-		m_HeartGun = pCosmetics->m_GunType == GUN_HEART;
-		m_MixedGun = pCosmetics->m_GunType == GUN_MIXED;
-		m_LaserGun = pCosmetics->m_GunType == GUN_LASER;
-		if(pCosmetics->m_GunType > 0 && pCosmetics->m_GunType < NUM_GUNS)
+		m_HeartGun = pCosmetics->m_GunType == GUNTYPE_HEART;
+		m_MixedGun = pCosmetics->m_GunType == GUNTYPE_MIXED;
+		m_LaserGun = pCosmetics->m_GunType == GUNTYPE_LASER;
+		if(pCosmetics->m_GunType > 0 && pCosmetics->m_GunType < NUM_GUNTYPES)
 			m_LifeSpan *= 1.25;
 		if(m_LaserGun)
 			m_ExtraId = Server()->SnapNewId();

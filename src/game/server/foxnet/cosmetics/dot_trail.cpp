@@ -33,7 +33,7 @@ void CDotTrail::Reset()
 void CDotTrail::Tick()
 {
 	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || pOwnerPl->Cosmetics()->m_Trail != TRAILS_DOT)
+	if(!pOwnerPl || pOwnerPl->Cosmetics()->m_Trail != TRAILTYPE_DOT)
 	{
 		Reset();
 		return;

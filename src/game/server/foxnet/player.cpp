@@ -331,23 +331,23 @@ int CPlayer::GetItemToggle(const char *pItemName)
 	else if(!str_comp_nocase(pName, Items[RAINBOW_BODY]))
 		Value = (int)!Cosmetics()->m_RainbowBody;
 	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
-		Value = (int)Cosmetics()->m_HookPower == HOOK_RAINBOW ? HOOK_NORMAL : HOOK_RAINBOW;
+		Value = (int)Cosmetics()->m_HookPower == HOOKTYPE_RAINBOW ? HOOKTYPE_NORMAL : HOOKTYPE_RAINBOW;
 
 	else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
 		Value = (int)Cosmetics()->m_EmoticonGun;
 	else if(!str_comp_nocase(pName, Items[PHASE_GUN]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
 	else if(!str_comp_nocase(pName, Items[HEART_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUN_HEART ? GUN_NONE : GUN_HEART;
+		Value = (int)Cosmetics()->m_GunType == GUNTYPE_HEART ? GUNTYPE_NONE : GUNTYPE_HEART;
 	else if(!str_comp_nocase(pName, Items[MIXED_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUN_MIXED ? GUN_NONE : GUN_MIXED;
+		Value = (int)Cosmetics()->m_GunType == GUNTYPE_MIXED ? GUNTYPE_NONE : GUNTYPE_MIXED;
 	else if(!str_comp_nocase(pName, Items[LASER_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUN_LASER ? GUN_NONE : GUN_LASER;
+		Value = (int)Cosmetics()->m_GunType == GUNTYPE_LASER ? GUNTYPE_NONE : GUNTYPE_LASER;
 
 	else if(!str_comp_nocase(pName, Items[TRAIL_STAR]))
-		Value = (int)Cosmetics()->m_Trail == TRAILS_STAR ? TRAILS_NONE : TRAILS_STAR;
+		Value = (int)Cosmetics()->m_Trail == TRAILTYPE_STAR ? TRAILTYPE_NONE : TRAILTYPE_STAR;
 	else if(!str_comp_nocase(pName, Items[TRAIL_DOT]))
-		Value = (int)Cosmetics()->m_Trail == TRAILS_DOT ? TRAILS_NONE : TRAILS_DOT;
+		Value = (int)Cosmetics()->m_Trail == TRAILTYPE_DOT ? TRAILTYPE_NONE : TRAILTYPE_DOT;
 
 	else if(!str_comp_nocase(pName, Items[HAT_HAMMER]))
 		Value = (int)Cosmetics()->m_HatType == HATTYPE_HAMMER ? HATTYPE_NONE : HATTYPE_HAMMER;
@@ -366,26 +366,26 @@ int CPlayer::GetItemToggle(const char *pItemName)
 		Value = (int)!Cosmetics()->m_HeartHat;
 
 	else if(!str_comp_nocase(pName, Items[INDICATOR_CLOCKWISE]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_CLOCKWISE ? IND_NONE : IND_CLOCKWISE;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_CLOCKWISE ? INDTYPE_NONE : INDTYPE_CLOCKWISE;
 	else if(!str_comp_nocase(pName, Items[INDICATOR_COUNTERCLOCKWISE]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_COUNTERWISE ? IND_NONE : IND_COUNTERWISE;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_COUNTERWISE ? INDTYPE_NONE : INDTYPE_COUNTERWISE;
 	else if(!str_comp_nocase(pName, Items[INDICATOR_INWARD_TURNING]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_INWARD ? IND_NONE : IND_INWARD;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_INWARD ? INDTYPE_NONE : INDTYPE_INWARD;
 	else if(!str_comp_nocase(pName, Items[INDICATOR_OUTWARD_TURNING]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_OUTWARD ? IND_NONE : IND_OUTWARD;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_OUTWARD ? INDTYPE_NONE : INDTYPE_OUTWARD;
 	else if(!str_comp_nocase(pName, Items[INDICATOR_LINE]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_LINE ? IND_NONE : IND_LINE;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_LINE ? INDTYPE_NONE : INDTYPE_LINE;
 	else if(!str_comp_nocase(pName, Items[INDICATOR_CRISSCROSS]))
-		Value = (int)Cosmetics()->m_DamageIndType == IND_CRISSCROSS ? IND_NONE : IND_CRISSCROSS;
+		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_CRISSCROSS ? INDTYPE_NONE : INDTYPE_CRISSCROSS;
 
 	else if(!str_comp_nocase(pName, Items[DEATH_EXPLOSIVE]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHS_EXPLOSION ? DEATHS_NONE : DEATHS_EXPLOSION;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_EXPLOSION ? DEATHTYPE_NONE : DEATHTYPE_EXPLOSION;
 	else if(!str_comp_nocase(pName, Items[DEATH_HAMMERHIT]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHS_HAMMERHIT ? DEATHS_NONE : DEATHS_HAMMERHIT;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_HAMMERHIT ? DEATHTYPE_NONE : DEATHTYPE_HAMMERHIT;
 	else if(!str_comp_nocase(pName, Items[DEATH_INDICATOR]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHS_DAMAGEIND ? DEATHS_NONE : DEATHS_DAMAGEIND;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_DAMAGEIND ? DEATHTYPE_NONE : DEATHTYPE_DAMAGEIND;
 	else if(!str_comp_nocase(pName, Items[DEATH_LASER]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHS_LASER ? DEATHS_NONE : DEATHS_LASER;
+		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_LASER ? DEATHTYPE_NONE : DEATHTYPE_LASER;
 
 	return Value;
 }
@@ -546,7 +546,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 
 void CPlayer::RainbowTick()
 {
-	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
+	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOKTYPE_RAINBOW))
 		return;
 
 	if(Cosmetics()->m_RainbowSpeed < 1)
@@ -567,10 +567,10 @@ void CPlayer::OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 
 void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 {
-	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOK_RAINBOW))
+	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOKTYPE_RAINBOW))
 		return;
 
-	if(GetCharacter()->GetPowerHooked() == HOOK_RAINBOW)
+	if(GetCharacter()->GetPowerHooked() == HOOKTYPE_RAINBOW)
 		GetCharacter()->m_IsRainbowHooked = true;
 
 	int BaseColor = m_RainbowColor * 0x010000;
@@ -675,7 +675,7 @@ void CPlayer::SetTrail(int Type)
 		return;
 	Cosmetics()->m_Trail = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(Cosmetics()->m_Trail == TRAILS_DOT)
+	if(Cosmetics()->m_Trail == TRAILTYPE_DOT)
 		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
@@ -758,7 +758,7 @@ void CPlayer::SetStrongBloody(bool Active)
 
 void CPlayer::HookPower(int Extra)
 {
-	if(Cosmetics()->m_HookPower == HOOK_NORMAL && Extra == HOOK_NORMAL)
+	if(Cosmetics()->m_HookPower == HOOKTYPE_NORMAL && Extra == HOOKTYPE_NORMAL)
 		return;
 	Cosmetics()->m_HookPower = Extra;
 }
