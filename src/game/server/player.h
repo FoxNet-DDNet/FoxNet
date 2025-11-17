@@ -31,6 +31,8 @@ struct CNetObj_PlayerInput;
 struct CScorePlayerResult;
 
 // <FoxNet
+constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
+
 enum Areas
 {
 	AREA_GAME = 0,
@@ -144,7 +146,7 @@ class CInventory
 public:
 	CCosmetics m_Cosmetics;
 	
-	bool m_aOwned[NUM_ITEMS] = {false};
+	int m_aQuantity[NUM_ITEMS] = {0};
 	int m_aEquipped[NUM_ITEMS];
 
 	int m_AcquiredAt[NUM_ITEMS] = {0};
@@ -152,7 +154,7 @@ public:
 
 	void Reset()
 	{
-		mem_zero(m_aOwned, sizeof(m_aOwned));
+		mem_zero(m_aQuantity, sizeof(m_aQuantity));
 		mem_zero(m_aEquipped, sizeof(m_aEquipped));
 		m_Cosmetics = CCosmetics();
 	}
@@ -164,12 +166,12 @@ public:
 				return i;
 		return -1;
 	}
-	void SetOwnedIndex(int Index, bool Owned)
+	void SetQuantityIndex(int Index, int Quantity)
 	{
 		if(Index >= 0 && Index < NUM_ITEMS)
-			m_aOwned[Index] = Owned;
+			m_aQuantity[Index] = Quantity;
 	}
-	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aOwned[Index] : false; }
+	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aQuantity[Index] != 0 : false; }
 	bool Owns(const char *pName) const { return OwnsIndex(IndexOfName(pName)); }
 
 	// Equipped
@@ -436,10 +438,31 @@ private:
 	void ExpireItem(int Idx);
 	void FoxNetTick();
 
+	void LootBoxTick();
+
 	int m_Area = 0;
 	void SendAreaMotd(int Area);
 
 	void SendBroadcast(const char *pText);
+
+	class CLootBoxData
+	{
+	public:
+		CLootBoxData() = default;
+
+		bool m_Opening = false;
+		CItem *m_pGotItem = nullptr;
+		CItem *m_pLootBox = nullptr;
+		int m_Days = 0;
+
+		int m_Ticks = 0;
+
+	} m_LootBoxData;
+
+	bool OpenLootCase(CItem *pItem);	
+
+	bool HasImportantBroadcast() const;
+
 public:
 	int64_t m_LastReport = 0;
 
@@ -482,7 +505,8 @@ public:
 	void TakeMoney(long Amount, bool Silent = true, const char *pMessage = "");
 
 	bool OwnsItem(const char *pItemName);
-	bool ToggleItem(const char *pItemName, int Set, bool IgnoreAccount = false);
+	bool UseItem(const char *pItemName, int Set, bool IgnoreAccount = false);
+
 	bool ReachedItemLimit(const CItem *pItem);
 
 	int GetItemToggle(const char *pItemName);

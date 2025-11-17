@@ -45,6 +45,11 @@ enum ShopItems
 	OTHER_ROTATINGBALL,
 	VIP,
 	MVP,
+	LOOT_CASE_COMMON,
+	LOOT_CASE_UNCOMMON,
+	LOOT_CASE_RARE,
+	LOOT_CASE_EPIC,
+	LOOT_CASE_EXOTIC,
 	NUM_ITEMS
 };
 
@@ -89,18 +94,25 @@ constexpr const char *Items[NUM_ITEMS] = {
 
 	"VIP",
 	"MVP",
+
+	"Loot Case (Common)",
+	"Loot Case (Uncommon)",
+	"Loot Case (Rare)",
+	"Loot Case (Epic)",
+	"Loot Case (Exotic)"
 };
 
 enum ItemTypes
 {
-	TYPE_RAINBOW = 0,
+	TYPE_ROLES,
+	TYPE_CASES,
+	TYPE_RAINBOW,
 	TYPE_GUN,
 	TYPE_INDICATOR,
 	TYPE_DEATHS,
 	TYPE_TRAIL,
 	TYPE_HAT,
 	TYPE_OTHER,
-	TYPE_ROLES,
 	NUM_TYPES
 };
 
@@ -140,6 +152,7 @@ class CItem
 	int m_Stars = 0;
 
 	bool m_Toggleable = true;
+	bool m_OneTimeUse = false;
 
 public:
 	CItem(const char *pShopItem, const char *pShortcut, int Rarity, int Stars, int ItemType, int Price, const char *pDesc, int MinLevel, int ItemSubType)
@@ -166,6 +179,8 @@ public:
 		m_Rarity = Rarity;
 		m_Stars = Stars;
 		m_Toggleable = Toggleable;
+		if(ItemType == TYPE_CASES)
+			m_OneTimeUse = true;
 	}
 
 	const char *Name() const { return m_aItem; }
@@ -179,26 +194,7 @@ public:
 
 	int Rarity() const { return m_Rarity; }
 	int Stars() const { return m_Stars; }
-	const char *RarityChar() const
-	{
-		switch(m_Rarity)
-		{
-		case RARITY_COMMON:
-			return "Common";
-		case RARITY_UNCOMMON:
-			return "Uncommon";
-		case RARITY_RARE:
-			return "Rare";
-		case RARITY_EPIC:
-			return "Epic";
-		case RARITY_MYTHIC:
-			return "Mythic";
-		case RARITY_LEGENDARY:
-			return "Legendary";
-		default:
-			return "Unknown";
-		}
-	}
+
 	const char *StarChar() const
 	{
 		// ★✪✦✹✵✷
@@ -212,6 +208,7 @@ public:
 	}
 
 	bool IsToggleable() const { return m_Toggleable; }
+	bool IsOneTimeUse() const { return m_OneTimeUse; }
 
 	void SetPrice(int Price) { m_Price = Price; }
 	void SetMinLevel(int MinLevel) { m_MinLevel = MinLevel; }
@@ -233,6 +230,8 @@ class CShop
 	void AddItems();
 
 public:
+
+
 	void ResetItems();
 
 	void ListItems();
@@ -240,14 +239,16 @@ public:
 	void EditItem(const char *pName, int Price, int MinLevel = -1);
 
 	void BuyItem(int ClientId, const char *pName);
-	void GiveItem(int ClientId, const char *pItemName, bool Bought = true, int FromId = -1);
-	void GiveItem(int ClientId, const char *pItemName, int Days);
-	void RemoveItem(int ClientId, const char *pItemName, int ById);
+	bool GiveItem(int ClientId, const char *pItemName, bool Bought = true, const char *pFrom = "Server");
+	bool GiveItem(int ClientId, const char *pItemName, int Days, const char *pFrom = "Server");
+	void RemoveItem(int ClientId, const char *pItemName, const char *pByName = "Server");
 
 	std::vector<CItem *> m_Items;
 	CItem *FindItem(const char *pName);
 
 	void Init(CGameContext *pGameServer);
+
+	const CItem *GetRandomItemOfRarity(int Rarity);
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICHANDLER_H

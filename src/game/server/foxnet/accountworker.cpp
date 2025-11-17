@@ -34,7 +34,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 		const int Idx = CInventory::IndexOfName(aItemName);
 		if(Idx >= 0 && Idx < NUM_ITEMS)
 		{
-			Inv.SetOwnedIndex(Idx, Owned != 0);
+			Inv.SetQuantityIndex(Idx, Owned);
 			Inv.SetEquippedIndex(Idx, Value);
 			Inv.SetAcquiredAt(Idx, AcquiredAt);
 			Inv.SetExpiresAt(Idx, ExpiresAt);
@@ -67,6 +67,22 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		}
 	}
 
+	// Collect quantity pairs (ItemName, Quantity).
+	// Include zero to allow decreasing quantity to 0.
+	struct QtyPair
+	{
+		const char *pId;
+		int Qty;
+	};
+	QtyPair aQtyPairs[NUM_ITEMS];
+	int QtyCount = 0;
+	for(int i = 0; i < NUM_ITEMS; i++)
+	{
+		aQtyPairs[QtyCount].pId = Items[i];
+		aQtyPairs[QtyCount].Qty = Inv.m_aQuantity[i];
+		QtyCount++;
+	}
+
 	// Collect owned items with time fields (ItemName, AcquiredAt, ExpiresAt)
 	struct TimePair
 	{
@@ -78,7 +94,7 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	int TimeCount = 0;
 	for(int i = 0; i < NUM_ITEMS; i++)
 	{
-		if(!Inv.m_aOwned[i])
+		if(!Inv.m_aQuantity[i])
 			continue;
 		aTimePairs[TimeCount].pId = Items[i];
 		aTimePairs[TimeCount].Acq = Inv.m_AcquiredAt[i];
@@ -86,7 +102,6 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		TimeCount++;
 	}
 
-	// Build UPDATE query using str_append for constant parts
 	char aUpd[4096];
 	aUpd[0] = '\0';
 	str_append(aUpd, "UPDATE foxnet_account_inventory SET ", sizeof(aUpd));
@@ -101,11 +116,16 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	}
 	else
 	{
-		// No equipped items -> reset all values to 0 for this user
 		str_append(aUpd, "Value = 0", sizeof(aUpd));
 	}
 
-	// Times part (conditionally append)
+	// Quantity part
+	str_append(aUpd, ", Quantity = CASE ItemName", sizeof(aUpd));
+	for(int i = 0; i < QtyCount; i++)
+		str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+	str_append(aUpd, " ELSE Quantity END", sizeof(aUpd));
+
+	// Times part (only for items currently owned)
 	if(TimeCount > 0)
 	{
 		// AcquiredAt
@@ -121,16 +141,14 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		str_append(aUpd, " ELSE ExpiresAt END", sizeof(aUpd));
 	}
 
-	// WHERE clause
 	str_append(aUpd, " WHERE Username = ?", sizeof(aUpd));
 
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
 		return false;
 
-	// Bind parameters in the same order as constructed above
 	int BindIdx = 1;
 
-	// Bind (ItemName, Value) pairs
+	// Bind (ItemName, Value)
 	if(EquipCount > 0)
 	{
 		for(int i = 0; i < EquipCount; i++)
@@ -140,16 +158,21 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		}
 	}
 
-	// Bind times:
+	// Bind (ItemName, Quantity)
+	for(int i = 0; i < QtyCount; i++)
+	{
+		pSql->BindString(BindIdx++, aQtyPairs[i].pId);
+		pSql->BindInt(BindIdx++, aQtyPairs[i].Qty);
+	}
+
+	// Bind times
 	if(TimeCount > 0)
 	{
-		// AcquiredAt (ItemName, Acq)
 		for(int i = 0; i < TimeCount; i++)
 		{
 			pSql->BindString(BindIdx++, aTimePairs[i].pId);
 			pSql->BindInt64(BindIdx++, aTimePairs[i].Acq);
 		}
-		// ExpiresAt (ItemName, Exp)
 		for(int i = 0; i < TimeCount; i++)
 		{
 			pSql->BindString(BindIdx++, aTimePairs[i].pId);
@@ -157,13 +180,11 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		}
 	}
 
-	// Bind Username
 	pSql->BindString(BindIdx++, pUsername);
 
 	int Num = 0;
 	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
 }
-
 static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &MailBox, char *pError, int ErrorSize)
 {
 	MailBox.Clear();
@@ -310,20 +331,21 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	{
 		for(int i = 0; i < NUM_ITEMS; i++)
 		{
-			if(!pReq->m_Inventory.m_aOwned[i])
+			if(!pReq->m_Inventory.m_aQuantity[i])
 				continue;
 
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
 				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, 1, ?, ?, '')",
+				"VALUES (?, ?, ?, ?, ?, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
 			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt[i]);
-			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt[i]);
+			pSql->BindInt(3, pReq->m_Inventory.m_aQuantity[i]);
+			pSql->BindInt64(4, pReq->m_Inventory.m_AcquiredAt[i]);
+			pSql->BindInt64(5, pReq->m_Inventory.m_ExpiresAt[i]);
 			int NumIns = 0;
 			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 				return false;
@@ -366,22 +388,23 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	{
 		for(int i = 0; i < NUM_ITEMS; i++)
 		{
-			if(!pReq->m_Inventory.m_aOwned[i])
+			if(!pReq->m_Inventory.m_aQuantity[i])
 				continue;
 
 			char aIns[256];
 			str_format(aIns, sizeof(aIns),
 				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, 1, ?, ?, '')",
+				"VALUES (?, ?, ?, ?, ?, '')",
 				pSql->InsertIgnore());
 			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 				return false;
 			pSql->BindString(1, pReq->m_aUsername);
 			pSql->BindString(2, Items[i]);
-			pSql->BindInt64(3, pReq->m_Inventory.m_AcquiredAt[i]);
-			pSql->BindInt64(4, pReq->m_Inventory.m_ExpiresAt[i]);
-			int Num = 0;
-			if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
+			pSql->BindInt(3, pReq->m_Inventory.m_aQuantity[i]);
+			pSql->BindInt64(4, pReq->m_Inventory.m_AcquiredAt[i]);
+			pSql->BindInt64(5, pReq->m_Inventory.m_ExpiresAt[i]);
+			int NumIns = 0;
+			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 				return false;
 		}
 	}

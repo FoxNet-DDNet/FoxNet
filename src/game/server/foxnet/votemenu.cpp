@@ -44,7 +44,6 @@ constexpr const char *SETTINGS_270_ROTATION = "270°";
 
 // Admin SubPages
 constexpr const char *ADMIN_UTIL = "Util Page";
-constexpr const char *ADMIN_COSMETICS = "Cosmetics Page";
 constexpr const char *ADMIN_MISC = "Misc Page";
 
 // Admin Util
@@ -450,7 +449,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOptionWithSuffix(pVote, Items[EMOTICON_GUN]))
 		{
 			if(ReasonInt.has_value())
-				pPl->ToggleItem(Items[EMOTICON_GUN], ReasonInt.value(), Page == PAGE_ADMIN);
+				pPl->UseItem(Items[EMOTICON_GUN], ReasonInt.value(), Page == PAGE_ADMIN);
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
@@ -466,7 +465,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOptionWithSuffix(pVote, pItems->Name()))
 			{
-				pPl->ToggleItem(pItems->Name(), -1, Page == PAGE_ADMIN);
+				pPl->UseItem(pItems->Name(), -1, Page == PAGE_ADMIN);
 				return true;
 			}
 		}
@@ -504,11 +503,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOption(pVote, ADMIN_MISC))
 		{
 			SetSubPage(ClientId, SUB_ADMIN_MISC);
-			return true;
-		}
-		if(IsOption(pVote, ADMIN_COSMETICS))
-		{
-			SetSubPage(ClientId, SUB_ADMIN_COSMETICS);
 			return true;
 		}
 
@@ -621,36 +615,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 		}
-
-		if(SubPage == SUB_ADMIN_COSMETICS)
-		{
-			if(IsOption(pVote, ADMIN_COSM_PICKUPPET))
-			{
-				pPl->SetPickupPet(!pPl->Cosmetics()->m_PickupPet);
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_COSM_STAFFIND))
-			{
-				pPl->SetStaffInd(!pPl->Cosmetics()->m_StaffInd);
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_COSM_HEARTGUN))
-			{
-				if(pChr)
-					pChr->GiveWeapon(WEAPON_HEARTGUN, pChr->GetWeaponGot(WEAPON_HEARTGUN));
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_ABILITY_FIREWORK))
-			{
-				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK ? ABILITY_NONE : ABILITY_FIREWORK);
-				return true;
-			}
-			if(IsOption(pVote, ADMIN_ABILITY_TELEKINESIS))
-			{
-				pPl->SetAbility(pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS ? ABILITY_NONE : ABILITY_TELEKINESIS);
-				return true;
-			}
-		}
 	}
 
 	if(Page != PAGE_VOTES)
@@ -729,9 +693,9 @@ void CVoteMenu::UpdatePages(int ClientId)
 			Changes = true;
 		if(pAcc->m_Deaths != OldAcc.m_Deaths)
 			Changes = true;
-		if(pAcc->m_Inventory.m_aOwned[VIP] != OldAcc.m_Inventory.m_aOwned[VIP])
+		if(pAcc->m_Inventory.m_aQuantity[VIP] != OldAcc.m_Inventory.m_aQuantity[VIP])
 			Changes = true;
-		if(pAcc->m_Inventory.m_aOwned[MVP] != OldAcc.m_Inventory.m_aOwned[MVP])
+		if(pAcc->m_Inventory.m_aQuantity[MVP] != OldAcc.m_Inventory.m_aQuantity[MVP])
 			Changes = true;
 	}
 	if(Page == PAGE_MAILBOX || Page == PAGE_MAIN)
@@ -1243,7 +1207,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
 		AddVoteText(aBuf);
 		AddVoteText("├────── Rarity");
-		str_format(aBuf, sizeof(aBuf), "│ %s %s", pItem->RarityChar(), pItem->StarChar());
+		str_format(aBuf, sizeof(aBuf), "│ %s %s", RarityToName(pItem->Rarity()), pItem->StarChar());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
@@ -1274,8 +1238,157 @@ void CVoteMenu::SendPageInventory(int ClientId)
 		AddVoteText("Cosmetics are currently disabled");
 		return;
 	}
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 
-	DoCosmeticVotes(ClientId, false);
+	std::vector<CVoteData> Votes;
+	int OwnedItems = 0;
+	for(int Type = 0; Type < NUM_TYPES; Type++)
+	{
+		// Type | ItemType | ItemName | VoteName
+		if(!OwnsAnyOfType(ClientId, Type))
+			continue;
+
+		{
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_SUBHEADER;
+			str_copy(Data.m_aVoteName, ItemTypeToName(Type));
+			Votes.push_back(Data);
+		}
+
+		if(Type == TYPE_RAINBOW)
+		{
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
+			str_copy(Data.m_aVoteName, "Rainbow Speed");
+			Data.m_Value = pPl->Cosmetics()->m_RainbowSpeed;
+			Data.m_Max = 20;
+			Votes.push_back(Data);
+		}
+
+		for(const auto &pItem : GameServer()->m_Shop.m_Items)
+		{
+			const char *pItemName = pItem->Name();
+
+			if(pItem->Type() != Type)
+				continue;
+			if(!str_comp(pItemName, ""))
+				continue;
+			if(pItem->Price() == -1)
+					continue;
+			if(!(pPl->OwnsItem(pItemName)))
+				continue;
+
+			OwnedItems++;
+
+			int Idx = pPl->Inv()->IndexOfName(pItemName);
+
+			int64_t Now = time(0);
+			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
+			int64_t Remaining = Expiry - Now;
+
+			char TimeBuf[20] = "";
+			char aVoteName[VOTE_DESC_LENGTH];
+			str_copy(aVoteName, pItemName);
+			if(Remaining > 0)
+			{
+				FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
+				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
+			}
+
+			if(pItem->IsOneTimeUse())
+			{
+				int OwnsAmount = pPl->Inv()->m_aQuantity[Idx];
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_TEXT;
+				str_format(aVoteName, sizeof(aVoteName), "%s [%dx]", pItemName, OwnsAmount);
+				str_copy(Data.m_aVoteName, aVoteName);
+				Votes.push_back(Data);
+			}
+			else if(!pItem->IsToggleable())
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_TEXT;
+				str_copy(Data.m_aVoteName, aVoteName);
+				Votes.push_back(Data);
+			}
+			else if(!str_comp_nocase(pItem->Name(), Items[EMOTICON_GUN]))
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
+				str_copy(Data.m_aVoteName, pItemName);
+				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
+				Data.m_Prefix = PREFIX_NONE;
+				Data.m_Max = NUM_EMOTICONS;
+				if(Remaining > 0)
+				{
+					char Suffix[VOTE_DESC_LENGTH];
+					str_format(Suffix, sizeof(Suffix), "[→ %s]", TimeBuf);
+					str_copy(Data.m_aSuffixDesc, Suffix);
+				}
+				else
+				{
+					Data.m_aSuffixDesc[0] = '\0';
+				}
+				Votes.push_back(Data);
+			}
+			else
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
+				str_copy(Data.m_aVoteName, aVoteName);
+				Data.m_Value = pPl->ItemEnabled(pItemName);
+				Votes.push_back(Data);
+			}
+		}
+
+		if(Type != NUM_TYPES - 1)
+		{
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_VoteType = VOTE_TYPE_TEXT;
+			str_copy(Data.m_aVoteName, "");
+			Votes.push_back(Data);
+		}
+	}
+
+	if(!OwnedItems)
+	{
+		AddVoteText("You don't own any cosmetics.");
+		return;
+	}
+
+	for(const auto &Vote : Votes)
+	{
+		if(Vote.m_VoteType == VOTE_TYPE_TEXT)
+		{
+			AddVoteText(Vote.m_aVoteName);
+		}
+		else if(Vote.m_VoteType == VOTE_TYPE_SUBHEADER)
+		{
+			AddVoteSubheader(Vote.m_aVoteName);
+		}
+		else if(Vote.m_VoteType == VOTE_TYPE_CHECKBOX)
+		{
+			AddVoteCheckBox(Vote.m_aVoteName, Vote.m_Value);
+		}
+		else if(Vote.m_VoteType == VOTE_TYPE_VALUE_OPTION)
+		{
+			if(Vote.m_aSuffixDesc[0] != '\0')
+				AddVoteValueOption(Vote.m_aVoteName, Vote.m_Value, Vote.m_Max, Vote.m_aSuffixDesc);
+			else
+				AddVoteValueOption(Vote.m_aVoteName, Vote.m_Value, Vote.m_Max, Vote.m_Prefix);
+		}
+	}
 }
 
 void CVoteMenu::SendPageServerInfo(int ClientId)
@@ -1351,162 +1464,6 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 	}
 }
 
-void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
-{
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-
-	// !New Cosmetic
-	std::vector<CVoteData> Votes;
-	int OwnedItems = 0;
-	for(int Type = 0; Type < NUM_TYPES; Type++)
-	{
-		// Type | ItemType | ItemName | VoteName
-		if(!OwnsAnyOfType(ClientId, Type))
-			continue;
-
-		{
-			CVoteData Data;
-			Data.m_ItemType = Type;
-			Data.m_VoteType = VOTE_TYPE_SUBHEADER;
-			Data.m_sVoteName = ItemTypeToName(Type);
-			Votes.push_back(Data);
-		}
-
-		if(Type == TYPE_RAINBOW)
-		{
-			CVoteData Data;
-			Data.m_ItemType = Type;
-			Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
-			Data.m_sVoteName = "Rainbow Speed";
-			Data.m_Value = pPl->Cosmetics()->m_RainbowSpeed;
-			Data.m_Max = 20;
-			Votes.push_back(Data);
-		}
-
-		for(const auto &pItem : GameServer()->m_Shop.m_Items)
-		{
-			const char *pItemName = pItem->Name();
-
-			if(pItem->Type() != Type)
-				continue;
-
-			if(!Authed)
-			{
-				if(!str_comp(pItemName, ""))
-					continue;
-				if(pItem->Price() == -1)
-					continue;
-				if(!(pPl->OwnsItem(pItemName)))
-					continue;
-			}
-			OwnedItems++;
-
-			int Idx = pPl->Inv()->IndexOfName(pItemName);
-
-			int64_t Now = time(0);
-			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
-			int64_t Remaining = Expiry - Now;
-
-			char TimeBuf[20] = "";
-			char aVoteName[VOTE_DESC_LENGTH];
-			str_copy(aVoteName, pItemName);
-			if(Remaining > 0)
-			{
-				FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
-				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
-			}
-
-			if(!pItem->IsToggleable())
-			{
-				CVoteData Data;
-				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
-				Data.m_VoteType = VOTE_TYPE_TEXT;
-				Data.m_sVoteName = aVoteName;
-				Votes.push_back(Data);
-				continue;
-			}
-
-			if(!str_comp_nocase(pItem->Name(), Items[EMOTICON_GUN]))
-			{
-				CVoteData Data;
-				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
-				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
-				Data.m_sVoteName = pItemName;
-				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
-				Data.m_Prefix = PREFIX_NONE;
-				Data.m_Max = NUM_EMOTICONS;
-				str_format(aVoteName, sizeof(aVoteName), "[→ %s]", TimeBuf);
-				Data.m_sSuffixDesc = aVoteName;
-				Votes.push_back(Data);
-				continue;
-			}
-
-		
-			CVoteData Data;
-			Data.m_ItemType = Type;
-			Data.m_pItem = pItem;
-			Data.m_VoteType = VOTE_TYPE_CHECKBOX;
-			Data.m_sVoteName = aVoteName;
-			Data.m_Value = pPl->ItemEnabled(pItemName);
-			Votes.push_back(Data);
-		}
-
-		if(Type != NUM_TYPES - 1)
-		{
-			CVoteData Data;
-			Data.m_ItemType = Type;
-			Data.m_VoteType = VOTE_TYPE_TEXT;
-			Data.m_sVoteName = " ";
-			Votes.push_back(Data);
-		}
-	}
-
-	if(Authed)
-	{
-		AddVoteSubheader("Uɴᴀᴠᴀɪʟᴀʙʟᴇ");
-		AddVoteCheckBox(ADMIN_COSM_PICKUPPET, pPl->Cosmetics()->m_PickupPet);
-		AddVoteCheckBox(ADMIN_COSM_STAFFIND, pPl->Cosmetics()->m_StaffInd);
-		if(pPl->GetCharacter())
-			AddVoteCheckBox(ADMIN_COSM_HEARTGUN, pPl->GetCharacter()->GetWeaponGot(WEAPON_HEARTGUN));
-		AddVoteSeparator();
-
-		AddVoteSubheader("Aʙɪʟɪᴛɪᴇs");
-		AddVoteCheckBox(ADMIN_ABILITY_FIREWORK, pPl->Cosmetics()->m_Ability == ABILITY_FIREWORK);
-		AddVoteCheckBox(ADMIN_ABILITY_TELEKINESIS, pPl->Cosmetics()->m_Ability == ABILITY_TELEKINESIS);
-		AddVoteSeparator();
-	}
-	else if(!OwnedItems)
-	{
-		AddVoteText("You don't own any cosmetics.");
-		return;
-	}
-
-	for(const auto &Vote : Votes)
-	{
-		if(Vote.m_VoteType == VOTE_TYPE_TEXT)
-		{
-			AddVoteText(Vote.m_sVoteName.c_str());
-		}
-		else if(Vote.m_VoteType == VOTE_TYPE_SUBHEADER)
-		{
-			AddVoteSubheader(Vote.m_sVoteName.c_str());
-		}
-		else if(Vote.m_VoteType == VOTE_TYPE_CHECKBOX)
-		{
-			AddVoteCheckBox(Vote.m_sVoteName.c_str(), Vote.m_Value);
-		}
-		else if(Vote.m_VoteType == VOTE_TYPE_VALUE_OPTION)
-		{
-			if(Vote.m_sSuffixDesc.empty())
-				AddVoteValueOption(Vote.m_sVoteName.c_str(), Vote.m_Value, Vote.m_Max, Vote.m_Prefix);
-			else
-				AddVoteValueOption(Vote.m_sVoteName.c_str(), Vote.m_Value, Vote.m_Max, Vote.m_sSuffixDesc.c_str());
-		}
-	}
-}
-
 bool CVoteMenu::CanUseCmd(int ClientId, const char *pCmd) const
 {
 	const IConsole::ICommandInfo *pInfo = GameServer()->Console()->GetCommandInfo(pCmd, CFGFLAG_SERVER, false);
@@ -1532,7 +1489,6 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 
 	AddVoteSubheader("Aᴅᴍɪɴ Pᴀɢᴇs");
 	AddVotePrefix(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
-	AddVotePrefix(ADMIN_COSMETICS, GetSubPage(ClientId) == SUB_ADMIN_COSMETICS ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
 	AddVotePrefix(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
 	AddVoteSeparator();
 	if(GetSubPage(ClientId) == SUB_ADMIN_UTIL)
@@ -1594,10 +1550,6 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 			if(CanUseCmd(ClientId, "Portalgun"))
 				AddVoteCheckBox(ADMIN_MISC_PORTALGUN, pChr->GetWeaponGot(WEAPON_PORTALGUN));
 		}
-	}
-	if(GetSubPage(ClientId) == SUB_ADMIN_COSMETICS)
-	{
-		DoCosmeticVotes(ClientId, true);
 	}
 }
 

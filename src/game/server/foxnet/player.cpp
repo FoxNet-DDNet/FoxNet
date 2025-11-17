@@ -45,6 +45,9 @@ void CPlayer::FoxNetTick()
 		return;
 	}
 
+	if(m_LootBoxData.m_Opening)
+		LootBoxTick();
+
 	RainbowTick();
 	if(Server()->Tick() % (Server()->TickSpeed() * 60) == 0) // Check every minute
 		ExpireItems();
@@ -62,6 +65,73 @@ void CPlayer::FoxNetTick()
 		}
 	}
 }
+
+void CPlayer::LootBoxTick()
+{
+	// The item that the player will get is already in the inventory, this is just the animation
+
+	if(!Acc()->m_LoggedIn)
+		return;
+	if(!m_LootBoxData.m_Opening)
+		return;
+	if(!m_LootBoxData.m_pLootBox || !m_LootBoxData.m_pGotItem)
+		return;
+
+
+	char aBuf[256];
+	if(m_LootBoxData.m_Ticks > 1)
+	{
+		m_LootBoxData.m_Ticks--;
+	}
+	else
+	{
+		// Final message
+		const CItem *pItem = m_LootBoxData.m_pGotItem;
+		str_format(aBuf, sizeof(aBuf), "You got '%s' [%s] for %d days!",
+			pItem->Name(),
+			pItem->StarChar(),
+			m_LootBoxData.m_Days);
+
+		SendBroadcast(aBuf);
+
+		str_format(aBuf, sizeof(aBuf), "'%s' opened a %s and got %s for %d days!",
+			Server()->ClientName(m_ClientId),
+			m_LootBoxData.m_pLootBox->Name(),
+			pItem->Name(),
+			m_LootBoxData.m_Days);	
+
+		GameServer()->SendChat(-1, 0, aBuf);
+
+		m_LootBoxData.m_Opening = false;
+		m_LootBoxData.m_Ticks = 0;
+		return;
+	}
+
+	int Speed = std::clamp(LootBoxOpeningTicks / m_LootBoxData.m_Ticks * 3, 1, 25); // The higher the ticks the slower the speed
+
+	if(m_LootBoxData.m_Ticks % Speed != 0)
+		return;
+
+	int Rarity = m_LootBoxData.m_pLootBox->Rarity();
+	if(Rarity == RARITY_LEGENDARY)
+		Rarity = NUM_RARITIES; // Allow getting any rarity
+
+	const CItem *pItem = GameServer()->m_Shop.GetRandomItemOfRarity(Rarity);
+
+	str_format(aBuf, sizeof(aBuf), "Opening %s\n[%s %s] %s",
+		m_LootBoxData.m_pLootBox->Name(),
+		RarityToName(pItem->Rarity()),
+		pItem->StarChar(),
+		pItem->Name());
+
+	if(GetCharacter())
+		GameServer()->CreateDeath(GetCharacter()->GetPos(), m_ClientId, GetCharacter()->TeamMask());
+
+	GameServer()->CreateSound(GetCharacter()->GetPos(), SOUND_WEAPON_SWITCH);
+
+	SendBroadcast(aBuf);
+}
+
 void CPlayer::ExpireItem(int Idx)
 {
 	if(!Acc()->m_LoggedIn)
@@ -80,7 +150,7 @@ void CPlayer::ExpireItem(int Idx)
 	{
 		const char *pItemName = Items[Idx];
 
-		GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, -1);
+		GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, "Expired");
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
 		GameServer()->SendChatTarget(GetCid(), aBuf);
@@ -104,7 +174,7 @@ void CPlayer::ExpireItems()
 		{
 			const char *pItemName = Items[Idx];
 
-			GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, -1);
+			GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, "Expired");
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
 			GameServer()->SendChatTarget(GetCid(), aBuf);
@@ -167,7 +237,7 @@ void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
-		
+
 	if(Multiplier)
 		Amount = (long)(Amount * StatMultiplier());
 
@@ -333,8 +403,8 @@ int CPlayer::GetItemToggle(const char *pItemName)
 	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
 		Value = (int)Cosmetics()->m_HookPower == HOOKTYPE_RAINBOW ? HOOKTYPE_NORMAL : HOOKTYPE_RAINBOW;
 
-	else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
-		Value = (int)Cosmetics()->m_EmoticonGun;
+	//else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
+	//	Value = (int)Cosmetics()->m_EmoticonGun;
 	else if(!str_comp_nocase(pName, Items[PHASE_GUN]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
 	else if(!str_comp_nocase(pName, Items[HEART_GUN]))
@@ -413,26 +483,23 @@ bool CPlayer::ReachedItemLimit(const CItem *pItem)
 		if(pItem->SubType() != SUBTYPE_NONE && pOtherItem->SubType() == pItem->SubType())
 			continue;
 
+		if(pItem->Type() == TYPE_CASES || pItem->Type() == TYPE_ROLES)
+			continue;
+
+		if(pItem == pOtherItem)
+			continue;
+
 		const int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
-		if(OtherIdx >= 0 && Inv()->m_aEquipped[OtherIdx])
-		{
+		if(OtherIdx >= 0 && Inv()->m_aEquipped[OtherIdx] > 0)
 			Amount++;
-		}
 	}
 
 	return Amount >= g_Config.m_SvCosmeticLimit;
 }
 
-bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
+bool CPlayer::UseItem(const char *pItemName, int Set, bool IgnoreAccount)
 {
-	if(!g_Config.m_SvCosmetics)
-	{
-		GameServer()->SendChatTarget(GetCid(), "Cosmetics are currently disabled");
-		return false;
-	}
 	if(!Acc()->m_LoggedIn && !IgnoreAccount)
-		return false;
-	if(m_HideCosmetics)
 		return false;
 
 	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
@@ -442,10 +509,22 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	if(!OwnsItem(pName) && !IgnoreAccount)
 		return false;
 
+	if(pItem->Type() == TYPE_CASES)
+		return OpenLootCase(pItem);
+
+	if(!g_Config.m_SvCosmetics)
+	{
+		GameServer()->SendChatTarget(GetCid(), "Cosmetics are currently disabled");
+		return false;
+	}
+
+	if(m_HideCosmetics)
+		return false;
+
 	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)
 		return false;
-	if(!IgnoreAccount && ReachedItemLimit(pItem) && Value != 0)
+	if(!IgnoreAccount && ReachedItemLimit(pItem) && Value != 0 && Set != 0)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You have reached the item limit! Disable another item first.");
 		return false;
@@ -540,6 +619,142 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 		int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
 		Inv()->SetEquippedIndex(OtherIdx, 0);
 	}
+
+	return true;
+}
+
+bool CPlayer::OpenLootCase(CItem *pItem)
+{
+	if(!pItem)
+		return false;
+
+	if(m_LootBoxData.m_Opening)
+	{
+		GameServer()->SendChatTarget(GetCid(), "You are already opening a loot case!");
+		return false;
+	}
+
+	const int CaseRarity = pItem->Rarity();
+	const bool IsExotic = !str_comp_nocase(pItem->Name(), Items[LOOT_CASE_EXOTIC]);
+
+	std::vector<CItem *> vCandidates;
+	int MaxStars = 1;
+	for(CItem *pOther : GameServer()->m_Shop.m_Items)
+	{
+		if(pOther->Type() == TYPE_CASES)
+			continue;
+
+		if(!IsExotic && pOther->Rarity() != CaseRarity)
+			continue;
+
+		vCandidates.push_back(pOther);
+		MaxStars = std::max(MaxStars, pOther->Stars());
+	}
+	if(vCandidates.empty())
+		return false;
+
+	std::vector<int> RarityLevels;
+	RarityLevels.reserve(vCandidates.size());
+	for(CItem *pIt : vCandidates)
+	{
+		int r = pIt->Rarity();
+		if(std::find(RarityLevels.begin(), RarityLevels.end(), r) == RarityLevels.end())
+			RarityLevels.push_back(r);
+	}
+	std::sort(RarityLevels.begin(), RarityLevels.end());
+	const int LastIdx = (int)RarityLevels.size() - 1;
+	const int EpicIdx = std::min(2, LastIdx);
+	const int MythicIdx = std::min(3, LastIdx);
+
+	auto RarityFactor = [&](int r) -> int {
+		if(!IsExotic)
+			return 1;
+
+		int idx = 0;
+		for(size_t i = 0; i < RarityLevels.size(); i++)
+		{
+			if(RarityLevels[i] == r)
+			{
+				idx = (int)i;
+				break;
+			}
+		}
+		if(idx == EpicIdx || idx == MythicIdx)
+			return 5;
+		if(idx == LastIdx)
+			return 3;
+		if(idx == 1)
+			return 2;
+		return 1;
+	};
+
+	std::vector<int> ItemWeights;
+	ItemWeights.reserve(vCandidates.size());
+	int TotalWeight = 0;
+	for(CItem *pIt : vCandidates)
+	{
+		const int Base = (MaxStars - pIt->Stars() + 1);
+		int W = Base * RarityFactor(pIt->Rarity());
+		if(W < 1)
+			W = 1;
+		ItemWeights.push_back(W);
+		TotalWeight += W;
+	}
+
+	std::random_device rd;
+	std::uniform_int_distribution<int> DistItem(1, std::max(TotalWeight, 1));
+	int Pick = DistItem(rd);
+
+	CItem *pSelectedItem = nullptr;
+	for(size_t i = 0; i < vCandidates.size(); i++)
+	{
+		if(Pick <= ItemWeights[i])
+		{
+			pSelectedItem = vCandidates[i];
+			break;
+		}
+		Pick -= ItemWeights[i];
+	}
+	if(!pSelectedItem)
+		return false;
+
+	const int CaseIdx = Inv()->IndexOfName(pItem->Name());
+	if(CaseIdx >= 0)
+		Inv()->m_aQuantity[CaseIdx] = std::max(0, Inv()->m_aQuantity[CaseIdx] - 1);
+
+	struct SDayWeight
+	{
+		int m_Days;
+		int m_Weight;
+	};
+	const SDayWeight aDayTable[] = {
+		{14, 50},
+		{30, 35},
+		{7, 10},
+		{50, 5},
+	};
+	int DayTotal = 0;
+	for(const auto &d : aDayTable)
+		DayTotal += d.m_Weight;
+	std::uniform_int_distribution<int> DistDay(1, std::max(DayTotal, 1));
+	int DayPick = DistDay(rd);
+	int RewardDays = 14;
+	for(const auto &d : aDayTable)
+	{
+		if(DayPick <= d.m_Weight)
+		{
+			RewardDays = d.m_Days;
+			break;
+		}
+		DayPick -= d.m_Weight;
+	}
+	GameServer()->m_Shop.GiveItem(GetCid(), pSelectedItem->Name(), RewardDays, "Loot Case");
+
+	m_LootBoxData.m_pLootBox = pItem;
+	m_LootBoxData.m_pGotItem = pSelectedItem;
+	m_LootBoxData.m_Opening = true;
+	m_LootBoxData.m_Ticks = LootBoxOpeningTicks;
+	m_LootBoxData.m_Days = RewardDays;
 
 	return true;
 }
@@ -873,6 +1088,7 @@ void CPlayer::DisableAllCosmetics()
 {
 	Cosmetics()->Reset();
 }
+
 int CPlayer::NumDDraceHudRows()
 {
 	if(Server()->IsSixup(GetCid()) || GameServer()->GetClientVersion(GetCid()) < VERSION_DDNET_NEW_HUD)
@@ -896,11 +1112,18 @@ int CPlayer::NumDDraceHudRows()
 	return Rows;
 }
 
+// Broadcasts like opening a lootcase or having a bot client are more important than area broadcasts or stuff like that
+bool CPlayer::HasImportantBroadcast() const
+{
+	return m_LootBoxData.m_Opening || m_HasBotClient;
+}
+
+
 void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 {
 	if(pMessages.empty())
 		return;
-	if(m_HasBotClient)
+	if(HasImportantBroadcast())
 		return; // Other broadcast is being sent
 
 	char aBuf[256] = "";
@@ -981,7 +1204,7 @@ void CPlayer::SendAreaMotd(int Area)
 
 void CPlayer::SetArea(int Area)
 {
-	if(m_HasBotClient)
+	if(HasImportantBroadcast())
 		return;
 	SendAreaMotd(Area);
 	m_Area = Area;

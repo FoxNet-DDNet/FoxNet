@@ -33,7 +33,6 @@ enum AdminSubPages
 {
 	SUB_ADMIN_UTIL = 0,
 	SUB_ADMIN_MISC,
-	SUB_ADMIN_COSMETICS,
 };
 
 enum MailboxSubPages
@@ -97,31 +96,31 @@ public:
 
 	int m_ItemType = 0;
 	int m_VoteType = 0;
-	std::string m_sVoteName;
+	char m_aVoteName[64] = "";
 	int m_Max = -1;
 	int m_Prefix = 0;
 	int m_Value = 0;
-	std::string m_sSuffixDesc;
+	char m_aSuffixDesc[64] = "";
 
 	CVoteData() = default;
 
-	CVoteData(int VoteType, const std::string &pVoteName)
+	CVoteData(int VoteType, const char *pVoteName)
 	{
+		str_copy(m_aVoteName, pVoteName);
 		m_VoteType = VoteType;
-		m_sVoteName = pVoteName;
 	}
-	CVoteData(int VoteType, const std::string &pVoteName, int Prefix)
+	CVoteData(int VoteType, const char *pVoteName, int Prefix)
 	{
+		str_copy(m_aVoteName, pVoteName);
 		m_VoteType = VoteType;
-		m_sVoteName = pVoteName;
 		m_Prefix = Prefix;
 	}
 
-	CVoteData(CItem *pItem, const std::string &pVoteName, int Prefix)
+	CVoteData(CItem *pItem, const char *pVoteName, int Prefix)
 	{
+		str_copy(m_aVoteName, pVoteName);
 		m_pItem = pItem;
 		m_VoteType = VOTE_TYPE_CHECKBOX;
-		m_sVoteName = pVoteName;
 		m_Prefix = Prefix;
 	}
 };
@@ -177,8 +176,6 @@ class CVoteMenu
 	void SendPageAdmin(int ClientId);
 
 	const char *FormatItemVote(const CItem *pItem);
-
-	void DoCosmeticVotes(int ClientId, bool Authed);
 
 	void UpdatePages(int ClientId);
 

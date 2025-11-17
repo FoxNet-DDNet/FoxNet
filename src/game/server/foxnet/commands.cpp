@@ -232,46 +232,57 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
-	const int FromId = pResult->m_ClientId;
 	if(!CheckClientId(ClientId))
 		return;
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
 	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, FromId);
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, aFrom);
 }
 
 void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
-	const int Days = pResult->GetInteger(1);
-	const char *pItemName = pResult->GetString(2);
-
 	if(!CheckClientId(ClientId))
 		return;
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days);
+	const int Days = pResult->GetInteger(1);
+	const char *pItemName = pResult->GetString(2);
+
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days, aFrom);
 }
 
 void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
-	const int FromId = pResult->m_ClientId;
 	if(!CheckClientId(ClientId))
 		return;
+
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 
+	char aBy[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aBy, pSelf->Server()->ClientName(ClientId));
+
 	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.RemoveItem(ClientId, pItemName, FromId);
+	pSelf->m_Shop.RemoveItem(ClientId, pItemName, aBy);
 }
 
 void CGameContext::ConNewMail(IConsole::IResult *pResult, void *pUserData)
@@ -549,7 +560,7 @@ void CGameContext::ConToggleItem(IConsole::IResult *pResult, void *pUserData)
 	const char *pItem = pResult->GetString(0);
 	const int Value = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : -1;
 
-	pPl->ToggleItem(pItem, Value);
+	pPl->UseItem(pItem, Value);
 }
 
 void CGameContext::ConRainbowBody(IConsole::IResult *pResult, void *pUserData)

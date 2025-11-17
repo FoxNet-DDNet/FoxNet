@@ -4300,14 +4300,36 @@ const char *ItemTypeToName(int Type)
 {
 	switch(Type)
 	{
+	case TYPE_ROLES: return "Rᴏʟᴇs";
+	case TYPE_CASES: return "Cᴀsᴇs";
 	case TYPE_RAINBOW: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
 	case TYPE_GUN: return "Gᴜɴs";
 	case TYPE_INDICATOR: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
 	case TYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
 	case TYPE_TRAIL: return "Tʀᴀɪʟs";
 	case TYPE_HAT: return "Hᴀᴛs";
-	case TYPE_ROLES: return "Rᴏʟᴇs";
 	default: return "Oᴛʜᴇʀ";
+	}
+}
+
+const char *RarityToName(int Type)
+{
+	switch(Type)
+	{
+	case RARITY_COMMON:
+		return "Common";
+	case RARITY_UNCOMMON:
+		return "Uncommon";
+	case RARITY_RARE:
+		return "Rare";
+	case RARITY_EPIC:
+		return "Epic";
+	case RARITY_MYTHIC:
+		return "Mythic";
+	case RARITY_LEGENDARY:
+		return "Legendary";
+	default:
+		return "Unknown";
 	}
 }
 

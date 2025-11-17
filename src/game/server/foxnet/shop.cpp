@@ -27,13 +27,13 @@ void CShop::AddItems()
 {
 	m_Items.push_back(new CItem(Items[RAINBOW_FEET], "R_F", RARITY_COMMON, 1, TYPE_RAINBOW, 1250, "Makes your body Rainbow", 1, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[RAINBOW_BODY], "R_B", RARITY_COMMON, 2, TYPE_RAINBOW, 2000, "Makes your feet Rainbow", 4, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[RAINBOW_HOOK], "R_H", RARITY_COMMON, 4, TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[RAINBOW_HOOK], "R_H", RARITY_UNCOMMON, 1, TYPE_RAINBOW, 6500, "Anyone you hook becomes Rainbow!", 5, SUBTYPE_NONE));
 
-	m_Items.push_back(new CItem(Items[EMOTICON_GUN], "G_E", RARITY_UNCOMMON, 2, TYPE_GUN, 3500, "Shoot emotions at people", 10, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[PHASE_GUN], "G_P", RARITY_UNCOMMON, 1, TYPE_GUN, 2250, "Your bullets defy physics", 5, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[EMOTICON_GUN], "G_E", RARITY_UNCOMMON, 4, TYPE_GUN, 7500, "Shoot emotions at people", 10, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[PHASE_GUN], "G_P", RARITY_UNCOMMON, 2, TYPE_GUN, 3250, "Your bullets defy physics", 5, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[HEART_GUN], "G_H", RARITY_EPIC, 1, TYPE_GUN, 20000, "Shoot bullets full of love", 15, SUBTYPE_GUN));
-	m_Items.push_back(new CItem(Items[GUNTYPE_MIXED], "G_M", RARITY_EPIC, 2, TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
-	m_Items.push_back(new CItem(Items[GUNTYPE_LASER], "G_L", RARITY_EPIC, 5, TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem(Items[MIXED_GUN], "G_M", RARITY_EPIC, 2, TYPE_GUN, 25000, "Shoots Hearts and Shields", 25, SUBTYPE_GUN));
+	m_Items.push_back(new CItem(Items[LASER_GUN], "G_L", RARITY_EPIC, 5, TYPE_GUN, 35000, "Lasertag in DDNet?", 25, SUBTYPE_GUN));
 
 	m_Items.push_back(new CItem(Items[INDICATOR_CLOCKWISE], "I_C", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Clockwise", 5, SUBTYPE_IND));
 	m_Items.push_back(new CItem(Items[INDICATOR_COUNTERCLOCKWISE], "I_CC", RARITY_COMMON, 5, TYPE_INDICATOR, 4500, "Gun Hit -> turns Counter-Clockwise", 5, SUBTYPE_IND));
@@ -44,8 +44,8 @@ void CShop::AddItems()
 
 	m_Items.push_back(new CItem(Items[DEATH_EXPLOSIVE], "D_E", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Go out with a Boom!", 5, SUBTYPE_DEATH));
 	m_Items.push_back(new CItem(Items[DEATH_HAMMERHIT], "D_H", RARITY_UNCOMMON, 2, TYPE_DEATHS, 3250, "Get Bonked on death!", 5, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem(Items[DEATHTYPE_DAMAGEIND], "D_I", RARITY_UNCOMMON, 4, TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
-	m_Items.push_back(new CItem(Items[DEATH_LASER], "D_L", RARITY_EPIC, 4, TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem(Items[DEATH_INDICATOR], "D_I", RARITY_UNCOMMON, 4, TYPE_DEATHS, 7500, "Creates an octagon of damage indicators", 10, SUBTYPE_DEATH));
+	m_Items.push_back(new CItem(Items[DEATH_LASER], "D_L", RARITY_UNCOMMON, 4, TYPE_DEATHS, 7500, "Become wizard and summon lasers on death!", 10, SUBTYPE_DEATH));
 
 	m_Items.push_back(new CItem(Items[TRAIL_STAR], "T_S", RARITY_UNCOMMON, 4, TYPE_TRAIL, 8000, "The Stars shall follow you", 7, SUBTYPE_TRAIL));
 	m_Items.push_back(new CItem(Items[TRAIL_DOT], "T_D", RARITY_UNCOMMON, 4, TYPE_TRAIL, 8000, "A trail made out of small dots", 7, SUBTYPE_TRAIL));
@@ -56,15 +56,21 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem(Items[HAT_GRENADE], "H_GR", RARITY_COMMON, 5, TYPE_HAT, 4000, "Grenade above your head", 5, SUBTYPE_HAT));
 	m_Items.push_back(new CItem(Items[HAT_LASER], "H_L", RARITY_COMMON, 5, TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
 	m_Items.push_back(new CItem(Items[HAT_NINJA], "H_N", RARITY_COMMON, 5, TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
+	m_Items.push_back(new CItem(Items[HAT_HEART], "H_O", RARITY_RARE, 5, TYPE_HAT, 17500, "A hat of Hearts", 12, SUBTYPE_HAT));
 
-	m_Items.push_back(new CItem(Items[HAT_HEART], "H_O", RARITY_EPIC, 2, TYPE_HAT, 25000, "A hat of Hearts", 12, SUBTYPE_HAT));
 	m_Items.push_back(new CItem(Items[OTHER_SPARKLE], "O_S", RARITY_COMMON, 1, TYPE_OTHER, 1500, "Makes you sparkle", 5, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[OTHER_INVERSEAIM], "O_I", RARITY_LEGENDARY, 1, TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[OTHER_LOVELY], "O_L", RARITY_RARE, 3, TYPE_OTHER, 12500, "Spreading love huh?", 15, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[OTHER_ROTATINGBALL], "O_R", RARITY_UNCOMMON, 2, TYPE_OTHER, 12500, "Ball rotate - life good", 15, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[OTHER_LOVELY], "O_L", RARITY_RARE, 1, TYPE_OTHER, 12500, "Spreading love huh?", 15, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[OTHER_ROTATINGBALL], "O_R", RARITY_RARE, 1, TYPE_OTHER, 12500, "Ball rotate - life good", 15, SUBTYPE_NONE));
 
 	m_Items.push_back(new CItem(Items[VIP], "VIP", RARITY_MYTHIC, 3, TYPE_ROLES, 250000, "VIP Role grants 2.5x boost on xp/money", 40, 0, false));
 	m_Items.push_back(new CItem(Items[MVP], "MVP", RARITY_LEGENDARY, 3, TYPE_ROLES, 750000, "MVP Role grants 3.5x boost on xp/money", 65, 0, false));
+
+	m_Items.push_back(new CItem(Items[LOOT_CASE_COMMON], "LC_C", RARITY_COMMON, 5, TYPE_CASES, 5000, "Gives you a random common item!", 10, SUBTYPE_NONE, false));
+	m_Items.push_back(new CItem(Items[LOOT_CASE_UNCOMMON], "LC_UC", RARITY_UNCOMMON, 5, TYPE_CASES, 10000, "Gives you a random uncommon item!", 15, SUBTYPE_NONE, false));
+	m_Items.push_back(new CItem(Items[LOOT_CASE_RARE], "LC_R", RARITY_RARE, 5, TYPE_CASES, 20000, "Gives you a random rare item!", 25, SUBTYPE_NONE, false));
+	m_Items.push_back(new CItem(Items[LOOT_CASE_EPIC], "LC_E", RARITY_EPIC, 5, TYPE_CASES, 40000, "Gives you a random epic item!", 35, SUBTYPE_NONE, false));
+	m_Items.push_back(new CItem(Items[LOOT_CASE_EXOTIC], "LC_Ex", RARITY_LEGENDARY, 5, TYPE_CASES, 250000, "Gives you a random item of any type!", 40, SUBTYPE_NONE, false));
 }
 
 void CShop::ResetItems()
@@ -214,13 +220,13 @@ void CShop::BuyItem(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
 }
 
-void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromId)
+bool CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, const char *pFrom)
 {
 	CItem *pItem = FindItem(pItemName);
 	if(!pItem)
 	{
 		log_info("shop", "Tried to give non-existing item '%s' to ClientId %d", pItemName, ClientId);
-		return;
+		return false;
 	}
 
 	const char *pName = pItem->Name();
@@ -229,60 +235,63 @@ void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromI
 	if(!pAcc->m_LoggedIn)
 	{
 		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pName, ClientId);
-		return;
+		return false;
 	}
 	const char *ClientIdName = Server()->ClientName(ClientId);
 	if(Bought)
-	{
 		log_info("shop", "%s (%d) Bought Item '%s'", ClientIdName, ClientId, pName);
-	}
-	else if(FromId == -1)
-	{
-		log_info("shop", "%s (%d) Received Item '%s'", ClientIdName, ClientId, pName);
-	}
-	else if(FromId >= 0)
-	{
-		const char *FromName = Server()->ClientName(FromId);
-		log_info("shop", "%s (%d) Gave Item '%s' to %s (%d)", FromName, FromId, pName, ClientIdName, ClientId);
-	}
+	else
+		log_info("shop", "%s (%d) Received Item '%s' (30 days) from: %s", ClientIdName, ClientId, pName, pFrom);
+
 	int Index = CInventory::IndexOfName(pName);
+	if(Index == -1)
+		return false;
 
 	int64_t Now = time(0);
-	const int64_t days = int64_t(30) * 86400; // 30 days
 
-	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
+	if(!GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
+		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
+
+	if(pItem->IsOneTimeUse())
 	{
-		pAcc->m_Inventory.AddToExpiry(Index, days);
+		pAcc->m_Inventory.m_aQuantity[Index] += 1;
+		pAcc->m_Inventory.SetExpiresAt(Index, -1); // Never expires
 	}
 	else
 	{
-		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
-		pAcc->m_Inventory.SetExpiresAt(Index, Now + days);
+		const int64_t days = int64_t(30) * 86400; // 30 days
+		if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
+			pAcc->m_Inventory.AddToExpiry(Index, days);
+		else
+			pAcc->m_Inventory.SetExpiresAt(Index, Now + days);
+		pAcc->m_Inventory.SetQuantityIndex(Index, 1); // Can only have 1 of these
 	}
-	pAcc->m_Inventory.SetOwnedIndex(Index, true);
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
+	return true;
 }
 
-void CShop::GiveItem(int ClientId, const char *pItemName, int Days)
+bool CShop::GiveItem(int ClientId, const char *pItemName, int Days, const char *pFrom)
 {
 	CItem *pItem = FindItem(pItemName);
 	CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 	if(!pItem)
 	{
 		log_info("shop", "Tried to give non-existing item '%s' to ClientId %d", pItemName, ClientId);
-		return;
+		return false;
 	}
 	const char *pName = pItem->Name();
 	if(!pAcc->m_LoggedIn)
 	{
 		log_info("shop", "Tried to give item '%s' to non-logged-in ClientId %d", pName, ClientId);
-		return;
+		return false;
 	}
+	log_info("shop", "%s (%d) Received Item '%s' (%d days) from: %s", Server()->ClientName(ClientId), ClientId, pName, Days, pFrom);
+
 	int Index = CInventory::IndexOfName(pName);
 
 	int64_t Now = time(0);
-	const int64_t NumDays = int64_t(Days) * 86400; // 30 days
+	const int64_t NumDays = int64_t(Days) * 86400; // n days
 
 	if(GameServer()->m_apPlayers[ClientId]->OwnsItem(pName))
 	{
@@ -293,12 +302,13 @@ void CShop::GiveItem(int ClientId, const char *pItemName, int Days)
 		pAcc->m_Inventory.SetAcquiredAt(Index, Now);
 		pAcc->m_Inventory.SetExpiresAt(Index, Now + NumDays);
 	}
-	pAcc->m_Inventory.SetOwnedIndex(Index, true);
+	pAcc->m_Inventory.SetQuantityIndex(Index, true);
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, GameServer()->m_aAccounts[ClientId]);
+	return true;
 }
 
-void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
+void CShop::RemoveItem(int ClientId, const char *pItemName, const char *pByName)
 {
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	if(!pPl)
@@ -319,22 +329,14 @@ void CShop::RemoveItem(int ClientId, const char *pItemName, int ById)
 		return;
 	}
 	const char *ClientIdName = Server()->ClientName(ClientId);
-	if(ById < 0)
-	{
-		log_info("shop", "%s (%d) removed Item '%s'", ClientIdName, ClientId, pName);
-	}
-	else
-	{
-		const char *FromName = Server()->ClientName(ById);
-		log_info("shop", "%s (%d) removed Item '%s' from %s (%d)", FromName, ById, pName, ClientIdName, ClientId);
-	}
+	log_info("shop", "%s removed Item '%s' from %s (%d)", pByName, pName, ClientIdName, ClientId);
 
 	int ItemIndex = CInventory::IndexOfName(pName);
 	pAcc->m_Inventory.SetEquippedIndex(ItemIndex, false);
-	pAcc->m_Inventory.SetOwnedIndex(ItemIndex, false);
+	pAcc->m_Inventory.SetQuantityIndex(ItemIndex, false);
 	pAcc->m_Inventory.SetAcquiredAt(ItemIndex, 0);
 	pAcc->m_Inventory.SetExpiresAt(ItemIndex, 0);
-	pPl->ToggleItem(Items[ItemIndex], false); // Disable Item
+	pPl->UseItem(Items[ItemIndex], false); // Disable Item
 	GameServer()->m_AccountManager.RemoveItem(pAcc->m_aUsername, Items[ItemIndex]);
 }
 
@@ -346,4 +348,26 @@ CItem *CShop::FindItem(const char *pName)
 			return pItem;
 	}
 	return nullptr;
+}
+
+const CItem *CShop::GetRandomItemOfRarity(int Rarity)
+{
+	std::vector<const CItem *> ItemsOfRarity;
+	for(const CItem *pItem : m_Items)
+	{
+		if(pItem->Type() == TYPE_CASES)
+			continue;
+
+		if(pItem->Rarity() != Rarity && Rarity != NUM_RARITIES)
+			continue;
+
+		ItemsOfRarity.push_back(pItem);
+	}
+
+	if(ItemsOfRarity.empty())
+		return nullptr;
+
+	std::mt19937 RandGen(Server()->Tick());
+	std::uniform_int_distribution<size_t> Dist(0, ItemsOfRarity.size() - 1);
+	return ItemsOfRarity[Dist(RandGen)];
 }
