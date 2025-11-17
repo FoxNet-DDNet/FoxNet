@@ -439,8 +439,6 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	}
 	if(!Times.empty())
 		BanDuration = *std::max_element(Times.begin(), Times.end());
-	else
-		BanDuration = 0;
 
 	char InfoMsg[256] = "";
 	if(FoundStrings.size() > 0)
@@ -492,7 +490,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		}
 	}
 
-	if(count >= 2 && BanDuration > 0)
+	if(count >= 2.0 && BanDuration > 0)
 	{
 		if(IsBan)
 		{
@@ -504,7 +502,6 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				Server()->ClientAddrString(ClientId, false),
 				BanDuration,
 				InfoMsg);
-
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
 
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);

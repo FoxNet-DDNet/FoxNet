@@ -10,12 +10,12 @@ class IServer;
 
 constexpr int MAX_ITEM_STARS = 5;
 
-enum Cosmetics
+enum ShopItems
 {
 	RAINBOW_FEET = 0,
 	RAINBOW_BODY,
 	RAINBOW_HOOK,
-	GUN_EMOTICON,
+	EMOTICON_GUN,
 	PHASE_GUN,
 	HEART_GUN,
 	MIXED_GUN,
@@ -43,6 +43,8 @@ enum Cosmetics
 	OTHER_INVERSEAIM,
 	OTHER_LOVELY,
 	OTHER_ROTATINGBALL,
+	VIP,
+	MVP,
 	NUM_ITEMS
 };
 
@@ -84,6 +86,9 @@ constexpr const char *Items[NUM_ITEMS] = {
 	"Inverse Aim",
 	"Lovely",
 	"Rotating Ball",
+
+	"VIP",
+	"MVP",
 };
 
 enum ItemTypes
@@ -95,6 +100,7 @@ enum ItemTypes
 	TYPE_TRAIL,
 	TYPE_HAT,
 	TYPE_OTHER,
+	TYPE_ROLES,
 	NUM_TYPES
 };
 
@@ -133,8 +139,10 @@ class CItem
 	int m_Rarity = 0;
 	int m_Stars = 0;
 
+	bool m_Toggleable = true;
+
 public:
-	CItem(const char *pShopItem, const char *pShortcut, int Rarity, int Stars, int ItemType, int Price, const char *pDesc, int MinLevel = 0, int ItemSubType = 0)
+	CItem(const char *pShopItem, const char *pShortcut, int Rarity, int Stars, int ItemType, int Price, const char *pDesc, int MinLevel, int ItemSubType)
 	{
 		str_copy(m_aItem, pShopItem);
 		str_copy(m_aShortcut, pShortcut);
@@ -145,6 +153,19 @@ public:
 		m_MinLevel = MinLevel;
 		m_Rarity = Rarity;
 		m_Stars = Stars;
+	}
+	CItem(const char *pShopItem, const char *pShortcut, int Rarity, int Stars, int ItemType, int Price, const char *pDesc, int MinLevel, int ItemSubType, bool Toggleable)
+	{
+		str_copy(m_aItem, pShopItem);
+		str_copy(m_aShortcut, pShortcut);
+		str_copy(m_aDescription, pDesc);
+		m_Type = ItemType;
+		m_SubType = ItemSubType;
+		m_Price = Price;
+		m_MinLevel = MinLevel;
+		m_Rarity = Rarity;
+		m_Stars = Stars;
+		m_Toggleable = Toggleable;
 	}
 
 	const char *Name() const { return m_aItem; }
@@ -189,6 +210,8 @@ public:
 			str_append(StarBuf, "☆", sizeof(StarBuf));
 		return StarBuf;
 	}
+
+	bool IsToggleable() const { return m_Toggleable; }
 
 	void SetPrice(int Price) { m_Price = Price; }
 	void SetMinLevel(int MinLevel) { m_MinLevel = MinLevel; }

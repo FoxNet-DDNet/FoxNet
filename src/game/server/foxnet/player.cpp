@@ -167,9 +167,9 @@ void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
-
-	if(GameServer()->IsWeekend())
-		Amount *= 2;
+		
+	if(Multiplier)
+		Amount = (long)(Amount * StatMultiplier());
 
 	Acc()->m_XP += Amount;
 
@@ -233,8 +233,8 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 	if(Amount <= 0)
 		return;
 
-	if(GameServer()->IsWeekend() && Multiplier)
-		Amount *= 2.0f;
+	if(Multiplier)
+		Amount = (long)(Amount * StatMultiplier());
 
 	Acc()->m_Money += Amount;
 
@@ -333,7 +333,7 @@ int CPlayer::GetItemToggle(const char *pItemName)
 	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
 		Value = (int)Cosmetics()->m_HookPower == HOOK_RAINBOW ? HOOK_NORMAL : HOOK_RAINBOW;
 
-	else if(!str_comp_nocase(pName, Items[GUN_EMOTICON]))
+	else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
 		Value = (int)Cosmetics()->m_EmoticonGun;
 	else if(!str_comp_nocase(pName, Items[PHASE_GUN]))
 		Value = (int)!Cosmetics()->m_PhaseGun;
@@ -470,7 +470,7 @@ bool CPlayer::ToggleItem(const char *pItemName, int Set, bool IgnoreAccount)
 	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
 		HookPower(Value);
 
-	else if(!str_comp_nocase(pName, Items[GUN_EMOTICON]))
+	else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
 	{
 		Value = Set;
 		SetEmoticonGun(Value);
@@ -1009,4 +1009,20 @@ void CPlayer::SetPage(int Page)
 void CPlayer::SetSubPage(int SubPage)
 {
 	GameServer()->m_VoteMenu.SetSubPage(m_ClientId, SubPage);
+}
+
+float CPlayer::StatMultiplier()
+{
+	float Multiplier = 1.0f;
+	if(GameServer()->IsWeekend())
+		Multiplier += 1.0f;
+
+	if(!Acc()->m_LoggedIn)
+		return Multiplier;
+
+	if(Acc()->m_Inventory.Owns(Items[VIP]))
+		Multiplier += 1.5f;
+	if(Acc()->m_Inventory.Owns(Items[MVP]))
+		Multiplier += 2.5f;
+	return Multiplier;
 }

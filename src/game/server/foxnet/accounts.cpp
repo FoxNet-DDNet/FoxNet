@@ -276,7 +276,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 
 			const char *pName = Items[i];
 
-			if(!str_comp_nocase(pName, Items[GUN_EMOTICON]))
+			if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
 				pPl->ToggleItem(pName, Val, true);
 			else
 				pPl->ToggleItem(pName, -1, true);

@@ -112,7 +112,8 @@ void CVoteMenu::Init(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 
-	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ");
+	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ"); // Not shown
+
 	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
 	str_copy(m_aPages[PAGE_SETTINGS], "Sᴇᴛᴛɪɴɢs");
 	str_copy(m_aPages[PAGE_MAILBOX], "Mᴀɪʟʙᴏx");
@@ -446,10 +447,10 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
 		}
-		if(IsOptionWithSuffix(pVote, Items[GUN_EMOTICON]))
+		if(IsOptionWithSuffix(pVote, Items[EMOTICON_GUN]))
 		{
 			if(ReasonInt.has_value())
-				pPl->ToggleItem(Items[GUN_EMOTICON], ReasonInt.value(), Page == PAGE_ADMIN);
+				pPl->ToggleItem(Items[EMOTICON_GUN], ReasonInt.value(), Page == PAGE_ADMIN);
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
@@ -728,6 +729,10 @@ void CVoteMenu::UpdatePages(int ClientId)
 			Changes = true;
 		if(pAcc->m_Deaths != OldAcc.m_Deaths)
 			Changes = true;
+		if(pAcc->m_Inventory.m_aOwned[VIP] != OldAcc.m_Inventory.m_aOwned[VIP])
+			Changes = true;
+		if(pAcc->m_Inventory.m_aOwned[MVP] != OldAcc.m_Inventory.m_aOwned[MVP])
+			Changes = true;
 	}
 	if(Page == PAGE_MAILBOX || Page == PAGE_MAIN)
 	{
@@ -898,6 +903,16 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 
 void CVoteMenu::SendPageMainMenu(int ClientId)
 {
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	if(Server()->ClientSlotEmpty(ClientId))
+		return;
+
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	if(!pPl)
+		return;
+
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	char aBuf[VOTE_DESC_LENGTH];
@@ -916,15 +931,15 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
 		AddVoteText(aBuf);
 		// Register Date
-		if(pAcc->m_RegisterDate > 0)
-		{
-			str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
-			AddVoteText(aBuf);
-		}
-		else
-		{
-			AddVoteText("│ Register Date: n/a");
-		}
+		//if(pAcc->m_RegisterDate > 0)
+		//{
+		//	str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
+		//	AddVoteText(aBuf);
+		//}
+		//else
+		//{
+		//	AddVoteText("│ Register Date: n/a");
+		//}
 		AddVoteText("├─────────   Sᴛᴀᴛs");
 		str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
 		AddVoteText(aBuf);
@@ -937,6 +952,9 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 		AddVoteText(aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
+		AddVoteText(aBuf);
+		AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
+		str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier(), pPl->StatMultiplier());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 	}
@@ -1369,6 +1387,9 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 		{
 			const char *pItemName = pItem->Name();
 
+			if(pItem->Type() != Type)
+				continue;
+
 			if(!Authed)
 			{
 				if(!str_comp(pItemName, ""))
@@ -1395,7 +1416,18 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
 			}
 
-			if(pItem->Type() == Type && !str_comp_nocase(pItem->Name(), Items[GUN_EMOTICON]))
+			if(!pItem->IsToggleable())
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = pItem;
+				Data.m_VoteType = VOTE_TYPE_TEXT;
+				Data.m_sVoteName = aVoteName;
+				Votes.push_back(Data);
+				continue;
+			}
+
+			if(!str_comp_nocase(pItem->Name(), Items[EMOTICON_GUN]))
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
@@ -1411,16 +1443,14 @@ void CVoteMenu::DoCosmeticVotes(int ClientId, bool Authed)
 				continue;
 			}
 
-			if(pItem->Type() == Type)
-			{
-				CVoteData Data;
-				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
-				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
-				Data.m_sVoteName = aVoteName;
-				Data.m_Value = pPl->ItemEnabled(pItemName);
-				Votes.push_back(Data);
-			}
+		
+			CVoteData Data;
+			Data.m_ItemType = Type;
+			Data.m_pItem = pItem;
+			Data.m_VoteType = VOTE_TYPE_CHECKBOX;
+			Data.m_sVoteName = aVoteName;
+			Data.m_Value = pPl->ItemEnabled(pItemName);
+			Votes.push_back(Data);
 		}
 
 		if(Type != NUM_TYPES - 1)

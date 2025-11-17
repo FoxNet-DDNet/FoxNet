@@ -4306,6 +4306,7 @@ const char *ItemTypeToName(int Type)
 	case TYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
 	case TYPE_TRAIL: return "Tʀᴀɪʟs";
 	case TYPE_HAT: return "Hᴀᴛs";
+	case TYPE_ROLES: return "Rᴏʟᴇs";
 	default: return "Oᴛʜᴇʀ";
 	}
 }

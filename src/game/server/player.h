@@ -555,6 +555,9 @@ public:
 	int GetPage();
 	void SetPage(int Page);
 	void SetSubPage(int SubPage);
+
+	float StatMultiplier();
+
 	// FoxNet>
 };
 #endif
