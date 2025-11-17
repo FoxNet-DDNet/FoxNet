@@ -954,7 +954,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
 		AddVoteText(aBuf);
 		AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
-		str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier(), pPl->StatMultiplier());
+		str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 	}

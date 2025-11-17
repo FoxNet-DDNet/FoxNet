@@ -211,10 +211,7 @@ void CShop::BuyItem(int ClientId, const char *pName)
 	GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 
 	if(pItem->SubType() == SUBTYPE_HAT)
-	{
-		str_format(aBuf, sizeof(aBuf), "Hats can be rotated! Head to the settings section to change the rotation", MinLevel, pItem->Name());
-		GameServer()->SendChatTarget(ClientId, aBuf);
-	}
+		GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
 }
 
 void CShop::GiveItem(int ClientId, const char *pItemName, bool Bought, int FromId)
