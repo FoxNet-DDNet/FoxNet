@@ -71,15 +71,6 @@ constexpr const char *ADMIN_MISC_HEARTGUN = "Heart Gun";
 constexpr const char *ADMIN_MISC_LIGHTSABER = "Lightsaber";
 constexpr const char *ADMIN_MISC_PORTALGUN = "Portal gun";
 
-// Admin Extra Cosmetics
-constexpr const char *ADMIN_COSM_PICKUPPET = "Pickup Pet";
-constexpr const char *ADMIN_COSM_STAFFIND = "Staff Indicator";
-constexpr const char *ADMIN_COSM_HEARTGUN = "Heart Gun";
-
-// Part of Cosmetics ig /shrug
-constexpr const char *ADMIN_ABILITY_FIREWORK = "Firework Ability";
-constexpr const char *ADMIN_ABILITY_TELEKINESIS = "Telekinesis Ability";
-
 // Mailbox
 constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
 
