@@ -56,15 +56,15 @@ void CShop::AddItems()
 	m_Items.push_back(new CItem(Items[HAT_GRENADE], "H_GR", RARITY_COMMON, 5, TYPE_HAT, 4000, "Grenade above your head", 5, SUBTYPE_HAT));
 	m_Items.push_back(new CItem(Items[HAT_LASER], "H_L", RARITY_COMMON, 5, TYPE_HAT, 4000, "Laser above your head", 5, SUBTYPE_HAT));
 	m_Items.push_back(new CItem(Items[HAT_NINJA], "H_N", RARITY_COMMON, 5, TYPE_HAT, 4000, "Ninja weapon above your head", 5, SUBTYPE_HAT));
-	m_Items.push_back(new CItem(Items[HAT_HEART], "H_O", RARITY_RARE, 5, TYPE_HAT, 17500, "A hat of Hearts", 12, SUBTYPE_HAT));
+	m_Items.push_back(new CItem(Items[HAT_HEART], "H_O", RARITY_RARE, 3, TYPE_HAT, 15000, "A hat of Hearts", 12, SUBTYPE_HAT));
 
 	m_Items.push_back(new CItem(Items[OTHER_SPARKLE], "O_S", RARITY_COMMON, 1, TYPE_OTHER, 1500, "Makes you sparkle", 5, SUBTYPE_NONE));
 	m_Items.push_back(new CItem(Items[OTHER_INVERSEAIM], "O_I", RARITY_LEGENDARY, 1, TYPE_OTHER, 50000, "Shows your aim backwards for others!", 35, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[OTHER_LOVELY], "O_L", RARITY_RARE, 1, TYPE_OTHER, 12500, "Spreading love huh?", 15, SUBTYPE_NONE));
-	m_Items.push_back(new CItem(Items[OTHER_ROTATINGBALL], "O_R", RARITY_RARE, 1, TYPE_OTHER, 12500, "Ball rotate - life good", 15, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[OTHER_LOVELY], "O_L", RARITY_RARE, 2, TYPE_OTHER, 12500, "Spreading love huh?", 15, SUBTYPE_NONE));
+	m_Items.push_back(new CItem(Items[OTHER_ROTATINGBALL], "O_R", RARITY_RARE, 2, TYPE_OTHER, 12500, "Ball rotate - life good", 15, SUBTYPE_NONE));
 
-	m_Items.push_back(new CItem(Items[VIP], "VIP", RARITY_MYTHIC, 3, TYPE_ROLES, 250000, "VIP Role grants 2.5x boost on xp/money", 40, 0, false));
-	m_Items.push_back(new CItem(Items[MVP], "MVP", RARITY_LEGENDARY, 3, TYPE_ROLES, 750000, "MVP Role grants 3.5x boost on xp/money", 65, 0, false));
+	m_Items.push_back(new CItem(Items[VIP], "VIP", RARITY_MYTHIC, 2, TYPE_ROLES, 200000, "VIP Role grants a 2.5x boost on xp/money", 40, 0, false));
+	m_Items.push_back(new CItem(Items[MVP], "MVP", RARITY_LEGENDARY, 2, TYPE_ROLES, 650000, "MVP Role grants a 3.5x boost on xp/money", 65, 0, false));
 
 	m_Items.push_back(new CItem(Items[LOOT_CASE_COMMON], "LC_C", RARITY_COMMON, 5, TYPE_CASES, 5000, "Gives you a random common item!", 10, SUBTYPE_NONE, false));
 	m_Items.push_back(new CItem(Items[LOOT_CASE_UNCOMMON], "LC_UC", RARITY_UNCOMMON, 5, TYPE_CASES, 10000, "Gives you a random uncommon item!", 15, SUBTYPE_NONE, false));
