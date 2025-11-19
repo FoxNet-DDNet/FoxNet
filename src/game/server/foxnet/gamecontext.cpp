@@ -635,9 +635,10 @@ void CGameContext::OnLogin(int ClientId)
 	else
 	{
 		int UnreadMails = 0;
-		for(int i = 0; i < (int)pPl->Acc()->m_MailBox.m_vMails.size(); i++)
+		for(const CMailBox::CMail &Mail : pPl->Acc()->m_MailBox.m_vMails)
 		{
-			if(pPl->Acc()->m_MailBox.m_vMails[i].m_Unread)
+			const bool Unread = Mail.m_Unread || (!Mail.m_UsedCmd && Mail.m_aCmd[0] != '\0');
+			if(Unread)
 				UnreadMails++;
 		}
 
