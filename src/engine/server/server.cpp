@@ -4986,13 +4986,15 @@ static const char *EscapeMessage(const char *pMessage)
 	char *pDst = aEscaped;
 	const unsigned char *pSrc = (const unsigned char *)pMessage;
 
-	while(*pSrc && (size_t)(pDst - aEscaped) < sizeof(aEscaped) - 7) // up to 6 chars for \u00XX plus null
+	while(*pSrc && (size_t)(pDst - aEscaped) < sizeof(aEscaped) - 7)
 	{
 		unsigned char c = *pSrc++;
 		switch(c)
 		{
 		case '\"': *pDst++ = '\\'; *pDst++ = '\"'; break;
 		case '\\': *pDst++ = '\\'; *pDst++ = '\\'; break;
+		case '`':  *pDst++ = '\\'; *pDst++ = '`';  break; // prevent shell command substitution on Linux
+		case '$':  *pDst++ = '\\'; *pDst++ = '$';  break; // prevent $(...) and $VAR expansion
 		case '\b': *pDst++ = '\\'; *pDst++ = 'b';  break;
 		case '\f': *pDst++ = '\\'; *pDst++ = 'f';  break;
 		case '\n': *pDst++ = '\\'; *pDst++ = 'n';  break;
@@ -5005,7 +5007,7 @@ static const char *EscapeMessage(const char *pMessage)
 			*pDst++ = '\\'; *pDst++ = 'u'; *pDst++ = '0'; *pDst++ = '0'; *pDst++ = '3'; *pDst++ = 'e';
 			break;
 		default:
-			if(c < 0x20) // other control chars -> \u00XX
+			if(c < 0x20)
 			{
 				*pDst++ = '\\';
 				*pDst++ = 'u';
