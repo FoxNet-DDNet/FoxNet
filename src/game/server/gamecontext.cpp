@@ -644,7 +644,7 @@ void CGameContext::SendChatTarget(int To, const char *pText, int VersionFlags) c
 	Msg.m_pMessage = pText;
 
 	if(g_Config.m_SvDemoChat)
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
 
 	if(To == -1)
 	{
@@ -703,7 +703,7 @@ void CGameContext::SendChat(int ChatterClientId, int Team, const char *pText, in
 
 		// pack one for the recording only
 		if(g_Config.m_SvDemoChat)
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
+			Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
 
 		// send to the clients
 		for(int i = 0; i < Server()->MaxClients(); i++)
@@ -731,7 +731,7 @@ void CGameContext::SendChat(int ChatterClientId, int Team, const char *pText, in
 
 		// pack one for the recording only
 		if(g_Config.m_SvDemoChat)
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
+			Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, SERVER_DEMO_CLIENT);
 
 		// send to the clients
 		for(int i = 0; i < Server()->MaxClients(); i++)
