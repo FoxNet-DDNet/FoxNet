@@ -102,7 +102,7 @@ void CGameContext::BotClientTick()
 				if(g_Config.m_SvAntiBot == 2)
 				{
 					char aBanBuf[256];
-					str_format(aBanBuf, sizeof(aBanBuf), "'%s' [%s] was banned for 240 minutes for using a bot client.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
+					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 240 minutes for using a bot client.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
 					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
 
 					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
@@ -488,6 +488,8 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				str_copy(Reason, "Bot Client Message");
 			}
 		}
+		if(IsBan && FoundStrings.empty())
+			str_copy(InfoMsg, "Bot Client Message");
 	}
 
 	if(count >= 2.0 && BanDuration > 0)
@@ -496,7 +498,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		{
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
-				"'%s' [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
+				"`%s` [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
 				"Strings: %s",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
@@ -595,7 +597,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 		{
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
-				"'%s' [%s] was banned for %d minutes for triggering the Name-detection.\n"
+				"`%s` [%s] was banned for %d minutes for triggering the Name-detection.\n"
 				"Strings: %s",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
