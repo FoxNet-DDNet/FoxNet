@@ -463,6 +463,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	if(Page == PAGE_SERVERINFO)
 	{
+		if(g_Config.m_SvVoteMenuServerInfoRulesOnly)
+			return true;
+
 		if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
 		{
 			SetSubPage(ClientId, SUB_SERVERINFO_ACCOUNTS);
@@ -1385,30 +1388,49 @@ void CVoteMenu::SendPageInventory(int ClientId)
 void CVoteMenu::SendPageServerInfo(int ClientId)
 {
 	const int SubPage = GetSubPage(ClientId);
+
+	bool Printed = false;
+
+	char *apRuleLines[] = {
+		g_Config.m_SvRulesLine1,
+		g_Config.m_SvRulesLine2,
+		g_Config.m_SvRulesLine3,
+		g_Config.m_SvRulesLine4,
+		g_Config.m_SvRulesLine5,
+		g_Config.m_SvRulesLine6,
+		g_Config.m_SvRulesLine7,
+		g_Config.m_SvRulesLine8,
+		g_Config.m_SvRulesLine9,
+		g_Config.m_SvRulesLine10,
+	};
+
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
 		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
-		if(g_Config.m_SvRulesLine1[0])
-			AddVotePrefix(g_Config.m_SvRulesLine1, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine2[0])
-			AddVotePrefix(g_Config.m_SvRulesLine2, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine3[0])
-			AddVotePrefix(g_Config.m_SvRulesLine3, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine4[0])
-			AddVotePrefix(g_Config.m_SvRulesLine4, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine5[0])
-			AddVotePrefix(g_Config.m_SvRulesLine5, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine6[0])
-			AddVotePrefix(g_Config.m_SvRulesLine6, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine7[0])
-			AddVotePrefix(g_Config.m_SvRulesLine7, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine8[0])
-			AddVotePrefix(g_Config.m_SvRulesLine8, PREFIX_LONG_LINE);
-		if(g_Config.m_SvRulesLine9[0])
-			AddVotePrefix(g_Config.m_SvRulesLine9, PREFIX_LONG_LINE);
+		if (g_Config.m_SvDDRaceRules)
+		{
+			AddVotePrefix("Be nice.", PREFIX_LONG_LINE);
+		}
+		else
+		{
+			for(auto &pRuleLine : apRuleLines)
+			{
+				if(pRuleLine[0])
+				{
+					AddVotePrefix(pRuleLine, PREFIX_LONG_LINE);
+					Printed = true;
+				}
+			}
+			if(!Printed)
+			{
+				AddVotePrefix("No Rules Defined.", PREFIX_LONG_LINE);
+			}
+		}
 		AddVoteText("╰────────────────────");
-		AddVoteSeparator();
+		if(!g_Config.m_SvVoteMenuServerInfoRulesOnly)
+			return;
 
+		AddVoteSeparator();
 		AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
 		AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
 		AddVotePrefix(SERVER_INFO_CONTRIBUTE, PREFIX_ARROWHEAD);

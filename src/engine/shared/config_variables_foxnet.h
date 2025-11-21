@@ -19,6 +19,8 @@ MACRO_CONFIG_INT(SvFoxNetType, sv_foxnet_type, 0, 0, 2, CFGFLAG_SERVER | CFGFLAG
 MACRO_CONFIG_INT(SvRandomMapVoteOnStart, sv_random_map_vote_on_start, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Call a random map vote on server startup")
 MACRO_CONFIG_INT(SvVoteSkipPrefix, sv_vote_skip_prefix, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Skips Prefixes for the vote message when calling a vote")
 
+MACRO_CONFIG_INT(SvVoteMenuServerInfoRulesOnly, sv_votemenu_serverinfo_rules_only, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to only show rules in the server info tab")
+
 // Accounts & Currency
 MACRO_CONFIG_INT(SvAccounts, sv_accounts, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Enable optional player accounts")
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
