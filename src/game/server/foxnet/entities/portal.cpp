@@ -175,8 +175,8 @@ void CPortal::HandleTele()
 
 		if(InP0 || InP1)
 		{
-			bool &Can = m_aCanTeleport[ClientId];
-			if(!Can)
+			bool &CanTele = m_aCanTeleport[ClientId];
+			if(!CanTele)
 				continue;
 
 			const vec2 Target = InP0 ? m_aData[1].m_Pos : m_aData[0].m_Pos;
@@ -195,9 +195,9 @@ void CPortal::HandleTele()
 				if(pOtherChr->Core()->HookedPlayer() == ClientId)
 					pOtherChr->ReleaseHook();
 			}
-			Can = false;
+			CanTele = false;
 
-			if(distance(m_aData[0].m_Pos, m_aData[1].m_Pos) > 550.0f)
+			if(distance(m_aData[0].m_Pos, m_aData[1].m_Pos) > 650.0f)
 			{
 				GameServer()->CreateSound(m_aData[0].m_Pos, SOUND_WEAPON_SPAWN, pChr->TeamMask());
 				GameServer()->CreateSound(m_aData[1].m_Pos, SOUND_WEAPON_SPAWN, pChr->TeamMask());

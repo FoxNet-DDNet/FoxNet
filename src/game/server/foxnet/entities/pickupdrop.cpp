@@ -361,23 +361,29 @@ bool CPickupDrop::CollectItem()
 	}
 
 	float Radius = 32.0f;
-	CCharacter *pClosest = GameServer()->m_World.ClosestCharacter(m_Pos, Radius, this);
-	if(!pClosest)
-		return false;
-	if(m_Team != TEAM_SUPER && pClosest->Team() != TEAM_SUPER && m_Team != pClosest->Team())
-		return false;
-	if(pClosest->Core()->m_aWeapons[m_Type].m_Got)
-		return false;
 
-	pClosest->GiveWeapon(m_Type);
-	pClosest->SetActiveWeapon(m_Type);
-	GameServer()->CreateSound(pClosest->m_Pos, SOUND_PICKUP_HEALTH, pClosest->TeamMask());
+	const int Max = 8;
+	CCharacter *pClosest[Max];
+	int Num = GameWorld()->FindEntities(m_Pos, Radius, (CEntity **)pClosest, Max, CGameWorld::ENTTYPE_CHARACTER);
+	// find closest valid character
+	for(int i = 0; i < Num; i++)
+	{
+		if(m_Team != TEAM_SUPER && pClosest[i]->Team() != TEAM_SUPER && m_Team != pClosest[i]->Team())
+			continue;
+		if(pClosest[i]->Core()->m_aWeapons[m_Type].m_Got)
+			continue;
 
-	if(pClosest->GetPlayer())
-		GameServer()->SendWeaponPickup(pClosest->GetPlayer()->GetCid(), m_Type);
+		pClosest[i]->GiveWeapon(m_Type);
+		pClosest[i]->SetActiveWeapon(m_Type);
+		GameServer()->CreateSound(pClosest[i]->m_Pos, SOUND_PICKUP_HEALTH, pClosest[i]->TeamMask());
 
-	Reset(true);
-	return true;
+		if(pClosest[i]->GetPlayer())
+			GameServer()->SendWeaponPickup(pClosest[i]->GetPlayer()->GetCid(), m_Type);
+
+		Reset(true);
+		return true;
+	}
+	return false;
 }
 
 void CPickupDrop::HandleTiles(int Index)
