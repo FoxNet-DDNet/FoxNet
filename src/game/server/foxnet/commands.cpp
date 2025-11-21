@@ -930,7 +930,7 @@ void CGameContext::ConHideCosmetics(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	bool Set = !pPl->m_HideCosmetics;
+	bool Set = !pPl->Acc()->m_Configs.m_HideCosmetics;
 	pPl->SetHideCosmetics(Set);
 	log_info("cosmetics", "Set hide cosmetics to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
@@ -944,7 +944,7 @@ void CGameContext::ConHidePowerUps(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	bool Set = !pPl->m_HidePowerUps;
+	bool Set = !pPl->Acc()->m_Configs.m_HidePowerUps;
 	pPl->SetHidePowerUps(Set);
 	log_info("cosmetics", "Set hide powerups to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }

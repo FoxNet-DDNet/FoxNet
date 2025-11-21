@@ -221,47 +221,38 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	{
 		if(Acc.m_LoggedIn && IsOption(pVote, SETTINGS_AUTO_LOGIN))
 		{
-			if(Acc.m_Flags & ACC_FLAG_AUTOLOGIN)
-			{
-				Acc.m_Flags &= ~ACC_FLAG_AUTOLOGIN;
-				GameServer()->SendChatTarget(ClientId, "Auto Login has been disabled");
-			}
-			else
-			{
-				Acc.m_Flags |= ACC_FLAG_AUTOLOGIN;
-				GameServer()->SendChatTarget(ClientId, "Auto Login has been enabled");
-			}
+			Acc.m_Configs.m_AutoLogin = !Acc.m_Configs.m_AutoLogin;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_HIDE_COSMETICS))
 		{
-			pPl->SetHideCosmetics(!pPl->m_HideCosmetics);
+			pPl->SetHideCosmetics(!pPl->Acc()->m_Configs.m_HideCosmetics);
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_HIDE_POWERUPS))
 		{
-			pPl->SetHidePowerUps(!pPl->m_HidePowerUps);
+			pPl->SetHidePowerUps(!pPl->Acc()->m_Configs.m_HidePowerUps);
 			return true;
 		}
 
 		if(IsOption(pVote, SETTINGS_0_ROTATION))
 		{
-			Acc.m_HatItemFlags = 0;
+			Acc.m_Configs.m_HatItemFlags = 0;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_90_ROTATION))
 		{
-			Acc.m_HatItemFlags = PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			Acc.m_Configs.m_HatItemFlags = PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_180_ROTATION))
 		{
-			Acc.m_HatItemFlags = PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
+			Acc.m_Configs.m_HatItemFlags = PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_270_ROTATION))
 		{
-			Acc.m_HatItemFlags = PICKUPFLAG_ROTATE;
+			Acc.m_Configs.m_HatItemFlags = PICKUPFLAG_ROTATE;
 			return true;
 		}
 	}
@@ -421,7 +412,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	else if(Page == PAGE_INVENTORY || Page == PAGE_ADMIN)
 	{
-		if(pPl->m_HideCosmetics && Page == PAGE_INVENTORY)
+		if(Acc.m_Configs.m_HideCosmetics && Page == PAGE_INVENTORY)
 		{
 			GameServer()->SendChatTarget(ClientId, "Turn on Cosmetics to enable them");
 			SetPage(ClientId, PAGE_SETTINGS);
@@ -672,7 +663,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 
 	if(Page == PAGE_SETTINGS)
 	{
-		if(pAcc->m_Flags != OldAcc.m_Flags)
+		if(memcmp(&pAcc->m_Configs, &OldAcc.m_Configs, sizeof(pAcc->m_Configs)) != 0)
 			Changes = true;
 	}
 	if(Page == PAGE_MAIN)
@@ -974,23 +965,23 @@ void CVoteMenu::SendPageVotes(int ClientId)
 
 void CVoteMenu::SendPageSettings(int ClientId)
 {
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	AddVoteText("Sᴇᴛᴛɪɴɢs");
 	if(pAcc->m_LoggedIn)
-		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Flags & ACC_FLAG_AUTOLOGIN);
-	AddVoteCheckBox(SETTINGS_HIDE_COSMETICS, pPl->m_HideCosmetics);
-	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pPl->m_HidePowerUps);
+		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
+	AddVoteCheckBox(SETTINGS_HIDE_COSMETICS, pAcc->m_Configs.m_HideCosmetics);
+	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
 
 	AddVoteSeparator();
-	if(Server()->GetClientVersion(ClientId) >= VERSION_DDNET_PICKUP_ROTATION)
+	int ClientVersion = Server()->GetClientVersion(ClientId);
+	if(ClientVersion >= VERSION_DDNET_PICKUP_ROTATION || ClientVersion == -1)
 	{
 		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
-		AddVoteCheckBox(SETTINGS_0_ROTATION, !pAcc->m_HatItemFlags);
-		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
-		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
-		AddVoteCheckBox(SETTINGS_270_ROTATION, pAcc->m_HatItemFlags == PICKUPFLAG_ROTATE);
+		AddVoteCheckBox(SETTINGS_0_ROTATION, !pAcc->m_Configs.m_HatItemFlags);
+		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
+		AddVoteCheckBox(SETTINGS_270_ROTATION, pAcc->m_Configs.m_HatItemFlags == PICKUPFLAG_ROTATE);
 	}
 }
 

@@ -1,11 +1,12 @@
 ﻿#include "persistent_data.h"
 
 #include "game/server/player.h"
+#include <game/server/foxnet/accounts.h>
 
 void CSavePlayerData::Save(CPlayer *pPl)
 {
-	m_HideCosmetics = pPl->m_HideCosmetics;
-	m_HidePowerUps = pPl->m_HidePowerUps;
+	m_HideCosmetics = pPl->Acc()->m_Configs.m_HideCosmetics;
+	m_HidePowerUps = pPl->Acc()->m_Configs.m_HidePowerUps;
 
 	m_Invisible = pPl->m_Invisible;
 	m_Vanish = pPl->m_Vanish;
@@ -26,8 +27,8 @@ void CSavePlayerData::Save(CPlayer *pPl)
 
 bool CSavePlayerData::Load(CPlayer *pPl)
 {
-	pPl->m_HideCosmetics = m_HideCosmetics;
-	pPl->m_HidePowerUps = m_HidePowerUps;
+	pPl->Acc()->m_Configs.m_HideCosmetics = m_HideCosmetics;
+	pPl->Acc()->m_Configs.m_HidePowerUps = m_HidePowerUps;
 
 	pPl->m_Invisible = m_Invisible;
 	pPl->m_Vanish = m_Vanish;

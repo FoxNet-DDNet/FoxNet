@@ -192,8 +192,6 @@ void CPlayer::FoxNetReset()
 	m_AccRegisters = 0;
 
 	m_IncludeServerInfo = -1;
-	m_HideCosmetics = false;
-	m_HidePowerUps = false;
 
 	m_ExtraPing = false;
 	m_Vanish = false;
@@ -518,7 +516,7 @@ bool CPlayer::UseItem(const char *pItemName, int Set, bool IgnoreAccount)
 		return false;
 	}
 
-	if(m_HideCosmetics)
+	if(Acc()->m_Configs.m_HideCosmetics)
 		return false;
 
 	int Value = GetItemToggle(pName);
@@ -794,7 +792,7 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 	// only send rainbow updates to people close to you, to reduce network traffic
 	if(GameServer()->m_apPlayers[SnappingClient] && !GetCharacter()->NetworkClipped(SnappingClient))
 	{
-		if(!GameServer()->m_apPlayers[SnappingClient]->m_HideCosmetics)
+		if(!GameServer()->m_aAccounts[SnappingClient].m_Configs.m_HideCosmetics)
 		{
 			pClientInfo->m_UseCustomColor = 1;
 			if(Cosmetics()->m_RainbowBody || GetCharacter()->m_IsRainbowHooked)
@@ -1020,37 +1018,14 @@ void CPlayer::SetTelekinesisImmunity(bool Active)
 
 void CPlayer::SetHideCosmetics(bool Set)
 {
-	m_HideCosmetics = Set;
-	if(!Acc()->m_LoggedIn)
-		return;
+	Acc()->m_Configs.m_HideCosmetics = Set;
 	if(Set)
-	{
-		Acc()->m_Flags |= ACC_FLAG_HIDE_COSMETICS;
-		GameServer()->SendChatTarget(m_ClientId, "Cosmetics will be hidden");
 		DisableAllCosmetics();
-	}
-	else
-	{
-		Acc()->m_Flags &= ~ACC_FLAG_HIDE_COSMETICS;
-		GameServer()->SendChatTarget(m_ClientId, "Cosmetics will show");
-	}
 }
 
 void CPlayer::SetHidePowerUps(bool Set)
 {
-	m_HidePowerUps = Set;
-	if(!Acc()->m_LoggedIn)
-		return;
-	if(Set)
-	{
-		Acc()->m_Flags |= ACC_FLAG_HIDE_POWERUPS;
-		GameServer()->SendChatTarget(m_ClientId, "PowerUps will be hidden");
-	}
-	else
-	{
-		Acc()->m_Flags &= ~ACC_FLAG_HIDE_POWERUPS;
-		GameServer()->SendChatTarget(m_ClientId, "PowerUps will show");
-	}
+	Acc()->m_Configs.m_HidePowerUps = Set;
 }
 
 static const char *GetAbilityName(int Type)

@@ -1496,12 +1496,12 @@ CClientMask CGameTeams::CosmeticMask(int Team, int ExceptId, int Asker, int Vers
 
 		if(!Opposite)
 		{
-			if(GetPlayer(ClientId)->m_HideCosmetics)
+			if(GetPlayer(ClientId)->Acc()->m_Configs.m_HideCosmetics)
 				continue;
 		}
 		else
 		{
-			if(!GetPlayer(ClientId)->m_HideCosmetics)
+			if(!GetPlayer(ClientId)->Acc()->m_Configs.m_HideCosmetics)
 				continue;
 		}
 

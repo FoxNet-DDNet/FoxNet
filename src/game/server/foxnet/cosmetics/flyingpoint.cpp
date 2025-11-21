@@ -79,18 +79,15 @@ void CFlyingPoint::Snap(int SnappingClient)
 		return;
 
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
 	if(!pOwnerChar || !pSnapPlayer)
 		return;
 
-	// if(pSnapPlayer->m_HideCosmetics)
+	// if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
 	//	return;
 
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	const int Team = pOwnerChar->Team();
-
-	if(!Teams.SetMask(SnappingClient, Team))
+	if(!pOwnerChar->TeamMask().test(SnappingClient))
 		return;
 
 	if(pOwnerChar->IsPaused())

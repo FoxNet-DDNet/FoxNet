@@ -620,11 +620,6 @@ void CGameContext::OnLogin(int ClientId)
 	CPlayer *pPl = m_apPlayers[ClientId];
 	if(!pPl)
 		return;
-	const int Flags = pPl->Acc()->m_Flags;
-	if(Flags & ACC_FLAG_HIDE_COSMETICS)
-		pPl->m_HideCosmetics = true;
-	if(Flags & ACC_FLAG_HIDE_POWERUPS)
-		pPl->m_HidePowerUps = true;
 
 	pPl->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
@@ -1160,7 +1155,7 @@ void CGameContext::OnCollectPowerup(int ClientId, const SPowerupData *pData) con
 		return;
 	}
 
-	const char *pMessage = pPlayer->m_HidePowerUps ? "" : "for collecting a PowerUp!";
+	const char *pMessage = pPlayer->Acc()->m_Configs.m_HidePowerUps ? "" : "for collecting a PowerUp!";
 
 	switch(pData->m_Type)
 	{

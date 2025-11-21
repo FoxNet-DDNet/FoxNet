@@ -95,7 +95,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 {
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS foxnet_accounts ("
-		"  Version INTEGER NOT NULL DEFAULT 4, "
+		"  Version INTEGER NOT NULL DEFAULT 5, "
 		"  Username VARCHAR(32) COLLATE %s NOT NULL, "
 		"  Password VARCHAR(128) COLLATE %s NOT NULL, "
 		"  RegisterDate %s NOT NULL, "
@@ -107,7 +107,6 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  LastLogin %s DEFAULT 0, "
 		"  Port INTEGER DEFAULT 0, "
 		"  ClientId INTEGER DEFAULT -1, "
-		"  Flags INTEGER DEFAULT -1, "
 		"  Playtime %s DEFAULT 0, "
 		"  Deaths %s DEFAULT 0, "
 		"  Kills %s DEFAULT 0, "
@@ -115,7 +114,6 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  XP INTEGER DEFAULT 0, "
 		"  Money %s DEFAULT 0, "
 		"  Disabled BOOL DEFAULT %s, "
-		"  HatItemFlags INTEGER DEFAULT 0, "
 		"  PRIMARY KEY (Username)"
 		")",
 		BinaryCollate(),
@@ -174,5 +172,19 @@ void IDbConnection::FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSi
 		BinaryCollate(),
 		BinaryCollate(),
 		BinaryCollate());
+}
+
+void IDbConnection::FormatCreateAccountConfig(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_account_config ("
+		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
+		"  `Key` VARCHAR(64) COLLATE %s NOT NULL,"
+		"  Value TEXT COLLATE %s NOT NULL,"
+		"  Type VARCHAR(8) COLLATE %s NOT NULL DEFAULT 'str'," // 'str','int','float','bool','json'
+		"  UpdatedAt %s NOT NULL DEFAULT 0,"
+		"  PRIMARY KEY (Username, `Key`)"
+		")",
+		BinaryCollate(), BinaryCollate(), BinaryCollate(), BinaryCollate(), Int64Type());
 }
 // FoxNet>

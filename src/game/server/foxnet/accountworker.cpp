@@ -185,6 +185,7 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	int Num = 0;
 	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
 }
+
 static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &MailBox, char *pError, int ErrorSize)
 {
 	MailBox.Clear();
@@ -213,20 +214,161 @@ static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &Ma
 	return true;
 }
 
+static bool UpsertConfigBool(IDbConnection *pSql, const char *pUsername, const char *pKey, bool Value, char *pError, int ErrorSize)
+{
+	{
+		char aIns[256];
+		str_format(aIns, sizeof(aIns),
+			"%s INTO foxnet_account_config (Username, `Key`, Value, Type, UpdatedAt) "
+			"VALUES (?, ?, ?, 'bool', ?)",
+			pSql->InsertIgnore());
+		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
+			return false;
+
+		char aVal[2] = {Value ? '1' : '0', 0};
+		int64_t Now = (int64_t)time(0);
+		int Param = 1;
+		pSql->BindString(Param++, pUsername);
+		pSql->BindString(Param++, pKey);
+		pSql->BindString(Param++, aVal);
+		pSql->BindInt64(Param++, Now);
+
+		int Num = 0;
+		if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
+			return false;
+	}
+
+	{
+		char aUpd[256];
+		str_copy(aUpd,
+			"UPDATE foxnet_account_config "
+			"SET Value = ?, Type = 'bool', UpdatedAt = ? "
+			"WHERE Username = ? AND `Key` = ?",
+			sizeof(aUpd));
+		if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
+			return false;
+
+		char aVal[2] = {Value ? '1' : '0', 0};
+		int64_t Now = (int64_t)time(0);
+		int Param = 1;
+		pSql->BindString(Param++, aVal);
+		pSql->BindInt64(Param++, Now);
+		pSql->BindString(Param++, pUsername);
+		pSql->BindString(Param++, pKey);
+
+		int Num = 0;
+		if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
+			return false;
+	}
+	return true;
+}
+
+static bool UpserConfigInteger(IDbConnection *pSql, const char *pUsername, const char *pKey, int Value, char *pError, int ErrorSize)
+{
+	{
+		char aIns[256];
+		str_format(aIns, sizeof(aIns),
+			"%s INTO foxnet_account_config (Username, `Key`, Value, Type, UpdatedAt) "
+			"VALUES (?, ?, ?, 'integer', ?)",
+			pSql->InsertIgnore());
+		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
+			return false;
+		int64_t Now = (int64_t)time(0);
+		int Param = 1;
+		pSql->BindString(Param++, pUsername);
+		pSql->BindString(Param++, pKey);
+		pSql->BindInt(Param++, Value);
+		pSql->BindInt64(Param++, Now);
+		int Num = 0;
+		if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
+			return false;
+	}
+	{
+		char aUpd[256];
+		str_copy(aUpd,
+			"UPDATE foxnet_account_config "
+			"SET Value = ?, Type = 'integer', UpdatedAt = ? "
+			"WHERE Username = ? AND `Key` = ?",
+			sizeof(aUpd));
+		if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
+			return false;
+		int64_t Now = (int64_t)time(0);
+		int Param = 1;
+		pSql->BindInt(Param++, Value);
+		pSql->BindInt64(Param++, Now);
+		pSql->BindString(Param++, pUsername);
+		pSql->BindString(Param++, pKey);
+		int Num = 0;
+		if(!pSql->ExecuteUpdate(&Num, pError, ErrorSize))
+			return false;
+	}
+	return true;
+}	
+
+static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs &Configs, char *pError, int ErrorSize)
+{
+	char aSel[256];
+	str_copy(aSel,
+		"SELECT `Key`, Value "
+		"FROM foxnet_account_config "
+		"WHERE Username = ?",
+		sizeof(aSel));
+	if(!pSql->PrepareStatement(aSel, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pUsername);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	while(!End)
+	{
+		char aKey[65] = {0};
+		pSql->GetString(1, aKey, sizeof(aKey));
+		const int Value = pSql->GetInt(2);
+		const bool On = Value != 0;
+
+		if(!str_comp(aKey, g_apAccConfigNames[CONFIG_AUTLOGIN]))
+			Configs.m_AutoLogin = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDECOSMETICS]))
+			Configs.m_HideCosmetics = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDEPOWERUPS]))
+			Configs.m_HidePowerUps = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HATITEMFLAGS]))
+			Configs.m_HatItemFlags = Value;
+
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+	}
+	return true;
+}
+
+static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccConfigs &Configs, char *pError, int ErrorSize)
+{
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], Configs.m_AutoLogin, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDECOSMETICS], Configs.m_HideCosmetics, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEPOWERUPS], Configs.m_HidePowerUps, pError, ErrorSize))
+		return false;
+	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_HATITEMFLAGS], Configs.m_HatItemFlags, pError, ErrorSize))
+		return false;
+	return true;
+}
+
 bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccRegisterRequest *>(pData);
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
 
 	char aSql[256];
-	str_copy(aSql, "INSERT INTO foxnet_accounts (Username, Password, RegisterDate, Flags) VALUES (?, ?, ?, ?)", sizeof(aSql));
+	str_copy(aSql, "INSERT INTO foxnet_accounts (Username, Password, RegisterDate) VALUES (?, ?, ?)", sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 
 	pSql->BindString(1, pReq->m_aUsername);
 	pSql->BindString(2, pReq->m_PasswordHash);
 	pSql->BindInt64(3, pReq->m_RegisterDate);
-	pSql->BindInt64(4, ACC_FLAG_AUTOLOGIN);
 
 	int NumUpdated = 0;
 	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
@@ -234,6 +376,14 @@ bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write
 
 	pRes->m_Success = NumUpdated == 1;
 	pRes->m_Completed.store(true);
+
+	if(pRes->m_Success)
+	{ 
+		// Defaults
+		if(!UpsertConfigBool(pSql, pReq->m_aUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], true, pError, ErrorSize))
+			return false;
+	}
+
 	return true;
 }
 
@@ -245,8 +395,8 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled, HatItemFlags "
+		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
+		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE Username = ? AND Password = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -261,31 +411,32 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 
 	if(!End)
 	{
-		pSql->GetString(1, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(2);
-		pSql->GetString(3, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
-		pSql->GetString(4, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
-		pSql->GetString(5, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
-		pSql->GetString(6, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(7);
-		pRes->m_LastLogin = pSql->GetInt64(8);
-		pRes->m_Port = pSql->GetInt(9);
-		pRes->m_ClientId = pSql->GetInt(10);
-		pRes->m_Flags = pSql->GetInt64(11);
-		pRes->m_Playtime = pSql->GetInt64(12);
-		pRes->m_Deaths = pSql->GetInt64(13);
-		pRes->m_Kills = pSql->GetInt64(14);
-		pRes->m_Level = pSql->GetInt64(15);
-		pRes->m_XP = pSql->GetInt64(16);
-		pRes->m_Money = pSql->GetInt64(17);
-		pRes->m_Disabled = pSql->GetInt(18);
-		pRes->m_HatItemFlags = pSql->GetInt(19);
+		int Param = 1;
+		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
+		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
+		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
+		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
+		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
+		pRes->m_LoggedIn = pSql->GetInt(Param++);
+		pRes->m_LastLogin = pSql->GetInt64(Param++);
+		pRes->m_Port = pSql->GetInt(Param++);
+		pRes->m_ClientId = pSql->GetInt(Param++);
+		pRes->m_Playtime = pSql->GetInt64(Param++);
+		pRes->m_Deaths = pSql->GetInt64(Param++);
+		pRes->m_Kills = pSql->GetInt64(Param++);
+		pRes->m_Level = pSql->GetInt64(Param++);
+		pRes->m_XP = pSql->GetInt64(Param++);
+		pRes->m_Money = pSql->GetInt64(Param++);
+		pRes->m_Disabled = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 		pRes->m_Inventory.Reset();
 	}
 	if(pRes->m_Found)
 	{
+		if(!LoadConfigs(pSql, pRes->m_aUsername, pRes->m_Configs, pError, ErrorSize))
+			return false;
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
 			return false;
 		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))
@@ -327,6 +478,9 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 {
 	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
 
+	if(!SaveConfigs(pSql, pReq->m_aUsername, pReq->m_Configs, pError, ErrorSize))
+		return false;
+
 	// Upsert owned items first (ensures inventory rows exist)
 	{
 		for(int i = 0; i < NUM_ITEMS; i++)
@@ -361,21 +515,20 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		"UPDATE foxnet_accounts "
 		"SET LoggedIn = 0, Port = 0, ClientId = -1, "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
-		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ?, HatItemFlags = ? "
+		"    Playtime = ?, Deaths = ?, Kills = ?, "
+		"    Level = ?, XP = ?, Money = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
-	pSql->BindInt64(1, pReq->m_Flags);
-	pSql->BindInt64(2, pReq->m_Playtime);
-	pSql->BindInt64(3, pReq->m_Deaths);
-	pSql->BindInt64(4, pReq->m_Kills);
-	pSql->BindInt64(5, pReq->m_Level);
-	pSql->BindInt64(6, pReq->m_XP);
-	pSql->BindInt64(7, pReq->m_Money);
-	pSql->BindInt(8, pReq->m_HatItemFlags);
-	pSql->BindString(9, pReq->m_aUsername);
+	int Param = 1;
+	pSql->BindInt64(Param++, pReq->m_Playtime);
+	pSql->BindInt64(Param++, pReq->m_Deaths);
+	pSql->BindInt64(Param++, pReq->m_Kills);
+	pSql->BindInt64(Param++, pReq->m_Level);
+	pSql->BindInt64(Param++, pReq->m_XP);
+	pSql->BindInt64(Param++, pReq->m_Money);
+	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -383,6 +536,9 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
+
+	if(!SaveConfigs(pSql, pReq->m_aUsername, pReq->m_Configs, pError, ErrorSize))
+		return false;
 
 	// Upsert owned items (cheap, idempotent)
 	{
@@ -416,21 +572,19 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
 		"SET LastPlayerName = PlayerName, LastIP = CurrentIP, "
-		"    Flags = ?, Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ?, HatItemFlags = ? "
+		"     Playtime = ?, Deaths = ?, Kills = ?, "
+		"    Level = ?, XP = ?, Money = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	int Param = 1;
-	pSql->BindInt64(Param++, pReq->m_Flags);
 	pSql->BindInt64(Param++, pReq->m_Playtime);
 	pSql->BindInt64(Param++, pReq->m_Deaths);
 	pSql->BindInt64(Param++, pReq->m_Kills);
 	pSql->BindInt64(Param++, pReq->m_Level);
 	pSql->BindInt64(Param++, pReq->m_XP);
 	pSql->BindInt64(Param++, pReq->m_Money);
-	pSql->BindInt(Param++, pReq->m_HatItemFlags);
 	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
@@ -459,8 +613,8 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled, HatItemFlags "
+		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
+		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE LastPlayerName = ?"
 		"ORDER BY LastLogin DESC "
 		"LIMIT 1",
@@ -486,7 +640,6 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_LastLogin = pSql->GetInt64(Param++);
 		pRes->m_Port = pSql->GetInt(Param++);
 		pRes->m_ClientId = pSql->GetInt(Param++);
-		pRes->m_Flags = pSql->GetInt64(Param++);
 		pRes->m_Playtime = pSql->GetInt64(Param++);
 		pRes->m_Deaths = pSql->GetInt64(Param++);
 		pRes->m_Kills = pSql->GetInt64(Param++);
@@ -494,10 +647,11 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_XP = pSql->GetInt64(Param++);
 		pRes->m_Money = pSql->GetInt64(Param++);
 		pRes->m_Disabled = pSql->GetInt(Param++);
-		pRes->m_HatItemFlags = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
+		if(!LoadConfigs(pSql, pRes->m_aUsername, pRes->m_Configs, pError, ErrorSize))
+			return false;
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
 			return false;
 		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))
@@ -515,8 +669,8 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 	char aSql[512];
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
-		"LoggedIn, LastLogin, Port, ClientId, Flags, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled, HatItemFlags "
+		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
+		"Level, XP, Money, Disabled "
 		"FROM foxnet_accounts WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -540,7 +694,6 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_LastLogin = pSql->GetInt64(Param++);
 		pRes->m_Port = pSql->GetInt(Param++);
 		pRes->m_ClientId = pSql->GetInt(Param++);
-		pRes->m_Flags = pSql->GetInt64(Param++);
 		pRes->m_Playtime = pSql->GetInt64(Param++);
 		pRes->m_Deaths = pSql->GetInt64(Param++);
 		pRes->m_Kills = pSql->GetInt64(Param++);
@@ -548,10 +701,11 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_XP = pSql->GetInt64(Param++);
 		pRes->m_Money = pSql->GetInt64(Param++);
 		pRes->m_Disabled = pSql->GetInt(Param++);
-		pRes->m_HatItemFlags = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
+		if(!LoadConfigs(pSql, pRes->m_aUsername, pRes->m_Configs, pError, ErrorSize))
+			return false;
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
 			return false;
 		if(!LoadMailbox(pSql, pRes->m_aUsername, pRes->m_MailBox, pError, ErrorSize))

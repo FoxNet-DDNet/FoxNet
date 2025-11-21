@@ -475,8 +475,6 @@ public:
 	int GetArea() const { return m_Area; }
 
 	bool m_WeaponIndicator = true;
-	bool m_HideCosmetics = false;
-	bool m_HidePowerUps = false;
 
 	int m_AccLoginAttempts;
 	int m_AccRegisters;

@@ -134,11 +134,11 @@ void CPowerUp::Snap(int SnappingClient)
 
 	if(SnappingClient != SERVER_DEMO_CLIENT)
 	{
-		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 		if(!pSnapPlayer)
 			return;
 
-		if(pSnapPlayer->m_HidePowerUps)
+		if(pSnapPlayer->Acc()->m_Configs.m_HidePowerUps)
 			return;
 	}
 

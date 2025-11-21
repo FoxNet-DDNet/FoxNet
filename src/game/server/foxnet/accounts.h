@@ -34,6 +34,22 @@ enum
 	ACC_FLAG_HIDE_POWERUPS = 1 << 2,
 };
 
+enum Configs
+{
+	CONFIG_AUTLOGIN,
+	CONFIG_HIDECOSMETICS,
+	CONFIG_HIDEPOWERUPS,
+	CONFIG_HATITEMFLAGS,
+	NUM_CONFIGS
+};
+
+constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
+	"AutoLogin",
+	"HideCosmetics",
+	"HidePowerUps",
+	"HatItemFlags",
+};
+
 class CMailBox
 {
 public:
@@ -56,6 +72,15 @@ public:
 	}
 };
 
+class CAccConfigs
+{
+public:
+	bool m_AutoLogin = false;
+	bool m_HideCosmetics = false;
+	bool m_HidePowerUps = false;
+	int m_HatItemFlags = 0;
+};
+
 class CAccountSession
 {
 public:
@@ -69,7 +94,6 @@ public:
 	long m_LastLogin = 0;
 	int m_Port = 0;
 	int ClientId = -1;
-	long m_Flags = 0;
 	long m_Playtime = 0; // Minutes
 	long m_Deaths = 0;
 	long m_Kills = 0;
@@ -82,11 +106,11 @@ public:
 	int m_LoginTick = 0;
 	bool m_Disabled = false;
 
-	int m_HatItemFlags = 0;
-
 	CMailBox m_MailBox;
 	long m_LastMailboxFetch = 0; // unix seconds of last successful fetch
 	bool m_MailboxFetchPending = false;
+
+	CAccConfigs m_Configs;
 };
 
 struct CPendingAccResult

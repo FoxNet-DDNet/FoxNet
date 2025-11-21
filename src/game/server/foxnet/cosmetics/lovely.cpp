@@ -92,7 +92,7 @@ void CLovely::Snap(int SnappingClient)
 		return;
 
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
@@ -100,7 +100,7 @@ void CLovely::Snap(int SnappingClient)
 	if(pOwnerChr->IsPaused())
 		return;
 
-	if(pSnapPlayer->m_HideCosmetics)
+	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
 		return;
 
 	if(!pOwnerChr->TeamMask().test(SnappingClient))

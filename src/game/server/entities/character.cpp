@@ -1611,7 +1611,7 @@ void CCharacter::Snap(int SnappingClient)
 	{
 		m_Ufo.Snap(SnappingClient);
 
-		if(!SnapPlayer->m_HideCosmetics)
+		if(!SnapPlayer->Acc()->m_Configs.m_HideCosmetics)
 		{
 			if(GetPlayer()->Cosmetics()->m_Sparkle)
 				pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;

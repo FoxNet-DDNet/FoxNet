@@ -402,7 +402,7 @@ void CProjectile::Snap(int SnappingClient)
 	CNetObj_DDRaceProjectile DDRaceProjectile;
 	// <FoxNet
 	CPlayer *pSnapPl = SnappingClient >= 0 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
-	if(pOwnerChar && pSnapPl && !pSnapPl->m_HideCosmetics && m_Type == WEAPON_GUN)
+	if(pOwnerChar && pSnapPl && !pSnapPl->Acc()->m_Configs.m_HideCosmetics && m_Type == WEAPON_GUN)
 	{
 		// PrevSnapPos should be a bit behind SnapPos to make the laser look continuous
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();

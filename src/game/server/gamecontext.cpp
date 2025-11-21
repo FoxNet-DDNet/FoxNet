@@ -3,28 +3,46 @@
 #include "gamecontext.h"
 
 #include "entities/character.h"
+#include "entity.h"
+#include "foxnet/accounts.h"
+#include "foxnet/shop.h"
 #include "gamemodes/DDRace.h"
 #include "gamemodes/mod.h"
+#include "gameworld.h"
 #include "player.h"
+#include "save.h"
 #include "score.h"
+#include "teehistorian.h"
 #include "teeinfo.h"
 
 #include <antibot/antibot_data.h>
 
+#include <base/hash.h>
+#include <base/log.h>
 #include <base/logger.h>
 #include <base/math.h>
+#include <base/str.h>
 #include <base/system.h>
+#include <base/types.h>
+#include <base/vmath.h>
 
+#include <engine/antibot.h>
+#include <engine/config.h>
 #include <engine/console.h>
 #include <engine/engine.h>
 #include <engine/map.h>
+#include <engine/message.h>
+#include <engine/server.h>
 #include <engine/server/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/datafile.h>
-#include <engine/shared/json.h>
+#include <engine/shared/jsonwriter.h>
 #include <engine/shared/linereader.h>
 #include <engine/shared/memheap.h>
+#include <engine/shared/packer.h>
+#include <engine/shared/protocol.h>
 #include <engine/shared/protocolglue.h>
+#include <engine/shared/uuid_manager.h>
 #include <engine/storage.h>
 
 #include <generated/protocol.h>
@@ -33,8 +51,20 @@
 
 #include <game/collision.h>
 #include <game/gamecore.h>
+#include <game/mapbugs.h>
 #include <game/mapitems.h>
+#include <game/race_state.h>
+#include <game/teamscore.h>
 #include <game/version.h>
+#include <game/voting.h>
+
+#include <malloc.h>
+
+#include <algorithm>
+#include <iterator>
+#include <optional>
+#include <utility>
+#include <vector>
 
 // Not thread-safe!
 class CClientChatLogger : public ILogger
@@ -1776,6 +1806,7 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 	// <FoxNet
 	m_VoteMenu.OnClientDrop(ClientId);
 	m_AccountManager.Logout(ClientId);
+	m_aAccounts[ClientId] = CAccountSession(); // reset
 	// FoxNet>
 
 	AbortVoteKickOnDisconnect(ClientId);
@@ -3453,7 +3484,7 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		if(pSelf->m_apPlayers[ClientId])
-			pSelf->m_VoteMenu.SetRetryTick(ClientId, pSelf->Server()->Tick() + 2);	
+			pSelf->m_VoteMenu.SetRetryTick(ClientId, pSelf->Server()->Tick() + 2);
 	}
 }
 
@@ -4802,7 +4833,7 @@ void CGameContext::OnSetAuthed(int ClientId, int Level)
 	}
 
 	// <FoxNet
-	ClearVotes(ClientId);// Resend Pages
+	ClearVotes(ClientId); // Resend Pages
 	// FoxNet>
 }
 

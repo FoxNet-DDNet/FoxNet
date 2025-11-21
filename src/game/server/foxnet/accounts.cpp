@@ -94,7 +94,7 @@ void CAccounts::AutoLogin(int ClientId)
 			return;
 		if(str_comp(Res.m_aUsername, Name.c_str()) != 0)
 			return;
-		if(Res.m_LoggedIn || !(Res.m_Flags & ACC_FLAG_AUTOLOGIN))
+		if(Res.m_LoggedIn || !Res.m_Configs.m_AutoLogin)
 			return;
 		ForceLogin(ClientId, Res.m_aUsername, true, true);
 	});
@@ -247,8 +247,6 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_LastLogin = Now;
 		Acc.m_Port = Server()->Port();
 		Acc.ClientId = ClientId;
-		if(Res.m_Flags != -1)
-			Acc.m_Flags = Res.m_Flags;
 		Acc.m_Playtime = Res.m_Playtime;
 		Acc.m_Deaths = Res.m_Deaths;
 		Acc.m_Kills = Res.m_Kills;
@@ -257,7 +255,8 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 		Acc.m_Money = Res.m_Money;
 		Acc.m_LoginTick = Server()->Tick();
 		Acc.m_Inventory = Res.m_Inventory;
-		Acc.m_HatItemFlags = Res.m_HatItemFlags;
+
+		Acc.m_Configs = Res.m_Configs;
 
 		Acc.m_MailBox = Res.m_MailBox;
 		Acc.m_LastMailboxFetch = Now;
@@ -313,7 +312,6 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
-	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_Playtime = AccInfo.m_Playtime;
 	pReq->m_Deaths = AccInfo.m_Deaths;
 	pReq->m_Kills = AccInfo.m_Kills;
@@ -321,7 +319,7 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
-	pReq->m_HatItemFlags = AccInfo.m_HatItemFlags;
+	pReq->m_Configs = AccInfo.m_Configs;
 	m_pPool->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 
@@ -553,7 +551,6 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
-	pReq->m_Flags = AccInfo.m_Flags;
 	pReq->m_Playtime = AccInfo.m_Playtime;
 	pReq->m_Deaths = AccInfo.m_Deaths;
 	pReq->m_Kills = AccInfo.m_Kills;
@@ -561,7 +558,7 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	pReq->m_XP = AccInfo.m_XP;
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
-	pReq->m_HatItemFlags = AccInfo.m_HatItemFlags;
+	pReq->m_Configs = AccInfo.m_Configs;
 	m_pPool->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
 }
 
