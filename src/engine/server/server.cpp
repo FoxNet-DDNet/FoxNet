@@ -4490,6 +4490,7 @@ void CServer::RegisterCommands()
 	Console()->Chain("sv_spectator_slots", ConchainSpecialInfoupdate, this);
 	// <FoxNet
 	Console()->Chain("include_serverinfo", ConchainSpecialInfoupdate, this);
+	Console()->Chain("sv_foxnet_type", ConchainSpecialInfoupdate, this);
 	// FoxNet>
 
 	Console()->Chain("sv_max_clients_per_ip", ConchainMaxclientsperipUpdate, this);
