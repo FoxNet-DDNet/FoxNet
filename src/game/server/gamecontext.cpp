@@ -58,8 +58,6 @@
 #include <game/version.h>
 #include <game/voting.h>
 
-#include <malloc.h>
-
 #include <algorithm>
 #include <iterator>
 #include <optional>

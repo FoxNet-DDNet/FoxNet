@@ -4850,7 +4850,12 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 
 		if(pThis->m_aClients[ClientId].m_State == CClient::STATE_INGAME)
 		{
-			str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), pThis->m_aClients[ClientId].m_DDNetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+			int DDnetVersion = pThis->GetClientVersion(ClientId);
+			if(pThis->m_aClients[ClientId].m_GotDDNetVersionPacket)
+				str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+			else
+				str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion);
+
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "foxnet", aBuf);
 		}
 	}
