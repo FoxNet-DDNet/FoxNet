@@ -95,8 +95,20 @@ void CPowerUp::Tick()
 
 		if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
 		{
+			CClientMask TeamMask = pChr->TeamMask();
+			for(int i = 0; i < MAX_CLIENTS; i++)
+			{
+				if(!Server()->ClientIngame(i))
+					continue;
+				CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+				if(!pPlayer)
+					continue;
+				if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
+					TeamMask.set(ClientId).reset();
+			}
+
 			GameServer()->OnCollectPowerup(ClientId, &m_Data);
-			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, pChr->TeamMask());
+			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 			Reset();
 			return;
 		}

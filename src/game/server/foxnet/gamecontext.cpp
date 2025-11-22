@@ -1148,14 +1148,16 @@ void CGameContext::OnCollectPowerup(int ClientId, const SPowerupData *pData) con
 	if(!pPlayer)
 		return;
 
-	if(!pPlayer->Acc()->m_LoggedIn)
+	const bool HidePowerUps = pPlayer->Acc()->m_Configs.m_HidePowerUps;
+
+	if(!pPlayer->Acc()->m_LoggedIn && !HidePowerUps)
 	{
 		SendChatTarget(ClientId, "You need to be logged in to collect Powerups");
 		SendChatTarget(ClientId, "/register <name> <pw> <pw>");
 		return;
 	}
 
-	const char *pMessage = pPlayer->Acc()->m_Configs.m_HidePowerUps ? "" : "for collecting a PowerUp!";
+	const char *pMessage = HidePowerUps ? "" : "for collecting a PowerUp!";
 
 	switch(pData->m_Type)
 	{
