@@ -89,8 +89,8 @@ void CStaffInd::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
-		return;
+	//if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+	//	return;
 
 	if(!pOwnerChr->TeamMask().test(SnappingClient))
 		return;

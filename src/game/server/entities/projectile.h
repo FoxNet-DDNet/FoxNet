@@ -23,7 +23,7 @@ public:
 		int Layer = 0,
 		int Number = 0);
 
-	vec2 GetPos(float Time);
+	vec2 GetPos(float Time, int ClientId = -1);
 	void FillInfo(CNetObj_Projectile *pProj);
 
 	void Reset() override;

@@ -102,10 +102,10 @@ void CFirework::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+	if(!pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
+	if(m_Owner != SnappingClient && !pOwnerChr->TeamMask().test(SnappingClient))
 		return;
 
 	if(pSnapPlayer->GetCharacter() && pOwnerChr)

@@ -90,7 +90,7 @@ void CRotatingBall::Snap(int SnappingClient)
 	if(pOwnerChr->IsPaused())
 		return;
 
-	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
 	if(!pOwnerChr->TeamMask().test(SnappingClient))

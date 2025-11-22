@@ -13,6 +13,8 @@
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
 #include <game/team_state.h>
+#include "foxnet/shop.h"
+#include "foxnet/accounts.h"
 
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
@@ -1479,29 +1481,50 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 	return true;
 }
 
-CClientMask CGameTeams::CosmeticMask(int Team, int ExceptId, int Asker, int VersionFlags, bool Opposite)
+CClientMask CGameTeams::CosmeticMask(int Team, int Asker, int Type, bool Opposite)
 {
 	if(Team == TEAM_SUPER)
-	{
-		if(ExceptId == -1)
-			return CClientMask().set();
-		return CClientMask().set().reset(ExceptId);
-	}
+		return CClientMask().set().reset(-1);
 
 	CClientMask Mask;
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
-		if(!SetMask(ClientId, Team, ExceptId, Asker, VersionFlags))
+		if(!SetMask(ClientId, Team, -1, Asker, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP))
 			continue;
+
+		if(ClientId == Asker)
+		{ 
+			if(!Opposite)
+				Mask.set(Asker);
+			continue;
+		}
+
+		CAccConfigs Configs = GetPlayer(ClientId)->Acc()->m_Configs;	
+
+		bool ShowCosmetic = false;
+		if(Type == ITEMTYPE_RAINBOW)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowRainbow;
+		else if(Type == ITEMTYPE_GUN)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowGuns;
+		else if(Type == ITEMTYPE_INDICATOR)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowIndicators;
+		else if(Type == ITEMTYPE_DEATHS)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowDeaths;
+		else if(Type == ITEMTYPE_TRAIL)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowTrails;
+		else if(Type == ITEMTYPE_HAT)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowHats;
+		else if(Type == ITEMTYPE_EFFECTS)
+			ShowCosmetic = Configs.m_Cosmetics.m_ShowEffects;
 
 		if(!Opposite)
 		{
-			if(GetPlayer(ClientId)->Acc()->m_Configs.m_HideCosmetics)
+			if(!ShowCosmetic)
 				continue;
 		}
 		else
 		{
-			if(!GetPlayer(ClientId)->Acc()->m_Configs.m_HideCosmetics)
+			if(ShowCosmetic)
 				continue;
 		}
 

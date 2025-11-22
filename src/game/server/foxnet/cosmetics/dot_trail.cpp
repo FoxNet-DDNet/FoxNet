@@ -14,6 +14,7 @@
 #include <game/server/player.h>
 #include <game/server/teams.h>
 #include <game/server/foxnet/shop.h>
+#include <base/math.h>
 
 CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
@@ -56,7 +57,7 @@ void CDotTrail::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowTrails)
 		return;
 
 	if(pOwnerChr->IsPaused())

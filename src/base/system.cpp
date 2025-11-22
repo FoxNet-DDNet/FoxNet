@@ -4300,14 +4300,15 @@ const char *ItemTypeToName(int Type)
 {
 	switch(Type)
 	{
-	case TYPE_ROLES: return "Rᴏʟᴇs";
-	case TYPE_CASES: return "Cᴀsᴇs";
-	case TYPE_RAINBOW: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
-	case TYPE_GUN: return "Gᴜɴs";
-	case TYPE_INDICATOR: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
-	case TYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
-	case TYPE_TRAIL: return "Tʀᴀɪʟs";
-	case TYPE_HAT: return "Hᴀᴛs";
+	case ITEMTYPE_ROLES: return "Rᴏʟᴇs";
+	case ITEMTYPE_CASES: return "Cᴀsᴇs";
+	case ITEMTYPE_RAINBOW: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
+	case ITEMTYPE_EFFECTS: return "Eғғᴇᴄᴛs";
+	case ITEMTYPE_GUN: return "Gᴜɴs";
+	case ITEMTYPE_INDICATOR: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
+	case ITEMTYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
+	case ITEMTYPE_TRAIL: return "Tʀᴀɪʟs";
+	case ITEMTYPE_HAT: return "Hᴀᴛs";
 	default: return "Oᴛʜᴇʀ";
 	}
 }

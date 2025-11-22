@@ -5,6 +5,8 @@
 
 #include <vector>
 
+#include <game/server/foxnet/accounts.h>
+
 class CPlayer;
 
 class CSavePlayerData
@@ -13,11 +15,10 @@ public:
 	CSavePlayerData() = default;
 	~CSavePlayerData() = default;
 	void Save(CPlayer *pPl);
-	bool Load(CPlayer *pPl);
+	bool Load(CPlayer *pPl) const;
 
 private:
-	bool m_HideCosmetics;
-	bool m_HidePowerUps;
+	CAccConfigs m_Configs;
 
 	bool m_Invisible;
 	bool m_Vanish;

@@ -330,12 +330,24 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 
 		if(!str_comp(aKey, g_apAccConfigNames[CONFIG_AUTLOGIN]))
 			Configs.m_AutoLogin = On;
-		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDECOSMETICS]))
-			Configs.m_HideCosmetics = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDEPOWERUPS]))
 			Configs.m_HidePowerUps = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HATITEMFLAGS]))
 			Configs.m_HatItemFlags = Value;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW]))
+			Configs.m_Cosmetics.m_ShowRainbow = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_GUNS]))
+			Configs.m_Cosmetics.m_ShowGuns = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_INDICATORS]))
+			Configs.m_Cosmetics.m_ShowIndicators = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_DEATHS]))
+			Configs.m_Cosmetics.m_ShowDeaths = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_TRAILS]))
+			Configs.m_Cosmetics.m_ShowTrails = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_HATS]))
+			Configs.m_Cosmetics.m_ShowHats = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_EFFECTS]))
+			Configs.m_Cosmetics.m_ShowEffects = On;
 
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
@@ -347,12 +359,25 @@ static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccCo
 {
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], Configs.m_AutoLogin, pError, ErrorSize))
 		return false;
-	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDECOSMETICS], Configs.m_HideCosmetics, pError, ErrorSize))
-		return false;
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEPOWERUPS], Configs.m_HidePowerUps, pError, ErrorSize))
 		return false;
 	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_HATITEMFLAGS], Configs.m_HatItemFlags, pError, ErrorSize))
 		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW], Configs.m_Cosmetics.m_ShowRainbow, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_GUNS], Configs.m_Cosmetics.m_ShowGuns, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_INDICATORS], Configs.m_Cosmetics.m_ShowIndicators, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_DEATHS], Configs.m_Cosmetics.m_ShowDeaths, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_TRAILS], Configs.m_Cosmetics.m_ShowTrails, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_HATS], Configs.m_Cosmetics.m_ShowHats, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_EFFECTS], Configs.m_Cosmetics.m_ShowEffects, pError, ErrorSize))
+		return false;
+
 	return true;
 }
 

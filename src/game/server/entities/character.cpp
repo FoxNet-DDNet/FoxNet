@@ -58,6 +58,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <game/server/foxnet/shop.h>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -1200,31 +1201,31 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	{
 	case DEATHTYPE_HAMMERHIT:
 	{
-		GameServer()->CreateHammerHit(m_Pos, CosmeticMask());
-		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CosmeticMask());
+		GameServer()->CreateHammerHit(m_Pos, CosmeticMask(ITEMTYPE_DEATHS));
+		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CosmeticMask(ITEMTYPE_DEATHS));
 		break;
 	}
 	case DEATHTYPE_EXPLOSION:
 	{
-		GameServer()->Explosion(m_Pos, CosmeticMask());
-		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, CosmeticMask());
+		GameServer()->Explosion(m_Pos, CosmeticMask(ITEMTYPE_DEATHS));
+		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, CosmeticMask(ITEMTYPE_DEATHS));
 		break;
 	}
 	case DEATHTYPE_LASER:
 	{
-		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask());
+		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask(ITEMTYPE_DEATHS));
 		break;
 	}
 	case DEATHTYPE_DAMAGEIND:
 	{
 		for(int i = 0; i < 8; i++)
-			GameServer()->CreateDamageInd(m_Pos, 0.84f + (i * 0.76f), 1, CosmeticMask());
+			GameServer()->CreateDamageInd(m_Pos, 0.84f + (i * 0.76f), 1, CosmeticMask(ITEMTYPE_DEATHS));
 		break;
 	}
-	case DEATHTYPE_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask()); break;
+	case DEATHTYPE_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(ITEMTYPE_DEATHS)); break;
 	}
 	// This only gets created if a player has cosmetics turned off
-	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask());
+	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask(ITEMTYPE_DEATHS));
 	// FoxNet>
 
 	// this is to rate limit respawning to 3 secs
@@ -1611,7 +1612,7 @@ void CCharacter::Snap(int SnappingClient)
 	{
 		m_Ufo.Snap(SnappingClient);
 
-		if(!SnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+		if(SnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		{
 			if(GetPlayer()->Cosmetics()->m_Sparkle)
 				pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
@@ -3000,13 +3001,13 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 	m_Ufo.OnPlayerDeath();
 }
 
-CClientMask CCharacter::CosmeticMask()
+CClientMask CCharacter::CosmeticMask(int Type)
 {
-	return Teams()->CosmeticMask(Team(), -1, GetPlayer()->GetCid(), 3, false);
+	return Teams()->CosmeticMask(Team(), GetPlayer()->GetCid(), Type, false);
 }
-CClientMask CCharacter::OppositeCosmeticMask()
+CClientMask CCharacter::OppositeCosmeticMask(int Type)
 {
-	return Teams()->CosmeticMask(Team(), -1, GetPlayer()->GetCid(), 3, true);
+	return Teams()->CosmeticMask(Team(), GetPlayer()->GetCid(), Type, true);
 }
 
 void CCharacter::FoxNetTick()
@@ -3042,12 +3043,12 @@ void CCharacter::FoxNetTick()
 	{
 		if(GetPlayer()->Cosmetics()->m_StrongBloody)
 		{
-			GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
+			GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask(ITEMTYPE_EFFECTS));
 		}
 		else if(GetPlayer()->Cosmetics()->m_Bloody || GetPowerHooked() == HOOKTYPE_BLOODY)
 		{
 			if(Server()->Tick() % 6 == 0)
-				GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask());
+				GameServer()->CreateDeath(m_Pos, GetPlayer()->GetCid(), CosmeticMask(ITEMTYPE_EFFECTS));
 		}
 	}
 
@@ -3055,7 +3056,7 @@ void CCharacter::FoxNetTick()
 	bool Moving = m_Pos != m_PrevPos && GetVelocity() != vec2(0, 0);
 
 	if(GetPlayer()->Cosmetics()->m_Trail == TRAILTYPE_STAR && Moving && Server()->Tick() % 20 == 0) // every second
-		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask());
+		GameServer()->CreateDamageInd(m_Pos, Angle, 1, CosmeticMask(ITEMTYPE_TRAIL));
 
 	if(GetPlayer()->m_SpiderHook)
 	{
@@ -3252,12 +3253,12 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 		int GunType = GetPlayer()->Cosmetics()->m_GunType;
 
 		if(GunType == GUNTYPE_HEART || GunType == GUNTYPE_MIXED)
-			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask());
+			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask(ITEMTYPE_GUN));
 		else if(GunType == GUNTYPE_LASER)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask());
+			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask(ITEMTYPE_GUN));
 		else
-			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask());
-		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppositeCosmeticMask());
+			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask(ITEMTYPE_GUN));
+		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppositeCosmeticMask(ITEMTYPE_GUN));
 	}
 }
 

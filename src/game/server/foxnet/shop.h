@@ -104,16 +104,16 @@ constexpr const char *Items[NUM_ITEMS] = {
 
 enum ItemTypes
 {
-	TYPE_ROLES,
-	TYPE_CASES,
-	TYPE_RAINBOW,
-	TYPE_GUN,
-	TYPE_INDICATOR,
-	TYPE_DEATHS,
-	TYPE_TRAIL,
-	TYPE_HAT,
-	TYPE_OTHER,
-	NUM_TYPES
+	ITEMTYPE_ROLES,
+	ITEMTYPE_CASES,
+	ITEMTYPE_RAINBOW,
+	ITEMTYPE_GUN,
+	ITEMTYPE_INDICATOR,
+	ITEMTYPE_DEATHS,
+	ITEMTYPE_TRAIL,
+	ITEMTYPE_HAT,
+	ITEMTYPE_EFFECTS,
+	NUM_ITEMTYPES
 };
 
 enum ItemSubTypes
@@ -179,7 +179,7 @@ public:
 		m_Rarity = Rarity;
 		m_Stars = Stars;
 		m_Toggleable = Toggleable;
-		if(ItemType == TYPE_CASES)
+		if(ItemType == ITEMTYPE_CASES)
 			m_OneTimeUse = true;
 	}
 

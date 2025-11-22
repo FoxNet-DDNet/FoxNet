@@ -94,7 +94,7 @@ void CHeadItem::Snap(int SnappingClient)
 
 	if(m_Type != HEADITEM_SPAWNSOLO)
 	{
-		if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+		if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
 			return;
 
 		if(pOwnerChr->IsPaused())

@@ -37,17 +37,30 @@ enum
 enum Configs
 {
 	CONFIG_AUTLOGIN,
-	CONFIG_HIDECOSMETICS,
 	CONFIG_HIDEPOWERUPS,
 	CONFIG_HATITEMFLAGS,
+	CONFIG_COSMETIC_RAINBOW,
+	CONFIG_COSMETIC_GUNS,
+	CONFIG_COSMETIC_INDICATORS,
+	CONFIG_COSMETIC_DEATHS,
+	CONFIG_COSMETIC_TRAILS,
+	CONFIG_COSMETIC_HATS,
+	CONFIG_COSMETIC_EFFECTS,
 	NUM_CONFIGS
 };
 
 constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
 	"AutoLogin",
-	"HideCosmetics",
 	"HidePowerUps",
 	"HatItemFlags",
+
+	"CosmeticShowRainbow",
+	"CosmeticShowGuns",
+	"CosmeticShowIndicators",
+	"CosmeticShowDeaths",
+	"CosmeticShowTrails",
+	"CosmeticShowHats",
+	"CosmeticShowEffects",
 };
 
 class CMailBox
@@ -74,11 +87,23 @@ public:
 
 class CAccConfigs
 {
+
 public:
 	bool m_AutoLogin = false;
-	bool m_HideCosmetics = false;
 	bool m_HidePowerUps = false;
 	int m_HatItemFlags = 0;
+
+	class CCosmeticConfig
+	{
+	public:
+		bool m_ShowRainbow = true;
+		bool m_ShowGuns = true;
+		bool m_ShowIndicators = true;
+		bool m_ShowDeaths = true;
+		bool m_ShowTrails = true;
+		bool m_ShowHats = true;
+		bool m_ShowEffects = true;
+	} m_Cosmetics;
 };
 
 class CAccountSession

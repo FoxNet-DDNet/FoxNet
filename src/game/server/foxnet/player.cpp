@@ -481,7 +481,7 @@ bool CPlayer::ReachedItemLimit(const CItem *pItem)
 		if(pItem->SubType() != SUBTYPE_NONE && pOtherItem->SubType() == pItem->SubType())
 			continue;
 
-		if(pItem->Type() == TYPE_CASES || pItem->Type() == TYPE_ROLES)
+		if(pItem->Type() == ITEMTYPE_CASES || pItem->Type() == ITEMTYPE_ROLES)
 			continue;
 
 		if(pItem == pOtherItem)
@@ -507,7 +507,7 @@ bool CPlayer::UseItem(const char *pItemName, int Set, bool IgnoreAccount)
 	if(!OwnsItem(pName) && !IgnoreAccount)
 		return false;
 
-	if(pItem->Type() == TYPE_CASES)
+	if(pItem->Type() == ITEMTYPE_CASES)
 		return OpenLootCase(pItem);
 
 	if(!g_Config.m_SvCosmetics)
@@ -516,8 +516,8 @@ bool CPlayer::UseItem(const char *pItemName, int Set, bool IgnoreAccount)
 		return false;
 	}
 
-	if(Acc()->m_Configs.m_HideCosmetics)
-		return false;
+	//if(Acc()->m_Configs.m_HideCosmetics)
+	//	return false;
 
 	int Value = GetItemToggle(pName);
 	if(Value == -1 && Set == -1)
@@ -639,7 +639,7 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 	int MaxStars = 1;
 	for(CItem *pOther : GameServer()->m_Shop.m_Items)
 	{
-		if(pOther->Type() == TYPE_CASES)
+		if(pOther->Type() == ITEMTYPE_CASES)
 			continue;
 
 		if(!IsExotic && pOther->Rarity() != CaseRarity)
@@ -792,7 +792,7 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 	// only send rainbow updates to people close to you, to reduce network traffic
 	if(GameServer()->m_apPlayers[SnappingClient] && !GetCharacter()->NetworkClipped(SnappingClient))
 	{
-		if(!GameServer()->m_aAccounts[SnappingClient].m_Configs.m_HideCosmetics)
+		if(GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
 		{
 			pClientInfo->m_UseCustomColor = 1;
 			if(Cosmetics()->m_RainbowBody || GetCharacter()->m_IsRainbowHooked)
@@ -1014,13 +1014,6 @@ void CPlayer::SetObfuscated(bool Set)
 void CPlayer::SetTelekinesisImmunity(bool Active)
 {
 	m_TelekinesisImmunity = Active;
-}
-
-void CPlayer::SetHideCosmetics(bool Set)
-{
-	Acc()->m_Configs.m_HideCosmetics = Set;
-	if(Set)
-		DisableAllCosmetics();
 }
 
 void CPlayer::SetHidePowerUps(bool Set)

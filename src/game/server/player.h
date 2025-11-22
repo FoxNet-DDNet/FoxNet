@@ -520,7 +520,7 @@ public:
 	void SetAbility(int Type);
 
 	// Player Settings
-	void SetHideCosmetics(bool Set);
+	// void SetHideCosmetics(bool Set);
 	void SetHidePowerUps(bool Set);
 
 	// Death Effect

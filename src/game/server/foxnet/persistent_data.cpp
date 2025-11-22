@@ -5,8 +5,7 @@
 
 void CSavePlayerData::Save(CPlayer *pPl)
 {
-	m_HideCosmetics = pPl->Acc()->m_Configs.m_HideCosmetics;
-	m_HidePowerUps = pPl->Acc()->m_Configs.m_HidePowerUps;
+	m_Configs = pPl->Acc()->m_Configs;
 
 	m_Invisible = pPl->m_Invisible;
 	m_Vanish = pPl->m_Vanish;
@@ -25,10 +24,9 @@ void CSavePlayerData::Save(CPlayer *pPl)
 	m_SubPage = pPl->GetSubPage();
 }
 
-bool CSavePlayerData::Load(CPlayer *pPl)
+bool CSavePlayerData::Load(CPlayer *pPl) const
 {
-	pPl->Acc()->m_Configs.m_HideCosmetics = m_HideCosmetics;
-	pPl->Acc()->m_Configs.m_HidePowerUps = m_HidePowerUps;
+	pPl->Acc()->m_Configs = m_Configs;
 
 	pPl->m_Invisible = m_Invisible;
 	pPl->m_Vanish = m_Vanish;

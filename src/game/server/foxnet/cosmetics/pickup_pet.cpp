@@ -79,7 +79,7 @@ void CPickupPet::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
+	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
 	if(!pOwnerChr->TeamMask().test(SnappingClient))

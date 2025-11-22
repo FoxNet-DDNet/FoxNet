@@ -3,15 +3,28 @@
 #include "projectile.h"
 
 #include "character.h"
-#include "../player.h"
 
+#include <base/math.h>
+#include <base/system.h>
+#include <base/vmath.h>
+
+#include <engine/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
+#include <game/gamecore.h>
 #include <game/mapitems.h>
+#include <game/server/entity.h>
+#include <game/server/foxnet/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/DDRace.h>
+#include <game/server/player.h>
+
+#include <array>
+#include <cmath>
+#include <utility>
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,
@@ -80,7 +93,7 @@ void CProjectile::Reset()
 	}
 }
 
-vec2 CProjectile::GetPos(float Time)
+vec2 CProjectile::GetPos(float Time, int ClientId)
 {
 	float Curvature = 0;
 	float Speed = 0;
@@ -102,8 +115,10 @@ vec2 CProjectile::GetPos(float Time)
 		Curvature = pTuning->m_GunCurvature;
 		Speed = pTuning->m_GunSpeed;
 
-		if(m_LaserGun || m_HeartGun || m_MixedGun)
-			Speed = 1100.0f;
+		CPlayer *pSnapPl = ClientId >= 0 ? GameServer()->m_apPlayers[ClientId] : nullptr;
+		if(pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || ClientId == m_Owner))
+			if(m_LaserGun || m_HeartGun || m_MixedGun)
+				Speed = 1100.0f;
 		break;
 	}
 
@@ -141,7 +156,7 @@ void CProjectile::Tick()
 
 	if(m_LifeSpan > -1)
 		m_LifeSpan--;
-	
+
 	CClientMask TeamMask = CClientMask().set();
 	bool IsWeaponCollide = false;
 	if(
@@ -313,7 +328,7 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 	bool CreateDmgInd = true;
 
 	vec2 Direction = normalize(NewPos - PrevPos);
-	if(Direction == vec2(0,0))
+	if(Direction == vec2(0, 0))
 		Direction = m_Direction;
 
 	if(pOwnerChr)
@@ -332,7 +347,7 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 	if(PhaseGun && !pTargetChr)
 		CreateDmgInd = false;
 
-	CClientMask CosmMask = pOwnerChr ? pOwnerChr->CosmeticMask() : Mask;
+	CClientMask CosmMask = pOwnerChr ? pOwnerChr->CosmeticMask(ITEMTYPE_GUN) : Mask;
 
 	if(CreateDmgInd)
 	{
@@ -347,7 +362,7 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, CosmMask);
 		}
 		if(pOwnerChr)
-			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppositeCosmeticMask());
+			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppositeCosmeticMask(ITEMTYPE_GUN));
 	}
 
 	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)
@@ -402,7 +417,7 @@ void CProjectile::Snap(int SnappingClient)
 	CNetObj_DDRaceProjectile DDRaceProjectile;
 	// <FoxNet
 	CPlayer *pSnapPl = SnappingClient >= 0 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
-	if(pOwnerChar && pSnapPl && !pSnapPl->Acc()->m_Configs.m_HideCosmetics && m_Type == WEAPON_GUN)
+	if(pOwnerChar && pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || SnappingClient == m_Owner) && m_Type == WEAPON_GUN)
 	{
 		// PrevSnapPos should be a bit behind SnapPos to make the laser look continuous
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();

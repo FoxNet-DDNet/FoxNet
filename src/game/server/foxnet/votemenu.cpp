@@ -34,8 +34,16 @@ constexpr const char *EMPTY_DESC = "";
 constexpr const char *EMPTY_DESC2 = " ";
 
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
-constexpr const char *SETTINGS_HIDE_COSMETICS = "Hide Cosmetics";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
+
+constexpr const char *SETTINGS_COSMETICS_ANY = "Any Type";
+constexpr const char *SETTINGS_COSMETICS_RAINBOW = "Rainbow";
+constexpr const char *SETTINGS_COSMETICS_GUNS = "Guns";
+constexpr const char *SETTINGS_COSMETICS_GUNHITS = "Gun Hits";
+constexpr const char *SETTINGS_COSMETICS_DEATHS = "Deaths";
+constexpr const char *SETTINGS_COSMETICS_TRAILS = "Trails";
+constexpr const char *SETTINGS_COSMETICS_HATS = "Hats";
+constexpr const char *SETTINGS_COSMETICS_EFFECTS = "Effects";
 
 constexpr const char *SETTINGS_0_ROTATION = "0°";
 constexpr const char *SETTINGS_90_ROTATION = "90°";
@@ -224,14 +232,60 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			Acc.m_Configs.m_AutoLogin = !Acc.m_Configs.m_AutoLogin;
 			return true;
 		}
-		if(IsOption(pVote, SETTINGS_HIDE_COSMETICS))
-		{
-			pPl->SetHideCosmetics(!pPl->Acc()->m_Configs.m_HideCosmetics);
-			return true;
-		}
 		if(IsOption(pVote, SETTINGS_HIDE_POWERUPS))
 		{
 			pPl->SetHidePowerUps(!pPl->Acc()->m_Configs.m_HidePowerUps);
+			return true;
+		}
+
+		if(IsOption(pVote, SETTINGS_COSMETICS_ANY))
+		{
+			bool NewState = !(Acc.m_Configs.m_Cosmetics.m_ShowRainbow && Acc.m_Configs.m_Cosmetics.m_ShowGuns &&
+							 Acc.m_Configs.m_Cosmetics.m_ShowIndicators && Acc.m_Configs.m_Cosmetics.m_ShowDeaths &&
+							 Acc.m_Configs.m_Cosmetics.m_ShowTrails && Acc.m_Configs.m_Cosmetics.m_ShowHats &&
+							 Acc.m_Configs.m_Cosmetics.m_ShowEffects);
+			Acc.m_Configs.m_Cosmetics.m_ShowRainbow = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowGuns = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowIndicators = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowDeaths = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowTrails = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowHats = NewState;
+			Acc.m_Configs.m_Cosmetics.m_ShowEffects = NewState;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_RAINBOW))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowRainbow = !Acc.m_Configs.m_Cosmetics.m_ShowRainbow;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_GUNS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowGuns = !Acc.m_Configs.m_Cosmetics.m_ShowGuns;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_GUNHITS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowIndicators = !Acc.m_Configs.m_Cosmetics.m_ShowIndicators;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_DEATHS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowDeaths = !Acc.m_Configs.m_Cosmetics.m_ShowDeaths;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_TRAILS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowTrails = !Acc.m_Configs.m_Cosmetics.m_ShowTrails;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_HATS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowHats = !Acc.m_Configs.m_Cosmetics.m_ShowHats;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_COSMETICS_EFFECTS))
+		{
+			Acc.m_Configs.m_Cosmetics.m_ShowEffects = !Acc.m_Configs.m_Cosmetics.m_ShowEffects;
 			return true;
 		}
 
@@ -372,7 +426,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(SubPage == SUB_SHOP_MAIN)
 		{
-			for(int i = 0; i < NUM_TYPES; i++)
+			for(int i = 0; i < NUM_ITEMTYPES; i++)
 			{
 				const char *pTypeName = ItemTypeToName(i);
 				if(IsOption(pVote, pTypeName))
@@ -410,16 +464,8 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 		}
 	}
-	else if(Page == PAGE_INVENTORY || Page == PAGE_ADMIN)
+	else if(Page == PAGE_INVENTORY)
 	{
-		if(Acc.m_Configs.m_HideCosmetics && Page == PAGE_INVENTORY)
-		{
-			GameServer()->SendChatTarget(ClientId, "Turn on Cosmetics to enable them");
-			SetPage(ClientId, PAGE_SETTINGS);
-			return true;
-		}
-
-		// !New Cosmetic
 		if(IsOptionWithSuffix(pVote, "Rainbow Speed"))
 		{
 			if(ReasonInt.has_value())
@@ -431,7 +477,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOptionWithSuffix(pVote, Items[EMOTICON_GUN]))
 		{
 			if(ReasonInt.has_value())
-				pPl->UseItem(Items[EMOTICON_GUN], ReasonInt.value(), Page == PAGE_ADMIN);
+				pPl->UseItem(Items[EMOTICON_GUN], ReasonInt.value());
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
@@ -967,17 +1013,29 @@ void CVoteMenu::SendPageSettings(int ClientId)
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
-	AddVoteText("Sᴇᴛᴛɪɴɢs");
+	AddVoteText("Sᴇᴛᴛɪɴɢs:");
 	if(pAcc->m_LoggedIn)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
-	AddVoteCheckBox(SETTINGS_HIDE_COSMETICS, pAcc->m_Configs.m_HideCosmetics);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
 
 	AddVoteSeparator();
+
+	AddVoteText("Sʜᴏᴡ Cᴏsᴍᴇᴛɪᴄs:");
+	AddVoteCheckBox(SETTINGS_COSMETICS_ANY, pAcc->m_Configs.m_Cosmetics.m_ShowRainbow && pAcc->m_Configs.m_Cosmetics.m_ShowGuns && pAcc->m_Configs.m_Cosmetics.m_ShowIndicators && pAcc->m_Configs.m_Cosmetics.m_ShowDeaths && pAcc->m_Configs.m_Cosmetics.m_ShowTrails && pAcc->m_Configs.m_Cosmetics.m_ShowHats && pAcc->m_Configs.m_Cosmetics.m_ShowEffects);
+	AddVoteCheckBox(SETTINGS_COSMETICS_RAINBOW, pAcc->m_Configs.m_Cosmetics.m_ShowRainbow);
+	AddVoteCheckBox(SETTINGS_COSMETICS_GUNS, pAcc->m_Configs.m_Cosmetics.m_ShowGuns);
+	AddVoteCheckBox(SETTINGS_COSMETICS_GUNHITS, pAcc->m_Configs.m_Cosmetics.m_ShowIndicators);
+	AddVoteCheckBox(SETTINGS_COSMETICS_DEATHS, pAcc->m_Configs.m_Cosmetics.m_ShowDeaths);
+	AddVoteCheckBox(SETTINGS_COSMETICS_TRAILS, pAcc->m_Configs.m_Cosmetics.m_ShowTrails);
+	AddVoteCheckBox(SETTINGS_COSMETICS_HATS, pAcc->m_Configs.m_Cosmetics.m_ShowHats);
+	AddVoteCheckBox(SETTINGS_COSMETICS_EFFECTS, pAcc->m_Configs.m_Cosmetics.m_ShowEffects);
+
 	int ClientVersion = Server()->GetClientVersion(ClientId);
 	if(ClientVersion >= VERSION_DDNET_PICKUP_ROTATION || ClientVersion == -1)
 	{
-		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ");
+		AddVoteSeparator();
+
+		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ:");
 		AddVoteCheckBox(SETTINGS_0_ROTATION, !pAcc->m_Configs.m_HatItemFlags);
 		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
 		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
@@ -1130,7 +1188,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 		std::vector<std::string> AvailableCategories;
 
-		for(int i = 0; i < NUM_TYPES; i++)
+		for(int i = 0; i < NUM_ITEMTYPES; i++)
 		{
 			const char *pTypeName = ItemTypeToName(i);
 			if(Data.m_OnlyAffordable)
@@ -1227,7 +1285,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 
 	std::vector<CVoteData> Votes;
 	int OwnedItems = 0;
-	for(int Type = 0; Type < NUM_TYPES; Type++)
+	for(int Type = 0; Type < NUM_ITEMTYPES; Type++)
 	{
 		// Type | ItemType | ItemName | VoteName
 		if(!OwnsAnyOfType(ClientId, Type))
@@ -1241,7 +1299,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			Votes.push_back(Data);
 		}
 
-		if(Type == TYPE_RAINBOW)
+		if(Type == ITEMTYPE_RAINBOW)
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;
@@ -1336,7 +1394,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			}
 		}
 
-		if(Type != NUM_TYPES - 1)
+		if(Type != NUM_ITEMTYPES - 1)
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;

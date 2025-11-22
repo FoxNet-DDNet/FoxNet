@@ -921,20 +921,6 @@ void CGameContext::ConSnake(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set snake to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
-void CGameContext::ConHideCosmetics(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
-
-	if(!pPl)
-		return;
-
-	bool Set = !pPl->Acc()->m_Configs.m_HideCosmetics;
-	pPl->SetHideCosmetics(Set);
-	log_info("cosmetics", "Set hide cosmetics to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
-}
-
 void CGameContext::ConHidePowerUps(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1816,8 +1802,8 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_gun_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConGunType, this, "Set players (id) Gun Type");
 
 	// Player configs
-	Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");
-	Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");
+	// Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");
+	Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHidePowerUps, this, "Hides Powerups for Player (id)");
 
 	// Records
 	Console()->Register("record_insert", "s[name] s[map] f[time]", CFGFLAG_SERVER, ConInsertRecord, this, "insert a new record for that name on the given map with given time");
