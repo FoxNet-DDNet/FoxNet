@@ -1484,9 +1484,14 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 CClientMask CGameTeams::CosmeticMask(int Team, int Asker, int Type, bool Opposite)
 {
 	if(Team == TEAM_SUPER)
-		return CClientMask().set().reset(-1);
+	{
+		if(Opposite)
+			return CClientMask();
 
+		return CClientMask().set();
+	}
 	CClientMask Mask;
+
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
 		if(!SetMask(ClientId, Team, -1, Asker, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP))
