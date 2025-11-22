@@ -499,11 +499,13 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
-				"Strings: %s",
+				"Strings: `%s`\n"
+				"Msg: `%s`",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
 				BanDuration,
-				InfoMsg);
+				InfoMsg,
+				pMsg); // Unconverted message for better understanding of what they tried to send
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
 
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
