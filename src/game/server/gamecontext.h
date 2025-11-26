@@ -727,8 +727,6 @@ private:
 
 	void HandleEffects();
 
-	void OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask);
-
 	void BotClientTick();
 	void FoxNetTick();
 	void FoxNetInit();
@@ -972,6 +970,11 @@ public:
 	void OnPreReload() override;
 
 	CSavePlayerData *m_apPersistentData[MAX_CLIENTS];
+
+	int NumPlayersInTeam(int Team) const;
+
+	void OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask);
+	void OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStrength);
 	// FoxNet>
 };
 

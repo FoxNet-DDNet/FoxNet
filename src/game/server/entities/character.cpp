@@ -582,10 +582,14 @@ void CCharacter::FireWeapon()
 		if(m_Core.m_HammerHitDisabled)
 			break;
 
+		float Strength = GetTuning(GetOverriddenTuneZone())->m_HammerStrength;
+
+		if(g_Config.m_SvDropsHammerable)
+			GameServer()->OnHammerHit(this, ProjStartPos, Strength);
+
 		CEntity *apEnts[MAX_CLIENTS];
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts,
-			MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 		for(int i = 0; i < Num; ++i)
 		{
@@ -614,8 +618,6 @@ void CCharacter::FireWeapon()
 			else
 				Dir = vec2(0.f, -1.f);
 
-			float Strength = GetTuning(GetOverriddenTuneZone())->m_HammerStrength;
-
 			vec2 Temp = pTarget->m_Core.m_Vel + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
 			Temp = ClampVel(pTarget->m_MoveRestrictions, Temp);
 			Temp -= pTarget->m_Core.m_Vel;
@@ -629,7 +631,7 @@ void CCharacter::FireWeapon()
 		}
 
 		// if we Hit anything, we have to wait for the reload
-		if(Hits)
+		if(Hits != 0)
 		{
 			float FireDelay = GetTuning(GetOverriddenTuneZone())->m_HammerHitFireDelay;
 			m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;

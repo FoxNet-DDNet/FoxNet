@@ -44,6 +44,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <game/server/teams.h>
 
 void CGameContext::FoxNetTick()
 {
@@ -163,57 +164,6 @@ void CGameContext::RefreshWeekendFlag()
 	localtime_r(&t, &lt);
 #endif
 	m_IsWeekend = (lt.tm_wday == 0 || lt.tm_wday == 6);
-}
-
-void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask)
-{
-	// deal damage
-	CEntity *apDrops[(int)MAX_CLIENTS * (int)NUM_MAX_DROPS];
-	float Radius = 135.0f;
-	float InnerRadius = 48.0f;
-	int NumDrops = m_World.FindEntities(Pos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
-	CClientMask TeamMask = Mask;
-	for(int i = 0; i < NumDrops; i++)
-	{
-		auto *pPickup = static_cast<CPickupDrop *>(apDrops[i]);
-		if(!pPickup)
-			continue;
-
-		vec2 Diff = pPickup->m_Pos - Pos;
-		vec2 ForceDir(0, 1);
-		float l = length(Diff);
-		if(l)
-			ForceDir = normalize(Diff);
-		l = 1 - std::clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
-		float Strength;
-		if(Owner == -1 || !m_apPlayers[Owner] || !m_apPlayers[Owner]->m_TuneZone)
-			Strength = GlobalTuning()->m_ExplosionStrength;
-		else
-			Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
-
-		float Dmg = Strength * l;
-		if(!(int)Dmg)
-			continue;
-
-		if((GetPlayerChar(Owner) ? !GetPlayerChar(Owner)->GrenadeHitDisabled() : g_Config.m_SvHit) || NoDamage)
-		{
-			if(Owner == -1 && ActivatedTeam != -1 && pPickup->Team() != ActivatedTeam)
-				continue;
-			// Explode at most once per team
-			int PickupTeam = pPickup->Team();
-
-			if((GetPlayerChar(Owner) ? GetPlayerChar(Owner)->GrenadeHitDisabled() : !g_Config.m_SvHit) || NoDamage)
-			{
-				if(PickupTeam == TEAM_SUPER)
-					continue;
-				if(!TeamMask.test(PickupTeam))
-					continue;
-				TeamMask.reset(PickupTeam);
-			}
-
-			pPickup->TakeDamage(ForceDir * Dmg * 2);
-		}
-	}
 }
 
 int CGameContext::RandGeometric(std::mt19937 &rng, int Min, int Max, double p)
@@ -1198,5 +1148,124 @@ void CGameContext::OnPreReload()
 			continue;
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
+	}
+}
+
+int CGameContext::NumPlayersInTeam(int Team) const
+{
+	CGameTeams &Teams = m_pController->Teams();
+
+	int Count = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CPlayer *pPlayer = m_apPlayers[i];
+		if(Server()->ClientSlotEmpty(i) || !pPlayer)
+			continue;
+		if(Teams.m_Core.Team(i) == Team)
+			Count++;
+	}
+	return Count;
+}
+
+void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask)
+{
+	// deal damage
+	CEntity *apDrops[(int)MAX_CLIENTS * (int)NUM_MAX_DROPS];
+	float Radius = 135.0f;
+	float InnerRadius = 48.0f;
+	int NumDrops = m_World.FindEntities(Pos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
+	for(int i = 0; i < NumDrops; i++)
+	{
+		auto *pPickup = static_cast<CPickupDrop *>(apDrops[i]);
+		if(!pPickup)
+			continue;
+
+		vec2 Diff = pPickup->m_Pos - Pos;
+		vec2 ForceDir(0, 1);
+		float l = length(Diff);
+		if(l)
+			ForceDir = normalize(Diff);
+		l = 1 - std::clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
+		float Strength;
+		if(Owner == -1 || !m_apPlayers[Owner] || !m_apPlayers[Owner]->m_TuneZone)
+			Strength = GlobalTuning()->m_ExplosionStrength;
+		else
+			Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+
+		float Dmg = Strength * l;
+		if(!(int)Dmg)
+			continue;
+
+		if((GetPlayerChar(Owner) ? !GetPlayerChar(Owner)->GrenadeHitDisabled() : g_Config.m_SvHit) || NoDamage)
+		{
+			int PickupTeam = pPickup->Team();
+
+			dbg_msg("test", "%d | %d", PickupTeam, ActivatedTeam);
+
+			if(Owner == -1 && ActivatedTeam != -1 && PickupTeam != ActivatedTeam)
+				continue;
+			if(Owner != -1)
+			{
+				CCharacter *pOwnerChar = GetPlayerChar(Owner);
+				if(pOwnerChar && PickupTeam != pOwnerChar->Team() && ActivatedTeam != TEAM_SUPER && pOwnerChar->Team() != TEAM_SUPER)
+					continue;
+			}
+
+			// Explode at most once per team
+			if((GetPlayerChar(Owner) ? GetPlayerChar(Owner)->GrenadeHitDisabled() : !g_Config.m_SvHit) || NoDamage)
+			{
+				if(PickupTeam == TEAM_SUPER)
+					continue;
+				if(!Mask.test(PickupTeam))
+					continue;
+				Mask.reset(PickupTeam);
+			}
+
+			pPickup->TakeDamage(ForceDir * Dmg * 2);
+		}
+	}
+}
+
+void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStrength)
+{
+	const float Radius = pChr->GetProximityRadius() * 0.5f;
+	const vec2 CharPos = pChr->m_Pos;
+	const int ActivatedTeam = pChr->Team();
+	CClientMask Mask = pChr->TeamMask();
+
+	// deal damage
+	CEntity *apDrops[(int)MAX_CLIENTS * (int)NUM_MAX_DROPS];
+	int Hits = 0;
+	int NumDrops = m_World.FindEntities(StartPos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
+
+	for(int i = 0; i < NumDrops; ++i)
+	{
+		auto *pPickup = static_cast<CPickupDrop *>(apDrops[i]);
+		if(!pPickup)
+			continue;
+
+		if(pPickup->Team() != ActivatedTeam && ActivatedTeam != TEAM_SUPER)
+			continue;
+
+		vec2 Dir;
+		if(length(pPickup->m_Pos - CharPos) > 0.0f)
+			Dir = normalize(pPickup->m_Pos - CharPos);
+		else
+			Dir = vec2(0.f, -1.f);
+
+		float Strength = HammerStrength;
+
+		vec2 Temp = pPickup->GetVelocity() + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f;
+		Temp = ClampVel(pPickup->MoveRestrictions(), Temp);
+		Temp -= pPickup->GetVelocity();
+		pPickup->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength);
+
+		Hits++;
+	}
+	if(Hits != 0)
+	{
+		CreateHammerHit(StartPos, Mask); // Could get loud so we do it here
+		float FireDelay = pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_HammerHitFireDelay;
+		pChr->SetReloadTimer(FireDelay * Server()->TickSpeed() / 1000);
 	}
 }
