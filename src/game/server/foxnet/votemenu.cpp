@@ -421,7 +421,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(SubPage == SUB_SHOP_MAIN)
 		{
-			for(uint16_t i = 0; i < static_cast<uint16_t>(EItemType::COUNT); i++)
+			for(int i = 0; i < (int)EItemType::COUNT; i++)
 			{
 				EItemType Type = static_cast<EItemType>(i);
 				const char *pTypeName = ItemTypeToName(Type);
@@ -1216,7 +1216,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 		std::vector<std::string> AvailableCategories;
 
-		for(uint16_t i = 0; i < static_cast<uint16_t>(EItemType::COUNT); i++)
+		for(int i = 0; i < (int)EItemType::COUNT; i++)
 		{
 			EItemType Type = static_cast<EItemType>(i);
 			const char *pTypeName = ItemTypeToName(Type);
@@ -1324,8 +1324,8 @@ void CVoteMenu::SendPageInventory(int ClientId)
 	std::vector<CVoteData> Votes;
 	int OwnedItems = 0;
 
-	uint16_t TotalItems = static_cast<uint16_t>(EItemType::COUNT);
-	for(uint16_t i = 0; i < TotalItems; i++)
+	int TotalItems = (int)EItemType::COUNT;
+	for(int i = 0; i < TotalItems; i++)
 	{
 		EItemType Type = static_cast<EItemType>(i);
 		// Type | ItemType | ItemName | VoteName

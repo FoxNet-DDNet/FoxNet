@@ -1200,8 +1200,6 @@ void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, i
 		{
 			int PickupTeam = pPickup->Team();
 
-			dbg_msg("test", "%d | %d", PickupTeam, ActivatedTeam);
-
 			if(Owner == -1 && ActivatedTeam != -1 && PickupTeam != ActivatedTeam)
 				continue;
 			if(Owner != -1)

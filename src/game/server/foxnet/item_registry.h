@@ -4,10 +4,11 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
+#include <type_traits>
 
 constexpr int MAX_ITEM_STARS = 5;
 
-enum class EItemId : uint16_t
+enum class EItemId
 {
 	RainbowFeet,
 	RainbowBody,
@@ -48,7 +49,7 @@ enum class EItemId : uint16_t
 	LootCaseExotic
 };
 
-enum class EItemType : uint16_t
+enum class EItemType
 {
 	Role,
 	Hat,
@@ -72,15 +73,25 @@ enum class EItemRarity
 	Legendary
 };
 
-enum class EItemFlag : uint32_t
+enum class EItemFlag
 {
 	None = 0,
 	Equippable = 1 << 0,
 	Consumable = 1 << 1,
 	LootCase = 1 << 2
 };
-inline EItemFlag operator|(EItemFlag a, EItemFlag b) { return (EItemFlag)((uint32_t)a | (uint32_t)b); }
-inline bool HasFlag(EItemFlag f, EItemFlag test) { return ((uint32_t)f & (uint32_t)test) != 0; }
+
+inline constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
+{
+	using U = std::underlying_type_t<EItemFlag>;
+	return static_cast<EItemFlag>(static_cast<U>(a) | static_cast<U>(b));
+}
+
+inline constexpr bool HasFlag(EItemFlag f, EItemFlag test)
+{
+	using U = std::underlying_type_t<EItemFlag>;
+	return (static_cast<U>(f) & static_cast<U>(test)) != 0;
+}
 
 inline std::string StarsString(int Stars)
 {
@@ -158,26 +169,25 @@ public:
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Remove;
 	int m_DefaultDays = 30;
 
-	// Explicit constructor to support brace initialization reliably
-	CItemConfig(EItemId id,
-		EItemType type,
-		const char *name,
-		const char *shortcut,
-		EItemFlag flags,
-		EExclusiveGroup group,
-		int price,
-		int minLevel,
-		int stars,
-		EItemRarity rarity,
-		const char *description,
-		std::function<void(class CPlayer &, const CItemConfig &, int)> apply,
-		std::function<void(class CPlayer &, const CItemConfig &, int)> remove,
-		int defaultDays = 30) :
-		m_Id(id), m_Type(type),
-		m_Name(name), m_Shortcut(shortcut),
-		m_Flags(flags), m_Group(group),
-		m_Price(price), m_MinLevel(minLevel), m_Stars(stars), m_Rarity(rarity), m_Description(description),
-		m_Apply(std::move(apply)), m_Remove(std::move(remove)), m_DefaultDays(defaultDays) {}
+	CItemConfig(EItemId Id,
+		EItemType Type,
+		const char *pName,
+		const char *pShortcut,
+		EItemFlag Flags,
+		EExclusiveGroup Group,
+		int Price,
+		int MinLevel,
+		int Stars,
+		EItemRarity Rarity,
+		const char *pDescription,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
+		int DefaultDays = 30) :
+		m_Id(Id), m_Type(Type),
+		m_Name(pName), m_Shortcut(pShortcut),
+		m_Flags(Flags), m_Group(Group),
+		m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_Description(pDescription),
+		m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}
 };
 
 class CItemRegistry
@@ -190,7 +200,6 @@ public:
 	const CItemConfig *FindById(EItemId Id) const;
 
 	CItemConfig *FindMutableByName(const char *pName);
-
 	// Accessors
 	const std::unordered_map<std::string, CItemConfig> &Map() const { return m_Map; }
 	std::unordered_map<std::string, CItemConfig> &Map() { return m_Map; }
