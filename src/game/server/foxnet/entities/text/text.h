@@ -3,6 +3,8 @@
 
 #include <base/vmath.h>
 
+#include <engine/shared/protocol.h>
+
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
@@ -287,6 +289,8 @@ public:
 	int m_StartTick;
 
 	int m_Owner;
+
+	CClientMask m_Mask;
 
 	std::vector<FTextData *> m_pData;
 

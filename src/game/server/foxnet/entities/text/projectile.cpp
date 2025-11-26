@@ -4,6 +4,8 @@
 #include <base/str.h>
 #include <base/vmath.h>
 
+#include <engine/shared/protocol.h>
+
 #include <generated/protocol.h>
 
 #include <game/server/entities/character.h>
@@ -22,6 +24,11 @@ CProjectileText::CProjectileText(CGameWorld *pGameWorld, vec2 Pos, int Owner, in
 	m_Owner = Owner;
 	m_Type = Type;
 
+	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(Owner);
+	m_Mask = CClientMask().set();
+	if(pOwnerChar)
+		m_Mask = pOwnerChar->TeamMask();
+
 	str_copy(m_aText, pText);
 
 	int strlen = str_length(m_aText);
@@ -37,11 +44,7 @@ void CProjectileText::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CClientMask TeamMask = CClientMask().set();
-	if(GameServer()->GetPlayerChar(m_Owner))
-		TeamMask = GameServer()->GetPlayerChar(m_Owner)->TeamMask();
-
-	if(!TeamMask.test(SnappingClient) && SnappingClient != -1)
+	if(!m_Mask.test(SnappingClient))
 		return;
 
 	for(auto *pData : m_pData)
