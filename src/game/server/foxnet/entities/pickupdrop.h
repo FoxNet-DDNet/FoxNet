@@ -44,6 +44,7 @@ class CPickupDrop : public CEntity
 public:
 	int Team() const { return m_Team; }
 	int TeleCheckpoint() const { return m_TeleCheckpoint; }
+	int MoveRestrictions() const { return m_MoveRestrictions; }
 
 	bool m_InsideFreeze;
 

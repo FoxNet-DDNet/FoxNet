@@ -99,6 +99,16 @@ void CPickupDrop::Tick()
 	if(CollectItem())
 		return;
 
+	if(m_Team != TEAM_SUPER && m_Team != TEAM_FLOCK)
+	{
+		int NumInTeam = GameServer()->NumPlayersInTeam(m_Team);
+		if(NumInTeam == 0)
+		{
+			Reset();
+			return;
+		}
+	}
+
 	int CurrentIndex = GameServer()->Collision()->GetMapIndex(m_Pos);
 	m_TuneZone = GameServer()->Collision()->IsTune(CurrentIndex);
 
