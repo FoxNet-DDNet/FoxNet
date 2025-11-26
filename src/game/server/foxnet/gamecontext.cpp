@@ -29,6 +29,7 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/score.h>
+#include <game/server/teams.h>
 #include <game/teamscore.h>
 #include <game/voting.h>
 
@@ -44,7 +45,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <game/server/teams.h>
 
 void CGameContext::FoxNetTick()
 {
@@ -89,15 +89,36 @@ void CGameContext::BotClientTick()
 		if(!Server()->GetClientInfo(ClientId, &Info))
 			continue;
 
-		if(!Info.m_GotDDNetVersion)
+		if(!Info.m_GotDDNetVersion) // No version info
+		{
+			// pPlayer->m_HasBotClient = true;
 			continue;
+		}
 
 		if(Info.m_pDDNetVersionStr)
 		{
 			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet") && str_find(Info.m_pDDNetVersionStr, "18.9.1"))
 				pPlayer->m_HasBotClient = true;
-			
+
+			if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
+				pPlayer->m_HasBotClient = true;
+
+			if(!str_find(Info.m_pDDNetVersionStr, "(") && !str_find(Info.m_pDDNetVersionStr, ")")) // git rev short missing, block client
+			{
+				pPlayer->m_HasBotClient = true;
+				continue;
+			}
+
+			bool KnownBot = false;
+
+			// Some random bot client I've seen today
+			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
+				KnownBot = true;
+
 			if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
+				KnownBot = true;
+
+			if(KnownBot)
 			{
 				pPlayer->m_HasBotClient = true;
 				if(g_Config.m_SvAntiBot == 2)
@@ -115,9 +136,6 @@ void CGameContext::BotClientTick()
 				SendChat(-1, 0, aBuf);
 			}
 		}
-
-		if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
-			pPlayer->m_HasBotClient = true;
 
 		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
 		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->
@@ -419,8 +437,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			if(str_length(pText) > 70) // Usually it pings alot of people
 			{
 				// try to not remove their message if they are just trying to be funny
-				if(!str_find_nocase(pText, "ddnet.org")
-					&& !str_find_nocase(pText, "github.com") && !str_find_nocase(pText, "tater") && !str_find_nocase(pText, "tclient") && !str_find_nocase(pText, "t-client") && !str_find_nocase(pText, "tclient.app") // TClient
+				if(!str_find_nocase(pText, "ddnet.org") && !str_find_nocase(pText, "github.com") && !str_find_nocase(pText, "tater") && !str_find_nocase(pText, "tclient") && !str_find_nocase(pText, "t-client") && !str_find_nocase(pText, "tclient.app") // TClient
 					&& !str_find_nocase(pText, "aiodob") && !str_find_nocase(pText, "aidob") && !str_find_nocase(pText, "a-client") && !str_find(pText, "A Client") && !str_find(pText, "A client") // AClient
 					&& !str_find_nocase(pText, "eclient") && !str_find_nocase(pText, "e client") && !str_find_nocase(pText, "entity client") && !str_find_nocase(pText, "e-client") // Other
 					&& !str_find_nocase(pText, "chillerbot") && !str_find_nocase(pText, "cactus")) // Other
