@@ -3,8 +3,17 @@
 #ifndef GAME_SERVER_ENTITIES_PROJECTILE_H
 #define GAME_SERVER_ENTITIES_PROJECTILE_H
 
-#include <game/server/entity.h>
 #include "character.h"
+
+#include <base/vmath.h>
+
+#include <engine/shared/protocol.h>
+
+#include <generated/protocol.h>
+
+#include <game/server/entity.h>
+#include <game/server/gameworld.h>
+#include <game/server/player.h>
 
 class CProjectile : public CEntity
 {
@@ -32,12 +41,11 @@ public:
 	void Snap(int SnappingClient) override;
 	void SwapClients(int Client1, int Client2) override;
 
-
-	bool m_HeartGun = false;
-	bool m_MixedGun = false;
+	int m_GunType = GUNTYPE_NONE;
 	bool m_MixedShield = false; // Switching between shield and heart
-	bool m_LaserGun = false;
 	int m_ExtraId = -1; // Needed for m_LaserGun
+	CClientMask m_CosmeticMask;
+	CClientMask m_OppCosmeticMask;
 
 	void HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr);
 

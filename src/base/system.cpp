@@ -4296,44 +4296,6 @@ const char *FormatPlaytime(int64_t Time)
 	return aBuf;
 }
 
-const char *ItemTypeToName(int Type)
-{
-	switch(Type)
-	{
-	case ITEMTYPE_ROLES: return "Rᴏʟᴇs";
-	case ITEMTYPE_CASES: return "Cᴀsᴇs";
-	case ITEMTYPE_RAINBOW: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
-	case ITEMTYPE_EFFECTS: return "Eғғᴇᴄᴛs";
-	case ITEMTYPE_GUN: return "Gᴜɴs";
-	case ITEMTYPE_INDICATOR: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
-	case ITEMTYPE_DEATHS: return "Kɪʟʟ Eғғᴇᴄᴛs";
-	case ITEMTYPE_TRAIL: return "Tʀᴀɪʟs";
-	case ITEMTYPE_HAT: return "Hᴀᴛs";
-	default: return "Oᴛʜᴇʀ";
-	}
-}
-
-const char *RarityToName(int Type)
-{
-	switch(Type)
-	{
-	case RARITY_COMMON:
-		return "Common";
-	case RARITY_UNCOMMON:
-		return "Uncommon";
-	case RARITY_RARE:
-		return "Rare";
-	case RARITY_EPIC:
-		return "Epic";
-	case RARITY_MYTHIC:
-		return "Mythic";
-	case RARITY_LEGENDARY:
-		return "Legendary";
-	default:
-		return "Unknown";
-	}
-}
-
 std::vector<const char *> StrSplit(const char *pMsg, char Delim)
 {
 	std::vector<const char *> v;

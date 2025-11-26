@@ -62,7 +62,6 @@ void CHeadItem::Tick()
 	case HEADITEM_COSMETIC:
 		if(pOwnerPl->Cosmetics()->m_HatType == HATTYPE_NONE)
 		{
-			pOwnerPl->Inv()->SetEquippedIndex(HAT_HAMMER + pOwnerPl->Cosmetics()->m_HatType - 1, 0);
 			Reset();
 			return;
 		}

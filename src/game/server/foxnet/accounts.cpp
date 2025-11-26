@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "item_registry.h"
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }
 
@@ -267,18 +268,17 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	// Apply equipped items to player cosmetics
 	if(auto *pPl = GameServer()->m_apPlayers[ClientId])
 	{
-		for(int i = 0; i < NUM_ITEMS; i++)
+		for(const auto &kv : pPl->Inv()->m_Map)
 		{
-			const int Val = GameServer()->m_aAccounts[ClientId].m_Inventory.m_aEquipped[i];
+			CInventoryEntry Entry = kv.second;
+			const CItemConfig *Cfg = GameServer()->m_Shop.FindItem(kv.first.c_str());
+			if(!Cfg)
+				continue;
+			const int Val = Entry.m_Value;
 			if(Val <= 0)
 				continue;
 
-			const char *pName = Items[i];
-
-			if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
-				pPl->UseItem(pName, Val, true);
-			else
-				pPl->UseItem(pName, -1, true);
+			pPl->UseItem(kv.first.c_str(), Val, true);
 		}
 	}
 

@@ -392,7 +392,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	}
 	else if(Index == ENTITY_ROULETTE)
 	{
-		new CRoulette(&GameServer()->m_World, Pos);
+		GameServer()->m_pRoulette = new CRoulette(&GameServer()->m_World, Pos);
 	}
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)

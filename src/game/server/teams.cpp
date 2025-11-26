@@ -13,8 +13,25 @@
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
 #include <game/team_state.h>
-#include "foxnet/shop.h"
 #include "foxnet/accounts.h"
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <generated/protocol.h>
+#include <base/math.h>
+#include <base/str.h>
+#include <engine/message.h>
+#include <engine/server.h>
+#include <engine/shared/protocol.h>
+#include <engine/shared/uuid_manager.h>
+#include <game/gamecore.h>
+#include <game/race_state.h>
+#include "foxnet/item_registry.h"
+#include "gamecontext.h"
+#include "save.h"
+#include "scoreworker.h"
+#include <game/teamscore.h>
 
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
@@ -1481,7 +1498,7 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 	return true;
 }
 
-CClientMask CGameTeams::CosmeticMask(int Team, int Asker, int Type, bool Opposite)
+CClientMask CGameTeams::CosmeticMask(int Team, int Asker, EItemType Type, bool Opposite)
 {
 	if(Team == TEAM_SUPER)
 	{
@@ -1507,19 +1524,19 @@ CClientMask CGameTeams::CosmeticMask(int Team, int Asker, int Type, bool Opposit
 		CAccConfigs Configs = GetPlayer(ClientId)->Acc()->m_Configs;	
 
 		bool ShowCosmetic = false;
-		if(Type == ITEMTYPE_RAINBOW)
+		if(Type == EItemType::Rainbow)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowRainbow;
-		else if(Type == ITEMTYPE_GUN)
+		else if(Type == EItemType::Gun)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowGuns;
-		else if(Type == ITEMTYPE_INDICATOR)
+		else if(Type == EItemType::Indicator)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowIndicators;
-		else if(Type == ITEMTYPE_DEATHS)
+		else if(Type == EItemType::Death)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowDeaths;
-		else if(Type == ITEMTYPE_TRAIL)
+		else if(Type == EItemType::Trail)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowTrails;
-		else if(Type == ITEMTYPE_HAT)
+		else if(Type == EItemType::Hat)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowHats;
-		else if(Type == ITEMTYPE_EFFECTS)
+		else if(Type == EItemType::Effect)
 			ShowCosmetic = Configs.m_Cosmetics.m_ShowEffects;
 
 		if(!Opposite)

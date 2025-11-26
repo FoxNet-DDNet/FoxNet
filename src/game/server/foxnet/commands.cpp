@@ -243,7 +243,7 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, false, aFrom);
+	pSelf->m_Shop.GiveItemByName(ClientId, pItemName, -1, aFrom);
 }
 
 void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
@@ -263,7 +263,7 @@ void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
 	if(CheckClientId(ClientId))
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days, aFrom);
+	pSelf->m_Shop.GiveItemByName(ClientId, pItemName, Days, aFrom);
 }
 
 void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
@@ -528,7 +528,11 @@ void CGameContext::ConShopListItems(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConShopEditItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_Shop.EditItem(pResult->GetString(0), pResult->GetInteger(1), pResult->GetInteger(2));
+	const char *pItem = pResult->GetString(0);
+	int Price = pResult->GetInteger(1);
+	int MinLevel = pResult->NumArguments() > 2 ? pResult->GetInteger(2) : -1;
+
+	pSelf->m_Shop.EditItem(pItem, Price, MinLevel);
 }
 
 void CGameContext::ConShopReset(IConsole::IResult *pResult, void *pUserData)

@@ -33,8 +33,6 @@ CRoulette::CRoulette(CGameWorld *pGameWorld, vec2 Pos) :
 	m_StartDelay = -1;
 	SetState(RStates::IDLE);
 	GameWorld()->InsertEntity(this);
-
-	GameServer()->m_pRoulette = this;
 }
 
 bool CRoulette::CanBet(int ClientId) const

@@ -30,9 +30,6 @@
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
-constexpr const char *EMPTY_DESC = "";
-constexpr const char *EMPTY_DESC2 = " ";
-
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
 
@@ -128,8 +125,8 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 
 	const char *pVote = str_skip_voting_menu_prefixes(pMsg->m_pValue);
 
-	if(!pVote)
-		return false;
+	if(!pVote || IsOption(pVote, ""))
+		return true;
 
 	for(int i = 0; i < NUM_PAGES; i++)
 	{
@@ -140,9 +137,6 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 		}
 	}
 
-	if(IsOption(pVote, EMPTY_DESC) || IsOption(pVote, EMPTY_DESC2))
-		return true;
-
 	if(IsCustomVoteOption(pMsg, ClientId))
 	{
 		GameServer()->ClearVotes(ClientId);
@@ -151,10 +145,10 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(const CItem *pItem)
+const char *CVoteMenu::FormatItemVote(const CItemConfig *pItem)
 {
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d%s]", pItem->Price(), g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d%s]", pItem->m_Price, g_Config.m_SvCurrencyName);
 	return aBuf;
 }
 
@@ -224,6 +218,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 	if(Page == PAGE_MAIN)
 	{
+		// Nothing
 	}
 	else if(Page == PAGE_SETTINGS)
 	{
@@ -426,9 +421,10 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(SubPage == SUB_SHOP_MAIN)
 		{
-			for(int i = 0; i < NUM_ITEMTYPES; i++)
+			for(uint16_t i = 0; i < static_cast<uint16_t>(EItemType::COUNT); i++)
 			{
-				const char *pTypeName = ItemTypeToName(i);
+				EItemType Type = static_cast<EItemType>(i);
+				const char *pTypeName = ItemTypeToName(Type);
 				if(IsOption(pVote, pTypeName))
 				{
 					str_copy(Data.m_aMetaData, pTypeName);
@@ -438,17 +434,18 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		else if(SubPage == SUB_SHOP_SELECT)
 		{
-			for(const auto &pItem : GameServer()->m_Shop.m_Items)
+			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 			{
-				if(IsOption(pItem->Name(), ""))
+				const CItemConfig &Item = kv.second;
+				if(IsOption(Item.m_Name, ""))
 					continue;
-				if(pItem->Price() == -1)
+				if(Item.m_Price == -1)
 					continue;
-				const char *pVoteName = pItem->Name();
+				const char *pVoteName = Item.m_Name;
 
 				if(IsOption(pVote, pVoteName))
 				{
-					Data.m_pLastItemInfo = pItem;
+					Data.m_pLastItemInfo = &Item;
 					SetSubPage(ClientId, SUB_SHOP_ITEMINFO);
 					return true;
 				}
@@ -458,7 +455,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		{
 			if(IsOption(pVote, FormatItemVote(Data.m_pLastItemInfo)))
 			{
-				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->Name());
+				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_Name);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
 				return true;
 			}
@@ -474,26 +471,30 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
 		}
-		if(IsOptionWithSuffix(pVote, Items[EMOTICON_GUN]))
+		const char *pEmoticonGunName = GameServer()->m_Shop.GetItemName(EItemId::EmoticonGun);
+		if(IsOptionWithSuffix(pVote, pEmoticonGunName))
 		{
 			if(ReasonInt.has_value())
-				pPl->UseItem(Items[EMOTICON_GUN], ReasonInt.value());
+				pPl->UseItem(pEmoticonGunName, ReasonInt.value());
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
 		}
 
 		// Options that use the reason field go above
-		for(const auto &pItems : GameServer()->m_Shop.m_Items)
+
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
-			if(IsOption(pItems->Name(), ""))
+			const CItemConfig &Item = kv.second;
+
+			if(IsOption(Item.m_Name, ""))
 				continue;
-			if(pItems->Price() == -1)
+			if(Item.m_Price == -1)
 				continue;
 
-			if(IsOptionWithSuffix(pVote, pItems->Name()))
+			if(IsOptionWithSuffix(pVote, Item.m_Name))
 			{
-				pPl->UseItem(pItems->Name(), -1, Page == PAGE_ADMIN);
+				pPl->UseItem(Item.m_Name, -1);
 				return true;
 			}
 		}
@@ -724,9 +725,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 			Changes = true;
 		if(pAcc->m_Deaths != OldAcc.m_Deaths)
 			Changes = true;
-		if(pAcc->m_Inventory.m_aQuantity[VIP] != OldAcc.m_Inventory.m_aQuantity[VIP])
-			Changes = true;
-		if(pAcc->m_Inventory.m_aQuantity[MVP] != OldAcc.m_Inventory.m_aQuantity[MVP])
+		if(pAcc->m_Inventory.m_Map != OldAcc.m_Inventory.m_Map)
 			Changes = true;
 	}
 	if(Page == PAGE_MAILBOX || Page == PAGE_MAIN)
@@ -751,12 +750,12 @@ void CVoteMenu::UpdatePages(int ClientId)
 	{
 		if(pAcc->m_Money != OldAcc.m_Money)
 			Changes = true;
-		if(memcmp(&pAcc->m_Inventory, &OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
-			Changes = true;
 	}
 	if(Page == PAGE_INVENTORY || Page == PAGE_ADMIN)
 	{
-		if(memcmp(&pAcc->m_Inventory, &OldAcc.m_Inventory, sizeof(pAcc->m_Inventory)) != 0)
+		if(pAcc->m_Inventory.m_Map != OldAcc.m_Inventory.m_Map)
+			Changes = true;
+		if(memcmp(&pAcc->m_Inventory.m_Cosmetics, &OldAcc.m_Inventory.m_Cosmetics, sizeof(pAcc->m_Inventory.m_Cosmetics)) != 0)
 			Changes = true;
 	}
 
@@ -1182,18 +1181,52 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteSeparator();
 	}
 
+	auto HasAnyItemOfType = [this](EItemType Type) -> bool
+	{
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		{
+			const CItemConfig &Item = kv.second;
+			if(Item.m_Type != Type)
+				continue;
+			if(Item.m_Price == -1)
+				continue;
+			return true;
+		}
+		return false;
+	};
+
+	auto CanBuyAnyOfType = [this, pAcc](EItemType Type) -> bool
+	{
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		{
+			const CItemConfig &Item = kv.second;
+			if(Item.m_Type != Type)
+				continue;
+			if(Item.m_Price == -1)
+				continue;
+			if(Item.m_Price <= pAcc->m_Money)
+				return true;
+		}
+		return false;
+	};
+
 	if(SubPage == SUB_SHOP_MAIN)
 	{
 		const int Prefix = PREFIX_LONG_LINE;
 
 		std::vector<std::string> AvailableCategories;
 
-		for(int i = 0; i < NUM_ITEMTYPES; i++)
+		for(uint16_t i = 0; i < static_cast<uint16_t>(EItemType::COUNT); i++)
 		{
-			const char *pTypeName = ItemTypeToName(i);
+			EItemType Type = static_cast<EItemType>(i);
+			const char *pTypeName = ItemTypeToName(Type);
+
+			if(!HasAnyItemOfType(Type))
+				continue;
+
 			if(Data.m_OnlyAffordable)
 			{
-				if(CanBuyAnyOfType(ClientId, i))
+				if(CanBuyAnyOfType(Type))
 					AvailableCategories.push_back(pTypeName);
 			}
 			else
@@ -1219,15 +1252,20 @@ void CVoteMenu::SendPageShop(int ClientId)
 		}
 		int AmountShown = 0;
 
-		for(const auto &pItem : GameServer()->m_Shop.m_Items)
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
-			if(str_comp(ItemTypeToName(pItem->Type()), pMeta) != 0)
+			const CItemConfig &Item = kv.second;
+
+			if(str_comp(ItemTypeToName(Item.m_Type), pMeta) != 0)
 				continue;
 
-			if(Data.m_OnlyAffordable && pItem->Price() > pAcc->m_Money)
+			if(Item.m_Price == -1)
+				continue;
+
+			if(Data.m_OnlyAffordable && Item.m_Price > pAcc->m_Money)
 				continue;
 			AmountShown++;
-			AddVotePrefix(pItem->Name(), PREFIX_ARROWHEAD);
+			AddVotePrefix(Item.m_Name, PREFIX_ARROWHEAD);
 		}
 		if(AmountShown == 0)
 		{
@@ -1242,15 +1280,15 @@ void CVoteMenu::SendPageShop(int ClientId)
 			return;
 		}
 
-		const CItem *pItem = Data.m_pLastItemInfo;
+		const CItemConfig *pItem = Data.m_pLastItemInfo;
 
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
-		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->Name());
+		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->m_Name);
 		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->Description());
+		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->m_Description);
 		AddVoteText(aBuf);
 		AddVoteText("├────── Rarity");
-		str_format(aBuf, sizeof(aBuf), "│ %s %s", RarityToName(pItem->Rarity()), pItem->StarChar());
+		str_format(aBuf, sizeof(aBuf), "│ %s %s", RarityToName(pItem->m_Rarity), StarsString(pItem->m_Stars).c_str());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
@@ -1258,7 +1296,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		str_copy(aBuf, FormatItemVote(pItem));
 		AddVoteText(aBuf);
 
-		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->MinLevel());
+		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->m_MinLevel);
 		AddVoteText(aBuf);
 	}
 }
@@ -1266,8 +1304,8 @@ void CVoteMenu::SendPageShop(int ClientId)
 void CVoteMenu::SendPageInventory(int ClientId)
 {
 	// CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	if(!pAcc->m_LoggedIn)
+	CAccountSession Acc = GameServer()->m_aAccounts[ClientId];
+	if(!Acc.m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
 		AddVoteSeparator();
@@ -1285,8 +1323,11 @@ void CVoteMenu::SendPageInventory(int ClientId)
 
 	std::vector<CVoteData> Votes;
 	int OwnedItems = 0;
-	for(int Type = 0; Type < NUM_ITEMTYPES; Type++)
+
+	uint16_t TotalItems = static_cast<uint16_t>(EItemType::COUNT);
+	for(uint16_t i = 0; i < TotalItems; i++)
 	{
+		EItemType Type = static_cast<EItemType>(i);
 		// Type | ItemType | ItemName | VoteName
 		if(!OwnsAnyOfType(ClientId, Type))
 			continue;
@@ -1299,7 +1340,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			Votes.push_back(Data);
 		}
 
-		if(Type == ITEMTYPE_RAINBOW)
+		if(Type == EItemType::Rainbow)
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;
@@ -1310,25 +1351,28 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			Votes.push_back(Data);
 		}
 
-		for(const auto &pItem : GameServer()->m_Shop.m_Items)
-		{
-			const char *pItemName = pItem->Name();
 
-			if(pItem->Type() != Type)
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		{
+			const char *pItemName = kv.first.c_str();
+			CItemConfig Item = kv.second;
+			if(!Acc.m_Inventory.Has(pItemName))
+				continue;
+			CInventoryEntry &InvEntry = Acc.m_Inventory.Entry(pItemName);
+
+			if(Item.m_Type != Type)
 				continue;
 			if(!str_comp(pItemName, ""))
 				continue;
-			if(pItem->Price() == -1)
+			if(Item.m_Price == -1)
 					continue;
 			if(!(pPl->OwnsItem(pItemName)))
 				continue;
 
 			OwnedItems++;
 
-			int Idx = pPl->Inv()->IndexOfName(pItemName);
-
 			int64_t Now = time(0);
-			int64_t Expiry = pPl->Inv()->m_ExpiresAt[Idx];
+			int64_t Expiry = InvEntry.m_ExpiresAt;
 			int64_t Remaining = Expiry - Now;
 
 			char TimeBuf[20] = "";
@@ -1340,31 +1384,31 @@ void CVoteMenu::SendPageInventory(int ClientId)
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
 			}
 
-			if(pItem->IsOneTimeUse())
+			if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
 			{
-				int OwnsAmount = pPl->Inv()->m_aQuantity[Idx];
+				int OwnsAmount = InvEntry.m_Quantity;
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
+				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_TEXT;
 				str_format(aVoteName, sizeof(aVoteName), "%s [%dx]", pItemName, OwnsAmount);
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
-			else if(!pItem->IsToggleable())
+			else if(!HasFlag(Item.m_Flags, EItemFlag::Equippable))
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
+				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_TEXT;
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
-			else if(!str_comp_nocase(pItem->Name(), Items[EMOTICON_GUN]))
+			else if(Item.m_Id == EItemId::EmoticonGun)
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
+				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
 				str_copy(Data.m_aVoteName, pItemName);
 				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
@@ -1386,7 +1430,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = pItem;
+				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
 				str_copy(Data.m_aVoteName, aVoteName);
 				Data.m_Value = pPl->ItemEnabled(pItemName);
@@ -1394,7 +1438,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			}
 		}
 
-		if(Type != NUM_ITEMTYPES - 1)
+		if(i != TotalItems - 1)
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;
@@ -1615,35 +1659,20 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 	}
 }
 
-bool CVoteMenu::CanBuyAnyOfType(int ClientId, int ItemType) const
-{
-	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
-		return false;
-	for(const auto &pItems : GameServer()->m_Shop.m_Items)
-	{
-		if(pItems->Type() != ItemType)
-			continue;
-		if(pItems->Price() == -1)
-			continue;
-		if(pAcc->m_Money >= pItems->Price() && pAcc->m_Level >= pItems->MinLevel())
-			return true;
-	}
-	return false;
-}
 
-bool CVoteMenu::OwnsAnyOfType(int ClientId, int ItemType) const
+bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
 		return false;
-	for(const auto &pItems : GameServer()->m_Shop.m_Items)
+	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 	{
-		if(pItems->Type() != ItemType)
+		const CItemConfig &Item = kv.second;
+
+		if(Item.m_Type != ItemType)
 			continue;
-		if(pPl->OwnsItem(pItems->Name()))
+		if(pPl->OwnsItem(Item.m_Name))
 			return true;
 	}
 	return false;

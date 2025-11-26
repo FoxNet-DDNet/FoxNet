@@ -627,9 +627,9 @@ void CGameContext::OnLogin(int ClientId)
 
 	if(pPl->Acc()->m_LastName[0] == '\0')
 	{
-		SendChatTarget(ClientId, "This seems to be your first Login, so welcome to FoxNetwork!");
+		SendChatTarget(ClientId, "This seems to be your first Login, welcome!");
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
-		SendChatTarget(ClientId, "For more Info about this server head to the votemenu and double click on 'Server Info'");
+		SendChatTarget(ClientId, "For more Info about this server head to the vote menu and double click on 'Server Info'");
 	}
 	else
 	{

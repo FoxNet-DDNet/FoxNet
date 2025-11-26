@@ -92,9 +92,9 @@ enum VoteTypes
 class CVoteData
 {
 public:
-	CItem *m_pItem = nullptr;
+	CItemConfig *m_pItem = nullptr;
 
-	int m_ItemType = 0;
+	EItemType m_ItemType = EItemType::COUNT;
 	int m_VoteType = 0;
 	char m_aVoteName[64] = "";
 	int m_Max = -1;
@@ -116,7 +116,7 @@ public:
 		m_Prefix = Prefix;
 	}
 
-	CVoteData(CItem *pItem, const char *pVoteName, int Prefix)
+	CVoteData(CItemConfig *pItem, const char *pVoteName, int Prefix)
 	{
 		str_copy(m_aVoteName, pVoteName);
 		m_pItem = pItem;
@@ -146,7 +146,7 @@ class CVoteMenu
 		bool m_OnlyAffordable = false;
 
 		char m_aMetaData[64] = "";
-		CItem *m_pLastItemInfo = nullptr;
+		const CItemConfig *m_pLastItemInfo = nullptr;
 		// After executing a file with a bunch of votes, we need to resend after some ticks
 		int64_t m_RetryTick = -1;
 	};
@@ -175,14 +175,13 @@ class CVoteMenu
 	void SendPageServerInfo(int ClientId);
 	void SendPageAdmin(int ClientId);
 
-	const char *FormatItemVote(const CItem *pItem);
+	const char *FormatItemVote(const CItemConfig *pItem);
 
 	void UpdatePages(int ClientId);
 
 	bool CanUseCmd(int ClientId, const char *pCmd) const;
 
-	bool CanBuyAnyOfType(int ClientId, int ItemType) const;
-	bool OwnsAnyOfType(int ClientId, int ItemType) const;
+	bool OwnsAnyOfType(int ClientId, EItemType ItemType) const;
 
 public:
 	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }

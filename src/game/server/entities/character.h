@@ -312,8 +312,8 @@ public:
 	void OnDie(int Killer, int Weapon, bool SendKillMsg);
 	void SetTuneOverride(int pZone);
 
-	CClientMask CosmeticMask(int Type);
-	CClientMask OppositeCosmeticMask(int Type);
+	CClientMask CosmeticMask(EItemType Type);
+	CClientMask OppositeCosmeticMask(EItemType Type);
 
 	// Telekinesis
 	int m_TelekinesisId; // Should be a CEntity so PickupDrops can be telekinesised

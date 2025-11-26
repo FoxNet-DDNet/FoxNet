@@ -914,7 +914,7 @@ public:
 
 	bool m_MapVoteLock = false;
 
-	CRoulette *m_pRoulette;
+	CRoulette *m_pRoulette = nullptr;
 	int DirectionToEditorDeg(const vec2 &Dir);
 
 	int64_t m_PowerUpDelay;

@@ -17,7 +17,7 @@
 #include <game/gamecore.h>
 #include <game/mapitems.h>
 #include <game/server/entity.h>
-#include <game/server/foxnet/shop.h>
+#include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/server/player.h>
@@ -64,15 +64,18 @@ CProjectile::CProjectile(
 	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
 
 	// <FoxNet
+	m_CosmeticMask = CClientMask().set();
+	m_OppCosmeticMask = CClientMask().set().reset();
 	if(pOwnerChar)
 	{
+		m_CosmeticMask = pOwnerChar->CosmeticMask(EItemType::Gun);
+		m_OppCosmeticMask = pOwnerChar->OppositeCosmeticMask(EItemType::Gun);
+
 		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
-		m_HeartGun = pCosmetics->m_GunType == GUNTYPE_HEART;
-		m_MixedGun = pCosmetics->m_GunType == GUNTYPE_MIXED;
-		m_LaserGun = pCosmetics->m_GunType == GUNTYPE_LASER;
-		if(pCosmetics->m_GunType > 0 && pCosmetics->m_GunType < NUM_GUNTYPES)
+		m_GunType = pCosmetics->m_GunType;
+		if(pCosmetics->m_GunType > GUNTYPE_NONE && pCosmetics->m_GunType < NUM_GUNTYPES)
 			m_LifeSpan *= 1.25;
-		if(m_LaserGun)
+		if(m_GunType == GUNTYPE_LASER)
 			m_ExtraId = Server()->SnapNewId();
 
 		m_MixedShield = pOwnerChar->m_MixedShield;
@@ -117,7 +120,7 @@ vec2 CProjectile::GetPos(float Time, int ClientId)
 
 		CPlayer *pSnapPl = ClientId >= 0 ? GameServer()->m_apPlayers[ClientId] : nullptr;
 		if(pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || ClientId == m_Owner))
-			if(m_LaserGun || m_HeartGun || m_MixedGun)
+			if(m_GunType != GUNTYPE_NONE)
 				Speed = 1100.0f;
 		break;
 	}
@@ -347,22 +350,20 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 	if(PhaseGun && !pTargetChr)
 		CreateDmgInd = false;
 
-	CClientMask CosmMask = pOwnerChr ? pOwnerChr->CosmeticMask(ITEMTYPE_GUN) : Mask;
-
 	if(CreateDmgInd)
 	{
 		if(ConfettiGun)
 		{
 			vec2 AirPos;
 			GetNearestAirPos(NewPos, CurPos, &AirPos);
-			GameServer()->CreateBirthdayEffect(AirPos, CosmMask);
+			GameServer()->CreateBirthdayEffect(AirPos, m_CosmeticMask);
 		}
 		else
 		{
-			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, CosmMask);
+			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, m_CosmeticMask);
 		}
 		if(pOwnerChr)
-			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, pOwnerChr->OppositeCosmeticMask(ITEMTYPE_GUN));
+			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, m_OppCosmeticMask);
 	}
 
 	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)
@@ -422,7 +423,9 @@ void CProjectile::Snap(int SnappingClient)
 		// PrevSnapPos should be a bit behind SnapPos to make the laser look continuous
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();
 		vec2 PrevSnapPos = GetPos(Pt);
-		if(m_LaserGun)
+
+		bool Mixed = m_GunType == GUNTYPE_MIXED;
+		if(m_GunType == GUNTYPE_LASER)
 		{
 			std::array<int, 2> LaserIds = {m_ExtraId, GetId()};
 			if(LaserIds[0] > LaserIds[1])
@@ -435,10 +438,10 @@ void CProjectile::Snap(int SnappingClient)
 				LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 			return;
 		}
-		if(m_HeartGun || m_MixedGun)
+		if(m_GunType == GUNTYPE_HEART || Mixed)
 		{
 			int Type = POWERUP_HEALTH;
-			if(m_MixedGun)
+			if(Mixed)
 				Type = m_MixedShield;
 			GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
 				GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);

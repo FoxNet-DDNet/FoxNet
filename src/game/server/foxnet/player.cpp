@@ -86,18 +86,18 @@ void CPlayer::LootBoxTick()
 	else
 	{
 		// Final message
-		const CItem *pItem = m_LootBoxData.m_pGotItem;
+		const CItemConfig *pItem = m_LootBoxData.m_pGotItem;
 		str_format(aBuf, sizeof(aBuf), "You got '%s' [%s] for %d days!",
-			pItem->Name(),
-			pItem->StarChar(),
+			pItem->m_Name,
+			StarsString(pItem->m_Stars).c_str(),
 			m_LootBoxData.m_Days);
 
 		SendBroadcast(aBuf);
 
 		str_format(aBuf, sizeof(aBuf), "'%s' opened a %s and got %s for %d days!",
 			Server()->ClientName(m_ClientId),
-			m_LootBoxData.m_pLootBox->Name(),
-			pItem->Name(),
+			m_LootBoxData.m_pLootBox->m_Name,
+			pItem->m_Name,
 			m_LootBoxData.m_Days);	
 
 		GameServer()->SendChat(-1, 0, aBuf);
@@ -112,17 +112,17 @@ void CPlayer::LootBoxTick()
 	if(m_LootBoxData.m_Ticks % Speed != 0)
 		return;
 
-	int Rarity = m_LootBoxData.m_pLootBox->Rarity();
-	if(Rarity == RARITY_LEGENDARY)
-		Rarity = NUM_RARITIES; // Allow getting any rarity
+	EItemId ItemId = m_LootBoxData.m_pLootBox->m_Id;
+	EItemRarity Rarity = m_LootBoxData.m_pLootBox->m_Rarity;
+	bool IsExotic = ItemId == EItemId::LootCaseExotic;
 
-	const CItem *pItem = GameServer()->m_Shop.GetRandomItemOfRarity(Rarity);
+	const CItemConfig *pItem = GameServer()->m_Shop.RandomItemByRarity(Rarity, IsExotic);
 
 	str_format(aBuf, sizeof(aBuf), "Opening %s\n[%s %s] %s",
-		m_LootBoxData.m_pLootBox->Name(),
-		RarityToName(pItem->Rarity()),
-		pItem->StarChar(),
-		pItem->Name());
+		m_LootBoxData.m_pLootBox->m_Name,
+		RarityToName(pItem->m_Rarity),
+		StarsString(pItem->m_Stars).c_str(),
+		pItem->m_Name);
 
 	if(GetCharacter())
 		GameServer()->CreateDeath(GetCharacter()->GetPos(), m_ClientId, GetCharacter()->TeamMask());
@@ -132,56 +132,32 @@ void CPlayer::LootBoxTick()
 	SendBroadcast(aBuf);
 }
 
-void CPlayer::ExpireItem(int Idx)
-{
-	if(!Acc()->m_LoggedIn)
-		return;
-	int64_t Now = time(0);
-
-	if(Idx < 0 || Idx >= NUM_ITEMS)
-		return;
-
-	int64_t ExpiresAt = Inv()->m_ExpiresAt[Idx];
-	if(ExpiresAt == -1)
-		return; // Never expires
-	else if(ExpiresAt == 0)
-		Inv()->SetExpiresAt(Idx, time(0) + int64_t(30) * 86400);
-	else if(ExpiresAt <= Now)
-	{
-		const char *pItemName = Items[Idx];
-
-		GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, "Expired");
-		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
-		GameServer()->SendChatTarget(GetCid(), aBuf);
-	}
-}
-
 void CPlayer::ExpireItems()
 {
 	if(!Acc()->m_LoggedIn)
 		return;
-	int64_t Now = time(0);
-
-	for(int Idx = 0; Idx < NUM_ITEMS; Idx++)
+	int64_t now = time(0);
+	for(auto &kv : Inv()->m_Map)
 	{
-		int64_t ExpiresAt = Inv()->m_ExpiresAt[Idx];
-		if(ExpiresAt == -1)
-			continue; // Never expires
-		else if(ExpiresAt == 0)
-			continue; // Not set yet
-		if(ExpiresAt <= Now)
+		CInventoryEntry &Entry = kv.second;
+		if(Entry.m_ExpiresAt <= 0 || Entry.m_ExpiresAt == -1)
+			continue;
+		if(Entry.m_ExpiresAt <= now)
 		{
-			const char *pItemName = Items[Idx];
-
-			GameServer()->m_Shop.RemoveItem(GetCid(), pItemName, "Expired");
-			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "Your %s has expired!", pItemName);
+			const char *name = kv.first.c_str();
+			if(Entry.m_Value != 0)
+			{
+				const CItemConfig *cfg = GameServer()->m_Shop.FindItem(name);
+				if(cfg && cfg->m_Remove)
+					cfg->m_Remove(*this, *cfg, -1);
+			}
+			Entry = CInventoryEntry();
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", name);
 			GameServer()->SendChatTarget(GetCid(), aBuf);
 		}
 	}
 }
-
 void CPlayer::FoxNetReset()
 {
 	m_LastReport = 0;
@@ -375,287 +351,140 @@ bool CPlayer::OwnsItem(const char *pItemName)
 	return Acc()->m_Inventory.Owns(pItemName);
 }
 
-int CPlayer::GetItemToggle(const char *pItemName)
-{
-	int Value = -1;
-
-	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
-	if(!pItem)
-		return false;
-
-	const char *pName = pItem->Name();
-
-	if(!str_comp_nocase(pName, Items[OTHER_SPARKLE]))
-		Value = (int)!Cosmetics()->m_Sparkle;
-	else if(!str_comp_nocase(pName, Items[OTHER_INVERSEAIM]))
-		Value = (int)!Cosmetics()->m_InverseAim;
-	else if(!str_comp_nocase(pName, Items[OTHER_LOVELY]))
-		Value = (int)!Cosmetics()->m_Lovely;
-	else if(!str_comp_nocase(pName, Items[OTHER_ROTATINGBALL]))
-		Value = (int)!Cosmetics()->m_RotatingBall;
-
-	else if(!str_comp_nocase(pName, Items[RAINBOW_FEET]))
-		Value = (int)!Cosmetics()->m_RainbowFeet;
-	else if(!str_comp_nocase(pName, Items[RAINBOW_BODY]))
-		Value = (int)!Cosmetics()->m_RainbowBody;
-	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
-		Value = (int)Cosmetics()->m_HookPower == HOOKTYPE_RAINBOW ? HOOKTYPE_NORMAL : HOOKTYPE_RAINBOW;
-
-	//else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
-	//	Value = (int)Cosmetics()->m_EmoticonGun;
-	else if(!str_comp_nocase(pName, Items[PHASE_GUN]))
-		Value = (int)!Cosmetics()->m_PhaseGun;
-	else if(!str_comp_nocase(pName, Items[HEART_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUNTYPE_HEART ? GUNTYPE_NONE : GUNTYPE_HEART;
-	else if(!str_comp_nocase(pName, Items[MIXED_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUNTYPE_MIXED ? GUNTYPE_NONE : GUNTYPE_MIXED;
-	else if(!str_comp_nocase(pName, Items[LASER_GUN]))
-		Value = (int)Cosmetics()->m_GunType == GUNTYPE_LASER ? GUNTYPE_NONE : GUNTYPE_LASER;
-
-	else if(!str_comp_nocase(pName, Items[TRAIL_STAR]))
-		Value = (int)Cosmetics()->m_Trail == TRAILTYPE_STAR ? TRAILTYPE_NONE : TRAILTYPE_STAR;
-	else if(!str_comp_nocase(pName, Items[TRAIL_DOT]))
-		Value = (int)Cosmetics()->m_Trail == TRAILTYPE_DOT ? TRAILTYPE_NONE : TRAILTYPE_DOT;
-
-	else if(!str_comp_nocase(pName, Items[HAT_HAMMER]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_HAMMER ? HATTYPE_NONE : HATTYPE_HAMMER;
-	else if(!str_comp_nocase(pName, Items[HAT_GUN]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_GUN ? HATTYPE_NONE : HATTYPE_GUN;
-	else if(!str_comp_nocase(pName, Items[HAT_SHOTGUN]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_SHOTGUN ? HATTYPE_NONE : HATTYPE_SHOTGUN;
-	else if(!str_comp_nocase(pName, Items[HAT_GRENADE]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_GRENADE ? HATTYPE_NONE : HATTYPE_GRENADE;
-	else if(!str_comp_nocase(pName, Items[HAT_LASER]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_LASER ? HATTYPE_NONE : HATTYPE_LASER;
-	else if(!str_comp_nocase(pName, Items[HAT_NINJA]))
-		Value = (int)Cosmetics()->m_HatType == HATTYPE_NINJA ? HATTYPE_NONE : HATTYPE_NINJA;
-
-	else if(!str_comp_nocase(pName, Items[HAT_HEART]))
-		Value = (int)!Cosmetics()->m_HeartHat;
-
-	else if(!str_comp_nocase(pName, Items[INDICATOR_CLOCKWISE]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_CLOCKWISE ? INDTYPE_NONE : INDTYPE_CLOCKWISE;
-	else if(!str_comp_nocase(pName, Items[INDICATOR_COUNTERCLOCKWISE]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_COUNTERWISE ? INDTYPE_NONE : INDTYPE_COUNTERWISE;
-	else if(!str_comp_nocase(pName, Items[INDICATOR_INWARD_TURNING]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_INWARD ? INDTYPE_NONE : INDTYPE_INWARD;
-	else if(!str_comp_nocase(pName, Items[INDICATOR_OUTWARD_TURNING]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_OUTWARD ? INDTYPE_NONE : INDTYPE_OUTWARD;
-	else if(!str_comp_nocase(pName, Items[INDICATOR_LINE]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_LINE ? INDTYPE_NONE : INDTYPE_LINE;
-	else if(!str_comp_nocase(pName, Items[INDICATOR_CRISSCROSS]))
-		Value = (int)Cosmetics()->m_DamageIndType == INDTYPE_CRISSCROSS ? INDTYPE_NONE : INDTYPE_CRISSCROSS;
-
-	else if(!str_comp_nocase(pName, Items[DEATH_EXPLOSIVE]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_EXPLOSION ? DEATHTYPE_NONE : DEATHTYPE_EXPLOSION;
-	else if(!str_comp_nocase(pName, Items[DEATH_HAMMERHIT]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_HAMMERHIT ? DEATHTYPE_NONE : DEATHTYPE_HAMMERHIT;
-	else if(!str_comp_nocase(pName, Items[DEATH_INDICATOR]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_DAMAGEIND ? DEATHTYPE_NONE : DEATHTYPE_DAMAGEIND;
-	else if(!str_comp_nocase(pName, Items[DEATH_LASER]))
-		Value = (int)Cosmetics()->m_DeathEffect == DEATHTYPE_LASER ? DEATHTYPE_NONE : DEATHTYPE_LASER;
-
-	return Value;
-}
-
 bool CPlayer::ItemEnabled(const char *pItemName)
 {
-	int Value = false;
-	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
-	if(!pItem)
+	if(!Acc()->m_LoggedIn)
 		return false;
-	int Idx = Inv()->IndexOfName(pItemName);
-	Value = Inv()->m_aEquipped[Idx];
-	return Value > 0;
+	auto it = Inv()->m_Map.find(std::string(pItemName));
+	return it != Inv()->m_Map.end() && it->second.m_Value != 0;
 }
 
-bool CPlayer::ReachedItemLimit(const CItem *pItem)
+bool CPlayer::ReachedItemLimit(const CItemConfig *Cfg)
 {
-	if(Server()->GetAuthedState(GetCid()) >= AUTHED_MOD)
+	if(Server()->GetAuthedState(GetCid()) >= AUTHED_MOD || !Cfg)
 		return false;
-
 	int Amount = 0;
-
-	for(const auto &pOtherItem : GameServer()->m_Shop.m_Items)
+	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 	{
-		if(pItem->SubType() != SUBTYPE_NONE && pOtherItem->SubType() == pItem->SubType())
+		const CItemConfig &Other = kv.second;
+		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == Cfg->m_Group)
+			continue;
+		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
+			continue;
+		if(Cfg == &Other)
 			continue;
 
-		if(pItem->Type() == ITEMTYPE_CASES || pItem->Type() == ITEMTYPE_ROLES)
-			continue;
-
-		if(pItem == pOtherItem)
-			continue;
-
-		const int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
-		if(OtherIdx >= 0 && Inv()->m_aEquipped[OtherIdx] > 0)
+		auto mit = Inv()->m_Map.find(Other.m_Name);
+		if(mit != Inv()->m_Map.end() && mit->second.m_Value > 0)
 			Amount++;
 	}
 
 	return Amount >= g_Config.m_SvCosmeticLimit;
 }
 
-bool CPlayer::UseItem(const char *pItemName, int Set, bool IgnoreAccount)
+void CPlayer::UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept)
 {
-	if(!Acc()->m_LoggedIn && !IgnoreAccount)
+	if(Group == EExclusiveGroup::None)
+		return;
+
+	// Iterate all items that belong to the same exclusive group
+	GameServer()->m_Shop.Registry().ForEachInGroup(Group, [&](const CItemConfig &Other) {
+		if(pExcept && &Other == pExcept)
+			return;
+		auto it = Inv()->m_Map.find(Other.m_Name);
+		if(it == Inv()->m_Map.end())
+			return;
+		CInventoryEntry &Entry = it->second;
+		if(Entry.m_Value <= 0)
+			return;
+		if(Other.m_Remove)
+			Other.m_Remove(*this, Other, -1);
+		Entry.m_Value = 0;
+	});
+}
+
+bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
+{
+	const CItemConfig *cfg = GameServer()->m_Shop.Registry().FindByName(pName);
+	if(!cfg)
+		return false;
+	if(!Acc()->m_LoggedIn && !Force)
 		return false;
 
-	CItem *pItem = GameServer()->m_Shop.FindItem(pItemName);
-	if(!pItem)
-		return false;
-	const char *pName = pItem->Name();
-	if(!OwnsItem(pName) && !IgnoreAccount)
-		return false;
-
-	if(pItem->Type() == ITEMTYPE_CASES)
-		return OpenLootCase(pItem);
-
-	if(!g_Config.m_SvCosmetics)
+	// Consumables (loot cases) handled elsewhere
+	if(HasFlag(cfg->m_Flags, EItemFlag::LootCase))
 	{
-		GameServer()->SendChatTarget(GetCid(), "Cosmetics are currently disabled");
+		OpenLootCase(*cfg);
+		return true;
+	}
+
+	CInventoryEntry &Entry = Inv()->Entry(cfg->m_Name);
+	const bool CurrentlyEquipped = Entry.m_Value;
+
+	int Equip = OverrideValue >= 0 ? OverrideValue : !CurrentlyEquipped;
+
+	if(ReachedItemLimit(cfg) && Equip != 0 && !Force)
+	{
+		GameServer()->SendChatTarget(GetCid(), "You have reached the limit of equipped cosmetics. Unequip some other items first.");
 		return false;
 	}
 
-	//if(Acc()->m_Configs.m_HideCosmetics)
-	//	return false;
-
-	int Value = GetItemToggle(pName);
-	if(Value == -1 && Set == -1)
-		return false;
-	if(!IgnoreAccount && ReachedItemLimit(pItem) && Value != 0 && Set != 0)
+	if(Equip != 0 && cfg->m_Group != EExclusiveGroup::None)
 	{
-		GameServer()->SendChatTarget(GetCid(), "You have reached the item limit! Disable another item first.");
-		return false;
+		if(!CurrentlyEquipped)
+			UnequipExclusiveGroup(cfg->m_Group, cfg);
 	}
 
-	int Idx = Inv()->IndexOfName(pName);
-	ExpireItem(Idx);
-
-	if(!str_comp_nocase(pName, Items[OTHER_SPARKLE]))
-		SetSparkle(Value);
-	else if(!str_comp_nocase(pName, Items[OTHER_INVERSEAIM]))
-		SetInverseAim(Value);
-	else if(!str_comp_nocase(pName, Items[OTHER_LOVELY]))
-		SetLovely(Value);
-	else if(!str_comp_nocase(pName, Items[OTHER_ROTATINGBALL]))
-		SetRotatingBall(Value);
-
-	else if(!str_comp_nocase(pName, Items[RAINBOW_FEET]))
-		SetRainbowFeet(Value);
-	else if(!str_comp_nocase(pName, Items[RAINBOW_BODY]))
-		SetRainbowBody(Value);
-	else if(!str_comp_nocase(pName, Items[RAINBOW_HOOK]))
-		HookPower(Value);
-
-	else if(!str_comp_nocase(pName, Items[EMOTICON_GUN]))
+	if(Equip != 0)
 	{
-		Value = Set;
-		SetEmoticonGun(Value);
+		if(cfg->m_Apply)
+			cfg->m_Apply(*this, *cfg, OverrideValue);
+		Entry.m_Value = Equip;
 	}
-	else if(!str_comp_nocase(pName, Items[PHASE_GUN]))
-		SetPhaseGun(Value);
-	else if(!str_comp_nocase(pName, Items[HEART_GUN]))
-		SetGunType(Value);
-	else if(!str_comp_nocase(pName, Items[MIXED_GUN]))
-		SetGunType(Value);
-	else if(!str_comp_nocase(pName, Items[LASER_GUN]))
-		SetGunType(Value);
-
-	else if(!str_comp_nocase(pName, Items[TRAIL_STAR]))
-		SetTrail(Value);
-	else if(!str_comp_nocase(pName, Items[TRAIL_DOT]))
-		SetTrail(Value);
-
-	else if(!str_comp_nocase(pName, Items[HAT_HAMMER]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_GUN]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_SHOTGUN]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_GRENADE]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_LASER]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_NINJA]))
-		SetHatType(Value);
-	else if(!str_comp_nocase(pName, Items[HAT_HEART]))
-		SetHeartHat(Value);
-
-	else if(!str_comp_nocase(pName, Items[INDICATOR_CLOCKWISE]))
-		SetDamageIndType(Value);
-	else if(!str_comp_nocase(pName, Items[INDICATOR_COUNTERCLOCKWISE]))
-		SetDamageIndType(Value);
-	else if(!str_comp_nocase(pName, Items[INDICATOR_INWARD_TURNING]))
-		SetDamageIndType(Value);
-	else if(!str_comp_nocase(pName, Items[INDICATOR_OUTWARD_TURNING]))
-		SetDamageIndType(Value);
-	else if(!str_comp_nocase(pName, Items[INDICATOR_LINE]))
-		SetDamageIndType(Value);
-	else if(!str_comp_nocase(pName, Items[INDICATOR_CRISSCROSS]))
-		SetDamageIndType(Value);
-
-	else if(!str_comp_nocase(pName, Items[DEATH_EXPLOSIVE]))
-		SetDeathEffect(Value);
-	else if(!str_comp_nocase(pName, Items[DEATH_HAMMERHIT]))
-		SetDeathEffect(Value);
-	else if(!str_comp_nocase(pName, Items[DEATH_INDICATOR]))
-		SetDeathEffect(Value);
-	else if(!str_comp_nocase(pName, Items[DEATH_LASER]))
-		SetDeathEffect(Value);
-
-	Inv()->SetEquippedIndex(Idx, Value);
-
-	int SubType = pItem->SubType();
-	for(CItem *pOtherItem : GameServer()->m_Shop.m_Items)
+	else
 	{
-		if(pOtherItem == pItem)
-			continue;
-		if(pOtherItem->SubType() == SUBTYPE_NONE)
-			continue;
-		if(pOtherItem->SubType() != SubType)
-			continue;
-		int OtherIdx = Inv()->IndexOfName(pOtherItem->Name());
-		Inv()->SetEquippedIndex(OtherIdx, 0);
+		if(CurrentlyEquipped && cfg->m_Remove)
+			cfg->m_Remove(*this, *cfg, OverrideValue);
+		Entry.m_Value = 0;
 	}
-
 	return true;
 }
 
-bool CPlayer::OpenLootCase(CItem *pItem)
+bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 {
-	if(!pItem)
+	if(!Acc()->m_LoggedIn)
 		return false;
-
 	if(m_LootBoxData.m_Opening)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You are already opening a loot case!");
 		return false;
 	}
 
-	const int CaseRarity = pItem->Rarity();
-	const bool IsExotic = !str_comp_nocase(pItem->Name(), Items[LOOT_CASE_EXOTIC]);
+	const EItemRarity CaseRarity = CaseCfg.m_Rarity;
+	const bool AllowAny = CaseCfg.m_Id == EItemId::LootCaseExotic;
 
-	std::vector<CItem *> vCandidates;
+	std::vector<const CItemConfig *> vCandidates;
 	int MaxStars = 1;
-	for(CItem *pOther : GameServer()->m_Shop.m_Items)
+	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 	{
-		if(pOther->Type() == ITEMTYPE_CASES)
+		const CItemConfig &Other = kv.second;
+		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
 			continue;
 
-		if(!IsExotic && pOther->Rarity() != CaseRarity)
+		if(!AllowAny && Other.m_Rarity != CaseRarity)
 			continue;
 
-		vCandidates.push_back(pOther);
-		MaxStars = std::max(MaxStars, pOther->Stars());
+		vCandidates.push_back(&kv.second); // pointer to registry-owned item
+		MaxStars = std::max(MaxStars, Other.m_Stars);
 	}
 	if(vCandidates.empty())
 		return false;
 
-	std::vector<int> RarityLevels;
+	std::vector<EItemRarity> RarityLevels;
 	RarityLevels.reserve(vCandidates.size());
-	for(CItem *pIt : vCandidates)
+	for(const CItemConfig *pIt : vCandidates)
 	{
-		int r = pIt->Rarity();
+		EItemRarity r = pIt->m_Rarity;
 		if(std::find(RarityLevels.begin(), RarityLevels.end(), r) == RarityLevels.end())
 			RarityLevels.push_back(r);
 	}
@@ -664,8 +493,8 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 	const int EpicIdx = std::min(2, LastIdx);
 	const int MythicIdx = std::min(3, LastIdx);
 
-	auto RarityFactor = [&](int r) -> int {
-		if(!IsExotic)
+	auto RarityFactor = [&](EItemRarity r) -> int {
+		if(!AllowAny)
 			return 1;
 
 		int idx = 0;
@@ -689,10 +518,10 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 	std::vector<int> ItemWeights;
 	ItemWeights.reserve(vCandidates.size());
 	int TotalWeight = 0;
-	for(CItem *pIt : vCandidates)
+	for(const CItemConfig *pIt : vCandidates)
 	{
-		const int Base = (MaxStars - pIt->Stars() + 1);
-		int W = Base * RarityFactor(pIt->Rarity());
+		const int Base = (MaxStars - pIt->m_Stars + 1);
+		int W = Base * RarityFactor(pIt->m_Rarity);
 		if(W < 1)
 			W = 1;
 		ItemWeights.push_back(W);
@@ -703,7 +532,7 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 	std::uniform_int_distribution<int> DistItem(1, std::max(TotalWeight, 1));
 	int Pick = DistItem(rd);
 
-	CItem *pSelectedItem = nullptr;
+	const CItemConfig *pSelectedItem = nullptr;
 	for(size_t i = 0; i < vCandidates.size(); i++)
 	{
 		if(Pick <= ItemWeights[i])
@@ -716,9 +545,13 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 	if(!pSelectedItem)
 		return false;
 
-	const int CaseIdx = Inv()->IndexOfName(pItem->Name());
-	if(CaseIdx >= 0)
-		Inv()->m_aQuantity[CaseIdx] = std::max(0, Inv()->m_aQuantity[CaseIdx] - 1);
+	auto it = Inv()->m_Map.find(CaseCfg.m_Name);
+	if(it == Inv()->m_Map.end() || it->second.m_Quantity <= 0)
+	{
+		GameServer()->SendChatTarget(GetCid(), "You don't own this loot case.");
+		return false;
+	}
+	it->second.m_Quantity = std::max(0, it->second.m_Quantity - 1);
 
 	struct SDayWeight
 	{
@@ -746,9 +579,9 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 		}
 		DayPick -= d.m_Weight;
 	}
-	GameServer()->m_Shop.GiveItem(GetCid(), pSelectedItem->Name(), RewardDays, "Loot Case");
+	GameServer()->m_Shop.GiveItem(GetCid(), pSelectedItem, RewardDays, "Loot Case");
 
-	m_LootBoxData.m_pLootBox = pItem;
+	m_LootBoxData.m_pLootBox = &CaseCfg;
 	m_LootBoxData.m_pGotItem = pSelectedItem;
 	m_LootBoxData.m_Opening = true;
 	m_LootBoxData.m_Ticks = LootBoxOpeningTicks;
@@ -756,7 +589,6 @@ bool CPlayer::OpenLootCase(CItem *pItem)
 
 	return true;
 }
-
 void CPlayer::RainbowTick()
 {
 	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOKTYPE_RAINBOW))
@@ -929,10 +761,7 @@ void CPlayer::SetHeartHat(bool Active)
 	Cosmetics()->m_HeartHat = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_HeartHat)
-	{
-		SetHatType(false);
 		new CHeartHat(&GameServer()->m_World, GetCid(), Pos);
-	}
 }
 
 void CPlayer::SetHatType(int Type)
@@ -942,12 +771,8 @@ void CPlayer::SetHatType(int Type)
 	int PrevType = Cosmetics()->m_HatType;
 	Cosmetics()->m_HatType = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(Cosmetics()->m_HatType)
-	{
-		SetHeartHat(false);
-		if(PrevType == HATTYPE_NONE)
-			new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
-	}
+	if(Cosmetics()->m_HatType && PrevType == HATTYPE_NONE)
+		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
 }
 
 void CPlayer::SetDeathEffect(int Type)
@@ -1211,9 +1036,9 @@ float CPlayer::StatMultiplier()
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
-	if(Acc()->m_Inventory.Owns(Items[VIP]))
+	if(Acc()->m_Inventory.Owns("VIP"))
 		Multiplier += 1.5f;
-	if(Acc()->m_Inventory.Owns(Items[MVP]))
+	if(Acc()->m_Inventory.Owns("MVP"))
 		Multiplier += 2.5f;
 	return Multiplier;
 }

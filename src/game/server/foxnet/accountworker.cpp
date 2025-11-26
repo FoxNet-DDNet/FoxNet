@@ -9,36 +9,39 @@
 #include <engine/server/databases/connection.h>
 
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
+	// Clear current inventory & cosmetics
 	Inv.Reset();
 
-	char aSql[256];
+	char aSql[128];
 	str_copy(aSql, "SELECT ItemName, Quantity, Value, AcquiredAt, ExpiresAt FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
+
 	pSql->BindString(1, pUsername);
+
 	bool End = true;
 	if(!pSql->Step(&End, pError, ErrorSize))
 		return false;
+
 	while(!End)
 	{
 		char aItemName[64];
 		pSql->GetString(1, aItemName, sizeof(aItemName));
-		const int Owned = pSql->GetInt(2);
+		const int Quantity = pSql->GetInt(2);
 		const int Value = pSql->GetInt(3);
 		const int64_t AcquiredAt = pSql->GetInt64(4);
 		const int64_t ExpiresAt = pSql->GetInt64(5);
 
-		const int Idx = CInventory::IndexOfName(aItemName);
-		if(Idx >= 0 && Idx < NUM_ITEMS)
-		{
-			Inv.SetQuantityIndex(Idx, Owned);
-			Inv.SetEquippedIndex(Idx, Value);
-			Inv.SetAcquiredAt(Idx, AcquiredAt);
-			Inv.SetExpiresAt(Idx, ExpiresAt);
-		}
+		auto &Entry = Inv.Entry(aItemName);
+		Entry.m_Quantity = Quantity;
+		Entry.m_Value = Value;
+		Entry.m_AcquiredAt = AcquiredAt;
+		Entry.m_ExpiresAt = ExpiresAt;
+
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
 	}
@@ -48,95 +51,67 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 
 static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const CInventory &Inv, char *pError, int ErrorSize)
 {
-	// Collect equipped pairs (ItemName, Value)
-	struct EquipPair
+	struct SEquip
 	{
-		const char *pId;
+		const char *Name;
 		int Val;
 	};
-	EquipPair aEquipPairs[NUM_ITEMS];
-	int EquipCount = 0;
-	for(int i = 0; i < NUM_ITEMS; i++)
+	struct SQty
 	{
-		const int Val = Inv.m_aEquipped[i];
-		if(Val > 0)
-		{
-			aEquipPairs[EquipCount].pId = Items[i];
-			aEquipPairs[EquipCount].Val = Val;
-			EquipCount++;
-		}
-	}
-
-	// Collect quantity pairs (ItemName, Quantity).
-	// Include zero to allow decreasing quantity to 0.
-	struct QtyPair
-	{
-		const char *pId;
+		const char *Name;
 		int Qty;
 	};
-	QtyPair aQtyPairs[NUM_ITEMS];
-	int QtyCount = 0;
-	for(int i = 0; i < NUM_ITEMS; i++)
+	struct STime
 	{
-		aQtyPairs[QtyCount].pId = Items[i];
-		aQtyPairs[QtyCount].Qty = Inv.m_aQuantity[i];
-		QtyCount++;
-	}
-
-	// Collect owned items with time fields (ItemName, AcquiredAt, ExpiresAt)
-	struct TimePair
-	{
-		const char *pId;
+		const char *Name;
 		int64_t Acq;
 		int64_t Exp;
 	};
-	TimePair aTimePairs[NUM_ITEMS];
-	int TimeCount = 0;
-	for(int i = 0; i < NUM_ITEMS; i++)
+
+	std::vector<SEquip> vEquip;
+	std::vector<SQty> vQty;
+	std::vector<STime> vTime;
+
+	for(const auto &kv : Inv.m_Map)
 	{
-		if(!Inv.m_aQuantity[i])
-			continue;
-		aTimePairs[TimeCount].pId = Items[i];
-		aTimePairs[TimeCount].Acq = Inv.m_AcquiredAt[i];
-		aTimePairs[TimeCount].Exp = Inv.m_ExpiresAt[i];
-		TimeCount++;
+		const std::string &Name = kv.first;
+		const CInventoryEntry &Entry = kv.second;
+
+		vQty.push_back({Name.c_str(), Entry.m_Quantity});
+
+		int StoredVal = Entry.m_Value;
+
+		vEquip.push_back({Name.c_str(), StoredVal});
+
+		if(Entry.m_Quantity > 0)
+			vTime.push_back({Name.c_str(), Entry.m_AcquiredAt, Entry.m_ExpiresAt});
 	}
 
-	char aUpd[4096];
-	aUpd[0] = '\0';
+	char aUpd[8192] = "";
 	str_append(aUpd, "UPDATE foxnet_account_inventory SET ", sizeof(aUpd));
 
-	// Value part
-	if(EquipCount > 0)
-	{
-		str_append(aUpd, "Value = CASE ItemName", sizeof(aUpd));
-		for(int i = 0; i < EquipCount; i++)
-			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
-		str_append(aUpd, " ELSE 0 END", sizeof(aUpd));
-	}
-	else
-	{
-		str_append(aUpd, "Value = 0", sizeof(aUpd));
-	}
+	// Value
+	str_append(aUpd, "Value = CASE ItemName", sizeof(aUpd));
+	for(size_t e = 0; e < vEquip.size(); e++)
+		str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+	str_append(aUpd, " ELSE 0 END", sizeof(aUpd));
 
-	// Quantity part
+	// Quantity
 	str_append(aUpd, ", Quantity = CASE ItemName", sizeof(aUpd));
-	for(int i = 0; i < QtyCount; i++)
+	for(size_t q = 0; q < vQty.size(); q++)
 		str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
 	str_append(aUpd, " ELSE Quantity END", sizeof(aUpd));
 
-	// Times part (only for items currently owned)
-	if(TimeCount > 0)
+	// Times
+	if(!vTime.empty())
 	{
-		// AcquiredAt
 		str_append(aUpd, ", AcquiredAt = CASE ItemName", sizeof(aUpd));
-		for(int i = 0; i < TimeCount; i++)
+		for(size_t t = 0; t < vTime.size(); t++)
 			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
 		str_append(aUpd, " ELSE AcquiredAt END", sizeof(aUpd));
 
-		// ExpiresAt
 		str_append(aUpd, ", ExpiresAt = CASE ItemName", sizeof(aUpd));
-		for(int i = 0; i < TimeCount; i++)
+		for(size_t t = 0; t < vTime.size(); t++)
 			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
 		str_append(aUpd, " ELSE ExpiresAt END", sizeof(aUpd));
 	}
@@ -146,44 +121,32 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
 		return false;
 
-	int BindIdx = 1;
-
-	// Bind (ItemName, Value)
-	if(EquipCount > 0)
+	int Bind = 1;
+	for(const auto &e : vEquip)
 	{
-		for(int i = 0; i < EquipCount; i++)
-		{
-			pSql->BindString(BindIdx++, aEquipPairs[i].pId);
-			pSql->BindInt(BindIdx++, aEquipPairs[i].Val);
-		}
+		pSql->BindString(Bind++, e.Name);
+		pSql->BindInt(Bind++, e.Val);
+	}
+	for(const auto &q : vQty)
+	{
+		pSql->BindString(Bind++, q.Name);
+		pSql->BindInt(Bind++, q.Qty);
+	}
+	for(const auto &t : vTime)
+	{
+		pSql->BindString(Bind++, t.Name);
+		pSql->BindInt64(Bind++, t.Acq);
+	}
+	for(const auto &t : vTime)
+	{
+		pSql->BindString(Bind++, t.Name);
+		pSql->BindInt64(Bind++, t.Exp);
 	}
 
-	// Bind (ItemName, Quantity)
-	for(int i = 0; i < QtyCount; i++)
-	{
-		pSql->BindString(BindIdx++, aQtyPairs[i].pId);
-		pSql->BindInt(BindIdx++, aQtyPairs[i].Qty);
-	}
+	pSql->BindString(Bind++, pUsername);
 
-	// Bind times
-	if(TimeCount > 0)
-	{
-		for(int i = 0; i < TimeCount; i++)
-		{
-			pSql->BindString(BindIdx++, aTimePairs[i].pId);
-			pSql->BindInt64(BindIdx++, aTimePairs[i].Acq);
-		}
-		for(int i = 0; i < TimeCount; i++)
-		{
-			pSql->BindString(BindIdx++, aTimePairs[i].pId);
-			pSql->BindInt64(BindIdx++, aTimePairs[i].Exp);
-		}
-	}
-
-	pSql->BindString(BindIdx++, pUsername);
-
-	int Num = 0;
-	return pSql->ExecuteUpdate(&Num, pError, ErrorSize);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
 static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &MailBox, char *pError, int ErrorSize)
@@ -502,39 +465,37 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
-
-	if(!SaveConfigs(pSql, pReq->m_aUsername, pReq->m_Configs, pError, ErrorSize))
+	if(!pReq)
 		return false;
 
-	// Upsert owned items first (ensures inventory rows exist)
+	// Upsert owned items (Quantity > 0)
+	for(const auto &kv : pReq->m_Inventory.m_Map)
 	{
-		for(int i = 0; i < NUM_ITEMS; i++)
-		{
-			if(!pReq->m_Inventory.m_aQuantity[i])
-				continue;
+		const CInventoryEntry &E = kv.second;
+		if(E.m_Quantity <= 0)
+			continue;
 
-			char aIns[256];
-			str_format(aIns, sizeof(aIns),
-				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, ?, ?, ?, '')",
-				pSql->InsertIgnore());
-			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
-				return false;
-			pSql->BindString(1, pReq->m_aUsername);
-			pSql->BindString(2, Items[i]);
-			pSql->BindInt(3, pReq->m_Inventory.m_aQuantity[i]);
-			pSql->BindInt64(4, pReq->m_Inventory.m_AcquiredAt[i]);
-			pSql->BindInt64(5, pReq->m_Inventory.m_ExpiresAt[i]);
-			int NumIns = 0;
-			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
-				return false;
-		}
+		char aIns[256];
+		str_format(aIns, sizeof(aIns),
+			"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
+			"VALUES (?, ?, ?, ?, ?, '')",
+			pSql->InsertIgnore());
+		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aUsername);
+		pSql->BindString(2, kv.first.c_str());
+		pSql->BindInt(3, E.m_Quantity);
+		pSql->BindInt64(4, E.m_AcquiredAt);
+		pSql->BindInt64(5, E.m_ExpiresAt);
+		int NumIns = 0;
+		if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
+			return false;
 	}
 
 	if(!UpdateItemValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
 		return false;
 
-	// Update scalar account fields
+	// Account scalar fields
 	char aSql[512];
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
@@ -561,33 +522,34 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
+	if(!pReq)
+		return false;
 
 	if(!SaveConfigs(pSql, pReq->m_aUsername, pReq->m_Configs, pError, ErrorSize))
 		return false;
 
-	// Upsert owned items (cheap, idempotent)
+	// Upsert owned items
+	for(const auto &kv : pReq->m_Inventory.m_Map)
 	{
-		for(int i = 0; i < NUM_ITEMS; i++)
-		{
-			if(!pReq->m_Inventory.m_aQuantity[i])
-				continue;
+		const CInventoryEntry &Entry = kv.second;
+		if(Entry.m_Quantity <= 0)
+			continue;
 
-			char aIns[256];
-			str_format(aIns, sizeof(aIns),
-				"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-				"VALUES (?, ?, ?, ?, ?, '')",
-				pSql->InsertIgnore());
-			if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
-				return false;
-			pSql->BindString(1, pReq->m_aUsername);
-			pSql->BindString(2, Items[i]);
-			pSql->BindInt(3, pReq->m_Inventory.m_aQuantity[i]);
-			pSql->BindInt64(4, pReq->m_Inventory.m_AcquiredAt[i]);
-			pSql->BindInt64(5, pReq->m_Inventory.m_ExpiresAt[i]);
-			int NumIns = 0;
-			if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
-				return false;
-		}
+		char aIns[256];
+		str_format(aIns, sizeof(aIns),
+			"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
+			"VALUES (?, ?, ?, ?, ?, '')",
+			pSql->InsertIgnore());
+		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aUsername);
+		pSql->BindString(2, kv.first.c_str());
+		pSql->BindInt(3, Entry.m_Quantity);
+		pSql->BindInt64(4, Entry.m_AcquiredAt);
+		pSql->BindInt64(5, Entry.m_ExpiresAt);
+		int NumIns = 0;
+		if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
+			return false;
 	}
 
 	if(!UpdateItemValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
@@ -614,7 +576,6 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
-
 bool CAccountsWorker::SetPlayerName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *p = dynamic_cast<const CAccSetNameReq *>(pData);

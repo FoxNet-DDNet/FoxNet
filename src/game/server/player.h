@@ -141,62 +141,60 @@ public:
 	void Reset() { *this = CCosmetics(); }
 };
 
+class CInventoryEntry
+{
+public:
+	int m_Quantity = 0;
+	int m_Value = 0;  
+	int64_t m_AcquiredAt = 0;
+	int64_t m_ExpiresAt = -1;
+
+	bool operator==(const CInventoryEntry &Other) const
+	{
+		return m_Quantity == Other.m_Quantity &&
+		       m_Value == Other.m_Value &&
+		       m_AcquiredAt == Other.m_AcquiredAt &&
+		       m_ExpiresAt == Other.m_ExpiresAt;
+	}
+	bool operator!=(const CInventoryEntry &Other) const
+	{
+		return !(*this == Other);
+	}
+};
+
 class CInventory
 {
 public:
+	std::unordered_map<std::string, CInventoryEntry> m_Map;
 	CCosmetics m_Cosmetics;
-	
-	int m_aQuantity[NUM_ITEMS] = {0};
-	int m_aEquipped[NUM_ITEMS];
 
-	int m_AcquiredAt[NUM_ITEMS] = {0};
-	int m_ExpiresAt[NUM_ITEMS] = {-1}; // -1 never expires
+	bool Has(const std::string &name) const
+	{
+		return m_Map.find(name) != m_Map.end();
+	}
+
+	bool Owns(const char *name) const
+	{
+		auto it = m_Map.find(std::string(name));
+		return it != m_Map.end() && it->second.m_Quantity > 0;
+	}
+
+	CInventoryEntry &Entry(const std::string &name) { return m_Map[name]; }
+	bool Owns(const std::string &name) const
+	{
+		auto it = m_Map.find(name);
+		return it != m_Map.end() && it->second.m_Quantity > 0;
+	}
+	void SetQuantity(const char *pName, int Quantity) { Entry(pName).m_Quantity = Quantity; }
+	void SetValue(const char *pName, int Equipped) { Entry(pName).m_Value = Equipped; }
+	void SetAcquiredAt(const char *pName, int64_t AcquiredAt) { Entry(pName).m_AcquiredAt = AcquiredAt; }
+	void SetExpiresAt(const char *pName, int64_t ExpiredAt) { Entry(pName).m_ExpiresAt = ExpiredAt; }
+	void AddToExpiry(const char *pName, int64_t delta) { Entry(pName).m_ExpiresAt += delta; }
 
 	void Reset()
 	{
-		mem_zero(m_aQuantity, sizeof(m_aQuantity));
-		mem_zero(m_aEquipped, sizeof(m_aEquipped));
-		m_Cosmetics = CCosmetics();
-	}
-
-	static int IndexOfName(const char *pName)
-	{
-		for(int i = 0; i < NUM_ITEMS; i++)
-			if(!str_comp_nocase(Items[i], pName))
-				return i;
-		return -1;
-	}
-	void SetQuantityIndex(int Index, int Quantity)
-	{
-		if(Index >= 0 && Index < NUM_ITEMS)
-			m_aQuantity[Index] = Quantity;
-	}
-	bool OwnsIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aQuantity[Index] != 0 : false; }
-	bool Owns(const char *pName) const { return OwnsIndex(IndexOfName(pName)); }
-
-	// Equipped
-	void SetEquippedIndex(int Index, int Value)
-	{
-		if(Index >= 0 && Index < NUM_ITEMS)
-			m_aEquipped[Index] = maximum(0, Value);
-	}
-	int EquippedIndex(int Index) const { return Index >= 0 && Index < NUM_ITEMS ? m_aEquipped[Index] : 0; }
-	int Equipped(const char *pName) const { return EquippedIndex(IndexOfName(pName)); }
-	
-	void SetAcquiredAt(int Index, int64_t _AcquiredAt)
-	{
-		if(Index >= 0 && Index < NUM_ITEMS)
-			m_AcquiredAt[Index] = _AcquiredAt;
-	}
-	void SetExpiresAt(int Index, int64_t ExpiresAt)
-	{
-		if(Index >= 0 && Index < NUM_ITEMS)
-			m_ExpiresAt[Index] = ExpiresAt;
-	}
-	void AddToExpiry(int Index, int64_t ExtraTime)
-	{
-		if(Index >= 0 && Index < NUM_ITEMS)
-			m_ExpiresAt[Index] += ExtraTime;
+		m_Map.clear();
+		m_Cosmetics.Reset();
 	}
 };
 // FoxNet>
@@ -435,7 +433,6 @@ private:
 	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 	void RainbowTick();
 	void ExpireItems();
-	void ExpireItem(int Idx);
 	void FoxNetTick();
 
 	void LootBoxTick();
@@ -451,19 +448,20 @@ private:
 		CLootBoxData() = default;
 
 		bool m_Opening = false;
-		CItem *m_pGotItem = nullptr;
-		CItem *m_pLootBox = nullptr;
+		const CItemConfig *m_pGotItem = nullptr;
+		const CItemConfig *m_pLootBox = nullptr;
 		int m_Days = 0;
 
 		int m_Ticks = 0;
 
 	} m_LootBoxData;
 
-	bool OpenLootCase(CItem *pItem);	
+	bool OpenLootCase(const CItemConfig &CaseCfg);	
 
 	bool HasImportantBroadcast() const;
 
 public:
+
 	int64_t m_LastReport = 0;
 
 	bool m_HasBotClient;
@@ -503,11 +501,12 @@ public:
 	void TakeMoney(long Amount, bool Silent = true, const char *pMessage = "");
 
 	bool OwnsItem(const char *pItemName);
-	bool UseItem(const char *pItemName, int Set, bool IgnoreAccount = false);
 
-	bool ReachedItemLimit(const CItem *pItem);
+	void UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept);
+	bool UseItem(const char *pName, int OverrideValue, bool Force = false);
 
-	int GetItemToggle(const char *pItemName);
+	bool ReachedItemLimit(const CItemConfig *Cfg);
+
 	bool ItemEnabled(const char *pItemName);
 
 	void HookPower(int Extra);
