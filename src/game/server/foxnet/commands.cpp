@@ -243,7 +243,7 @@ void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.GiveItemByName(ClientId, pItemName, -1, aFrom);
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, -1, aFrom);
 }
 
 void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
@@ -263,7 +263,25 @@ void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
 	if(CheckClientId(ClientId))
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
-	pSelf->m_Shop.GiveItemByName(ClientId, pItemName, Days, aFrom);
+	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days, aFrom);
+}
+
+void CGameContext::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
+	const char *pItemName = pResult->GetString(1);
+	pSelf->m_Shop.GiveItemForever(ClientId, pItemName, aFrom);
 }
 
 void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
@@ -1823,9 +1841,10 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConAccForcePassword, this, "Disable an account");
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
-	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
 	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
-	Console()->Register("give_item_days", "v[id] i[days] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item");
+	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
+	Console()->Register("give_item_days", "v[id] i[days] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item for x days");
+	Console()->Register("give_item_forever", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item forever");
 
 	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
 	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");

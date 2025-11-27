@@ -411,7 +411,7 @@ bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 	if(!Acc()->m_LoggedIn && !Force)
 		return false;
 
-	// Consumables (loot cases) handled elsewhere
+	// Consumables (loot cases)
 	if(HasFlag(cfg->m_Flags, EItemFlag::LootCase))
 	{
 		OpenLootCase(*cfg);
