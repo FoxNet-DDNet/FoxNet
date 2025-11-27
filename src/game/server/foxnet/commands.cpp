@@ -823,6 +823,22 @@ void CGameContext::ConGunType(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set gun type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
+void CGameContext::ConHatType(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+
+	if(!pPl)
+		return;
+
+	int Type = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0;
+	pPl->SetHatType((HatType)Type);
+	log_info("cosmetics", "Set hat type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
+}
+
 void CGameContext::ConStaffInd(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1822,6 +1838,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_death_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDeathEffect, this, "Set players (id) Death Type");
 	Console()->Register("c_damageind_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDamageIndType, this, "Set players (id) Damage Ind Type");
 	Console()->Register("c_gun_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConGunType, this, "Set players (id) Gun Type");
+	Console()->Register("c_hat_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConHatType, this, "Set players (id) Hat Type");
 
 	// Player configs
 	// Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");

@@ -781,6 +781,7 @@ private:
 	static void ConDeathEffect(IConsole::IResult *pResult, void *pUserData);
 	static void ConDamageIndType(IConsole::IResult *pResult, void *pUserData);
 	static void ConGunType(IConsole::IResult *pResult, void *pUserData);
+	static void ConHatType(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConPhaseGun(IConsole::IResult *pResult, void *pUserData);
 

@@ -143,12 +143,13 @@ void CLightSaber::Snap(int SnappingClient)
 
 	if(m_Length <= 0)
 		return;
-
-	vec2 From = m_From + pOwnerChr->GetVelocity();
-	vec2 To = m_To + pOwnerChr->GetVelocity();
+	
+	vec2 Vel = pOwnerChr->GetVelocity() * 0.5f;
+	vec2 From = m_From + Vel;
+	vec2 To = m_To + Vel;
 	if(m_Owner == SnappingClient)
 	{
-		To = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		To = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
 		const vec2 WantedFrom = To + normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)) * m_Length;
 		GameServer()->Collision()->IntersectLine(To, WantedFrom, &From, 0);
 	}

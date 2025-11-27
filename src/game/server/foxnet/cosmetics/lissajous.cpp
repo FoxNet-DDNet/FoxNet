@@ -122,9 +122,9 @@ void CLissajous::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
+	vec2 Pos = m_Pos + pOwnerChr->GetVelocity() * 0.5f;
 	if(m_Owner == SnappingClient)
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{

@@ -32,7 +32,7 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	std::random_device rd;
 	for(int i = 0; i < MAX_FIREWORKS; i++)
 	{
-		m_Ids[i] = Server()->SnapNewId();
+		m_aIds[i] = Server()->SnapNewId();
 
 		std::uniform_int_distribution<long> X(-MaxSpeed, MaxSpeed);
 		std::uniform_int_distribution<long> Y(-MaxSpeed, MaxSpeed);
@@ -48,7 +48,7 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 void CFirework::Reset()
 {
 	for(int i = 0; i < MAX_FIREWORKS; i++)
-		Server()->SnapFreeId(m_Ids[i]);
+		Server()->SnapFreeId(m_aIds[i]);
 
 	// Always allocated when entity is created
 	Server()->SnapFreeId(GetId());
@@ -134,7 +134,7 @@ void CFirework::Snap(int SnappingClient)
 	{
 		for(int i = 0; i < MAX_FIREWORKS; i++)
 		{
-			CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_Ids[i]);
+			CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_aIds[i]);
 			if(!pProj || m_aLifetime[i] <= 0)
 				continue;
 

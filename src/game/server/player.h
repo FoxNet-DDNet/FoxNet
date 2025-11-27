@@ -87,16 +87,17 @@ enum GunTypes
 	NUM_GUNTYPES
 };
 
-enum HatTypes
+enum class HatType
 {
-	HATTYPE_NONE = 0,
-	HATTYPE_HAMMER,
-	HATTYPE_GUN,
-	HATTYPE_SHOTGUN,
-	HATTYPE_GRENADE,
-	HATTYPE_LASER,
-	HATTYPE_NINJA,
-	NUM_HATTYPES
+	None = 0,
+	Hammer,
+	Gun,
+	Shotgun,
+	Grenade,
+	Laser,
+	Ninja,
+	Party,
+	COUNT
 };
 
 class CCosmetics
@@ -126,7 +127,7 @@ public:
 
 	// Hats
 	bool m_HeartHat = false;
-	int m_HatType = 0;
+	HatType m_HatType = HatType::None;
 
 	// Rainbow
 	bool m_RainbowFeet = false;
@@ -526,7 +527,7 @@ public:
 	void SetDeathEffect(int Type);
 
 	void SetHeartHat(bool Active);
-	void SetHatType(int Type);
+	void SetHatType(HatType Type);
 
 	void SetStaffInd(bool Active);
 	void SetPickupPet(bool Active);

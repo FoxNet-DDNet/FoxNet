@@ -250,48 +250,48 @@ void CItemRegistry::Init()
 		"Hammer Hat", "Hm_H",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Hammer above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_HAMMER); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_HAMMER) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Hammer); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Hammer) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::GunHat, EItemType::Hat,
 		"Gun Hat", "H_G",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Gun above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_GUN); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_GUN) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Gun); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Gun) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::ShotgunHat, EItemType::Hat,
 		"Shotgun Hat", "H_SG",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Shotgun above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_SHOTGUN); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_SHOTGUN) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Shotgun); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Shotgun) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::GrenadeHat, EItemType::Hat,
 		"Grenade Hat", "H_GR",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Grenade above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_GRENADE); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_GRENADE) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Grenade); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Grenade) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::LaserHat, EItemType::Hat,
 		"Laser Hat", "H_L",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Laser above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_LASER); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_LASER) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Laser); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Laser) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::NinjaHat, EItemType::Hat,
 		"Ninja Hat", "H_N",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Ninja weapon above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HATTYPE_NINJA); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HATTYPE_NINJA) pl.SetHatType(HATTYPE_NONE); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Ninja); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Ninja) pl.SetHatType(HatType::None); },
 		30});
 
 	add({EItemId::HeartHat, EItemType::Hat,

@@ -27,7 +27,7 @@ class CFirework : public CEntity
 	vec2 m_aPos[MAX_FIREWORKS];
 	vec2 m_aVel[MAX_FIREWORKS];
 
-	int m_Ids[MAX_FIREWORKS];
+	int m_aIds[MAX_FIREWORKS];
 
 public:
 	CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos);

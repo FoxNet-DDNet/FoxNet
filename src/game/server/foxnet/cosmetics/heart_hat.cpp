@@ -25,9 +25,9 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_Pos = Pos;
 
 	m_Owner = Owner;
-	m_Ids[0] = GetId();
+	m_aIds[0] = GetId();
 	for(int i = 0; i < NUM_HEARTS - 1; i++)
-		m_Ids[i + 1] = Server()->SnapNewId();
+		m_aIds[i + 1] = Server()->SnapNewId();
 
 	GameWorld()->InsertEntity(this);
 }
@@ -35,7 +35,7 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 void CHeartHat::Reset()
 {
 	for(int i = 0; i < NUM_HEARTS - 1; i++)
-		Server()->SnapFreeId(m_Ids[i + 1]);
+		Server()->SnapFreeId(m_aIds[i + 1]);
 
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
@@ -97,7 +97,7 @@ void CHeartHat::Snap(int SnappingClient)
 
 	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
-		const int Id = m_Ids[Heart];
+		const int Id = m_aIds[Heart];
 
 		vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
 

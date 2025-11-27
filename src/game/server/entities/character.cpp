@@ -3748,7 +3748,7 @@ vec2 CCharacter::GetSpazzPos(vec2 Pos)
 	return Pos + OffsetPos;
 }
 
-vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos)
+vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos, bool Pickup)
 {
 	if(!g_Config.m_SvExperimentalPrediction)
 		return Pos;
@@ -3756,7 +3756,7 @@ vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos)
 		return Pos;
 
 	double Pred = GetPlayer()->GetClientPred();
-	float dist = distance(Pos, PrevPos) * 0.5f;
+	float dist = distance(Pos, PrevPos) * (Pickup ? 0.5f : 0.25f); // Lasers don't interpolate client side
 	vec2 Dir = normalize(Pos - PrevPos);
 	vec2 nVel = Dir * Pred * dist;
 	return Pos + nVel;

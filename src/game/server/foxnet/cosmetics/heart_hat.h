@@ -15,7 +15,7 @@ class CHeartHat : public CEntity
 	};
 
 	int m_Owner;
-	int m_Ids[NUM_HEARTS];
+	int m_aIds[NUM_HEARTS];
 	float m_Dist;
 	bool m_switch;
 

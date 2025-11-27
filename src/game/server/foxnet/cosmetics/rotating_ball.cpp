@@ -106,13 +106,13 @@ void CRotatingBall::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-
-	vec2 Pos = pOwnerChr->m_Pos + pOwnerChr->GetVelocity();
-	vec2 LaserPos = pOwnerChr->m_Pos + pOwnerChr->GetVelocity();
+	vec2 Vel = pOwnerChr->GetVelocity() * 0.5f;
+	vec2 Pos = pOwnerChr->m_Pos + Vel;
+	vec2 LaserPos = pOwnerChr->m_Pos + Vel;
 	if(m_Owner == SnappingClient)
 	{
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
+		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
 	}
 	Pos += m_ProjPos;
 	LaserPos += m_LaserPos;

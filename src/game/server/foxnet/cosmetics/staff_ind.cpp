@@ -108,11 +108,11 @@ void CStaffInd::Snap(int SnappingClient)
 	const int BallId = m_BallFirst ? m_aIds[BALL_FRONT] : m_aIds[BALL];
 
 	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	vec2 LaserPos = m_Pos + pOwnerChr->GetVelocity();
+	vec2 LaserPos = m_Pos + pOwnerChr->GetVelocity() * 0.5f;
 	if(m_Owner == SnappingClient)
 	{
 		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
 	}
 	Pos += m_aPos[ARMOR];
 	LaserPos += m_aPos[BALL];
