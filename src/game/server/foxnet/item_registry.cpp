@@ -296,7 +296,7 @@ void CItemRegistry::Init()
 
 	add({EItemId::HeartHat, EItemType::Hat,
 		"Heart Hat", "H_H",
-		EItemFlag::Equippable, EExclusiveGroup::None,
+		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		15000, 12, 3, EItemRarity::Rare, "A hat of Hearts",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(false); },

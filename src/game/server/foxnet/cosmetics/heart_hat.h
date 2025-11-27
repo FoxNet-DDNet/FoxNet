@@ -11,15 +11,12 @@ class CHeartHat : public CEntity
 {
 	enum
 	{
-		HEART_BACK = 0,
-		HEART_MIDDLE = 1,
-		HEART_FRONT = 2,
-		NUM_HEARTS = 3
+		NUM_HEARTS = 2
 	};
 
 	int m_Owner;
 	int m_Ids[NUM_HEARTS];
-	float m_Dist[NUM_HEARTS];
+	float m_Dist;
 	bool m_switch;
 
 public:

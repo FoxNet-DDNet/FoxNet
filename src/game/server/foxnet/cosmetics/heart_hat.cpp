@@ -17,6 +17,7 @@
 #include <game/server/teams.h>
 
 static constexpr float HeartOffset = -42.0f;
+static constexpr float MaxHeartDist = 24.0f;
 
 CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEART_HAT, Pos)
@@ -54,22 +55,14 @@ void CHeartHat::Tick()
 
 	m_Pos = pOwner->GetPos();
 
-	if(!m_switch)
+	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
-		m_Dist[HEART_BACK] += 1.80f;
-		m_Dist[HEART_FRONT] += 1.80f;
 
-		m_Dist[HEART_MIDDLE] -= 1.80f;
-		if(m_Dist[HEART_BACK] > 24.0f)
+		m_Dist += 1.0f * (m_switch ? -1.0f : 1.0f);
+
+		if(m_Dist >= MaxHeartDist)
 			m_switch = true;
-	}
-	else
-	{
-		m_Dist[HEART_BACK] -= 1.68f;
-		m_Dist[HEART_FRONT] -= 1.68f;
-
-		m_Dist[HEART_MIDDLE] += 1.68f;
-		if(m_Dist[HEART_BACK] < -24.0f)
+		if(m_Dist <= -MaxHeartDist)
 			m_switch = false;
 	}
 }
@@ -102,17 +95,18 @@ void CHeartHat::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	for(int i = 0; i < NUM_HEARTS; i++)
+	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
-		const int Id = m_Ids[i];
-		if(m_switch && i == HEART_FRONT)
-			continue;
+		const int Id = m_Ids[Heart];
 
 		vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
 
 		if(m_Owner == SnappingClient)
 			Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		Pos += vec2(m_Dist[i], HeartOffset);
+
+		float Dist = m_Dist * (Heart == 0 ? -1.0f : 1.0f);
+
+		Pos += vec2(Dist, HeartOffset);
 
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
