@@ -598,7 +598,7 @@ void CGameContext::OnLogin(int ClientId)
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
 		SendChatTarget(ClientId, "For more Info about this server head to the vote menu and double click on 'Server Info'");
 	}
-	else
+	else if(!!Server()->ClientPrevIngame(ClientId))
 	{
 		int UnreadMails = 0;
 		for(const CMailBox::CMail &Mail : pPl->Acc()->m_MailBox.m_vMails)
