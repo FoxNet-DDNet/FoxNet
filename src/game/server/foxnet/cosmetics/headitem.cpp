@@ -29,11 +29,17 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 	m_Type = Type;
 	m_Offset = Offset;
 
+	for(size_t i = 0; i < std::size(m_aIds); i++)
+		m_aIds[i] = Server()->SnapNewId();
+
 	GameWorld()->InsertEntity(this);
 }
 
 void CHeadItem::Reset()
 {
+	for(size_t i = 0; i < std::size(m_aIds); i++)
+		Server()->SnapFreeId(m_aIds[i]);
+
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }
@@ -60,7 +66,7 @@ void CHeadItem::Tick()
 		}
 		break;
 	case HEADITEM_COSMETIC:
-		if(pOwnerPl->Cosmetics()->m_HatType == HATTYPE_NONE)
+		if(pOwnerPl->Cosmetics()->m_HatType == HatType::None)
 		{
 			Reset();
 			return;
@@ -87,6 +93,7 @@ void CHeadItem::Snap(int SnappingClient)
 
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
+	HatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
 
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
@@ -98,6 +105,15 @@ void CHeadItem::Snap(int SnappingClient)
 
 		if(pOwnerChr->IsPaused())
 			return;
+
+		if(m_Type == HEADITEM_COSMETIC)
+		{
+			if(PlHatType == HatType::Party)
+			{
+				SnapPartyHat(SnappingClient);
+				return;
+			}
+		}
 
 		if(pOwnerChr->m_SpawnSolo)
 			return;
@@ -114,11 +130,6 @@ void CHeadItem::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	if(m_Owner == SnappingClient)
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-	Pos += m_Offset;
-
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 
@@ -134,12 +145,47 @@ void CHeadItem::Snap(int SnappingClient)
 		break;
 	case HEADITEM_COSMETIC:
 		Type = POWERUP_WEAPON;
-		SubType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType - 1;
+		SubType = (int)PlHatType - 1;
 		Flags |= pOwnerChr->Acc()->m_Configs.m_HatItemFlags;
 		break;
 	default:
 		break;
 	}
 
+	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
+	if(m_Owner == SnappingClient)
+		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+	Pos += m_Offset;
+
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), Pos, Type, SubType, -1, Flags);
+}
+
+void CHeadItem::SnapPartyHat(int SnappingClient)
+{
+	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
+	
+	vec2 HatFrom[2] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
+	vec2 HatTo[2] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
+
+	const int SnapVer = Server()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient);
+
+	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
+
+	for(size_t i = 0; i < std::size(m_aIds); i++)
+	{
+		if(Turn)
+		{
+			HatFrom[i].x = -HatFrom[i].x;
+			HatTo[i].x = -HatTo[i].x;
+		}
+
+		vec2 Pos = m_Pos + pOwnerChr->GetVelocity() * 0.5f;
+		if(m_Owner == SnappingClient)
+			Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
+		vec2 From = Pos + HatFrom[i];
+		vec2 To = Pos + HatTo[i];
+
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[i], From, To, Server()->Tick() - 4, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+	}
 }

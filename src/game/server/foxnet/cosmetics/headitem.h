@@ -22,6 +22,10 @@ class CHeadItem : public CEntity
 	int m_Type;
 	vec2 m_Offset;
 
+	void SnapPartyHat(int SnappingClient);
+
+	int m_aIds[2];
+
 public:
 	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
 
