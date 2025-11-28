@@ -910,12 +910,16 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	char aBuf[VOTE_DESC_LENGTH];
-	if(!pAcc->m_LoggedIn)
+	if(!g_Config.m_SvAccounts)
+	{
+	}
+	else if(!pAcc->m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
 		AddVoteSeparator();
 		AddVoteText("1 - use /register <Name> <Password>");
 		AddVoteText("2 - login using /login <Name> <Password>");
+		AddVoteSeparator();
 	}
 	else
 	{
@@ -951,8 +955,8 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
+		AddVoteSeparator();
 	}
-	AddVoteSeparator();
 
 	for(int i = 0; i < NUM_PAGES; i++)
 	{

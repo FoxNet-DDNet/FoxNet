@@ -9,6 +9,7 @@
 #include "cosmetics/rotating_ball.h"
 #include "cosmetics/staff_ind.h"
 #include "entities/text/text.h"
+#include "item_registry.h"
 #include "shop.h"
 
 #include <base/str.h>
@@ -30,6 +31,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -77,7 +79,6 @@ void CPlayer::LootBoxTick()
 	if(!m_LootBoxData.m_pLootBox || !m_LootBoxData.m_pGotItem)
 		return;
 
-
 	char aBuf[256];
 	if(m_LootBoxData.m_Ticks > 1)
 	{
@@ -98,7 +99,7 @@ void CPlayer::LootBoxTick()
 			Server()->ClientName(m_ClientId),
 			m_LootBoxData.m_pLootBox->m_Name,
 			pItem->m_Name,
-			m_LootBoxData.m_Days);	
+			m_LootBoxData.m_Days);
 
 		GameServer()->SendChat(-1, 0, aBuf);
 
@@ -910,7 +911,6 @@ bool CPlayer::HasImportantBroadcast() const
 {
 	return m_LootBoxData.m_Opening || m_HasBotClient;
 }
-
 
 void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 {

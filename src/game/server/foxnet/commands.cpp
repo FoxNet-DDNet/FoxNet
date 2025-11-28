@@ -1896,6 +1896,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
+	Console()->Chain("sv_accounts", ConchainAccounts, this);
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
@@ -1940,6 +1941,32 @@ void CGameContext::ConchainCosmetics(IConsole::IResult *pResult, void *pUserData
 			{
 				pPlayer->DisableAllCosmetics();
 			}
+		}
+	}
+}
+
+void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(!pResult->NumArguments())
+		return;
+
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const bool Value = pResult->GetInteger(0) != 0;
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+		if(pPlayer)
+		{
+			if(!Value)
+			{				
+				pPlayer->SetPage(PAGE_MAIN);
+				if(pPlayer->Acc()->m_LoggedIn && pSelf->m_AccountManager.Logout(ClientId))
+					pSelf->SendChatTarget(ClientId, "You have been logged out because accounts have been disabled on this server.");
+
+			}
+			else
+				pSelf->m_AccountManager.AutoLogin(ClientId); // try to login all clients
 		}
 	}
 }
