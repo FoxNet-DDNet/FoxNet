@@ -1111,7 +1111,7 @@ std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 	return std::nullopt;
 }
 
-void CGameContext::OnCollectPowerup(int ClientId, const SPowerupData *pData) const
+void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) const
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;

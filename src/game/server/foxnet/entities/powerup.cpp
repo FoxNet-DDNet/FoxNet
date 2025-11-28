@@ -4,6 +4,7 @@
 #include <base/vmath.h>
 
 #include <engine/server.h>
+#include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
@@ -20,10 +21,9 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
-#include <engine/shared/config.h>
 
-// Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
-// For now it just acts like the 0xf one
+static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
+
 CPowerUp::CPowerUp(CGameWorld *pGameWorld, vec2 Pos, EPowerUp Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PORTALS, Pos, 54)
 {
@@ -87,39 +87,59 @@ void CPowerUp::Tick()
 		Reset();
 		return;
 	}
-	if(!g_Config.m_SvAccounts)// Powerups require accounts to store the data
+	if(!g_Config.m_SvAccounts) // Powerups require accounts to store the data
 	{
 		Reset();
 		return;
 	}
 
+	SetPowerupVisual();
+
+	int NumCollected = 0;
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-		if(!pChr || !pChr->IsAlive() || pChr->Team() != TEAM_FLOCK)
-			continue;
+		if(!m_aClients[ClientId].m_Collected)
+			HandleClient(ClientId);
 
-		if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
-		{
-			CClientMask TeamMask = pChr->TeamMask();
-			for(int i = 0; i < MAX_CLIENTS; i++)
-			{
-				if(!Server()->ClientIngame(i))
-					continue;
-				CPlayer *pPlayer = GameServer()->m_apPlayers[i];
-				if(!pPlayer)
-					continue;
-				if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
-					TeamMask.set(ClientId).reset();
-			}
+		if(m_aClients[ClientId].m_Collected && m_aClients[ClientId].m_WasLoggedIn)
+			NumCollected++;
 
-			GameServer()->OnCollectPowerup(ClientId, &m_Data);
-			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
+		if(NumCollected >= MAX_COLLECTIONS)
 			Reset();
-			return;
-		}
 	}
-	SetPowerupVisual();
+}
+
+void CPowerUp::HandleClient(int ClientId)
+{
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr || !pChr->IsAlive() || pChr->Team() != TEAM_FLOCK)
+		return;
+
+	if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
+	{
+		CClientMask TeamMask = pChr->TeamMask();
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(!Server()->ClientIngame(i))
+				continue;
+			CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+			if(!pPlayer)
+				continue;
+			if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
+				TeamMask.set(ClientId).reset();
+		}
+
+		GameServer()->OnCollectPowerup(ClientId, &m_Data);
+		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
+
+		m_aClients[ClientId].m_Collected = true;
+		m_aClients[ClientId].m_WasLoggedIn = pChr->GetPlayer()->Acc()->m_LoggedIn;
+
+		if(m_Lifetime > Server()->TickSpeed() * 30)
+			m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
+
+		return;
+	}
 }
 
 void CPowerUp::SetPowerupVisual()
@@ -158,6 +178,9 @@ void CPowerUp::Snap(int SnappingClient)
 
 		if(pSnapPlayer->Acc()->m_Configs.m_HidePowerUps)
 			return;
+
+		if(m_aClients[SnappingClient].m_Collected && (!Server()->IsRconAuthed(SnappingClient) || !pSnapPlayer->IsPaused()))
+			return; // Hide already collected PowerUps
 	}
 
 	// Make the powerup blink when about to disappear

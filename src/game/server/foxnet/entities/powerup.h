@@ -7,6 +7,8 @@
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
 
+static constexpr int NUM_LASERS = 5;
+
 enum class EPowerUp
 {
 	INVALID = 0,
@@ -15,26 +17,32 @@ enum class EPowerUp
 	NUM_TYPES
 };
 
-struct SPowerupData
+
+class CPowerupData
 {
+public:
 	EPowerUp m_Type = EPowerUp::INVALID;
 	int m_Value = 0;
 };
 
+class CSnap
+{
+public:
+	int m_aLaserIds[NUM_LASERS];
+	vec2 m_aTo[NUM_LASERS];
+	vec2 m_aFrom[NUM_LASERS];
+};
+
+class CClients
+{
+public:
+	bool m_Collected = false;
+	bool m_WasLoggedIn = false;
+};
+
 class CPowerUp : public CEntity
 {
-	enum
-	{
-		NUM_LASERS = 5
-	};
-
-	struct SSnap
-	{
-		int m_aLaserIds[NUM_LASERS];
-		vec2 m_aTo[NUM_LASERS];
-		vec2 m_aFrom[NUM_LASERS];
-	};
-	SSnap m_Snap;
+	CSnap m_Snap;
 
 	int m_Lifetime;
 
@@ -44,9 +52,13 @@ class CPowerUp : public CEntity
 
 	void SetPowerupVisual();
 
-	SPowerupData m_Data;
+	CPowerupData m_Data;
 
 	void SetData();
+
+	CClients m_aClients[MAX_CLIENTS];
+
+	void HandleClient(int ClientId);
 
 public:
 	CPowerUp(CGameWorld *pGameWorld, vec2 Pos, EPowerUp Type);
