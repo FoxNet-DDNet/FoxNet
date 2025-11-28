@@ -38,6 +38,8 @@ class CClients
 public:
 	bool m_Collected = false;
 	bool m_WasLoggedIn = false;
+
+	NETADDR m_Addr;
 };
 
 class CPowerUp : public CEntity

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
+#include <base/system.h>
 
 static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
 
@@ -98,6 +99,9 @@ void CPowerUp::Tick()
 	int NumCollected = 0;
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
+		if(!Server()->ClientIngame(ClientId))
+			return;
+
 		if(!m_aClients[ClientId].m_Collected)
 			HandleClient(ClientId);
 
@@ -115,19 +119,38 @@ void CPowerUp::HandleClient(int ClientId)
 	if(!pChr || !pChr->IsAlive() || pChr->Team() != TEAM_FLOCK)
 		return;
 
+	CClientMask TeamMask = pChr->TeamMask();
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(!Server()->ClientIngame(i))
+		{
+			m_aClients[i].m_Collected = false;
+			m_aClients[i].m_WasLoggedIn = false;
+			continue;
+		}
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+		if(!pPlayer)
+		{
+			m_aClients[i].m_Collected = false;
+			m_aClients[i].m_WasLoggedIn = false;
+			continue;
+		}
+		if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
+			TeamMask.set(ClientId).reset();
+
+		if(!net_addr_comp_noport(&m_aClients[ClientId].m_Addr, &m_aClients[i].m_Addr) && i != ClientId)
+		{
+			if(m_aClients[ClientId].m_Collected || m_aClients[i].m_Collected)
+			{ 
+				// Prevent multi-collect from same address
+				m_aClients[ClientId].m_Collected = true;
+				m_aClients[i].m_Collected = true;
+			}
+		}
+	}
+
 	if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
 	{
-		CClientMask TeamMask = pChr->TeamMask();
-		for(int i = 0; i < MAX_CLIENTS; i++)
-		{
-			if(!Server()->ClientIngame(i))
-				continue;
-			CPlayer *pPlayer = GameServer()->m_apPlayers[i];
-			if(!pPlayer)
-				continue;
-			if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
-				TeamMask.set(ClientId).reset();
-		}
 
 		GameServer()->OnCollectPowerup(ClientId, &m_Data);
 		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
@@ -137,7 +160,6 @@ void CPowerUp::HandleClient(int ClientId)
 
 		if(m_Lifetime > Server()->TickSpeed() * 30)
 			m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
-
 		return;
 	}
 }
