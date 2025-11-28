@@ -93,10 +93,11 @@ void CHeadItem::Snap(int SnappingClient)
 
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	HatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
 
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
+
+	HatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
 
 	if(m_Type != HEADITEM_SPAWNSOLO)
 	{
