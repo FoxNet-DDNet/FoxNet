@@ -295,10 +295,10 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 	if(pChr)
 	{
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
-		char aText[66];
+		char aText[24];
 		str_format(aText, sizeof(aText), "+%ld", Amount);
-		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 175, aText, WEAPON_HAMMER);
-		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 125);
+		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 100, aText, WEAPON_HAMMER);
+		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 75);
 	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
@@ -335,10 +335,10 @@ void CPlayer::TakeMoney(long Amount, bool Silent, const char *pMessage)
 	if(!Silent && pChr)
 	{
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
-		char aText[66];
+		char aText[24];
 		str_format(aText, sizeof(aText), "-%ld", Amount);
-		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 125, aText, WEAPON_HAMMER);
-		pChr->SetEmote(EMOTE_PAIN, Server()->Tick() + 125);
+		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 100, aText, WEAPON_HAMMER);
+		pChr->SetEmote(EMOTE_PAIN, Server()->Tick() + 75);
 	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
