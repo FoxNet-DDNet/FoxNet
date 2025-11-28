@@ -36,6 +36,7 @@ enum class EItemId
 	GrenadeHat,
 	LaserHat,
 	NinjaHat,
+	PartyHat,
 	HeartHat,
 	Sparkle,
 	InverseAim,

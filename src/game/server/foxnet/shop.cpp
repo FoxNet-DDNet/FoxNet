@@ -155,7 +155,12 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 
 	if(Cfg->m_Group == EExclusiveGroup::Hat)
-		GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
+	{
+		int TypeHat = (int)pPl->Cosmetics()->m_HatType;
+		if(TypeHat <= (int)HatType::Ninja && TypeHat > (int)HatType::None)
+			GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
+	}
+
 	return true;
 }
 

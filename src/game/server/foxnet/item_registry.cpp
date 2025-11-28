@@ -294,6 +294,15 @@ void CItemRegistry::Init()
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Ninja) pl.SetHatType(HatType::None); },
 		30});
 
+	add({EItemId::PartyHat, EItemType::Hat,
+		"Party Hat", "H_P",
+		EItemFlag::Equippable, EExclusiveGroup::Hat,
+		// Price, MinLevel, Stars, Rarity
+		18000, 10, 5, EItemRarity::Rare, "Throwing a Party?",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(HatType::Party); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == HatType::Party) pl.SetHatType(HatType::None); },
+		30});
+
 	add({EItemId::HeartHat, EItemType::Hat,
 		"Heart Hat", "H_H",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
