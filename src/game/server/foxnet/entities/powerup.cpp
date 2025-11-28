@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
+#include <engine/shared/config.h>
 
 // Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
 // For now it just acts like the 0xf one
@@ -82,6 +83,11 @@ void CPowerUp::Tick()
 {
 	m_Lifetime--;
 	if(m_Lifetime <= 0)
+	{
+		Reset();
+		return;
+	}
+	if(!g_Config.m_SvAccounts)// Powerups require accounts to store the data
 	{
 		Reset();
 		return;
