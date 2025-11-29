@@ -53,6 +53,7 @@ enum class EItemId
 enum class EItemType
 {
 	Role,
+	Case,
 	Hat,
 	Gun,
 	Trail,
@@ -60,7 +61,6 @@ enum class EItemType
 	Death,
 	Indicator,
 	Rainbow,
-	Case,
 	COUNT
 };
 
@@ -109,6 +109,7 @@ inline const char *ItemTypeToName(EItemType Type)
 	switch(Type)
 	{
 	case EItemType::Role: return "Rᴏʟᴇs";
+	case EItemType::Case: return "Cᴀsᴇs";
 	case EItemType::Hat: return "Hᴀᴛs";
 	case EItemType::Gun: return "Gᴜɴs";
 	case EItemType::Trail: return "Tʀᴀɪʟs";
@@ -116,7 +117,6 @@ inline const char *ItemTypeToName(EItemType Type)
 	case EItemType::Death: return "Dᴇᴀᴛʜ Eғғᴇᴄᴛs";
 	case EItemType::Indicator: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
 	case EItemType::Rainbow: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
-	case EItemType::Case: return "Cᴀsᴇs";
 	default: return "Oᴛʜᴇʀ";
 	}
 }
