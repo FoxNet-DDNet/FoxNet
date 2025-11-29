@@ -168,6 +168,18 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 	vec2 HatFrom[2] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
 	vec2 HatTo[2] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
 
+	if(pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk())
+	{
+		for(int i = 0; i < 2; i++)
+		{
+			vec2 Center = vec2(0, 0);
+			Collision()->Rotate(Center, &HatFrom[i], 0.2f);
+			Collision()->Rotate(Center, &HatTo[i], 0.2f);
+			HatFrom[i] += vec2(-1.5f, 3.5f);
+			HatTo[i] += vec2(-1.5f, 3.5f);
+		}
+	}
+
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 
