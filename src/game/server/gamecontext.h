@@ -888,6 +888,8 @@ private:
 	static void ConLaserText(IConsole::IResult *pResult, void *pUserData);
 	static void ConProjectileText(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData);
+
 	struct CFakeSnapPlayer
 	{
 		int m_ClientId;

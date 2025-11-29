@@ -1752,20 +1752,91 @@ void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData
 	new CProjectileText(&pSelf->m_World, Pos, ClientId, 250, pText, WEAPON_HAMMER);
 }
 
+void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+
+	if(!CheckClientId(ClientId))
+		return;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	const char *pText = pResult->GetString(1);
+
+	if(pText[0] == '/')
+	{
+		const char *pWhisper;
+		if((pWhisper = str_startswith_nocase(pText + 1, "w ")))
+		{
+			pSelf->Whisper(pPlayer->GetCid(), const_cast<char *>(pWhisper));
+		}
+		else if((pWhisper = str_startswith_nocase(pText + 1, "whisper ")))
+		{
+			pSelf->Whisper(pPlayer->GetCid(), const_cast<char *>(pWhisper));
+		}
+		else if((pWhisper = str_startswith_nocase(pText + 1, "c ")))
+		{
+			pSelf->Converse(pPlayer->GetCid(), const_cast<char *>(pWhisper));
+		}
+		else if((pWhisper = str_startswith_nocase(pText + 1, "converse ")))
+		{
+			pSelf->Converse(pPlayer->GetCid(), const_cast<char *>(pWhisper));
+		}
+		else
+		{
+			if(g_Config.m_SvSpamprotection && !str_startswith(pText + 1, "timeout ") && pPlayer->m_aLastCommands[0] && pPlayer->m_aLastCommands[0] + pSelf->Server()->TickSpeed() > pSelf->Server()->Tick() && pPlayer->m_aLastCommands[1] && pPlayer->m_aLastCommands[1] + pSelf->Server()->TickSpeed() > pSelf->Server()->Tick() && pPlayer->m_aLastCommands[2] && pPlayer->m_aLastCommands[2] + pSelf->Server()->TickSpeed() > pSelf->Server()->Tick() && pPlayer->m_aLastCommands[3] && pPlayer->m_aLastCommands[3] + pSelf->Server()->TickSpeed() > pSelf->Server()->Tick())
+				return;
+
+			int64_t Now = pSelf->Server()->Tick();
+			pPlayer->m_aLastCommands[pPlayer->m_LastCommandPos] = Now;
+			pPlayer->m_LastCommandPos = (pPlayer->m_LastCommandPos + 1) % 4;
+
+			pSelf->Console()->SetFlagMask(CFGFLAG_CHAT);
+			int Authed = pSelf->Server()->GetAuthedState(ClientId);
+			if(Authed)
+				pSelf->Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : (Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR : IConsole::EAccessLevel::HELPER));
+			else
+				pSelf->Console()->SetAccessLevel(IConsole::EAccessLevel::USER);
+
+			pSelf->Console()->ExecuteLine(pText + 1, ClientId, false);
+
+			// char aBuf[256];
+			// str_format(aBuf, sizeof(aBuf), "%d used %s", ClientId, pText);
+			// pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "chat-command", aBuf);
+
+			pSelf->Console()->SetAccessLevel(IConsole::EAccessLevel::ADMIN);
+			pSelf->Console()->SetFlagMask(CFGFLAG_SERVER);
+		}
+	}
+	else
+	{
+		// pPlayer->UpdatePlaytime();
+		char aCensoredMessage[256];
+		pSelf->CensorMessage(aCensoredMessage, pText, sizeof(aCensoredMessage));
+		pSelf->SendChat(ClientId, TEAM_ALL, aCensoredMessage, ClientId);
+	}
+
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
+	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
+
 	Console()->Register("lasertext", "r[string]", CFGFLAG_SERVER, ConLaserText, this, "laser text");
 	Console()->Register("projectiletext", "r[string]", CFGFLAG_SERVER, ConProjectileText, this, "projectile text");
 
 	Console()->Register("chat_string_add", "s[string] s[reason] i[should Ban] i[bantime] ?f[addition]", CFGFLAG_SERVER, ConAddChatDetectionString, this, "Add a string to the chat detection list");
 	Console()->Register("chat_string_remove", "s[name]", CFGFLAG_SERVER, ConRemoveChatDetectionString, this, "Remove a string from the chat detection list");
 	Console()->Register("chat_strings_list", "", CFGFLAG_SERVER, ConListChatDetectionStrings, this, "List all strings on the list");
-	Console()->Register("chat_string_clear", "", CFGFLAG_SERVER, ConClearChatDetectionStrings, this, "List all strings on the list");
+	Console()->Register("chat_string_clear", "", CFGFLAG_SERVER, ConClearChatDetectionStrings, this, "Clear all strings on the list");
 
 	Console()->Register("name_string_add", "s[name] s[reason] i[bantime] ?i[exact name]", CFGFLAG_SERVER, ConAddNameDetectionString, this, "Add a string to the name detection list");
 	Console()->Register("name_string_remove", "s[name]", CFGFLAG_SERVER, ConRemoveNameDetectionString, this, "Remove a string from the name detection list");
 	Console()->Register("name_strings_list", "", CFGFLAG_SERVER, ConListNameDetectionStrings, this, "List all strings on the list");
-	Console()->Register("name_string_clear", "", CFGFLAG_SERVER, ConClearNameDetectionStrings, this, "List all strings on the list");
+	Console()->Register("name_string_clear", "", CFGFLAG_SERVER, ConClearNameDetectionStrings, this, "Clear all strings on the list");
 
 	Console()->Register("snake", "?v[id]", CFGFLAG_SERVER, ConSnake, this, "Makes a player (id) a Snake");
 	Console()->Register("ufo", "?v[id]", CFGFLAG_SERVER, ConSetUfo, this, "Puts player (id) into an UFO");
@@ -1879,7 +1950,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("bet", "i[amount]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
 
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConReport, this, "Report a player");
-
 	// Shop
 	Console()->Register("shop_edit_item", "s[Name] i[Price] ?i[Minimum Level]", CFGFLAG_SERVER, ConShopEditItem, this, "Edit a shop item");
 	Console()->Register("shop_list_items", "", CFGFLAG_SERVER, ConShopListItems, this, "Lists all shop items");
@@ -1891,7 +1961,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
 
-	Console()->Register("repredict", "?i[predtime]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
+	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
 
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
