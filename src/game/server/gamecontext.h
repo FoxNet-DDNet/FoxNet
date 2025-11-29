@@ -690,31 +690,17 @@ public:
 	void ResetTuning();
 	// <FoxNet
 private:
-	struct LaserDeath
+	class CDamageIndEffects
 	{
-		std::vector<int> m_vIds;
-
-		int m_Owner;
-		int m_Remaining;
-		vec2 m_Pos;
-		std::vector<vec2> m_vFrom;
-		std::vector<vec2> m_vTo;
-		std::vector<int64_t> m_vStartTick;
-		int64_t m_EndTick;
-		CClientMask m_Mask;
-		int m_Sound;
+	public:
+		int m_Remaining = 0;
+		std::vector<float> m_vAngles = {0.0f};
+		std::vector<vec2> m_vPos = {vec2(0, 0)};
+		int64_t m_Delay = 0;
+		int64_t m_NextTick = 0;
+		CClientMask m_Mask = CClientMask().set();
 	};
-
-	struct DamageIndEffects
-	{
-		int m_Remaining;
-		std::vector<float> m_vAngles;
-		std::vector<vec2> m_vPos;
-		int64_t m_Delay;
-		int64_t m_NextTick;
-		CClientMask m_Mask;
-	};
-	std::vector<DamageIndEffects> m_vDamageIndEffects;
+	std::vector<CDamageIndEffects> m_vDamageIndEffects;
 
 	bool ChatDetection(int ClientId, const char *pMsg);
 	bool NameDetection(int ClientId, const char *pName, bool PreventNameChange = false);

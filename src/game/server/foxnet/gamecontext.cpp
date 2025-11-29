@@ -676,7 +676,7 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 	float StarDistance = 0.18f;
 	float Angle = -std::atan2(Direction.x, Direction.y);
 
-	DamageIndEffects effect;
+	CDamageIndEffects effect;
 	effect.m_Mask = Mask;
 	if(Type >= INDTYPE_CLOCKWISE && Type <= INDTYPE_COUNTERWISE)
 	{
