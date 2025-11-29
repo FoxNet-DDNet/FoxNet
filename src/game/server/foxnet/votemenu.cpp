@@ -504,15 +504,18 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(g_Config.m_SvVoteMenuServerInfoRulesOnly)
 			return true;
 
-		if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
+		if(g_Config.m_SvAccounts)
 		{
-			SetSubPage(ClientId, SUB_SERVERINFO_ACCOUNTS);
-			return true;
-		}
-		if(IsOption(pVote, SERVER_INFO_LEVELING))
-		{
-			SetSubPage(ClientId, SUB_SERVERINFO_LEVELING);
-			return true;
+			if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
+			{
+				SetSubPage(ClientId, SUB_SERVERINFO_ACCOUNTS);
+				return true;
+			}
+			if(IsOption(pVote, SERVER_INFO_LEVELING))
+			{
+				SetSubPage(ClientId, SUB_SERVERINFO_LEVELING);
+				return true;
+			}
 		}
 		if(IsOption(pVote, SERVER_INFO_CONTRIBUTE))
 		{
@@ -1528,8 +1531,12 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 			return;
 
 		AddVoteSeparator();
-		AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
-		AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
+
+		if(g_Config.m_SvAccounts)
+		{
+			AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
+			AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
+		}
 		AddVotePrefix(SERVER_INFO_CONTRIBUTE, PREFIX_ARROWHEAD);
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
