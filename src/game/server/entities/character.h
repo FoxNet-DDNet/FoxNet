@@ -316,15 +316,15 @@ public:
 	CClientMask OppositeCosmeticMask(EItemType Type);
 
 	// Telekinesis
-	int m_TelekinesisId; // Should be a CEntity so PickupDrops can be telekinesised
+	int m_TelekinesisId = -1; // Should be a CEntity so PickupDrops can be telekinesised
 	vec2 GetCursorPos();
 
 	int GetPowerHooked();
-	bool m_IsRainbowHooked;
-	int m_PowerHookedId;
+	bool m_IsRainbowHooked = false;
+	int m_PowerHookedId = -1;
 
 	CSnake m_Snake;
-	bool m_InSnake;
+	bool m_InSnake = false;
 	void SetSnake(bool Active);
 
 	CVUfo m_Ufo;
@@ -344,11 +344,11 @@ public:
 	// weapon indicator
 	void UpdateWeaponIndicator();
 	bool IsWeaponIndicator();
-	int64_t m_LastWeaponIndTick;
+	int64_t m_LastWeaponIndTick = 0;
 
 	CNetObj_PlayerInput *Input() { return &m_Input; };
-	CLightSaber *m_pLightSaber;
-	CPortal *m_pPortal;
+	CLightSaber *m_pLightSaber = nullptr;
+	CPortal *m_pPortal = nullptr;
 	void SetReloadTimer(int Timer) { m_ReloadTimer = Timer; }
 
 	// Dir Is also the Throw force -> m_Vel = Dir on drop creation
@@ -356,7 +356,7 @@ public:
 
 	bool HasLineOfSight(vec2 Pos);
 
-	bool m_InQuadFreeze;
+	bool m_InQuadFreeze = false;
 
 	bool m_SpawnSolo = false;
 	bool m_ShouldSolo = true;
