@@ -107,15 +107,8 @@ void CStaffInd::Snap(int SnappingClient)
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 	const int BallId = m_BallFirst ? m_aIds[BALL_FRONT] : m_aIds[BALL];
 
-	vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-	vec2 LaserPos = m_Pos + pOwnerChr->GetVelocity() * 0.5f;
-	if(m_Owner == SnappingClient)
-	{
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
-		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
-	}
-	Pos += m_aPos[ARMOR];
-	LaserPos += m_aPos[BALL];
+	vec2 Pos = m_Pos + pOwnerChr->GetPredictedPos(SnappingClient) + m_aPos[ARMOR];
+	vec2 LaserPos = m_Pos + pOwnerChr->GetPredictedPos(SnappingClient, false) + m_aPos[ARMOR];
 
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[ARMOR], Pos, POWERUP_ARMOR, -1, -1, PICKUPFLAG_NO_PREDICT);
 	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), BallId, LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);

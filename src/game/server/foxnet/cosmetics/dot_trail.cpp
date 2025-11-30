@@ -78,9 +78,7 @@ void CDotTrail::Snap(int SnappingClient)
 	if(!pProj)
 		return;
 
-	vec2 Pos = m_Pos + pOwnerChr->GetVelocity() * 0.5f;
-	if(m_Owner == SnappingClient)
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
+	vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
 
 	pProj->m_X = round_to_int(Pos.x * 100.0f);
 	pProj->m_Y = round_to_int(Pos.y * 100.0f);

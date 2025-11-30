@@ -99,10 +99,7 @@ void CHeartHat::Snap(int SnappingClient)
 	{
 		const int Id = m_aIds[Heart];
 
-		vec2 Pos = m_Pos + pOwnerChr->GetVelocity();
-
-		if(m_Owner == SnappingClient)
-			Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos);
+		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient);
 
 		float Dist = m_Dist * (Heart == 0 ? -1.0f : 1.0f);
 

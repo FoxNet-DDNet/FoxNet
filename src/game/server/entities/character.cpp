@@ -40,6 +40,8 @@
 #include <game/server/foxnet/entities/pickupdrop.h>
 #include <game/server/foxnet/entities/portal.h>
 #include <game/server/foxnet/entities/roulette.h>
+#include <game/server/foxnet/item_registry.h>
+#include <game/server/foxnet/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
@@ -58,8 +60,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <game/server/foxnet/shop.h>
-#include <game/server/foxnet/item_registry.h>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -3748,16 +3748,20 @@ vec2 CCharacter::GetSpazzPos(vec2 Pos)
 	return Pos + OffsetPos;
 }
 
-vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos, bool Pickup)
+vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 {
+	vec2 Pos = GetPos();
 	if(!g_Config.m_SvExperimentalPrediction)
 		return Pos;
-	if(GetPlayer()->IsPaused())
-		return Pos;
+
+	if(GetPlayer()->GetCid() != SnappingClient)
+		return Pos - GetVelocity() * (Pickup ? 0.0f : 0.5f);
+	if(GetPlayer()->IsPaused() && GetPlayer()->GetCid() == SnappingClient)
+		return Pos - GetVelocity() * (Pickup ? 0.0f : 0.5f);
 
 	double Pred = GetPlayer()->GetClientPred();
-	float dist = distance(Pos, PrevPos) * (Pickup ? 0.5f : 0.35f); // Only Pickups interpolate
-	vec2 Dir = normalize(Pos - PrevPos);
+	float dist = distance(Pos, m_PrevPos) * (Pickup ? 0.5f : 0.35f); // Only Pickups interpolate
+	vec2 Dir = normalize(Pos - m_PrevPos);
 	vec2 nVel = Dir * Pred * dist;
 	return Pos + nVel;
 }

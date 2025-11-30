@@ -92,9 +92,10 @@ void CLightSaber::Tick()
 		}
 	}
 	m_Pos = pChr->m_Pos;
-	m_To = pChr->m_Pos;
-	vec2 WantedFrom = m_Pos + normalize(vec2(pChr->Input()->m_TargetX, pChr->Input()->m_TargetY)) * m_Length;
-	GameServer()->Collision()->IntersectLine(m_Pos, WantedFrom, &m_From, 0);
+	m_From = vec2(0, 0);
+	m_To = vec2(0, 0);
+	vec2 WantedFrom = m_To + normalize(vec2(pChr->Input()->m_TargetX, pChr->Input()->m_TargetY)) * m_Length;
+	GameServer()->Collision()->IntersectLine(m_To, WantedFrom, &m_From, 0);
 
 	if(pChr->Core()->m_Solo)
 		return;
@@ -144,15 +145,11 @@ void CLightSaber::Snap(int SnappingClient)
 	if(m_Length <= 0)
 		return;
 	
-	vec2 Vel = pOwnerChr->GetVelocity() * 0.5f;
-	vec2 From = m_From + Vel;
-	vec2 To = m_To + Vel;
-	if(m_Owner == SnappingClient)
-	{
-		To = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
-		const vec2 WantedFrom = To + normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)) * m_Length;
-		GameServer()->Collision()->IntersectLine(To, WantedFrom, &From, 0);
-	}
+	vec2 From = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_From;
+	vec2 To = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_To;
+
+	const vec2 WantedFrom = To + normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)) * m_Length;
+	GameServer()->Collision()->IntersectLine(To, WantedFrom, &From, 0);
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

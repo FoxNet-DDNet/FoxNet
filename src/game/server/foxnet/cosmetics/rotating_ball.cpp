@@ -106,22 +106,10 @@ void CRotatingBall::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	vec2 Vel = pOwnerChr->GetVelocity() * 0.5f;
-	vec2 Pos = pOwnerChr->m_Pos + Vel;
-	vec2 LaserPos = pOwnerChr->m_Pos + Vel;
-	if(m_Owner == SnappingClient)
-	{
-		Pos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
-		LaserPos = pOwnerChr->GetPredictedPos(pOwnerChr->m_Pos, pOwnerChr->m_PrevPos, false);
-	}
-	Pos += m_ProjPos;
-	LaserPos += m_LaserPos;
+	vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_ProjPos;
+	vec2 LaserPos = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_LaserPos;
 
-	int Owner = m_Owner;
-	if(g_Config.m_SvCorruptPickupPet && pSnapPlayer->Cosmetics()->m_PickupPet)
-		Owner = -1; // Sets the pickuppet to the laser sprite for some reason
-
-	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), LaserPos, LaserPos, Server()->Tick(), Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 
 	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_Id1);
 	if(!pProj)
