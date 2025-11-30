@@ -164,7 +164,10 @@ void CHeadItem::Snap(int SnappingClient)
 void CHeadItem::SnapPartyHat(int SnappingClient)
 {
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	
+
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
+		return;
+
 	vec2 HatFrom[2] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
 	vec2 HatTo[2] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
 
