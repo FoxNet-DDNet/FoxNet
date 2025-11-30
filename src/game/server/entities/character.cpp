@@ -3756,7 +3756,7 @@ vec2 CCharacter::GetPredictedPos(vec2 Pos, vec2 PrevPos, bool Pickup)
 		return Pos;
 
 	double Pred = GetPlayer()->GetClientPred();
-	float dist = distance(Pos, PrevPos) * (Pickup ? 0.5f : 0.3f); // Lasers don't interpolate client side
+	float dist = distance(Pos, PrevPos) * (Pickup ? 0.5f : 0.35f); // Only Pickups interpolate
 	vec2 Dir = normalize(Pos - PrevPos);
 	vec2 nVel = Dir * Pred * dist;
 	return Pos + nVel;
