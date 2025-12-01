@@ -82,7 +82,7 @@ MACRO_CONFIG_INT(SvDropWeaponOnDeath, sv_drop_weapon_on_death, 0, 0, 1, CFGFLAG_
 MACRO_CONFIG_INT(SvDropsInFreezeFloat, sv_drops_in_freeze_float, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Make Weapon Drops in freeze float up")
 MACRO_CONFIG_INT(SvDropsHammerable, sv_drops_hammerable, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether drops can be hammered")
 
-	// PowerUps
+// PowerUps
 MACRO_CONFIG_INT(SvSpawnPowerUps, sv_spawn_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
 
 // Solo on Spawn
@@ -122,3 +122,6 @@ MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER | CFGFLAG_G
 // Discord Webhooks
 MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook reports get sent to")
 MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook automated-bans get sent to")
+
+// PowerUps
+MACRO_CONFIG_INT(SvExtraLogging, sv_extra_logging, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to enable extra logging")
