@@ -693,12 +693,12 @@ private:
 	class CDamageIndEffects
 	{
 	public:
-		int m_Remaining = 0;
-		std::vector<float> m_vAngles = {0.0f};
-		std::vector<vec2> m_vPos = {vec2(0, 0)};
-		int64_t m_Delay = 0;
-		int64_t m_NextTick = 0;
-		CClientMask m_Mask = CClientMask().set();
+		int m_Remaining;
+		std::vector<float> m_vAngles;
+		std::vector<vec2> m_vPos;
+		int64_t m_Delay;
+		int64_t m_NextTick;
+		CClientMask m_Mask;
 	};
 	std::vector<CDamageIndEffects> m_vDamageIndEffects;
 
