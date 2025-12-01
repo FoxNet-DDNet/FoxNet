@@ -2,17 +2,30 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
+#include "authmanager.h"
 #include "databases/connection.h"
 #include "databases/connection_pool.h"
+#include "name_ban.h"
 #include "register.h"
 
+#include <antibot/antibot_data.h>
+
+#include <base/detect.h>
+#include <base/hash.h>
+#include <base/log.h>
 #include <base/logger.h>
 #include <base/math.h>
+#include <base/str.h>
 #include <base/system.h>
+#include <base/types.h>
 
+#include <engine/antibot.h>
 #include <engine/console.h>
+#include <engine/demo.h>
 #include <engine/engine.h>
+#include <engine/http.h>
 #include <engine/map.h>
+#include <engine/message.h>
 #include <engine/server.h>
 #include <engine/shared/compression.h>
 #include <engine/shared/config.h>
@@ -22,6 +35,7 @@
 #include <engine/shared/filecollection.h>
 #include <engine/shared/host_lookup.h>
 #include <engine/shared/http.h>
+#include <engine/shared/jobs.h>
 #include <engine/shared/jsonwriter.h>
 #include <engine/shared/linereader.h>
 #include <engine/shared/masterserver.h>
@@ -31,18 +45,23 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/protocol7.h>
 #include <engine/shared/protocol_ex.h>
+#include <engine/shared/protocol_ex_msgs.h>
 #include <engine/shared/rust_version.h>
 #include <engine/shared/snapshot.h>
+#include <engine/shared/uuid_manager.h>
 #include <engine/storage.h>
+
+#include <generated/protocol.h>
+#include <generated/protocol7.h>
+#include <generated/protocolglue.h>
 
 #include <game/version.h>
 
 #include <zlib.h>
 
-#include <chrono>
-#include <vector>
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iterator>
@@ -50,24 +69,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
-#include <generated/protocol.h>
-#include <generated/protocol7.h>
-#include <generated/protocolglue.h>
-#include <antibot/antibot_data.h>
-#include <base/detect.h>
-#include <base/hash.h>
-#include <base/log.h>
-#include <base/str.h>
-#include <base/types.h>
-#include <engine/antibot.h>
-#include <engine/demo.h>
-#include <engine/http.h>
-#include <engine/message.h>
-#include "authmanager.h"
-#include "name_ban.h"
-#include <engine/shared/jobs.h>
-#include <engine/shared/protocol_ex_msgs.h>
-#include <engine/shared/uuid_manager.h>
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -1424,7 +1426,7 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	const bool Sixup = IsSixup(ClientId);
 
 	// Use per-client override if present, else fall back to current map
-	const bool HasOverride = ClientId >= 0 &&  m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
+	const bool HasOverride = ClientId >= 0 && m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
 	const unsigned char *pMapData = nullptr;
 	unsigned int MapSize = 0;
 	unsigned int MapCrc = 0;
@@ -1769,7 +1771,14 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		if(m_aClients[ClientId].m_Traffic > Limit)
 		{
 			char aBanBuf[256];
-			str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 10 minutes for stressing the network.", ClientName(ClientId), ClientAddrString(ClientId, false));
+			str_format(aBanBuf, sizeof(aBanBuf),
+				"`%s` [%s] was banned for 10 minutes for stressing the network."
+				"Ver: %d [%s]",
+				ClientName(ClientId),
+				ClientAddrString(ClientId, false),
+				GetClientVersion(ClientId),
+				m_aClients[ClientId].m_GotDDNetVersionPacket ? m_aClients[ClientId].m_aDDNetVersionStr : "unknown"
+			);
 			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Stressing network");
 
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
@@ -3284,11 +3293,11 @@ int CServer::Run()
 				const bool SameMapReload = m_SameMapReload;
 				// load map
 				if(LoadMap(Config()->m_SvMap))
-				{ 
+				{
 					// <FoxNet
 					GameServer()->OnPreReload();
 					// FoxNet>
-					
+
 					// new map loaded
 
 					// ask the game for the data it wants to persist past a map change
@@ -5038,20 +5047,57 @@ static const char *EscapeMessage(const char *pMessage)
 		unsigned char c = *pSrc++;
 		switch(c)
 		{
-		case '\"': *pDst++ = '\\'; *pDst++ = '\"'; break;
-		case '\\': *pDst++ = '\\'; *pDst++ = '\\'; break;
-		case '`':  *pDst++ = '\\'; *pDst++ = '`';  break; // prevent shell command substitution on Linux
-		case '$':  *pDst++ = '\\'; *pDst++ = '$';  break; // prevent $(...) and $VAR expansion
-		case '\b': *pDst++ = '\\'; *pDst++ = 'b';  break;
-		case '\f': *pDst++ = '\\'; *pDst++ = 'f';  break;
-		case '\n': *pDst++ = '\\'; *pDst++ = 'n';  break;
-		case '\r': *pDst++ = '\\'; *pDst++ = 'r';  break;
-		case '\t': *pDst++ = '\\'; *pDst++ = 't';  break;
+		case '\"':
+			*pDst++ = '\\';
+			*pDst++ = '\"';
+			break;
+		case '\\':
+			*pDst++ = '\\';
+			*pDst++ = '\\';
+			break;
+		case '`':
+			*pDst++ = '\\';
+			*pDst++ = '`';
+			break; // prevent shell command substitution on Linux
+		case '$':
+			*pDst++ = '\\';
+			*pDst++ = '$';
+			break; // prevent $(...) and $VAR expansion
+		case '\b':
+			*pDst++ = '\\';
+			*pDst++ = 'b';
+			break;
+		case '\f':
+			*pDst++ = '\\';
+			*pDst++ = 'f';
+			break;
+		case '\n':
+			*pDst++ = '\\';
+			*pDst++ = 'n';
+			break;
+		case '\r':
+			*pDst++ = '\\';
+			*pDst++ = 'r';
+			break;
+		case '\t':
+			*pDst++ = '\\';
+			*pDst++ = 't';
+			break;
 		case '<':
-			*pDst++ = '\\'; *pDst++ = 'u'; *pDst++ = '0'; *pDst++ = '0'; *pDst++ = '3'; *pDst++ = 'c';
+			*pDst++ = '\\';
+			*pDst++ = 'u';
+			*pDst++ = '0';
+			*pDst++ = '0';
+			*pDst++ = '3';
+			*pDst++ = 'c';
 			break;
 		case '>':
-			*pDst++ = '\\'; *pDst++ = 'u'; *pDst++ = '0'; *pDst++ = '0'; *pDst++ = '3'; *pDst++ = 'e';
+			*pDst++ = '\\';
+			*pDst++ = 'u';
+			*pDst++ = '0';
+			*pDst++ = '0';
+			*pDst++ = '3';
+			*pDst++ = 'e';
 			break;
 		default:
 			if(c < 0x20)
