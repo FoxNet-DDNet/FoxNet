@@ -1768,6 +1768,10 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 		if(m_aClients[ClientId].m_Traffic > Limit)
 		{
+			char aBanBuf[256];
+			str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 10 minutes for too many stressing the network.", ClientName(ClientId), ClientAddrString(ClientId, false));
+			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Stressing network");
+
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
 			return;
 		}
