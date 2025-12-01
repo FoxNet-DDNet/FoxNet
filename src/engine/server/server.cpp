@@ -4516,6 +4516,7 @@ void CServer::RegisterCommands()
 	// <FoxNet
 	Console()->Register("client_infos", "", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
 	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
+	Console()->Register("get_traffic", "?v[id]", CFGFLAG_SERVER, ConGetClientTraffic, this, "Prints information about what clients players are using");
 	Console()->Register("send_map", "r[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
 	// FoxNet>
 	// register console commands in sub parts
@@ -4838,6 +4839,26 @@ bool CServer::NetMsgCustomClient(int ClientId, int Msg, CUnpacker Unpacker)
 	return ReturnValue;
 }
 
+void CServer::ConHighBandwidth(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pServer = (CServer *)pUser;
+
+	if(pServer->m_RconClientId >= 0 && pServer->m_RconClientId < MAX_CLIENTS &&
+		pServer->m_aClients[pServer->m_RconClientId].m_State != CServer::CClient::STATE_EMPTY)
+	{
+		if(pResult->NumArguments())
+		{
+			pServer->m_aClients[pServer->m_RconClientId].m_HighBandwidth = pResult->GetInteger(0);
+		}
+		else
+		{
+			char aStr[9];
+			str_format(aStr, sizeof(aStr), "Value: %d", pServer->m_aClients[pServer->m_RconClientId].m_HighBandwidth);
+			pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aStr);
+		}
+	}
+}
+
 void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 {
 	char aBuf[1024] = "No Clients Ingame";
@@ -4861,23 +4882,39 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 	}
 }
 
-void CServer::ConHighBandwidth(IConsole::IResult *pResult, void *pUser)
+void CServer::ConGetClientTraffic(IConsole::IResult *pResult, void *pUser)
 {
-	CServer *pServer = (CServer *)pUser;
+	CServer *pThis = static_cast<CServer *>(pUser);
+	const int ClientId = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	if(pServer->m_RconClientId >= 0 && pServer->m_RconClientId < MAX_CLIENTS &&
-		pServer->m_aClients[pServer->m_RconClientId].m_State != CServer::CClient::STATE_EMPTY)
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 	{
-		if(pResult->NumArguments())
-		{
-			pServer->m_aClients[pServer->m_RconClientId].m_HighBandwidth = pResult->GetInteger(0);
-		}
-		else
-		{
-			char aStr[9];
-			str_format(aStr, sizeof(aStr), "Value: %d", pServer->m_aClients[pServer->m_RconClientId].m_HighBandwidth);
-			pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aStr);
-		}
+		log_info("foxnet", "Invalid ClientId=%d", ClientId);
+		return;
+	}
+
+	if(pThis->ClientSlotEmpty(ClientId))
+		return;
+
+	const double BytesPerTick = pThis->m_aClients[ClientId].m_Traffic; // EMA, bytes/tick
+	const double KBps = BytesPerTick * (double)time_freq() / 1024.0; // convert to KB/s
+	const double LimitKBps = g_Config.m_SvNetlimit; // KB/s
+	const int Alpha = g_Config.m_SvNetlimitAlpha;
+
+	const int64_t Now = time_get();
+	const int64_t Since = pThis->m_aClients[ClientId].m_TrafficSince;
+	const int MsSinceUpdate = (int)((Now - Since) * 1000 / time_freq());
+
+	if(g_Config.m_SvNetlimit)
+	{
+		log_info("foxnet", "Name: %s (%d) | In: %.2f KB/s (limit %.0f KB/s, alpha %d) | last %d ms",
+			pThis->m_aClients[ClientId].m_aName, ClientId, KBps, LimitKBps, Alpha, MsSinceUpdate);
+	}
+	else
+	{
+		// Meter isn’t updated when sv_netlimit is 0 (current code path)
+		log_info("foxnet", "Name: %s (%d) | In: %.2f KB/s (alpha %d, sv_netlimit=0) | last %d ms",
+			pThis->m_aClients[ClientId].m_aName, ClientId, KBps, Alpha, MsSinceUpdate);
 	}
 }
 
