@@ -138,7 +138,7 @@ void CPowerUp::HandleClient(int ClientId)
 		if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
 			TeamMask.set(ClientId).reset();
 
-		if(!net_addr_comp_noport(&m_aClients[ClientId].m_Addr, &m_aClients[i].m_Addr) && i != ClientId)
+		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &m_aClients[i].m_Addr) == 0 && i != ClientId)
 		{
 			if(m_aClients[ClientId].m_Collected || m_aClients[i].m_Collected)
 			{ 
