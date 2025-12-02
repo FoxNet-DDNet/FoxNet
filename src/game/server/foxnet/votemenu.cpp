@@ -938,15 +938,15 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 			str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
 			AddVoteText(aBuf);
 			// Register Date
-			//if(pAcc->m_RegisterDate > 0)
-			//{
-			//	str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
-			//	AddVoteText(aBuf);
-			//}
-			//else
-			//{
-			//	AddVoteText("│ Register Date: n/a");
-			//}
+			if(pAcc->m_RegisterDate > 0)
+			{
+				str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
+				AddVoteText(aBuf);
+			}
+			else
+			{
+				AddVoteText("│ Register Date: n/a");
+			}
 			AddVoteText("├─────────   Sᴛᴀᴛs");
 			str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
 			AddVoteText(aBuf);
