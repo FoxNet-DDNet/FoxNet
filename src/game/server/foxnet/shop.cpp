@@ -93,6 +93,13 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	if(!Acc.m_LoggedIn)
 	{
 		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
@@ -166,6 +173,12 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 
 bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const char *pFrom)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
 		return false;
@@ -199,6 +212,12 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 
 bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFrom)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	const CItemConfig *Cfg = FindItem(pName);
 	if(!Cfg)
 		return false;
@@ -236,6 +255,12 @@ bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFro
 
 bool CShop::GiveItemForever(int ClientId, const CItemConfig *pItem, const char *pFrom)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
 		return false;
@@ -260,6 +285,12 @@ bool CShop::GiveItemForever(int ClientId, const CItemConfig *pItem, const char *
 
 bool CShop::GiveItemForever(int ClientId, const char *pName, const char *pFrom)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	const CItemConfig *Cfg = FindItem(pName);
 	if(!Cfg)
 		return false;
@@ -287,6 +318,12 @@ bool CShop::GiveItemForever(int ClientId, const char *pName, const char *pFrom)
 
 bool CShop::RemoveItem(int ClientId, const char *pItemName, const char *pByName)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		return false;
+	}
+
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
 		return false;

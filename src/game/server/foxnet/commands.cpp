@@ -30,7 +30,7 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	const int ClientId = pResult->m_ClientId;
 	if(!g_Config.m_SvAccounts)
 	{
-		pSelf->SendChatTarget(ClientId, "Account registration is disabled.");
+		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
 		return;
 	}
 
@@ -198,6 +198,9 @@ void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientId(ClientId))
 		return;
 
+	if(!g_Config.m_SvAccounts)
+		return;
+
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
@@ -216,6 +219,8 @@ void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->GetVictim();
 	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
 		return;
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
@@ -1593,6 +1598,9 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientId(ClientId))
 		return;
 
+	if(!g_Config.m_SvAccounts)
+		return;
+
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
 	if(!pPlayer)
 		return;
@@ -1645,7 +1653,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
-	if(!g_Config.m_DcReportsWebhookUrl[0])
+	if(!g_Config.m_DcReportsWebhookUrl[0] || !g_Config.m_SvAccounts)
 	{
 		pSelf->SendChatTarget(ClientId, "Reporting is not enabled on this server.");
 		return;

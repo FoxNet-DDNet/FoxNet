@@ -307,6 +307,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	else if(Page == PAGE_MAILBOX)
 	{
+		if(!g_Config.m_SvAccounts)
+			return false;
+
 		if(SubPage == SUB_MAILBOX_MAIN)
 		{
 			if(IsOption(pVote, MAIL_ONLY_UNREAD))
@@ -411,9 +414,11 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 		}
 	}
-
 	else if(Page == PAGE_SHOP)
 	{
+		if(!g_Config.m_SvAccounts)
+			return false;
+
 		if(IsOption(pVote, SHOP_ONLY_AFFORDABLE))
 		{
 			Data.m_OnlyAffordable = !Data.m_OnlyAffordable;
@@ -463,6 +468,8 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	else if(Page == PAGE_INVENTORY)
 	{
+		if(!g_Config.m_SvAccounts)
+			return false;
 		if(IsOptionWithSuffix(pVote, "Rainbow Speed"))
 		{
 			if(ReasonInt.has_value())
@@ -913,54 +920,53 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	char aBuf[VOTE_DESC_LENGTH];
-	if(!g_Config.m_SvAccounts)
+	if(g_Config.m_SvAccounts)
 	{
+		if(!pAcc->m_LoggedIn)
+		{
+			AddVoteText("You are not logged in.");
+			AddVoteSeparator();
+			AddVoteText("1 - use /register <Name> <Password>");
+			AddVoteText("2 - login using /login <Name> <Password>");
+			AddVoteSeparator();
+		}
+		else
+		{
+			AddVoteText("╭─────────    Pʀᴏғɪʟᴇ");
+			str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
+			AddVoteText(aBuf);
+			str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
+			AddVoteText(aBuf);
+			// Register Date
+			//if(pAcc->m_RegisterDate > 0)
+			//{
+			//	str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
+			//	AddVoteText(aBuf);
+			//}
+			//else
+			//{
+			//	AddVoteText("│ Register Date: n/a");
+			//}
+			AddVoteText("├─────────   Sᴛᴀᴛs");
+			str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
+			AddVoteText(aBuf);
+			int CurXp = pAcc->m_XP;
+			int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
+			str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
+			AddVoteText(aBuf);
+			str_format(aBuf, sizeof(aBuf), "│ Playtime: %s", FormatPlaytime(pAcc->m_Playtime));
+			AddVoteText(aBuf);
+			str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+			AddVoteText(aBuf);
+			str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
+			AddVoteText(aBuf);
+			AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
+			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier());
+			AddVoteText(aBuf);
+			AddVoteText("╰────────────────────");
+			AddVoteSeparator();
+		}
 	}
-	else if(!pAcc->m_LoggedIn)
-	{
-		AddVoteText("You are not logged in.");
-		AddVoteSeparator();
-		AddVoteText("1 - use /register <Name> <Password>");
-		AddVoteText("2 - login using /login <Name> <Password>");
-		AddVoteSeparator();
-	}
-	else
-	{
-		AddVoteText("╭─────────    Pʀᴏғɪʟᴇ");
-		str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
-		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
-		AddVoteText(aBuf);
-		// Register Date
-		//if(pAcc->m_RegisterDate > 0)
-		//{
-		//	str_timestamp_ex(pAcc->m_RegisterDate, aBuf, sizeof(aBuf), "│ Register Date: %Y-%m-%d");
-		//	AddVoteText(aBuf);
-		//}
-		//else
-		//{
-		//	AddVoteText("│ Register Date: n/a");
-		//}
-		AddVoteText("├─────────   Sᴛᴀᴛs");
-		str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
-		AddVoteText(aBuf);
-		int CurXp = pAcc->m_XP;
-		int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
-		str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
-		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ Playtime: %s", FormatPlaytime(pAcc->m_Playtime));
-		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
-		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
-		AddVoteText(aBuf);
-		AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
-		str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier());
-		AddVoteText(aBuf);
-		AddVoteText("╰────────────────────");
-		AddVoteSeparator();
-	}
-
 	for(int i = 0; i < NUM_PAGES; i++)
 	{
 		if(!IsPageAllowed(ClientId, i))
@@ -1160,10 +1166,17 @@ void CVoteMenu::SendPageShop(int ClientId)
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
 
+	if(!g_Config.m_SvAccounts)
+	{
+		SetPage(ClientId, PAGE_MAIN);
+		return;
+	}
+
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	const int SubPage = GetSubPage(ClientId);
+
 
 	if(!pAcc->m_LoggedIn)
 	{
@@ -1310,6 +1323,12 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 void CVoteMenu::SendPageInventory(int ClientId)
 {
+	if(!g_Config.m_SvAccounts)
+	{
+		SetPage(ClientId, PAGE_MAIN);
+		return;
+	}
+
 	// CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	CAccountSession Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)

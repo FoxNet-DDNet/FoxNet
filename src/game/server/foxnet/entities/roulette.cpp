@@ -97,20 +97,21 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 	if(pChr->Team() != TEAM_FLOCK)
 		return false;
 
+	if(!g_Config.m_SvAccounts)
+	{
+		GameServer()->SendChatTarget(ClientId, "Feature is disabled.");
+		return false;
+	}
+
 	if(!CanBet(ClientId))
 	{
-		GameServer()->SendChatTarget(ClientId, "Wait until the current round is over!");
+		GameServer()->SendChatTarget(ClientId, "Wait until the current round is over.");
 		return false;
 	}
 
 	if(!pPl->Acc()->m_LoggedIn)
 	{
-		GameServer()->SendChatTarget(ClientId, "╭─────────       Rᴏᴜʟᴇᴛᴛᴇ");
-		GameServer()->SendChatTarget(ClientId, "│ You need to be logged in to gamble");
-		GameServer()->SendChatTarget(ClientId, "│ Use: /login <name> <pw>");
-		GameServer()->SendChatTarget(ClientId, "│ Or create an account using:");
-		GameServer()->SendChatTarget(ClientId, "│ /register <name> <pw>");
-		GameServer()->SendChatTarget(ClientId, "╰──────────────────────────");
+		GameServer()->SendChatTarget(ClientId, "You need to be logged in for this");
 		return false;
 	}
 

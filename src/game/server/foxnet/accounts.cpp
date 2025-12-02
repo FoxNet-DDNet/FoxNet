@@ -81,6 +81,8 @@ void CAccounts::AutoLogin(int ClientId)
 {
 	if(!m_pPool)
 		return;
+	if(!g_Config.m_SvAccounts)
+		return;
 	const char *pName = Server()->ClientName(ClientId);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByLastName>(pRes);

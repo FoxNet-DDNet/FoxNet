@@ -828,7 +828,7 @@ void CGameTeams::OnFinish(CPlayer *Player, int TimeTicks, const char *pTimestamp
 	}
 
 	// <FoxNet
-	if(Player->Acc()->m_LoggedIn)
+	if(Player->Acc()->m_LoggedIn && g_Config.m_SvAccounts)
 	{
 		int64_t XP = 0;
 		if(GameServer()->m_MapInfoCache.m_Points > 0)
