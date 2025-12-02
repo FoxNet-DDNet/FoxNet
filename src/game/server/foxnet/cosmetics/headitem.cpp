@@ -97,6 +97,17 @@ void CHeadItem::Snap(int SnappingClient)
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
+	if(!pOwnerChr->TeamMask().test(SnappingClient))
+		return;
+
+	if(pSnapPlayer->GetCharacter() && pOwnerChr)
+		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
+			return;
+
+	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
+		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
+			return;
+
 	HatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
 
 	if(m_Type != HEADITEM_SPAWNSOLO)
@@ -119,17 +130,6 @@ void CHeadItem::Snap(int SnappingClient)
 		if(pOwnerChr->m_SpawnSolo)
 			return;
 	}
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
@@ -161,9 +161,6 @@ void CHeadItem::Snap(int SnappingClient)
 void CHeadItem::SnapPartyHat(int SnappingClient)
 {
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
 
 	vec2 HatFrom[2] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
 	vec2 HatTo[2] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
