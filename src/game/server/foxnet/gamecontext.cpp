@@ -103,7 +103,26 @@ void CGameContext::BotClientTick()
 			if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
 				pPlayer->m_HasBotClient = true;
 
-			if(!str_find(Info.m_pDDNetVersionStr, "(") && !str_find(Info.m_pDDNetVersionStr, ")")) // git rev short missing, block client
+			const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
+			const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
+			if(!pStart && !pEnd) // git rev short missing, block client
+			{
+				pPlayer->m_HasBotClient = true;
+				continue;
+			}
+
+			// check if git rev short is empty
+			if(pStart && pEnd && pEnd > pStart + 1)
+			{
+				char aGitRevShort[16];
+				str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
+				if(str_length(aGitRevShort) == 0)
+				{
+					pPlayer->m_HasBotClient = true;
+					continue;
+				}
+			}
+			else
 			{
 				pPlayer->m_HasBotClient = true;
 				continue;
@@ -111,7 +130,7 @@ void CGameContext::BotClientTick()
 
 			bool KnownBot = false;
 
-			// Some random bot client I've seen today
+			// Some random bot client I've seen
 			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
 				KnownBot = true;
 
