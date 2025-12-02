@@ -29,8 +29,6 @@ enum ExtraWeapons
 	WEAPON_LIGHTSABER,
 	WEAPON_PORTALGUN,
 	NUM_EXTRA_WEAPONS,
-
-	NUM_MAX_DROPS = 6
 };
 // FoxNet>
 

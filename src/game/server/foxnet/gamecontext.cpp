@@ -1208,7 +1208,7 @@ int CGameContext::NumPlayersInTeam(int Team) const
 void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask)
 {
 	// deal damage
-	CEntity *apDrops[(int)MAX_CLIENTS * (int)NUM_MAX_DROPS];
+	CEntity *apDrops[(int)MAX_CLIENTS * 10];
 	float Radius = 135.0f;
 	float InnerRadius = 48.0f;
 	int NumDrops = m_World.FindEntities(Pos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
@@ -1270,7 +1270,7 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 	CClientMask Mask = pChr->TeamMask();
 
 	// deal damage
-	CEntity *apDrops[(int)MAX_CLIENTS * (int)NUM_MAX_DROPS];
+	CEntity *apDrops[(int)MAX_CLIENTS * 10];
 	int Hits = 0;
 	int NumDrops = m_World.FindEntities(StartPos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
 

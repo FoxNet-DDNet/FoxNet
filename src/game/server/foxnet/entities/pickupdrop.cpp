@@ -22,6 +22,7 @@
 #include <game/teamscore.h>
 
 #include <vector>
+#include <algorithm>
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
@@ -32,7 +33,7 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Te
 	m_Team = Team;
 	m_Vel = Dir;
 	m_Lifetime = Lifetime * Server()->TickSpeed();
-	m_Type = Type;
+	m_Type = std::clamp(Type, (int)WEAPON_NONE + 1, (int)NUM_EXTRA_WEAPONS);
 	m_TuneZone = -1;
 	m_TeleCheckpoint = TeleCheckpoint;
 
@@ -159,8 +160,8 @@ void CPickupDrop::Tick()
 
 void CPickupDrop::HandleSkippableTiles(int Index)
 {
-	const CPlayer *pPlayer = GameServer()->m_apPlayers[m_LastOwner];
-	const CCharacter *pChr = GameServer()->GetPlayerChar(m_LastOwner);
+	const CPlayer *pPlayer = m_LastOwner >= 0 ? GameServer()->m_apPlayers[m_LastOwner] : nullptr;
+	const CCharacter *pChr = m_LastOwner >= 0 ? GameServer()->GetPlayerChar(m_LastOwner) : nullptr;
 
 	// handle death-tiles and leaving gamelayer
 	if((Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||

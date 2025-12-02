@@ -3030,7 +3030,7 @@ void CCharacter::FoxNetTick()
 	if(m_VoteActionDelay >= 0)
 		m_VoteActionDelay--;
 
-	if(GetPlayer()->m_vPickupDrops.size() > (size_t)(NUM_MAX_DROPS))
+	if(GetPlayer()->m_vPickupDrops.size() > (size_t)(g_Config.m_SvDropsMaxPerPlayer))
 	{
 		// remove oldest drop
 		auto pPickup = GetPlayer()->m_vPickupDrops.begin();

@@ -1,4 +1,5 @@
-﻿#include "votemenu.h"
+﻿#include "entities/pickupdrop.h"
+#include "votemenu.h"
 
 #include <base/log.h>
 #include <base/str.h>
@@ -100,7 +101,7 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvRconMaxTries)
-	{			
+	{
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.", pSelf->Server()->ClientName(ClientId), pSelf->Server()->ClientAddrString(ClientId, false), g_Config.m_SvRconBantime);
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - /Login");
@@ -1571,6 +1572,27 @@ void CGameContext::ConCleanDroppedPickups(IConsole::IResult *pResult, void *pUse
 	pSelf->m_World.RemoveEntities(CGameWorld::ENTTYPE_PICKUPDROP);
 }
 
+void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+	CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientId);
+	if(!pChr)
+		return;
+
+	vec2 Pos = pChr->m_Pos;
+	vec2 Dir = vec2(0, 0);
+	int TeleCheck = pChr->m_TeleCheckpoint;
+	int Team = pChr->Team();
+	int Type = pResult->GetInteger(0);
+
+	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
+
+	new CPickupDrop(&pSelf->m_World, -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
+}
+
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1691,7 +1713,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		if(!str_comp(pSelf->Server()->ClientName(ClientId2), pAgainst))
 		{
 			Found = true;
-			pAgainstPl = pSelf->m_apPlayers[ClientId2];	
+			pAgainstPl = pSelf->m_apPlayers[ClientId2];
 			break;
 		}
 	}
@@ -1826,7 +1848,6 @@ void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
 		pSelf->CensorMessage(aCensoredMessage, pText, sizeof(aCensoredMessage));
 		pSelf->SendChat(ClientId, TEAM_ALL, aCensoredMessage, ClientId);
 	}
-
 }
 
 void CGameContext::RegisterFoxNetCommands()
@@ -1968,6 +1989,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("dropweapon", "", CFGFLAG_CHAT, ConDropWeapon, this, "Drops the weapon you're currently holding");
 
 	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
+	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
 
@@ -2037,7 +2059,7 @@ void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData,
 		if(pPlayer)
 		{
 			if(!Value)
-			{				
+			{
 				pPlayer->SetPage(PAGE_MAIN);
 				if(pPlayer->Acc()->m_LoggedIn && pSelf->m_AccountManager.Logout(ClientId))
 					pSelf->SendChatTarget(ClientId, "You have been logged out because accounts have been disabled on this server.");

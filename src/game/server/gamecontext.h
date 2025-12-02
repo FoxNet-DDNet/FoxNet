@@ -860,6 +860,7 @@ private:
 
 	static void ConDropWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConCleanDroppedPickups(IConsole::IResult *pResult, void *pUserData);
+	static void ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConAccTop5Money(IConsole::IResult *pResult, void *pUserData);
 	static void ConAccTop5Level(IConsole::IResult *pResult, void *pUserData);
