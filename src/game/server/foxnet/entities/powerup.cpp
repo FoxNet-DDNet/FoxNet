@@ -100,7 +100,7 @@ void CPowerUp::Tick()
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		if(!Server()->ClientIngame(ClientId))
-			return;
+			continue;
 
 		if(!m_aClients[ClientId].m_Collected)
 			HandleClient(ClientId);
