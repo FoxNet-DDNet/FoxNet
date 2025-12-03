@@ -1825,19 +1825,12 @@ void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
 			pPlayer->m_LastCommandPos = (pPlayer->m_LastCommandPos + 1) % 4;
 
 			pSelf->Console()->SetFlagMask(CFGFLAG_CHAT);
-			int Authed = pSelf->Server()->GetAuthedState(ClientId);
-			if(Authed)
-				pSelf->Console()->SetAccessLevel(Authed == AUTHED_ADMIN ? IConsole::EAccessLevel::ADMIN : (Authed == AUTHED_MOD ? IConsole::EAccessLevel::MODERATOR : IConsole::EAccessLevel::HELPER));
-			else
-				pSelf->Console()->SetAccessLevel(IConsole::EAccessLevel::USER);
-
 			pSelf->Console()->ExecuteLine(pText + 1, ClientId, false);
 
-			// char aBuf[256];
-			// str_format(aBuf, sizeof(aBuf), "%d used %s", ClientId, pText);
-			// pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "chat-command", aBuf);
+			// m_apPlayers[ClientId] can be NULL, if the player used a
+			// timeout code and replaced another client.
+			// log_info("chat-command", "%d used %s", ClientId, pText);
 
-			pSelf->Console()->SetAccessLevel(IConsole::EAccessLevel::ADMIN);
 			pSelf->Console()->SetFlagMask(CFGFLAG_SERVER);
 		}
 	}
