@@ -78,10 +78,7 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		const CInventoryEntry &Entry = kv.second;
 
 		vQty.push_back({Name.c_str(), Entry.m_Quantity});
-
-		int StoredVal = Entry.m_Value;
-
-		vEquip.push_back({Name.c_str(), StoredVal});
+		vEquip.push_back({Name.c_str(), Entry.m_Value});
 
 		if(Entry.m_Quantity > 0)
 			vTime.push_back({Name.c_str(), Entry.m_AcquiredAt, Entry.m_ExpiresAt});
@@ -91,16 +88,32 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	str_append(aUpd, "UPDATE foxnet_account_inventory SET ", sizeof(aUpd));
 
 	// Value
-	str_append(aUpd, "Value = CASE ItemName", sizeof(aUpd));
-	for(size_t e = 0; e < vEquip.size(); e++)
-		str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
-	str_append(aUpd, " ELSE 0 END", sizeof(aUpd));
+	if(!vEquip.empty())
+	{
+		str_append(aUpd, "Value = CASE ItemName", sizeof(aUpd));
+		for(size_t e = 0; e < vEquip.size(); e++)
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE Value END", sizeof(aUpd));
+	}
+	else
+	{
+		// No items to change -> keep existing Value
+		str_append(aUpd, "Value = Value", sizeof(aUpd));
+	}
 
 	// Quantity
-	str_append(aUpd, ", Quantity = CASE ItemName", sizeof(aUpd));
-	for(size_t q = 0; q < vQty.size(); q++)
-		str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
-	str_append(aUpd, " ELSE Quantity END", sizeof(aUpd));
+	str_append(aUpd, ", ", sizeof(aUpd));
+	if(!vQty.empty())
+	{
+		str_append(aUpd, "Quantity = CASE ItemName", sizeof(aUpd));
+		for(size_t q = 0; q < vQty.size(); q++)
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE Quantity END", sizeof(aUpd));
+	}
+	else
+	{
+		str_append(aUpd, "Quantity = Quantity", sizeof(aUpd));
+	}
 
 	// Times
 	if(!vTime.empty())
@@ -122,16 +135,19 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		return false;
 
 	int Bind = 1;
+	// Bind Value cases
 	for(const auto &e : vEquip)
 	{
 		pSql->BindString(Bind++, e.Name);
 		pSql->BindInt(Bind++, e.Val);
 	}
+	// Bind Quantity cases
 	for(const auto &q : vQty)
 	{
 		pSql->BindString(Bind++, q.Name);
 		pSql->BindInt(Bind++, q.Qty);
 	}
+	// Bind times
 	for(const auto &t : vTime)
 	{
 		pSql->BindString(Bind++, t.Name);
@@ -148,7 +164,6 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
-
 static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &MailBox, char *pError, int ErrorSize)
 {
 	MailBox.Clear();
