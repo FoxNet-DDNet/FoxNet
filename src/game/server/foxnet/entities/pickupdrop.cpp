@@ -558,15 +558,14 @@ void CPickupDrop::HandleQuads()
 			if(g_Config.m_SvDropsInFreezeFloat)
 				m_InsideFreeze = true;
 			break;
-
 		case QUADTYPE_DEATH:
 			Reset();
 			break;
-
 		case QUADTYPE_STOPA:
+		case QUADTYPE_HOOKABLE:
+		case QUADTYPE_UNHOOKABLE:
 			HandleQuadStopa(pQuad->m_Pos[0], pQuad->m_Pos[1], pQuad->m_Pos[2], pQuad->m_Pos[3]);
 			break;
-
 		case QUADTYPE_CFRM:
 			for(int k = m_TeleCheckpoint - 1; k >= 0; k--)
 			{
