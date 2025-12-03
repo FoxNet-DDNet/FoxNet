@@ -1594,6 +1594,10 @@ void CCharacter::Snap(int SnappingClient)
 	pDDNetCharacter->m_TargetX = m_Core.m_Input.m_TargetX;
 	pDDNetCharacter->m_TargetY = m_Core.m_Input.m_TargetY;
 
+	// OVERRIDE_NONE is the default value, SnapNewItem zeroes the object, so it would incorrectly become 0
+	// pDDNetCharacter->m_TuneZoneOverride = TuneZone::OVERRIDE_NONE;
+	
+	// <FoxNet
 	if(m_InSnake || m_Ufo.Active())
 	{
 		pDDNetCharacter->m_Jumps = 0;
@@ -2494,7 +2498,7 @@ void CCharacter::SetTeams(CGameTeams *pTeams)
 bool CCharacter::TrySetRescue(int RescueMode)
 {
 	bool Set = false;
-	if(g_Config.m_SvRescue || ((g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO || Team() > TEAM_FLOCK) && Team() >= TEAM_FLOCK && Team() < TEAM_SUPER))
+	if(g_Config.m_SvRescue || ((g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO || Team() > TEAM_FLOCK) && Teams()->IsValidTeamNumber(Team())))
 	{
 		// check for nearby health pickups (also freeze)
 		bool InHealthPickup = false;

@@ -14,14 +14,9 @@
 #include "smooth_value.h"
 
 #include <base/bezier.h>
-#include <base/system.h>
 
-#include <engine/console.h>
 #include <engine/editor.h>
-#include <engine/engine.h>
 #include <engine/graphics.h>
-#include <engine/shared/datafile.h>
-#include <engine/shared/jobs.h>
 
 #include <game/client/ui.h>
 #include <game/client/ui_listbox.h>
@@ -345,14 +340,12 @@ public:
 
 	// TODO: The name of the ShowFileDialogError function is not accurate anymore, this is used for generic error messages.
 	//       Popups in UI should be shared_ptrs to make this even more generic.
-	struct SStringKeyComparator
+	class CStringKeyComparator
 	{
-		bool operator()(const char *pLhs, const char *pRhs) const
-		{
-			return str_comp(pLhs, pRhs) < 0;
-		}
+	public:
+		bool operator()(const char *pLhs, const char *pRhs) const;
 	};
-	std::map<const char *, CUi::SMessagePopupContext *, SStringKeyComparator> m_PopupMessageContexts;
+	std::map<const char *, CUi::SMessagePopupContext *, CStringKeyComparator> m_PopupMessageContexts;
 	[[gnu::format(printf, 2, 3)]] void ShowFileDialogError(const char *pFormat, ...);
 
 	void Reset(bool CreateDefault = true);
@@ -528,6 +521,14 @@ public:
 		ALL,
 	};
 	EEnvelopePreview m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
+	enum class EQuadEnvelopePointOperation
+	{
+		NONE = 0,
+		MOVE,
+		ROTATE,
+	};
+	EQuadEnvelopePointOperation m_QuadEnvelopePointOperation = EQuadEnvelopePointOperation::NONE;
+
 	bool m_ShowPicker;
 
 	std::vector<int> m_vSelectedLayers;
@@ -682,8 +683,8 @@ public:
 	void PopupSelectAutoMapReferenceInvoke(int Current, float x, float y);
 	int PopupSelectAutoMapReferenceResult();
 
-	void DoQuadEnvelopes(const std::vector<CQuad> &vQuads, IGraphics::CTextureHandle Texture = IGraphics::CTextureHandle());
-	void DoQuadEnvPoint(const CQuad *pQuad, int QuadIndex, int PointIndex);
+	void DoQuadEnvelopes(const CLayerQuads *pLayerQuads);
+	void DoQuadEnvPoint(const CQuad *pQuad, CEnvelope *pEnvelope, int QuadIndex, int PointIndex);
 	void DoQuadPoint(int LayerIndex, const std::shared_ptr<CLayerQuads> &pLayer, CQuad *pQuad, int QuadIndex, int v);
 	void UpdateHotQuadPoint(const CLayerQuads *pLayer);
 
@@ -836,13 +837,6 @@ public:
 	unsigned char m_ViewSwitch;
 
 	void AdjustBrushSpecialTiles(bool UseNextFree, int Adjust = 0);
-
-	// Undo/Redo
-	CEditorHistory m_EditorHistory;
-	CEditorHistory m_ServerSettingsHistory;
-	CEditorHistory m_EnvelopeEditorHistory;
-	CQuadEditTracker m_QuadTracker;
-	CEnvelopeEditorOperationTracker m_EnvOpTracker;
 
 private:
 	CEditorHistory &ActiveHistory();

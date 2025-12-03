@@ -627,7 +627,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = Teams.m_Core.Team(pResult->m_ClientId);
 
-	if(Team < TEAM_FLOCK || (Team == TEAM_FLOCK && g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO) || Team >= TEAM_SUPER)
+	if(!Teams.IsValidTeamNumber(Team) || (Team == TEAM_FLOCK && g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO))
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
@@ -769,12 +769,12 @@ void CGameContext::ConPracticeCmdList(IConsole::IResult *pResult, void *pUserDat
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	char aPracticeCommands[256] = "Available practice commands: ";
-	for(const IConsole::ICommandInfo *pCmd = pSelf->Console()->FirstCommandInfo(IConsole::EAccessLevel::USER, CMDFLAG_PRACTICE);
-		pCmd; pCmd = pSelf->Console()->NextCommandInfo(pCmd, IConsole::EAccessLevel::USER, CMDFLAG_PRACTICE))
+	for(const IConsole::ICommandInfo *pCmd = pSelf->Console()->FirstCommandInfo(pResult->m_ClientId, CMDFLAG_PRACTICE);
+		pCmd; pCmd = pSelf->Console()->NextCommandInfo(pCmd, pResult->m_ClientId, CMDFLAG_PRACTICE))
 	{
 		char aCommand[64];
 
-		str_format(aCommand, sizeof(aCommand), "/%s%s", pCmd->Name(), pSelf->Console()->NextCommandInfo(pCmd, IConsole::EAccessLevel::USER, CMDFLAG_PRACTICE) ? ", " : "");
+		str_format(aCommand, sizeof(aCommand), "/%s%s", pCmd->Name(), pSelf->Console()->NextCommandInfo(pCmd, pResult->m_ClientId, CMDFLAG_PRACTICE) ? ", " : "");
 
 		if(str_length(aCommand) + str_length(aPracticeCommands) > 255)
 		{
@@ -820,12 +820,12 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = Teams.m_Core.Team(pResult->m_ClientId);
 
-	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(!Teams.IsValidTeamNumber(Team))
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Join a team to use swap feature, which means you can swap positions with each other.");
+			"You aren't in a valid team.");
 		return;
 	}
 
@@ -943,12 +943,12 @@ void CGameContext::ConCancelSwap(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = Teams.m_Core.Team(pResult->m_ClientId);
 
-	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(!pSelf->m_pController->Teams().IsValidTeamNumber(Team))
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Join a team to use swap feature, which means you can swap positions with each other.");
+			"You aren't in a valid team.");
 		return;
 	}
 
@@ -1065,7 +1065,7 @@ void CGameContext::ConLock(IConsole::IResult *pResult, void *pUserData)
 	if(pResult->NumArguments() > 0)
 		Lock = !pResult->GetInteger(0);
 
-	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(Team == TEAM_FLOCK || !pSelf->m_pController->Teams().IsValidTeamNumber(Team))
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
@@ -1109,7 +1109,7 @@ void CGameContext::ConUnlock(IConsole::IResult *pResult, void *pUserData)
 
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 
-	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(Team == TEAM_FLOCK || !pSelf->m_pController->Teams().IsValidTeamNumber(Team))
 		return;
 
 	if(pSelf->ProcessSpamProtection(pResult->m_ClientId, false))
@@ -1156,70 +1156,62 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		pPlayer->GetCharacter()->m_LastStartWarning = Server()->Tick();
 	}
 
-	if(pPlayer->GetCharacter() == nullptr)
+	if(!m_pController->Teams().IsValidTeamNumber(Team))
+	{
+		auto EmptyTeam = m_pController->Teams().GetFirstEmptyTeam();
+		if(!EmptyTeam.has_value())
+		{
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+				"No empty team left.");
+			return;
+		}
+		Team = EmptyTeam.value();
+	}
+
+	char aError[512];
+	if(pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"You can't change teams while you are dead/a spectator.");
+			"You can't change teams that fast!");
+	}
+	else if(Team != TEAM_FLOCK && m_pController->Teams().TeamLocked(Team) && !m_pController->Teams().IsInvited(Team, ClientId))
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+			g_Config.m_SvInvite ?
+				"This team is locked using /lock. Only members of the team can unlock it using /lock." :
+				"This team is locked using /lock. Only members of the team can invite you or unlock it using /lock.");
+	}
+	else if(Team != TEAM_FLOCK && m_pController->Teams().Count(Team) >= g_Config.m_SvMaxTeamSize && !m_pController->Teams().TeamFlock(Team) && !m_pController->Teams().IsPractice(Team))
+	{
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "This team already has the maximum allowed size of %d players", g_Config.m_SvMaxTeamSize);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
+	}
+	else if(!m_pController->Teams().SetCharacterTeam(pPlayer->GetCid(), Team, aError, sizeof(aError)))
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aError);
 	}
 	else
 	{
-		if(Team < 0 || Team >= TEAM_SUPER)
+		if(PracticeByDefault())
 		{
-			auto EmptyTeam = m_pController->Teams().GetFirstEmptyTeam();
-			if(!EmptyTeam.has_value())
-			{
-				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-					"No empty team left.");
-				return;
-			}
-			Team = EmptyTeam.value();
+			// joined an empty team
+			if(m_pController->Teams().Count(Team) == 1)
+				m_pController->Teams().SetPractice(Team, true);
 		}
 
-		char aError[512];
-		if(pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
-		{
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-				"You can't change teams that fast!");
-		}
-		else if(Team != TEAM_FLOCK && m_pController->Teams().TeamLocked(Team) && !m_pController->Teams().IsInvited(Team, ClientId))
-		{
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-				g_Config.m_SvInvite ?
-					"This team is locked using /lock. Only members of the team can unlock it using /lock." :
-					"This team is locked using /lock. Only members of the team can invite you or unlock it using /lock.");
-		}
-		else if(Team != TEAM_FLOCK && m_pController->Teams().Count(Team) >= g_Config.m_SvMaxTeamSize && !m_pController->Teams().TeamFlock(Team) && !m_pController->Teams().IsPractice(Team))
-		{
-			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "This team already has the maximum allowed size of %d players", g_Config.m_SvMaxTeamSize);
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
-		}
-		else if(!m_pController->Teams().SetCharacterTeam(pPlayer->GetCid(), Team, aError, sizeof(aError)))
-		{
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aError);
-		}
-		else
-		{
-			if(PracticeByDefault())
-			{
-				// joined an empty team
-				if(m_pController->Teams().Count(Team) == 1)
-					m_pController->Teams().SetPractice(Team, true);
-			}
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "'%s' joined team %d",
+			Server()->ClientName(pPlayer->GetCid()),
+			Team);
+		SendChat(-1, TEAM_ALL, aBuf);
+		pPlayer->m_LastDDRaceTeamChange = Server()->Tick();
 
-			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "'%s' joined team %d",
-				Server()->ClientName(pPlayer->GetCid()),
-				Team);
-			SendChat(-1, TEAM_ALL, aBuf);
-			pPlayer->m_LastDDRaceTeamChange = Server()->Tick();
+		if(m_pController->Teams().IsPractice(Team))
+			SendChatTarget(pPlayer->GetCid(), "Practice mode enabled for your team, happy practicing!");
 
-			if(m_pController->Teams().IsPractice(Team))
-				SendChatTarget(pPlayer->GetCid(), "Practice mode enabled for your team, happy practicing!");
-
-			if(m_pController->Teams().TeamFlock(Team))
-				SendChatTarget(pPlayer->GetCid(), "Team 0 mode enabled for your team. This will make your team behave like team 0.");
-		}
+		if(m_pController->Teams().TeamFlock(Team))
+			SendChatTarget(pPlayer->GetCid(), "Team 0 mode enabled for your team. This will make your team behave like team 0.");
 	}
 }
 
@@ -1243,7 +1235,7 @@ void CGameContext::ConInvite(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	int Team = pController->Teams().m_Core.Team(pResult->m_ClientId);
-	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
+	if(Team != TEAM_FLOCK && pController->Teams().IsValidTeamNumber(Team))
 	{
 		int Target = -1;
 		for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1314,7 +1306,7 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 	int Team = pController->Teams().m_Core.Team(pResult->m_ClientId);
 	bool Mode = pController->Teams().TeamFlock(Team);
 
-	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(Team == TEAM_FLOCK || !pController->Teams().IsValidTeamNumber(Team))
 	{
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,

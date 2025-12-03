@@ -260,7 +260,7 @@ Objects = [
 		# New data fields for improved target accuracy
 		NetIntAny("m_TargetX", default=0),
 		NetIntAny("m_TargetY", default=0),
-		NetIntRange("m_TuneZoneOverride", -1, 'NUM_TUNEZONES-1', default=-1),
+		NetIntRange("m_TuneZoneOverride", 'TuneZone::OVERRIDE_NONE', 'TuneZone::NUM-1', default='TuneZone::OVERRIDE_NONE'),
 	], validate_size=False),
 
 	NetObjectEx("DDNetPlayer", "player@netobj.ddnet.tw", [
@@ -326,6 +326,10 @@ Objects = [
 		NetIntRange("m_Deadzone", 0, 'max_int'),
 		NetIntRange("m_FollowFactor", 0, 'max_int'),
 		NetIntRange("m_SpectatorCount", 0, 'MAX_CLIENTS-1', default=0),
+	]),
+
+	NetObjectEx("SpectatorCount", "spectator-count@netobj.ddnet.org", [
+		NetIntRange("m_NumSpectators", 0, 'max_int'),
 	]),
 
 	## Events

@@ -408,7 +408,7 @@ bool CGameTeams::CanJoinTeam(int ClientId, int Team, char *pError, int ErrorSize
 		str_format(pError, ErrorSize, "Invalid client ID: %d", ClientId);
 		return false;
 	}
-	if(Team < 0 || Team > NUM_DDRACE_TEAMS)
+	if(!IsValidTeamNumber(Team) && Team != TEAM_SUPER)
 	{
 		str_format(pError, ErrorSize, "Invalid team number: %d", Team);
 		return false;
@@ -425,7 +425,7 @@ bool CGameTeams::CanJoinTeam(int ClientId, int Team, char *pError, int ErrorSize
 	}
 	if(!Character(ClientId))
 	{
-		str_copy(pError, "Your character is not valid", ErrorSize);
+		str_copy(pError, "You can't change teams while you are dead/a spectator.", ErrorSize);
 		return false;
 	}
 	if(Team == TEAM_SUPER && !Character(ClientId)->IsSuper())
@@ -690,7 +690,7 @@ void CGameTeams::OnTeamFinish(int Team, CPlayer **Players, unsigned int Size, in
 	{
 		aPlayerCids[i] = Players[i]->GetCid();
 
-		if(g_Config.m_SvRejoinTeam0 && g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && (m_Core.Team(Players[i]->GetCid()) >= TEAM_SUPER || !m_aTeamLocked[m_Core.Team(Players[i]->GetCid())]))
+		if(g_Config.m_SvRejoinTeam0 && g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && (!IsValidTeamNumber(m_Core.Team(Players[i]->GetCid())) || !m_aTeamLocked[m_Core.Team(Players[i]->GetCid())]))
 		{
 			SetForceCharacterTeam(Players[i]->GetCid(), TEAM_FLOCK);
 			char aBuf[512];
@@ -1163,7 +1163,7 @@ void CGameTeams::OnCharacterSpawn(int ClientId)
 	if(GetSaving(Team))
 		return;
 
-	if(m_Core.Team(ClientId) >= TEAM_SUPER || !m_aTeamLocked[Team])
+	if(!IsValidTeamNumber(Team) || !m_aTeamLocked[Team])
 	{
 		if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO)
 			SetForceCharacterTeam(ClientId, TEAM_FLOCK);
@@ -1253,13 +1253,13 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 
 void CGameTeams::SetTeamLock(int Team, bool Lock)
 {
-	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
+	if(Team != TEAM_FLOCK && IsValidTeamNumber(Team))
 		m_aTeamLocked[Team] = Lock;
 }
 
 void CGameTeams::SetTeamFlock(int Team, bool Mode)
 {
-	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
+	if(Team != TEAM_FLOCK && IsValidTeamNumber(Team))
 		m_aTeamFlock[Team] = Mode;
 }
 
@@ -1270,7 +1270,7 @@ void CGameTeams::ResetInvited(int Team)
 
 void CGameTeams::SetClientInvited(int Team, int ClientId, bool Invited)
 {
-	if(Team > TEAM_FLOCK && Team < TEAM_SUPER)
+	if(Team != TEAM_FLOCK && IsValidTeamNumber(Team))
 	{
 		if(Invited)
 			m_aInvited[Team].set(ClientId);
@@ -1335,7 +1335,7 @@ ETeamState CGameTeams::GetTeamState(int Team) const
 
 bool CGameTeams::TeamLocked(int Team) const
 {
-	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(Team == TEAM_FLOCK || !IsValidTeamNumber(Team))
 		return false;
 
 	return m_aTeamLocked[Team];
@@ -1343,7 +1343,8 @@ bool CGameTeams::TeamLocked(int Team) const
 
 bool CGameTeams::TeamFlock(int Team) const
 {
-	if(Team <= TEAM_FLOCK || Team >= TEAM_SUPER)
+	// this is for team0mode, TEAM_FLOCK is handled differently
+	if(Team == TEAM_FLOCK || !IsValidTeamNumber(Team))
 		return false;
 
 	return m_aTeamFlock[Team];
@@ -1376,7 +1377,7 @@ void CGameTeams::SetSaving(int TeamId, std::shared_ptr<CScoreSaveResult> &SaveRe
 
 bool CGameTeams::GetSaving(int TeamId) const
 {
-	if(TeamId < TEAM_FLOCK || TeamId >= TEAM_SUPER)
+	if(!IsValidTeamNumber(TeamId))
 		return false;
 	if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && TeamId == TEAM_FLOCK)
 		return false;
@@ -1386,7 +1387,7 @@ bool CGameTeams::GetSaving(int TeamId) const
 
 void CGameTeams::SetPractice(int Team, bool Enabled)
 {
-	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(!IsValidTeamNumber(Team))
 		return;
 	if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && Team == TEAM_FLOCK)
 	{
@@ -1400,7 +1401,7 @@ void CGameTeams::SetPractice(int Team, bool Enabled)
 
 bool CGameTeams::IsPractice(int Team)
 {
-	if(Team < TEAM_FLOCK || Team >= TEAM_SUPER)
+	if(!IsValidTeamNumber(Team))
 		return false;
 	if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO && Team == TEAM_FLOCK)
 	{
@@ -1411,6 +1412,11 @@ bool CGameTeams::IsPractice(int Team)
 	}
 
 	return m_aPractice[Team];
+}
+
+bool CGameTeams::IsValidTeamNumber(int Team) const
+{
+	return Team >= TEAM_FLOCK && Team < NUM_DDRACE_TEAMS - 1; // no TEAM_SUPER
 }
 
 // <FoxNet
