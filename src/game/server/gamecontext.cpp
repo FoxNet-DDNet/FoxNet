@@ -5174,6 +5174,12 @@ void CGameContext::WhisperId(int ClientId, int VictimId, const char *pMessage)
 {
 	dbg_assert(CheckClientId(ClientId) && m_apPlayers[ClientId] != nullptr, "ClientId invalid");
 	dbg_assert(CheckClientId(VictimId) && m_apPlayers[VictimId] != nullptr, "VictimId invalid");
+	
+	if(m_apPlayers[VictimId]->m_Vanish && !Server()->IsRconAuthed(ClientId))
+	{
+		SendChatTarget(ClientId, "Invalid whisper");
+		return;
+	}
 
 	m_apPlayers[ClientId]->m_LastWhisperTo = VictimId;
 
@@ -5257,6 +5263,8 @@ void CGameContext::Converse(int ClientId, char *pStr)
 		SendChatTarget(ClientId, "You do not have an ongoing conversation. Whisper to someone to start one");
 	else if(!m_apPlayers[pPlayer->m_LastWhisperTo])
 		SendChatTarget(ClientId, "The player you were whispering to hasn't reconnected yet or left. Please wait or whisper to someone else");
+	else if(m_apPlayers[pPlayer->m_LastWhisperTo]->m_Vanish && !Server()->IsRconAuthed(ClientId))
+		SendChatTarget(ClientId, "The player you were whispering to has left the game.");
 	else
 		WhisperId(ClientId, pPlayer->m_LastWhisperTo, pStr);
 }
