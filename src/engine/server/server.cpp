@@ -1594,7 +1594,6 @@ void CServer::UpdateClientRconCommands()
 		CClient &Client = m_aClients[ClientId];
 		if(Client.m_State != CClient::STATE_EMPTY && IsRconAuthed(ClientId))
 		{
-			const IConsole::EAccessLevel AccessLevel = ConsoleAccessLevel(ClientId);
 			for(int i = 0; i < MAX_RCONCMD_SEND && Client.m_pRconCmdToSend; ++i)
 			{
 				SendRconCmdAdd(Client.m_pRconCmdToSend, ClientId);
