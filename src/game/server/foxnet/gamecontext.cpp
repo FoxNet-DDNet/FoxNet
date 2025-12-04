@@ -105,27 +105,22 @@ void CGameContext::BotClientTick()
 
 			const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
 			const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
-			if(!pStart && !pEnd) // git rev short missing, block client
-			{
-				pPlayer->m_HasBotClient = true;
-				continue;
-			}
+
+			bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
 
 			// check if git rev short is empty
-			if(pStart && pEnd && pEnd > pStart + 1)
+			if(HasGitRevShort)
 			{
-				char aGitRevShort[16];
-				str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
-				if(str_length(aGitRevShort) == 0)
+				if(pStart && pEnd && pEnd > pStart + 1)
 				{
-					pPlayer->m_HasBotClient = true;
-					continue;
+					char aGitRevShort[16];
+					str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
+					if(str_length(aGitRevShort) == 0)
+					{
+						pPlayer->m_HasBotClient = true;
+						continue;
+					}
 				}
-			}
-			else
-			{
-				pPlayer->m_HasBotClient = true;
-				continue;
 			}
 
 			bool KnownBot = false;
