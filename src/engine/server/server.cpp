@@ -3255,6 +3255,15 @@ int CServer::Run()
 		log_info("server", "+-------------------------+");
 	}
 
+	// <FoxNet
+	if(Config()->m_SvExecBasedOnPort)
+	{
+		char aExecFile[IO_MAX_PATH_LENGTH];
+		str_format(aExecFile, sizeof(aExecFile), "port/%d.cfg", this->Port());
+		Console()->ExecuteFile(aExecFile);
+	}
+	// FoxNet>
+
 	// start game
 	{
 		bool NonActive = false;
