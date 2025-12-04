@@ -62,8 +62,7 @@ void CPowerUp::SetData()
 void CPowerUp::Reset()
 {
 	Server()->SnapFreeId(GetId());
-	for(int i = 0; i < NUM_LASERS; i++)
-
+	for(size_t i = 0; i < NUM_LASERS; i++)
 		Server()->SnapFreeId(m_Snap.m_aLaserIds[i]);
 
 	for(size_t i = 0; i < GameServer()->m_vPowerups.size(); i++)

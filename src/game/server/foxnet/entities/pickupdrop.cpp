@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <iterator>
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
@@ -45,7 +46,7 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Te
 	m_PickupDelay = Server()->TickSpeed() * 1.5f;
 	m_GroundElasticity = vec2(0.5f, 0.5f);
 
-	for(int i = 0; i < 2; i++)
+	for(size_t i = 0; i < std::size(m_aIds); i++)
 		m_aIds[i] = Server()->SnapNewId();
 
 	GameWorld()->InsertEntity(this);
@@ -53,7 +54,7 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Te
 
 void CPickupDrop::Reset(bool PickedUp)
 {
-	for(int i = 0; i < 2; i++)
+	for(size_t i = 0; i < std::size(m_aIds); i++)
 		Server()->SnapFreeId(m_aIds[i]);
 	Server()->SnapFreeId(GetId());
 
