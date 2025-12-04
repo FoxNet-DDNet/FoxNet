@@ -176,6 +176,8 @@ class CVoteMenu
 	void SendPageServerInfo(int ClientId);
 	void SendPageAdmin(int ClientId);
 
+	void ExecMailCmd(int ClientId, const CMailBox::CMail Mail);
+
 	const char *FormatItemVote(long Price);
 
 	void UpdatePages(int ClientId);

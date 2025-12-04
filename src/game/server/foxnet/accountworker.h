@@ -173,6 +173,26 @@ struct CAccSetMailRead : ISqlData
 	int m_Read = 0;
 };
 
+struct CAccMarkAllMailsRead : ISqlData
+{
+	CAccMarkAllMailsRead() :
+		ISqlData(nullptr) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+
+struct CAccClaimAllMailRewards : ISqlData
+{
+	CAccClaimAllMailRewards() :
+		ISqlData(nullptr) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+struct CAccDeleteAllRead : ISqlData
+{
+	CAccDeleteAllRead() :
+		ISqlData(nullptr) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH];
+};
+
 struct CAccSetMailUsedCmd : ISqlData
 {
 	CAccSetMailUsedCmd() :
@@ -242,11 +262,16 @@ struct CAccountsWorker
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
-	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
-	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool ClaimAllMailRewards(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool DeleteAllReadMails(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
 	static bool SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 };
 
 #endif

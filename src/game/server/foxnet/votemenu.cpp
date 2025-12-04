@@ -2,6 +2,7 @@
 #include "votemenu.h"
 
 #include "accounts.h"
+#include "item_registry.h"
 #include "shop.h"
 
 #include <base/str.h>
@@ -27,7 +28,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "item_registry.h"
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
@@ -80,10 +80,10 @@ constexpr const char *ADMIN_MISC_PORTALGUN = "Portal gun";
 // Mailbox
 constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
 
-// ToDo: @qxdFox: Implement these when bulk actions are added
-// constexpr const char *MAIL_MARK_ALL_READ = "✔ Mark all as read";
-// constexpr const char *MAIL_CLAIM_ALL_REWARDS = "⬇️ Claim all Rewards";;
-// constexpr const char *MAIL_DELETE_ALL_READ = "✘ Delete all read Mails";
+constexpr const char *MAIL_MARK_ALL_READ = "✔ Mark all as read";
+constexpr const char *MAIL_CLAIM_ALL_REWARDS = "⬇️ Claim all Rewards";
+;
+constexpr const char *MAIL_DELETE_ALL_READ = "✘ Delete all read Mails";
 
 constexpr const char *MAIL_CLAIM_REWARD = "⬇️ Claim Reward";
 constexpr const char *MAIL_DELETE = "✘ Delete Mail";
@@ -144,6 +144,57 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 		return true;
 	}
 	return false;
+}
+
+void CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail Mail)
+{
+	const char *pTemplate = Mail.m_aCmd;
+	char aCmd[256] = "";
+	char *pDst = aCmd;
+	size_t DstRemain = sizeof(aCmd) - 1;
+	for(const char *p = pTemplate; *p && DstRemain;)
+	{
+		if(*p == '%')
+		{
+			if(p[1] == '%')
+			{
+				if(DstRemain)
+				{
+					*pDst++ = '%';
+					--DstRemain;
+				}
+				p += 2;
+				continue;
+			}
+			else if(p[1] == 'd' || p[1] == 'i')
+			{
+				std::string Id = std::to_string(ClientId);
+				size_t IdLen = str_length(Id.c_str());
+				if(IdLen > DstRemain)
+					IdLen = DstRemain;
+				if(IdLen)
+				{
+					mem_copy(pDst, Id.c_str(), IdLen);
+					pDst += IdLen;
+					DstRemain -= IdLen;
+				}
+				p += 2;
+				continue;
+			}
+			if(DstRemain)
+			{
+				*pDst++ = *p++;
+				--DstRemain;
+			}
+			continue;
+		}
+
+		*pDst++ = *p++;
+		--DstRemain;
+	}
+	*pDst = '\0';
+
+	GameServer()->Console()->ExecuteLine(aCmd);
 }
 
 const char *CVoteMenu::FormatItemVote(long Price)
@@ -237,9 +288,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOption(pVote, SETTINGS_COSMETICS_ANY))
 		{
 			bool NewState = !(Acc.m_Configs.m_Cosmetics.m_ShowRainbow && Acc.m_Configs.m_Cosmetics.m_ShowGuns &&
-							 Acc.m_Configs.m_Cosmetics.m_ShowIndicators && Acc.m_Configs.m_Cosmetics.m_ShowDeaths &&
-							 Acc.m_Configs.m_Cosmetics.m_ShowTrails && Acc.m_Configs.m_Cosmetics.m_ShowHats &&
-							 Acc.m_Configs.m_Cosmetics.m_ShowEffects);
+					  Acc.m_Configs.m_Cosmetics.m_ShowIndicators && Acc.m_Configs.m_Cosmetics.m_ShowDeaths &&
+					  Acc.m_Configs.m_Cosmetics.m_ShowTrails && Acc.m_Configs.m_Cosmetics.m_ShowHats &&
+					  Acc.m_Configs.m_Cosmetics.m_ShowEffects);
 			Acc.m_Configs.m_Cosmetics.m_ShowRainbow = NewState;
 			Acc.m_Configs.m_Cosmetics.m_ShowGuns = NewState;
 			Acc.m_Configs.m_Cosmetics.m_ShowIndicators = NewState;
@@ -319,6 +370,46 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 
+			if(IsOption(pVote, MAIL_MARK_ALL_READ))
+			{
+				for(auto &Mail : Acc.m_MailBox.m_vMails)
+					Mail.m_Unread = false;
+				GameServer()->m_AccountManager.MarkAllMailsRead(Acc.m_aUsername);
+				return true;
+			}
+
+			if(IsOption(pVote, MAIL_CLAIM_ALL_REWARDS))
+			{
+				for(auto &Mail : Acc.m_MailBox.m_vMails)
+				{
+					const bool HasReward = Mail.m_aCmdName[0] && Mail.m_aCmd[0];
+					if(HasReward && !Mail.m_UsedCmd)
+					{
+						ExecMailCmd(ClientId, Mail);
+						Mail.m_UsedCmd = true;
+					}
+				}
+				GameServer()->m_AccountManager.ClaimAllMailRewards(Acc.m_aUsername);
+				return true;
+			}
+			if(IsOption(pVote, MAIL_DELETE_ALL_READ))
+			{
+				auto &Mails = Acc.m_MailBox.m_vMails;
+				for(int i = (int)Mails.size() - 1; i >= 0; --i)
+				{
+					const CMailBox::CMail &Mail = Mails[i];
+					const bool HasReward = Mail.m_aCmd[0] != '\0';
+					const bool RewardClaimed = Mail.m_UsedCmd;
+
+					if(!Mail.m_Unread && (!HasReward || RewardClaimed))
+					{
+						Mails.erase(Mails.begin() + i);
+					}
+				}
+				GameServer()->m_AccountManager.DeleteAllReadMails(Acc.m_aUsername);
+				return true;
+			}
+
 			for(int i = 0; i < (int)Acc.m_MailBox.m_vMails.size(); i++)
 			{
 				char aBuf[VOTE_DESC_LENGTH];
@@ -353,55 +444,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				}
 				else
 				{
-					const char *pTemplate = TargetMail.m_aCmd;
-					char aCmd[256] = "";
-					char *pDst = aCmd;
-					size_t DstRemain = sizeof(aCmd) - 1;
-					for(const char *p = pTemplate; *p && DstRemain;)
-					{
-						if(*p == '%')
-						{
-							if(p[1] == '%')
-							{
-								if(DstRemain)
-								{
-									*pDst++ = '%';
-									--DstRemain;
-								}
-								p += 2;
-								continue;
-							}
-							else if(p[1] == 'd' || p[1] == 'i')
-							{
-								std::string Id = std::to_string(ClientId);
-								size_t IdLen = str_length(Id.c_str());
-								if(IdLen > DstRemain)
-									IdLen = DstRemain;
-								if(IdLen)
-								{
-									mem_copy(pDst, Id.c_str(), IdLen);
-									pDst += IdLen;
-									DstRemain -= IdLen;
-								}
-								p += 2;
-								continue;
-							}
-							if(DstRemain)
-							{
-								*pDst++ = *p++;
-								--DstRemain;
-							}
-							continue;
-						}
-
-						*pDst++ = *p++;
-						--DstRemain;
-					}
-					*pDst = '\0';
-
+					ExecMailCmd(ClientId, TargetMail);
 					TargetMail.m_UsedCmd = true;
 					GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, TargetMail.m_MailId, TargetMail.m_UsedCmd);
-					GameServer()->Console()->ExecuteLine(aCmd);
 				}
 
 				return true;
@@ -1070,18 +1115,19 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 	if(SubPage == SUB_MAILBOX_MAIN)
 	{
+		// ToDo: @qxdFox: Implement these when bulk actions are added
+		AddVoteText("╭───────  Actions");
+		AddVoteText(MAIL_MARK_ALL_READ, EPrefix::LONG_LINE);
+		AddVoteText(MAIL_CLAIM_ALL_REWARDS, EPrefix::LONG_LINE);
+		AddVoteText(MAIL_DELETE_ALL_READ, EPrefix::LONG_LINE);
+		AddVoteText("╰────────────────────");
+		AddVoteSeparator();
+
 		if(pAcc->m_MailBox.m_vMails.empty())
 		{
 			AddVoteText("No mails in your mailbox.");
 			return;
 		}
-
-		// ToDo: @qxdFox: Implement these when bulk actions are added
-		/*╭───────  Options
-		 * │ Mark all as read
-		 * │ Receive all items
-		 * │ Delete all read mails
-		 * ╰──────────────────── */
 
 		AddVoteSubheader("Fɪʟᴛᴇʀs");
 		AddVoteCheckBox(MAIL_ONLY_UNREAD, Data.m_OnlyUnreadMails);
@@ -1100,16 +1146,22 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 		for(const CMailBox::CMail &Mail : pAcc->m_MailBox.m_vMails)
 		{
-			const bool Unread = Mail.m_Unread || (!Mail.m_UsedCmd && Mail.m_aCmd[0] != '\0');
-			if(Data.m_OnlyUnreadMails && !Unread)
+			const bool UsedCmd = Mail.m_UsedCmd || Mail.m_aCmd[0] == '\0';
+			if(Data.m_OnlyUnreadMails && !Mail.m_Unread && UsedCmd)
 			{
 				Idx++;
-				continue;	
+				continue;
 			}
 			ShownMails++;
 
+			char aSuffix[10] = "";
+			if(Mail.m_Unread)
+				str_copy(aSuffix, " [!]", sizeof(aSuffix));
+			else if(!UsedCmd)
+				str_copy(aSuffix, " [⬇️]", sizeof(aSuffix));
+
 			char aBuf[VOTE_DESC_LENGTH];
-			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, Unread ? " [!]" : "");
+			str_format(aBuf, sizeof(aBuf), "%d. %s%s", Idx + 1, Mail.m_aSubject, aSuffix);
 
 			AddVoteText(aBuf);
 			Idx++;
@@ -1181,7 +1233,6 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 	const int SubPage = GetSubPage(ClientId);
 
-
 	if(!pAcc->m_LoggedIn)
 	{
 		AddVoteText("You are not logged in.");
@@ -1205,8 +1256,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteSeparator();
 	}
 
-	auto HasAnyItemOfType = [this](EItemType Type) -> bool
-	{
+	auto HasAnyItemOfType = [this](EItemType Type) -> bool {
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
@@ -1219,8 +1269,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return false;
 	};
 
-	auto CanBuyAnyOfType = [this, pAcc, pPl](EItemType Type) -> bool
-	{
+	auto CanBuyAnyOfType = [this, pAcc, pPl](EItemType Type) -> bool {
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
@@ -1388,7 +1437,6 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			Votes.push_back(Data);
 		}
 
-
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const char *pItemName = kv.first.c_str();
@@ -1402,7 +1450,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			if(!str_comp(pItemName, ""))
 				continue;
 			if(Item.m_Price == -1)
-					continue;
+				continue;
 			if(!(pPl->OwnsItem(pItemName)))
 				continue;
 
@@ -1537,7 +1585,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
 		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
-		if (g_Config.m_SvDDRaceRules)
+		if(g_Config.m_SvDDRaceRules)
 		{
 			AddVoteText("Be nice.", EPrefix::LONG_LINE);
 		}
@@ -1699,7 +1747,6 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 		}
 	}
 }
-
 
 bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 {

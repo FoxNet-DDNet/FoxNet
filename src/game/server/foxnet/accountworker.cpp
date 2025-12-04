@@ -281,7 +281,7 @@ static bool UpserConfigInteger(IDbConnection *pSql, const char *pUsername, const
 			return false;
 	}
 	return true;
-}	
+}
 
 static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs &Configs, char *pError, int ErrorSize)
 {
@@ -381,7 +381,7 @@ bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write
 	pRes->m_Completed.store(true);
 
 	if(pRes->m_Success)
-	{ 
+	{
 		// Defaults
 		if(!UpsertConfigBool(pSql, pReq->m_aUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], true, pError, ErrorSize))
 			return false;
@@ -873,6 +873,118 @@ bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Wr
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
+bool CAccountsWorker::SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccSetMailRead *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET Unread = ? "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindInt(Param++, pReq->m_Read);
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccMarkAllMailsRead *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET Unread = 0 "
+		"WHERE Username = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::ClaimAllMailRewards(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccClaimAllMailRewards *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET UsedCommand = 1 "
+		"WHERE Username = ? AND UsedCommand = 0 AND Command <> ''",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::DeleteAllReadMails(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccDeleteAllRead *>(pData);
+	if(!pReq)
+		return false;
+
+	// Delete mails that are read AND (have no reward OR reward already claimed)
+	// Reward indicator: Command <> '' (CommandName is not authoritative in your codebase)
+	char aSql[256];
+	str_copy(aSql,
+		"DELETE FROM foxnet_account_mailbox "
+		"WHERE Username = ? AND Unread = 0 AND (Command = '' OR UsedCommand = 1)",
+		sizeof(aSql));
+
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+
+	int NumDeleted = 0;
+	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
+}
+
+bool CAccountsWorker::SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccSetMailUsedCmd *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET UsedCommand = ? "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindInt(Param++, pReq->m_UsedCmd);
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccDeleteMail *>(pData);
+	char aSql[256];
+	str_copy(aSql,
+		"DELETE FROM foxnet_account_mailbox "
+		"WHERE Username = ? AND MailId = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+	int NumDeleted = 0;
+	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
+}
+
 bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccNewMail *>(pData);
@@ -994,60 +1106,4 @@ bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, 
 	str_copy(pRes->m_aSubject, pReq->m_aSubject, sizeof(pRes->m_aSubject));
 	pRes->m_Completed.store(true);
 	return true;
-}
-
-bool CAccountsWorker::SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
-{
-	const auto *pReq = dynamic_cast<const CAccSetMailRead *>(pData);
-	char aSql[256];
-	str_copy(aSql,
-		"UPDATE foxnet_account_mailbox "
-		"SET Unread = ? "
-		"WHERE Username = ? AND MailId = ?",
-		sizeof(aSql));
-	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
-		return false;
-	int Param = 1;
-	pSql->BindInt(Param++, pReq->m_Read);
-	pSql->BindString(Param++, pReq->m_aUsername);
-	pSql->BindInt64(Param++, pReq->m_MailId);
-
-	int NumUpdated = 0;
-	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
-}
-
-bool CAccountsWorker::SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
-{
-	const auto *pReq = dynamic_cast<const CAccSetMailUsedCmd *>(pData);
-	char aSql[256];
-	str_copy(aSql,
-		"UPDATE foxnet_account_mailbox "
-		"SET UsedCommand = ? "
-		"WHERE Username = ? AND MailId = ?",
-		sizeof(aSql));
-	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
-		return false;
-	int Param = 1;
-	pSql->BindInt(Param++, pReq->m_UsedCmd);
-	pSql->BindString(Param++, pReq->m_aUsername);
-	pSql->BindInt64(Param++, pReq->m_MailId);
-	int NumUpdated = 0;
-	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
-}
-
-bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
-{
-	const auto *pReq = dynamic_cast<const CAccDeleteMail *>(pData);
-	char aSql[256];
-	str_copy(aSql,
-		"DELETE FROM foxnet_account_mailbox "
-		"WHERE Username = ? AND MailId = ?",
-		sizeof(aSql));
-	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
-		return false;
-	int Param = 1;
-	pSql->BindString(Param++, pReq->m_aUsername);
-	pSql->BindInt64(Param++, pReq->m_MailId);
-	int NumDeleted = 0;
-	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
 }

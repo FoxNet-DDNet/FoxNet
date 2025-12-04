@@ -87,7 +87,6 @@ public:
 
 class CAccConfigs
 {
-
 public:
 	bool m_AutoLogin = false;
 	bool m_HidePowerUps = false;
@@ -196,11 +195,17 @@ public:
 
 	void FetchMailBox();
 
-	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
-	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
+	// Bulk mail operations
+	void MarkAllMailsRead(const char *pUsername);
+	void ClaimAllMailRewards(const char *pUsername);
+	void DeleteAllReadMails(const char *pUsername);
+
 	void SetMailRead(const char *pUsername, int64_t MailId, bool Read);
 	void SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used);
 	void DeleteMail(const char *pUsername, int64_t MailId);
+
+	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
+	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
 };
 
 #endif // GAME_SERVER_FOXNET_ACCOUNTS_H

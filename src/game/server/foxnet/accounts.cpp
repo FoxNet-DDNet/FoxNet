@@ -2,6 +2,7 @@
 
 #include "accountworker.h"
 #include "game/server/gamecontext.h"
+#include "item_registry.h"
 #include "shop.h"
 
 #include <base/hash.h>
@@ -27,7 +28,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "item_registry.h"
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }
 
@@ -631,6 +631,66 @@ int CAccounts::NeededXP(int Level)
 		return 150 + Level * 2;
 }
 
+void CAccounts::MarkAllMailsRead(const char *pUsername)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccMarkAllMailsRead>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	m_pPool->ExecuteWrite(CAccountsWorker::MarkAllMailsRead, std::move(pReq), "acc mark all mails read");
+}
+
+void CAccounts::ClaimAllMailRewards(const char *pUsername)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccClaimAllMailRewards>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	m_pPool->ExecuteWrite(CAccountsWorker::ClaimAllMailRewards, std::move(pReq), "acc mark all mails claimed");
+}
+
+void CAccounts::DeleteAllReadMails(const char *pUsername)
+{
+	if(!m_pPool || !pUsername || !pUsername[0])
+		return;
+
+	auto pReq = std::make_unique<CAccDeleteAllRead>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	m_pPool->ExecuteWrite(CAccountsWorker::DeleteAllReadMails, std::move(pReq), "acc delete all read mails");
+}
+
+void CAccounts::SetMailRead(const char *pUsername, int64_t MailId, bool Read)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccSetMailRead>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	pReq->m_Read = Read;
+	m_pPool->ExecuteWrite(CAccountsWorker::SetMailRead, std::move(pReq), "acc set mail read");
+}
+
+void CAccounts::SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccSetMailUsedCmd>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	pReq->m_UsedCmd = Used;
+	m_pPool->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
+}
+
+void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
+{
+	if(!m_pPool)
+		return;
+	auto pReq = std::make_unique<CAccDeleteMail>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
+}
+
 void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
 {
 	if(!m_pPool)
@@ -695,38 +755,6 @@ void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char 
 	});
 
 	m_pPool->ExecuteWrite(CAccountsWorker::NewMail, std::move(pReq), "acc new mail");
-}
-
-void CAccounts::SetMailRead(const char *pUsername, int64_t MailId, bool Read)
-{
-	if(!m_pPool)
-		return;
-	auto pReq = std::make_unique<CAccSetMailRead>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	pReq->m_MailId = MailId;
-	pReq->m_Read = Read;
-	m_pPool->ExecuteWrite(CAccountsWorker::SetMailRead, std::move(pReq), "acc set mail read");
-}
-
-void CAccounts::SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used)
-{
-	if(!m_pPool)
-		return;
-	auto pReq = std::make_unique<CAccSetMailUsedCmd>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	pReq->m_MailId = MailId;
-	pReq->m_UsedCmd = Used;
-	m_pPool->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
-}
-
-void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
-{
-	if(!m_pPool)
-		return;
-	auto pReq = std::make_unique<CAccDeleteMail>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	pReq->m_MailId = MailId;
-	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
 }
 
 void CAccounts::NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled, bool OnlyLoggedIn, int MinLevel)
