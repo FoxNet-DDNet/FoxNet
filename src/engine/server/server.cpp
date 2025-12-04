@@ -1774,7 +1774,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		{
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
-				"`%s` [%s] was banned for 10 minutes for stressing the network."
+				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
 				"Ver: %d [%s]",
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
