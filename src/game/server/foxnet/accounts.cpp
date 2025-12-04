@@ -95,7 +95,7 @@ void CAccounts::AutoLogin(int ClientId)
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
 			return;
-		if(str_comp(Res.m_aUsername, Name.c_str()) != 0)
+		if(str_comp(Res.m_LastPlayerName, Name.c_str()) != 0)
 			return;
 		if(Res.m_LoggedIn || !Res.m_Configs.m_AutoLogin)
 			return;
