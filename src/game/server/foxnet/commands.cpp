@@ -355,16 +355,13 @@ void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *p
 
 void CGameContext::AddChatDetectionString(const char *pString, const char *pReason, bool pBan, int pBanTime, float pAddition)
 {
-	char aBuf[512];
-
 	for(const auto &Words : m_vChatDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
 		if(!str_comp_nocase(Words.String(), pString))
 		{
-			str_format(aBuf, sizeof(aBuf), "String \"%s\" already exists in the list", pString);
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", aBuf);
+			log_info("chat-detection", "String \"%s\" already exists in the list", pString);
 			return;
 		}
 	}
@@ -372,8 +369,7 @@ void CGameContext::AddChatDetectionString(const char *pString, const char *pReas
 	if(str_comp_nocase(pString, "") != 0)
 	{
 		m_vChatDetection.push_back(CStringDetection(pString, pReason, pAddition, pBan, pBanTime));
-		str_format(aBuf, sizeof(aBuf), "Added \"%s\" to the Chat Detection List", pString);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", aBuf);
+		log_info("chat-detection", "Added \"%s\" to the Chat Detection List", pString);
 	}
 }
 
@@ -397,18 +393,16 @@ void CGameContext::RemoveChatDetectionString(const char *pString)
 
 	if(m_vChatDetection.empty())
 	{
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", "List is Empty");
+		log_info("chat-detection", "List is Empty");
 		return;
 	}
 
-	char aBuf[512];
 	for(auto it = m_vChatDetection.begin(); it != m_vChatDetection.end(); ++it)
 	{
 		if(!str_comp_nocase(it->String(), pString))
 		{
 			m_vChatDetection.erase(it);
-			str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Chat Detection List", pString);
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", aBuf);
+			log_info("chat-detection", "Removed \"%s\" from the Chat Detection List", pString);
 			return;
 		}
 	}
@@ -420,19 +414,16 @@ void CGameContext::ConListChatDetectionStrings(IConsole::IResult *pResult, void 
 
 	if(pSelf->m_vChatDetection.empty())
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", "List is Empty");
+		log_info("chat-detection", "List is Empty");
 		return;
 	}
 
-	char aBuf[512];
 	for(const auto &Words : pSelf->m_vChatDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
-		str_copy(aBuf, "");
 
-		str_format(aBuf, sizeof(aBuf), "Str: %s | Reas: %s | Time: %d | Bans: %s | CountAdd: %.1f", Words.String(), Words.Reason(), Words.Time(), Words.IsBan() ? "Yes" : "No", Words.Addition());
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", aBuf);
+		log_info("chat-detection" ,"Str: %s | Reas: %s | Time: %d | Bans: %s | CountAdd: %.1f", Words.String(), Words.Reason(), Words.Time(), Words.IsBan() ? "Yes" : "No", Words.Addition());
 	}
 }
 
@@ -445,13 +436,14 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 	int ExactName = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
 	if(BanTime < 0)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "Ban time must be greater than 0");
+
+		log_info("name-detection", "Ban time must be greater than 0");
 		return;
 	}
 	if(ExactName < 0 || ExactName > 2)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "Exact Name must be between 0 and 2");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "0=search for string | 1=full name match case sensitive | 2=1 but case insensitive");
+		log_info("name-detection", "Exact Name must be between 0 and 2");
+		log_info("name-detection", "0=search for string | 1=full name match case sensitive | 2=1 but case insensitive");
 		return;
 	}
 
@@ -460,16 +452,13 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 
 void CGameContext::AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, int ExactName)
 {
-	char aBuf[512];
-
 	for(const auto &Words : m_vNameDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
 		if(!str_comp_nocase(Words.String(), pString))
 		{
-			str_format(aBuf, sizeof(aBuf), "Name \"%s\" already exists in the list", pString);
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", aBuf);
+			log_info("name-detection", "Name \"%s\" already exists in the list", pString);
 			return;
 		}
 	}
@@ -477,8 +466,7 @@ void CGameContext::AddNameDetectionString(const char *pString, const char *pReas
 	if(str_comp_nocase(pString, "") != 0)
 	{
 		m_vNameDetection.push_back(CStringDetection(pString, pReason, 1, pBanTime, ExactName));
-		str_format(aBuf, sizeof(aBuf), "Added \"%s\" to the Name Detection List", pString);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", aBuf);
+		log_info("name-detection", "Added \"%s\" to the Name Detection List", pString);
 	}
 }
 
@@ -501,18 +489,16 @@ void CGameContext::RemoveNameDetectionString(const char *pString)
 		return;
 	if(m_vNameDetection.empty())
 	{
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "List is Empty");
+		log_info("name-detection", "List is Empty");
 		return;
 	}
 
-	char aBuf[512];
 	for(auto it = m_vNameDetection.begin(); it != m_vNameDetection.end(); ++it)
 	{
 		if(!str_comp(it->String(), pString))
 		{
 			m_vNameDetection.erase(it);
-			str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Name Detection List", pString);
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", aBuf);
+			log_info("name-detection", "Removed \"%s\" from the Name Detection List", pString);
 			return;
 		}
 	}
@@ -524,19 +510,16 @@ void CGameContext::ConListNameDetectionStrings(IConsole::IResult *pResult, void 
 
 	if(pSelf->m_vNameDetection.empty())
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", "List is Empty");
+		log_info("name-detection", "List is Empty");
 		return;
 	}
 
-	char aBuf[512];
 	for(const auto &Words : pSelf->m_vNameDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
-		str_copy(aBuf, "");
 
-		str_format(aBuf, sizeof(aBuf), "Str: %s | Reas: %s | Time: %d | Exact: %d", Words.String(), Words.Reason(), Words.Time(), Words.ExactMatch());
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "name-detection", aBuf);
+		log_info("name-detection", "Str: %s | Reas: %s | Time: %d | Exact: %d", Words.String(), Words.Reason(), Words.Time(), Words.ExactMatch());
 	}
 }
 
