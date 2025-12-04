@@ -79,8 +79,8 @@ void CSnapIdPool::FreeId(int Id)
 {
 	if(Id < 0)
 		return;
-	dbg_assert((size_t)Id < std::size(m_aIds), "id is out of range");
-	dbg_assert(m_aIds[Id].m_State == ID_ALLOCATED, "id is not allocated");
+	dbg_assert((size_t)Id < std::size(m_aIds), "id %d is out of range", Id);
+	dbg_assert(m_aIds[Id].m_State == ID_ALLOCATED, "id %d is not allocated", Id);
 
 	if(g_Config.m_SvDebugIdPool)
 		dbg_msg("idpool", "freeing id %d", Id);
