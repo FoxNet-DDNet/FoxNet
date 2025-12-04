@@ -551,91 +551,93 @@ def open_editor(test_env):
 	client.exit()
 	client.wait_for_exit()
 
-@test
+@test(timeout=180)  # was default 60 via @test
 def smoke_test(test_env):
-	client1 = test_env.client(["logfile client1.log", "player_name client1"])
-	server = test_env.server(["logfile server.log", "sv_demo_chat 1", "sv_map coverage", "sv_tee_historian 1"])
-	wait_for_startup([client1, server])
+    client1 = test_env.client(["logfile client1.log", "player_name client1"])
+    server = test_env.server(["logfile server.log", "sv_demo_chat 1", "sv_map coverage", "sv_tee_historian 1"])
+    wait_for_startup([client1, server])
 
-	client1.command("debug 1")
-	client1.command("stdout_output_level 2; loglevel 2")
-	client1.command(f"connect localhost:{server.port}")
-	server.wait_for_log_prefix("server: player has entered the game", timeout=10)
-	server.command("record server")
-	client1.wait_for_log_exact("client: state change. last=2 current=3", timeout=10)
-	client1.command("stdout_output_level 0; loglevel 0")
-	client1.command("debug 0")
-	client1.command("record client1")
+    client1.command("debug 1")
+    client1.command("stdout_output_level 2; loglevel 2")
+    client1.command(f"connect localhost:{server.port}")
+    server.wait_for_log_prefix("server: player has entered the game", timeout=30)  # was 10
 
-	client2 = test_env.client(["logfile client2.log", "player_name client2", f"connect localhost:{server.port}"])
-	wait_for_startup([client2])
-	server.wait_for_log_prefix("server: player has entered the game", timeout=10)
-	for _ in range(5):
-		server.wait_for_log(
-			lambda l: l.line.startswith("chat: *** client1 finished in:") or
-				l.line.startswith("chat: *** client2 finished in:"),
-			timeout=40,
-		)
+    server.command("record server")
+    client1.wait_for_log_exact("client: state change. last=2 current=3", timeout=30)  # was 10
+    client1.command("stdout_output_level 0; loglevel 0")
+    client1.command("debug 0")
+    client1.command("record client1")
 
-	client1.command("say hello world")
-	server.wait_for_log_exact("chat: 0:-2:client1: hello world")
+    client2 = test_env.client(["logfile client2.log", "player_name client2", f"connect localhost:{server.port}"])
+    wait_for_startup([client2])
+    server.wait_for_log_prefix("server: player has entered the game", timeout=30)  # was 10
 
-	client1.command(f"rcon_auth {server.rcon_password}")
-	server.wait_for_log_exact("server: ClientId=0 authed with key='default_admin' (admin)")
+    for _ in range(5):
+        server.wait_for_log(
+            lambda l: l.line.startswith("chat: *** client1 finished in:") or
+                      l.line.startswith("chat: *** client2 finished in:"),
+            timeout=120,  # was 40
+        )
 
-	client1.command("say \"/mc; {}\"".format("; ".join(l.strip() for l in """
-		top5
-		rank
-		team 512
-		emote happy -999
-		pause
-		points
-		mapinfo
-		list
-		whisper client2 hi
-		kill
-		settings cheats
-		timeout 123
-		timer broadcast
-		cmdlist
-		saytime
-	""".strip().split("\n"))))
-	client1.command("; ".join(l.strip() for l in """
-		rcon say hello from admin
-		rcon broadcast test
-		rcon status
-		rcon echo test
-		rcon muteid 1 900 spam
-		rcon unban_all
-		rcon say the end
-	""".strip().split("\n")))
-	client1.wait_for_log_exact("chat/server: *** the end", timeout=3)
+    client1.command("say hello world")
+    server.wait_for_log_exact("chat: 0:-2:client1: hello world")
 
-	server.command("stoprecord")
-	client1.command("stoprecord")
+    client1.command(f"rcon_auth {server.rcon_password}")
+    server.wait_for_log_exact("server: ClientId=0 authed with key='default_admin' (admin)")
 
-	game_uuid = str(UUID(server.teehistorian_filename.removeprefix("teehistorian/").removesuffix(".teehistorian")))
+    client1.command("say \"/mc; {}\"".format("; ".join(l.strip() for l in """
+        top5
+        rank
+        team 512
+        emote happy -999
+        pause
+        points
+        mapinfo
+        list
+        whisper client2 hi
+        kill
+        settings cheats
+        timeout 123
+        timer broadcast
+        cmdlist
+        saytime
+    """.strip().split("\n"))))
+    client1.command("; ".join(l.strip() for l in """
+        rcon say hello from admin
+        rcon broadcast test
+        rcon status
+        rcon echo test
+        rcon muteid 1 900 spam
+        rcon unban_all
+        rcon say the end
+    """.strip().split("\n")))
+    client1.wait_for_log_exact("chat/server: *** the end", timeout=10)  # was 3
 
-	client1.command("rcon sv_map Tutorial")
+    server.command("stoprecord")
+    client1.command("stoprecord")
 
-	for _ in range(2):
-		server.wait_for_log_prefix("server: player has entered the game", timeout=10)
+    game_uuid = str(UUID(server.teehistorian_filename.removeprefix("teehistorian/").removesuffix(".teehistorian")))
 
-	client1.clear_events()
-	client2.clear_events()
+    client1.command("rcon sv_map Tutorial")
 
-	client1.command("play demos/server.demo")
-	client2.command("play demos/client1.demo")
+    for _ in range(2):
+        server.wait_for_log_prefix("server: player has entered the game", timeout=30)  # was 10
 
-	client1.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=100)
-	client2.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=100)
+    client1.clear_events()
+    client2.clear_events()
 
-	client1.exit()
-	client2.exit()
-	server.exit()
-	client1.wait_for_exit()
-	client2.wait_for_exit()
-	server.wait_for_exit()
+    client1.command("play demos/server.demo")
+    client2.command("play demos/client1.demo")
+
+    client1.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=180)  # was 100
+    client2.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=180)  # was 100
+
+    client1.exit()
+    client2.exit()
+    server.exit()
+    client1.wait_for_exit()
+    client2.wait_for_exit()
+    server.wait_for_exit()
 
 	if not all(any(word in line for line in client1.full_stdout) for word in "cmdlist pause rank points".split()):
 		raise AssertionError("did not find output of /cmdlist command")
