@@ -47,7 +47,7 @@ void CShop::ListItems()
 	for(const auto &kv : m_Registry.Map())
 	{
 		const CItemConfig &item = kv.second;
-		log_info("shop", "%s | Price: %d | MinLevel: %d", item.m_Name, item.m_Price, item.m_MinLevel);
+		log_info("shop", "%s | Price: %ld | MinLevel: %d", item.m_Name, item.m_Price, item.m_MinLevel);
 	}
 	log_info("shop", "%s", Separator);
 }
@@ -77,9 +77,9 @@ void CShop::EditItem(const char *pName, int Price, int MinLevel)
 		pItem->m_MinLevel = MinLevel;
 
 	if(LevelChanged)
-		str_format(aBuf, sizeof(aBuf), "Set price of \"%s\" to %d and Min Level to %d", pName, pItem->m_Price, pItem->m_MinLevel);
+		str_format(aBuf, sizeof(aBuf), "Set price of \"%s\" to %ld and Min Level to %d", pName, pItem->m_Price, pItem->m_MinLevel);
 	else
-		str_format(aBuf, sizeof(aBuf), "Set price of \"%s\" to %d", pName, pItem->m_Price);
+		str_format(aBuf, sizeof(aBuf), "Set price of \"%s\" to %ld", pName, pItem->m_Price);
 
 	log_info("shop", "%s", aBuf);
 }
