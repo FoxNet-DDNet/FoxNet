@@ -2959,7 +2959,6 @@ void CCharacter::AddVelocity(vec2 Addition)
 
 void CCharacter::ForceSetPos(vec2 NewPos)
 {
-	m_PrevPos = NewPos;
 	m_Pos = NewPos;
 	m_Core.m_Pos = NewPos;
 }
@@ -3718,6 +3717,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 
 		const vec2 Vel = GetVelocity();
 		ForceSetPos(NewPos);
+		m_Core.m_ResendCore = true;
 
 		const float vIn = dot(Vel, BestInwardNormal);
 		if(vIn > 0.0f)
