@@ -3269,6 +3269,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 	}
 }
 
+// ToDo: @qxdFox: Allow Telekinesis in Spectator team
 void CCharacter::DoTelekinesis()
 {
 	if(m_TelekinesisId == -1)
@@ -3404,6 +3405,9 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 		else if(Ability == ABILITY_TELEKINESIS)
 			DoTelekinesis();
 	}
+
+	if(GetPlayer()->IsPaused())
+		return;
 
 	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo)
 	{
