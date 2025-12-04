@@ -244,9 +244,9 @@ void CRoulette::EvaluateBets()
 		int Amount = m_aClients[i].m_BetAmount;
 
 		if(Win)
-			pPl->GiveMoney((Amount * PayoutMultiplier) - Amount, "", false);
+			pPl->GiveMoney((Amount * PayoutMultiplier) - Amount, false);
 		else
-			pPl->TakeMoney(Amount, false);
+			pPl->TakeMoney(Amount);
 	}
 	m_Betters = 0;
 	m_TotalWager = 0;

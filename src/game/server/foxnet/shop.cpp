@@ -102,21 +102,14 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 
 	if(!Acc.m_LoggedIn)
 	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		GameServer()->SendChatTarget(ClientId, "│ You aren't logged in");
-		GameServer()->SendChatTarget(ClientId, "│ 1 - /register <Username> <Pw> <Pw>");
-		GameServer()->SendChatTarget(ClientId, "│ 2 - /Login <Username> <Pw>");
-		GameServer()->SendChatTarget(ClientId, "╰─────────────────────────────");
+		GameServer()->SendChatTarget(ClientId, "You aren't logged in.");
 		
 		return false;
 	}
 
 	if(Cfg->m_Price <= 0)
 	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		GameServer()->SendChatTarget(ClientId, "│ Invalid Item.");
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────────");
-		
+		GameServer()->SendChatTarget(ClientId, "Invalid Item.");
 		return false;
 	}
 
@@ -126,40 +119,32 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 
 	if(!pPl->CanUseMoney())
 	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		GameServer()->SendChatTarget(ClientId, "│ You cannot use Money right now");
-		GameServer()->SendChatTarget(ClientId, "│ Try again later");
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
+		GameServer()->SendChatTarget(ClientId, "You cannot use Money right now");
+		GameServer()->SendChatTarget(ClientId, "Try again later");
 		return false;
 	}
 	if(Acc.m_Level < Cfg->m_MinLevel)
 	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		str_format(aBuf, sizeof(aBuf), "│ You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_Name);
+		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_Name);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ You are currently Level %ld", Acc.m_Level);
+		str_format(aBuf, sizeof(aBuf), "You are currently Level %ld", Acc.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 		return false;
 	}
 	if(Acc.m_Money < Cfg->m_Price)
 	{
-		GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-		str_format(aBuf, sizeof(aBuf), "│ You don't have enough Money to buy %s", Cfg->m_Name);
+		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", Cfg->m_Name);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ You need atleast %d%s", Cfg->m_Price, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Cfg->m_Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 		return false;
 	}
 
-	pPl->TakeMoney(Cfg->m_Price);
+	pPl->TakeMoney(Cfg->m_Price, true);
 	GiveItem(ClientId, Cfg, -1, "Shop");
 
-	GameServer()->SendChatTarget(ClientId, "╭──────     Sʜᴏᴘ");
-	str_format(aBuf, sizeof(aBuf), "│ successfully bought item '%s'", Cfg->m_Name);
+	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_Name);
 	GameServer()->SendChatTarget(ClientId, aBuf);
-	GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 
 	if(Cfg->m_Group == EExclusiveGroup::Hat)
 	{

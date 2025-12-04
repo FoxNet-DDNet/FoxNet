@@ -22,7 +22,7 @@ class CPowerupData
 {
 public:
 	EPowerUp m_Type = EPowerUp::INVALID;
-	int m_Value = 0;
+	long m_Value = 0;
 };
 
 class CSnap

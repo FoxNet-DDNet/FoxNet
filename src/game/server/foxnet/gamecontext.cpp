@@ -1147,19 +1147,25 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) con
 		return;
 	}
 
-	const char *pMessage = HidePowerUps ? "" : "for collecting a PowerUp!";
+	char aBuf[128];
+
+	long MsgAmount = (long)(pData->m_Value * pPlayer->StatMultiplier());
 
 	switch(pData->m_Type)
 	{
 	case EPowerUp::XP:
-		pPlayer->GiveXP(pData->m_Value, pMessage);
+		pPlayer->GiveXP(pData->m_Value);
+		str_format(aBuf, sizeof(aBuf), "+%ldXP for collecting a PowerUp!", MsgAmount);
 		break;
 	case EPowerUp::MONEY:
-		pPlayer->GiveMoney(pData->m_Value, pMessage);
+		pPlayer->GiveMoney(pData->m_Value);
+		str_format(aBuf, sizeof(aBuf), "+%ld%s for collecting a PowerUp!", MsgAmount, g_Config.m_SvCurrencyName);
 		break;
 	default:
 		break;
 	}
+	if(!HidePowerUps)
+		SendChatTarget(ClientId, aBuf);
 }
 
 int CGameContext::DirectionToEditorDeg(const vec2 &Dir)

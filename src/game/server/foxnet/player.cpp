@@ -194,7 +194,7 @@ void CPlayer::FoxNetReset()
 	}
 }
 
-void CPlayer::GivePlaytime(int Amount)
+void CPlayer::GivePlaytime(long Amount)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
@@ -203,8 +203,9 @@ void CPlayer::GivePlaytime(int Amount)
 	if(Acc()->m_Playtime % 60 == 0)
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "for reaching %ld Hours of Playtime!", Acc()->m_Playtime / 60);
-		GiveMoney(g_Config.m_SvPlaytimeMoney, aBuf, false);
+		str_format(aBuf, sizeof(aBuf), "+%ld%s for reaching %ld Hours of Playtime!", Amount, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
+		GameServer()->SendChatTarget(m_ClientId, aBuf);
+		GiveMoney(g_Config.m_SvPlaytimeMoney, false);
 	}
 }
 
@@ -244,7 +245,7 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		Acc()->m_Level++;
 		Acc()->m_XP -= NeededXp;
 
-		GiveMoney(g_Config.m_SvLevelUpMoney, "", false);
+		GiveMoney(g_Config.m_SvLevelUpMoney, false);
 		LeveledUp = true;
 	}
 
@@ -271,11 +272,9 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 	return LeveledUp;
 }
 
-void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
+void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 {
 	if(!Acc()->m_LoggedIn)
-		return;
-	if(Amount <= 0)
 		return;
 
 	if(Multiplier)
@@ -283,22 +282,17 @@ void CPlayer::GiveMoney(long Amount, const char *pMessage, bool Multiplier)
 
 	Acc()->m_Money += Amount;
 
-	char aBuf[256];
-
-	if(pMessage[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "+%ld%s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
-		GameServer()->SendChatTarget(m_ClientId, aBuf);
-	}
+	const char PlusMinus = Amount >= 0 ? '+' : '-';
 
 	CCharacter *pChr = GetCharacter();
-	if(pChr)
+	if(!Silent && pChr)
 	{
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
-		str_format(aText, sizeof(aText), "+%ld", Amount);
+		str_format(aText, sizeof(aText), "%c%ld", PlusMinus, std::abs(Amount));
 		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 100, aText, WEAPON_HAMMER);
-		pChr->SetEmote(EMOTE_HAPPY, Server()->Tick() + 75);
+		if(Amount >= 0)
+			pChr->SetEmote(Amount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
@@ -312,36 +306,6 @@ bool CPlayer::CanUseMoney()
 		return false;
 
 	return true;
-}
-
-void CPlayer::TakeMoney(long Amount, bool Silent, const char *pMessage)
-{
-	if(!Acc()->m_LoggedIn)
-		return;
-	if(Amount <= 0)
-		return;
-
-	Acc()->m_Money -= Amount;
-
-	char aBuf[256];
-
-	if(pMessage[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "-%ld%s %s", Amount, g_Config.m_SvCurrencyName, pMessage);
-		GameServer()->SendChatTarget(m_ClientId, aBuf);
-	}
-
-	CCharacter *pChr = GetCharacter();
-	if(!Silent && pChr)
-	{
-		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
-		char aText[24];
-		str_format(aText, sizeof(aText), "-%ld", Amount);
-		new CProjectileText(pChr->GameWorld(), Pos, GetCid(), 100, aText, WEAPON_HAMMER);
-		pChr->SetEmote(EMOTE_PAIN, Server()->Tick() + 75);
-	}
-
-	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }
 
 bool CPlayer::OwnsItem(const char *pItemName)

@@ -495,11 +495,11 @@ public:
 
 	bool CanUseMoney();
 
-	void GivePlaytime(int Amount);
+	void GivePlaytime(long Amount);
 	void GiveXP(long Amount, const char *pMessage = "", bool Multiplier = true);
 	bool CheckLevelUp(long Amount, bool Silent = false);
-	void GiveMoney(long Amount, const char *pMessage = "", bool Multiplier = true);
-	void TakeMoney(long Amount, bool Silent = true, const char *pMessage = "");
+	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
+	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
 	bool OwnsItem(const char *pItemName);
 
