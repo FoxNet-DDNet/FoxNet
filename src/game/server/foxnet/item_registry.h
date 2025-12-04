@@ -161,7 +161,7 @@ public:
 	const char *m_Shortcut;
 	EItemFlag m_Flags;
 	EExclusiveGroup m_Group;
-	int m_Price;
+	long m_Price;
 	int m_MinLevel;
 	int m_Stars;
 	EItemRarity m_Rarity;

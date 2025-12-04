@@ -131,16 +131,19 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		return false;
 	}
-	if(Acc.m_Money < Cfg->m_Price)
+
+	int Price = pPl->GetDiscountedPrice(Cfg->m_Price);
+
+	if(Acc.m_Money < Price)
 	{
 		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", Cfg->m_Name);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Cfg->m_Price, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		return false;
 	}
 
-	pPl->TakeMoney(Cfg->m_Price, true);
+	pPl->TakeMoney(Price, true);
 	GiveItem(ClientId, Cfg, -1, "Shop");
 
 	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_Name);

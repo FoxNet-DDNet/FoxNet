@@ -55,29 +55,30 @@ enum ServerInfoSubPages
 	SUB_SERVERINFO_CONTRIBUTE,
 };
 
-enum Prefixes
+enum class EPrefix
 {
-	PREFIX_NONE = 0,
+	NONE = 0,
 	// •
-	PREFIX_POINT,
+	POINT,
 	// ─
-	PREFIX_DASH,
+	DASH,
 	// ➤
-	PREFIX_ARROWHEAD,
+	ARROWHEAD,
 	// >
-	PREFIX_GREATER_THAN,
+	GREATER_THAN,
 	// ⇨
-	PREFIX_ARROW,
+	ARROW,
 	// ‣
-	PREFIX_TRIANGLE,
+	TRIANGLE,
 	// ⁃
-	PREFIX_HYPHEN,
+	HYPHEN,
 	// ◆
-	PREFIX_BLACK_DIAMOND,
+	BLACK_DIAMOND,
 	// ◇
-	PREFIX_WHITE_DIAMOND,
+	WHITE_DIAMOND,
 	// │
-	PREFIX_LONG_LINE,
+	LONG_LINE,
+	NUM
 };
 
 enum VoteTypes
@@ -98,7 +99,7 @@ public:
 	int m_VoteType = 0;
 	char m_aVoteName[64] = "";
 	int m_Max = -1;
-	int m_Prefix = 0;
+	EPrefix m_Prefix = EPrefix::NONE;
 	int m_Value = 0;
 	char m_aSuffixDesc[64] = "";
 
@@ -109,14 +110,14 @@ public:
 		str_copy(m_aVoteName, pVoteName);
 		m_VoteType = VoteType;
 	}
-	CVoteData(int VoteType, const char *pVoteName, int Prefix)
+	CVoteData(int VoteType, const char *pVoteName, EPrefix Prefix)
 	{
 		str_copy(m_aVoteName, pVoteName);
 		m_VoteType = VoteType;
 		m_Prefix = Prefix;
 	}
 
-	CVoteData(CItemConfig *pItem, const char *pVoteName, int Prefix)
+	CVoteData(CItemConfig *pItem, const char *pVoteName, EPrefix Prefix)
 	{
 		str_copy(m_aVoteName, pVoteName);
 		m_pItem = pItem;
@@ -158,12 +159,12 @@ class CVoteMenu
 	bool IsOptionWithSuffix(const char *pDesc, const char *pWantedOption) { return str_startswith(pDesc, pWantedOption) != 0; }
 	bool IsOption(const char *pDesc, const char *pWantedOption) { return !str_comp(pDesc, pWantedOption); }
 
-	void AddVoteText(const char *pDesc) { m_vDescriptions.emplace_back(pDesc); }
+	void AddVoteImpl(const char *pDesc) { m_vDescriptions.emplace_back(pDesc); }
+	void AddVoteText(const char *pDesc, EPrefix Prefix = EPrefix::NONE);
 	void AddVoteSeparator() { m_vDescriptions.emplace_back(" "); }
 	void AddVoteSubheader(const char *pDesc);
-	void AddVotePrefix(const char *pDesc, int Prefix);
 	void AddVoteCheckBox(const char *pDesc, bool Checked);
-	void AddVoteValueOption(const char *pDescription, int Value, int Max, int Prefix = PREFIX_NONE);
+	void AddVoteValueOption(const char *pDescription, int Value, int Max, EPrefix Prefix = EPrefix::NONE);
 	void AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc);
 
 	void SendPageMainMenu(int ClientId);
@@ -175,7 +176,7 @@ class CVoteMenu
 	void SendPageServerInfo(int ClientId);
 	void SendPageAdmin(int ClientId);
 
-	const char *FormatItemVote(const CItemConfig *pItem);
+	const char *FormatItemVote(long Price);
 
 	void UpdatePages(int ClientId);
 

@@ -501,6 +501,8 @@ public:
 	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
 	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
+	long GetDiscountedPrice(long Price);
+
 	bool OwnsItem(const char *pItemName);
 
 	void UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept);

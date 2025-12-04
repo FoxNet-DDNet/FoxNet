@@ -27,6 +27,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "item_registry.h"
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
@@ -145,10 +146,10 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(const CItemConfig *pItem)
+const char *CVoteMenu::FormatItemVote(long Price)
 {
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%d%s]", pItem->m_Price, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%ld%s]", Price, g_Config.m_SvCurrencyName);
 	return aBuf;
 }
 
@@ -458,7 +459,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		else if(SubPage == SUB_SHOP_ITEMINFO)
 		{
-			if(IsOption(pVote, FormatItemVote(Data.m_pLastItemInfo)))
+			long Price = pPl->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
+
+			if(IsOption(pVote, FormatItemVote(Price)))
 			{
 				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_Name);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
@@ -988,7 +991,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 				PageName += " [" + std::to_string(UnreadMails) + "]";
 		}
 
-		AddVotePrefix(PageName.c_str(), PREFIX_ARROWHEAD);
+		AddVoteText(PageName.c_str(), EPrefix::ARROWHEAD);
 	}
 }
 
@@ -1134,8 +1137,8 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 		AddVoteText("╭───────── Mᴀɪʟ Dᴇᴛᴀɪʟs");
 		if(!Mail.m_UsedCmd && HasReward)
-			AddVotePrefix(MAIL_CLAIM_REWARD, PREFIX_LONG_LINE);
-		AddVotePrefix(MAIL_DELETE, PREFIX_LONG_LINE);
+			AddVoteText(MAIL_CLAIM_REWARD, EPrefix::LONG_LINE);
+		AddVoteText(MAIL_DELETE, EPrefix::LONG_LINE);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
 		AddVoteSubheader(Mail.m_aSubject);
@@ -1172,6 +1175,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return;
 	}
 
+	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
@@ -1215,7 +1219,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return false;
 	};
 
-	auto CanBuyAnyOfType = [this, pAcc](EItemType Type) -> bool
+	auto CanBuyAnyOfType = [this, pAcc, pPl](EItemType Type) -> bool
 	{
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
@@ -1224,7 +1228,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 				continue;
 			if(Item.m_Price == -1)
 				continue;
-			if(Item.m_Price <= pAcc->m_Money)
+			if(pPl->GetDiscountedPrice(Item.m_Price) <= pAcc->m_Money)
 				return true;
 		}
 		return false;
@@ -1232,7 +1236,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 
 	if(SubPage == SUB_SHOP_MAIN)
 	{
-		const int Prefix = PREFIX_LONG_LINE;
+		const EPrefix Prefix = EPrefix::LONG_LINE;
 
 		std::vector<std::string> AvailableCategories;
 
@@ -1259,7 +1263,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		}
 		AddVoteText("╭───────── Cᴀᴛᴇɢᴏʀɪᴇs");
 		for(const auto &pCategory : AvailableCategories)
-			AddVotePrefix(pCategory.c_str(), Prefix);
+			AddVoteText(pCategory.c_str(), Prefix);
 		AddVoteText("╰────────────");
 	}
 	else if(SubPage == SUB_SHOP_SELECT)
@@ -1285,7 +1289,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 			if(Data.m_OnlyAffordable && Item.m_Price > pAcc->m_Money)
 				continue;
 			AmountShown++;
-			AddVotePrefix(Item.m_Name, PREFIX_ARROWHEAD);
+			AddVoteText(Item.m_Name, EPrefix::ARROWHEAD);
 		}
 		if(AmountShown == 0)
 		{
@@ -1305,15 +1309,22 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
 		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->m_Name);
 		AddVoteText(aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ %s", pItem->m_Description);
-		AddVoteText(aBuf);
+
+		char aUnescaped[1024] = "";
+		str_copy(aUnescaped, pItem->m_Description, sizeof(aUnescaped));
+		UnescapeNewlines(aUnescaped);
+		std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
+		for(const auto &Line : Lines)
+			AddVoteText(Line, EPrefix::LONG_LINE);
+
 		AddVoteText("├────── Rarity");
 		str_format(aBuf, sizeof(aBuf), "│ %s %s", RarityToName(pItem->m_Rarity), StarsString(pItem->m_Stars).c_str());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
+		long Price = pPl->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
 
-		str_copy(aBuf, FormatItemVote(pItem));
+		str_copy(aBuf, FormatItemVote(Price));
 		AddVoteText(aBuf);
 
 		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->m_MinLevel);
@@ -1438,7 +1449,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
 				str_copy(Data.m_aVoteName, pItemName);
 				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
-				Data.m_Prefix = PREFIX_NONE;
+				Data.m_Prefix = EPrefix::NONE;
 				Data.m_Max = NUM_EMOTICONS;
 				if(Remaining > 0)
 				{
@@ -1528,7 +1539,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
 		if (g_Config.m_SvDDRaceRules)
 		{
-			AddVotePrefix("Be nice.", PREFIX_LONG_LINE);
+			AddVoteText("Be nice.", EPrefix::LONG_LINE);
 		}
 		else
 		{
@@ -1536,13 +1547,13 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 			{
 				if(pRuleLine[0])
 				{
-					AddVotePrefix(pRuleLine, PREFIX_LONG_LINE);
+					AddVoteText(pRuleLine, EPrefix::LONG_LINE);
 					Printed = true;
 				}
 			}
 			if(!Printed)
 			{
-				AddVotePrefix("No Rules Defined.", PREFIX_LONG_LINE);
+				AddVoteText("No Rules Defined.", EPrefix::LONG_LINE);
 			}
 		}
 		AddVoteText("╰────────────────────");
@@ -1553,10 +1564,10 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 
 		if(g_Config.m_SvAccounts)
 		{
-			AddVotePrefix(SERVER_INFO_ACCOUNTS, PREFIX_ARROWHEAD);
-			AddVotePrefix(SERVER_INFO_LEVELING, PREFIX_ARROWHEAD);
+			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::ARROWHEAD);
+			AddVoteText(SERVER_INFO_LEVELING, EPrefix::ARROWHEAD);
 		}
-		AddVotePrefix(SERVER_INFO_CONTRIBUTE, PREFIX_ARROWHEAD);
+		AddVoteText(SERVER_INFO_CONTRIBUTE, EPrefix::ARROWHEAD);
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
 	{
@@ -1594,8 +1605,8 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 		AddVoteSeparator();
 
 		AddVoteText("╭───────    GɪᴛHᴜʙ");
-		AddVotePrefix(g_Config.m_SvGithubRepo, PREFIX_LONG_LINE);
-		AddVotePrefix(SERVER_INFO_GITHUB, PREFIX_LONG_LINE);
+		AddVoteText(g_Config.m_SvGithubRepo, EPrefix::LONG_LINE);
+		AddVoteText(SERVER_INFO_GITHUB, EPrefix::LONG_LINE);
 		AddVoteText("╰────────────────────");
 	}
 }
@@ -1624,8 +1635,8 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 
 	AddVoteSubheader("Aᴅᴍɪɴ Pᴀɢᴇs");
-	AddVotePrefix(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
-	AddVotePrefix(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? PREFIX_BLACK_DIAMOND : PREFIX_WHITE_DIAMOND);
+	AddVoteText(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? EPrefix::BLACK_DIAMOND : EPrefix::WHITE_DIAMOND);
+	AddVoteText(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? EPrefix::BLACK_DIAMOND : EPrefix::WHITE_DIAMOND);
 	AddVoteSeparator();
 	if(GetSubPage(ClientId) == SUB_ADMIN_UTIL)
 	{
@@ -1708,21 +1719,21 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 	return false;
 }
 
-void CVoteMenu::AddVotePrefix(const char *pDesc, int Prefix)
+void CVoteMenu::AddVoteText(const char *pDesc, EPrefix Prefix)
 {
 	const char *pPrefixes[] = {"", "•", "─", "➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
 
-	if(Prefix < 0 || Prefix >= (int)std::size(pPrefixes))
+	if(Prefix < EPrefix::NONE || Prefix >= EPrefix::NUM)
 	{
-		AddVoteText(pDesc);
+		AddVoteImpl(pDesc);
 		return;
 	}
 	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "%s %s", pPrefixes[Prefix], pDesc);
-	AddVoteText(aBuf);
+	str_format(aBuf, sizeof(aBuf), "%s %s", pPrefixes[(int)Prefix], pDesc);
+	AddVoteImpl(aBuf);
 }
 
-void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, int Prefix)
+void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, EPrefix Prefix)
 {
 	char aBuf[VOTE_DESC_LENGTH];
 	if(Max == -1)
@@ -1733,7 +1744,7 @@ void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max,
 	{
 		str_format(aBuf, sizeof(aBuf), "%s: %d/%d", pDescription, Value, Max);
 	}
-	AddVotePrefix(aBuf, Prefix);
+	AddVoteText(aBuf, Prefix);
 }
 
 void CVoteMenu::AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc)

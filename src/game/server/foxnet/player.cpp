@@ -298,6 +298,18 @@ void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }
 
+long CPlayer::GetDiscountedPrice(long Price)
+{
+	float Discount = 0.0f;
+
+	if(Acc()->m_Inventory.Owns("VIP"))
+		Discount = 0.10f;
+	if(Acc()->m_Inventory.Owns("MVP"))
+		Discount = 0.25f;
+
+	return (long)(Price * (1.0f - Discount));
+}
+
 bool CPlayer::CanUseMoney()
 {
 	if(!Acc()->m_LoggedIn)

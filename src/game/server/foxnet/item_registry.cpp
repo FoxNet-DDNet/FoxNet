@@ -315,13 +315,13 @@ void CItemRegistry::Init()
 	add({EItemId::VIP, EItemType::Role,
 		"VIP", "VIP",
 		EItemFlag::None, EExclusiveGroup::None,
-		200000, 40, 2, EItemRarity::Mythic, "VIP Role grants a 2.5x boost on xp/money",
+		200000, 40, 2, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	add({EItemId::MVP, EItemType::Role,
 		"MVP", "MVP",
 		EItemFlag::None, EExclusiveGroup::None,
-		650000, 65, 2, EItemRarity::Legendary, "MVP Role grants a 3.5x boost on xp/money",
+		650000, 65, 2, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	// Loot cases
