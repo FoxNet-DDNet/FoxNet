@@ -983,7 +983,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 			AddVoteText("╭─────────    Pʀᴏғɪʟᴇ");
 			str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
 			AddVoteText(aBuf);
-			str_format(aBuf, sizeof(aBuf), "│ Last Player Name: %s", pAcc->m_LastName);
+			str_format(aBuf, sizeof(aBuf), "│ Last Ign: %s", pAcc->m_LastName);
 			AddVoteText(aBuf);
 			// Register Date
 			if(pAcc->m_RegisterDate > 0)
