@@ -380,6 +380,9 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	if(ClientId < 0)
 		return false;
 
+	if(Server()->IsRconAuthed(ClientId))
+		return false;
+
 	if(m_vChatDetection.empty())
 		return false;
 
@@ -504,6 +507,9 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNameChange)
 {
 	if(ClientId < 0)
+		return false;
+
+	if(Server()->IsRconAuthed(ClientId))
 		return false;
 
 	if(m_vNameDetection.empty())
