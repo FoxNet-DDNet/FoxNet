@@ -25,16 +25,17 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_Pos = Pos;
 
 	m_Owner = Owner;
-	m_aIds[0] = GetId();
-	m_aIds[NUM_HEARTS - 1] = Server()->SnapNewId();
+	for(size_t i = 0; i < NUM_HEARTS; i++)
+		m_aIds[i] = Server()->SnapNewId();
 
 	GameWorld()->InsertEntity(this);
 }
 
 void CHeartHat::Reset()
 {
+	for(size_t i = 0; i < NUM_HEARTS; i++)
+		Server()->SnapFreeId(m_aIds[i]);
 	Server()->SnapFreeId(GetId());
-	Server()->SnapFreeId(m_aIds[NUM_HEARTS - 1]);
 	GameWorld()->RemoveEntity(this);
 }
 

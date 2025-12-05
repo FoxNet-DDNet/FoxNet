@@ -31,7 +31,7 @@ CPowerUp::CPowerUp(CGameWorld *pGameWorld, vec2 Pos, EPowerUp Type) :
 	m_Pos = Pos;
 	m_Data.m_Type = Type;
 
-	for(int i = 0; i < NUM_LASERS; i++)
+	for(size_t i = 0; i < NUM_LASERS; i++)
 		m_Snap.m_aLaserIds[i] = Server()->SnapNewId();
 	std::sort(std::begin(m_Snap.m_aLaserIds), std::end(m_Snap.m_aLaserIds));
 
