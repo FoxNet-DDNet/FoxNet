@@ -199,6 +199,8 @@ private:
 
 public:
 
+	bool HasMovingQuads() const { return !m_vQuads.empty() && !m_vNextQuads.empty(); }
+
 	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
 	void UpdateQuadCache();
 
