@@ -1,6 +1,7 @@
 // Made by qxdFox
 #include "light_saber.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
@@ -30,8 +31,12 @@ CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLightSaber::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("lightsaber", "Reset");
+
 	if(CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner))
 		pChr->m_pLightSaber = nullptr;
+	Server()->SnapFreeId(GetId());
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }
@@ -144,7 +149,7 @@ void CLightSaber::Snap(int SnappingClient)
 
 	if(m_Length <= 0)
 		return;
-	
+
 	vec2 From = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_From;
 	vec2 To = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_To;
 

@@ -3,8 +3,11 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
+
+#include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
@@ -47,6 +50,8 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CFirework::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("firework", "Reset");
 	for(int i = 0; i < MAX_FIREWORKS; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 

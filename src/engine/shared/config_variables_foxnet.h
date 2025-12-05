@@ -125,6 +125,6 @@ MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_S
 MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_GAME, "What webhook automated-bans get sent to")
 
 // Logging
-MACRO_CONFIG_INT(SvExtraLogging, sv_extra_logging, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to enable extra logging")
+MACRO_CONFIG_INT(SvExtraLogging, sv_extra_logging, 0, 0, 2, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to enable extra logging")
 
 MACRO_CONFIG_INT(SvExecBasedOnPort, sv_execute_based_on_port, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Executes a file based on Port, if port=8303 -> execs /port/8303.cfg")

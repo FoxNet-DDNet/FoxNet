@@ -3,6 +3,7 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
@@ -33,6 +34,9 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CHeartHat::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("hearthat", "Reset");
+
 	for(size_t i = 0; i < NUM_HEARTS; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 	Server()->SnapFreeId(GetId());
@@ -55,7 +59,6 @@ void CHeartHat::Tick()
 
 	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
-
 		m_Dist += 1.0f * (m_switch ? -1.0f : 1.0f);
 
 		if(m_Dist >= MaxHeartDist)

@@ -2,17 +2,18 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
+
+#include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 
 #include <algorithm>
 
@@ -32,6 +33,9 @@ CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, vec2 Pos, int To, int Owner, 
 
 void CFlyingPoint::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("flyingpoint", "Reset");
+
 	CCharacter *pToChar = GameServer()->GetPlayerChar(m_To);
 	if(pToChar)
 	{

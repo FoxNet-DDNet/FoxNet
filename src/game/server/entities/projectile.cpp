@@ -25,6 +25,7 @@
 #include <array>
 #include <cmath>
 #include <utility>
+#include <base/log.h>
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,
@@ -91,6 +92,8 @@ void CProjectile::Reset()
 	m_MarkedForDestroy = true;
 	if(m_ExtraId != -1)
 	{
+		if(g_Config.m_SvExtraLogging >= 2)
+			log_info("projectile", "Extra Id Reset");
 		Server()->SnapFreeId(m_ExtraId);
 		m_ExtraId = -1;
 	}

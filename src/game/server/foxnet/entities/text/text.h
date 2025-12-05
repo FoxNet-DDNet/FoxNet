@@ -10,6 +10,8 @@
 #include <game/server/gameworld.h>
 
 #include <vector>
+#include <base/log.h>
+#include <engine/shared/config.h>
 
 #define MAX_TEXT_LEN 32
 
@@ -308,6 +310,9 @@ public:
 
 inline void CText::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("text", "Reset");
+
 	Server()->SnapFreeId(GetId());
 
 	for(auto *pData : m_pData)

@@ -15,6 +15,7 @@
 #include <game/server/teams.h>
 #include <game/server/foxnet/shop.h>
 #include <base/math.h>
+#include <base/log.h>
 
 CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
@@ -27,6 +28,8 @@ CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CDotTrail::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("dottrail", "Reset");
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }

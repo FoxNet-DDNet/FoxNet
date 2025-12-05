@@ -23,6 +23,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <base/log.h>
 
 // Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
 // For now it just acts like the 0xf one
@@ -275,6 +276,9 @@ void CRoulette::StartSpin()
 
 void CRoulette::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("roulette", "Reset");
+
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }

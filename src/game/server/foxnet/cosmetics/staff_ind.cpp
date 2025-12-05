@@ -2,6 +2,7 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
 
@@ -39,6 +40,9 @@ CStaffInd::CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CStaffInd::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("staffind", "Reset");
+
 	for(int i = 0; i < NUM_IDS; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 

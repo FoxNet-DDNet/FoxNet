@@ -16,6 +16,7 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
+#include <base/log.h>
 
 CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, Pos)
@@ -30,6 +31,9 @@ CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CEpicCircle::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("epiccircle", "Reset");
+
 	for(int i = 0; i < MAX_PARTICLES; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 

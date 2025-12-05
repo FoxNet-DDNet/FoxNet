@@ -21,6 +21,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <base/log.h>
 
 CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos)
@@ -35,6 +36,9 @@ CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CPickupPet::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("pickuppet", "Reset");
+
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 

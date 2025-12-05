@@ -1,7 +1,10 @@
 // made by fokkonaut
 #include "custom_projectile.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
+
+#include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 #include <generated/server_data.h>
@@ -38,6 +41,9 @@ CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos
 
 void CCustomProjectile::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("custom-projectile", "Reset");
+
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }

@@ -954,6 +954,9 @@ void CGameContext::QuadDebugIds(bool Clear)
 	}
 	else if(!Clear && !m_vQuadDebugIds.empty())
 	{
+		if(g_Config.m_SvExtraLogging >= 2)
+			log_info("quad-debug", "Freeing Ids");
+
 		for(int i = 0; i < (int)m_vQuadDebugIds.size(); i++)
 			Server()->SnapFreeId(m_vQuadDebugIds[i]);
 		m_vQuadDebugIds.clear();

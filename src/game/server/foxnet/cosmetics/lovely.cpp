@@ -2,19 +2,19 @@
 
 #include "game/server/entities/character.h"
 
-#include <base/math.h>
+#include <base/log.h>
 #include <base/vmath.h>
 
-#include <engine/shared/protocol.h>
+#include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
+
+#include <cstdlib>
 
 CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LOVELY, Pos)
@@ -28,6 +28,9 @@ CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLovely::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("lovely", "Reset");
+
 	for(int i = 0; i < MAX_HEARTS; i++)
 		Server()->SnapFreeId(m_aData[i].m_Id);
 

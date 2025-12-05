@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <base/log.h>
 
 CGameContext *CVUfo::GameServer() const { return m_pCharacter->GameServer(); }
 IServer *CVUfo::Server() const { return GameServer()->Server(); }
@@ -73,6 +74,9 @@ void CVUfo::Reset()
 {
 	if(!m_Active)
 		return;
+
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("ufo", "ufo");
 
 	for(int i = 0; i < NUM_PARTS; i++)
 		Server()->SnapFreeId(m_Visual.m_aIds[i]);

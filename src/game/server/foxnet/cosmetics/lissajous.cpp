@@ -3,6 +3,7 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
 
@@ -38,6 +39,9 @@ CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLissajous::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("lissajous", "Reset");
+
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 		Server()->SnapFreeId(m_Snap[Idx].m_Id);
 

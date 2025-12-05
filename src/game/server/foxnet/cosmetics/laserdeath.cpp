@@ -1,18 +1,20 @@
 // Made by qxdFox
 #include "laserdeath.h"
 
-#include "game/server/entities/character.h"
-
+#include <base/log.h>
 #include <base/vmath.h>
+
+#include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
+
+#include <random>
 
 CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASERDEATH, Pos)
@@ -42,6 +44,8 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 
 void CLaserDeath::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("laserdeath", "Reset");
 	for(int i = 0; i < MAX_PARTICLES; i++)
 		Server()->SnapFreeId(m_SnapData.m_aIds[i]);
 

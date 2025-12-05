@@ -1,8 +1,12 @@
 // Made by qxdFox
 #include "pickupdrop.h"
 
+#include <base/log.h>
+#include <base/math.h>
 #include <base/vmath.h>
 
+#include <engine/server.h>
+#include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
@@ -21,9 +25,11 @@
 #include <game/server/teams.h>
 #include <game/teamscore.h>
 
-#include <vector>
 #include <algorithm>
+#include <cmath>
 #include <iterator>
+#include <limits>
+#include <vector>
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
@@ -54,6 +60,9 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Te
 
 void CPickupDrop::Reset(bool PickedUp)
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("pickupdrop", "Reset");
+
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		Server()->SnapFreeId(m_aIds[i]);
 	Server()->SnapFreeId(GetId());

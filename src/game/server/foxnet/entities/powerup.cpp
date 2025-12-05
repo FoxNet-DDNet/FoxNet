@@ -1,6 +1,8 @@
 // Made by qxdFox
 #include "powerup.h"
 
+#include <base/log.h>
+#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
@@ -21,7 +23,6 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
-#include <base/system.h>
 
 static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
 
@@ -61,6 +62,9 @@ void CPowerUp::SetData()
 
 void CPowerUp::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("powerup", "Reset");
+
 	Server()->SnapFreeId(GetId());
 	for(size_t i = 0; i < NUM_LASERS; i++)
 		Server()->SnapFreeId(m_Snap.m_aLaserIds[i]);
@@ -140,7 +144,7 @@ void CPowerUp::HandleClient(int ClientId)
 		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &m_aClients[i].m_Addr) == 0 && i != ClientId)
 		{
 			if(m_aClients[ClientId].m_Collected || m_aClients[i].m_Collected)
-			{ 
+			{
 				// Prevent multi-collect from same address
 				m_aClients[ClientId].m_Collected = true;
 				m_aClients[i].m_Collected = true;
@@ -150,7 +154,6 @@ void CPowerUp::HandleClient(int ClientId)
 
 	if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
 	{
-
 		GameServer()->OnCollectPowerup(ClientId, &m_Data);
 		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 

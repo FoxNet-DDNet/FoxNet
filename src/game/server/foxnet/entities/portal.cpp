@@ -1,9 +1,11 @@
 // Made by qxdFox
 #include "portal.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
+#include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
@@ -56,6 +58,9 @@ CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CPortal::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("portal", "Reset");
+
 	Server()->SnapFreeId(GetId());
 
 	for(int p = 0; p < NUM_PORTALS; p++)
@@ -189,9 +194,9 @@ void CPortal::HandleTele()
 					continue;
 
 				CCharacter *pOtherChr = GameServer()->GetPlayerChar(i);
-				if (!pOtherChr || !pOtherChr->IsAlive() || i == ClientId)
+				if(!pOtherChr || !pOtherChr->IsAlive() || i == ClientId)
 					continue;
-				
+
 				if(pOtherChr->Core()->HookedPlayer() == ClientId)
 					pOtherChr->ReleaseHook();
 			}

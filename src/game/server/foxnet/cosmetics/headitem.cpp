@@ -3,21 +3,22 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
-#include <game/server/foxnet/shop.h>
-#include <game/gamecore.h>
+
+#include <cstdlib>
+#include <iterator>
 
 CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
@@ -37,6 +38,9 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 
 void CHeadItem::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("headitem", "Reset");
+
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		Server()->SnapFreeId(m_aIds[i]);
 
@@ -72,7 +76,7 @@ void CHeadItem::Tick()
 			return;
 		}
 		break;
-	default: 
+	default:
 		Reset();
 		return;
 	}
@@ -167,7 +171,6 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 
 	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 
-	 
 	if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
 	{
 		for(int i = 0; i < 2; i++)

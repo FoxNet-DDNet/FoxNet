@@ -2,6 +2,7 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
@@ -36,6 +37,9 @@ CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CRotatingBall::Reset()
 {
+	if(g_Config.m_SvExtraLogging >= 2)
+		log_info("rotatingball", "Reset");
+
 	Server()->SnapFreeId(m_Id1);
 
 	Server()->SnapFreeId(GetId());
