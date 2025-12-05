@@ -155,6 +155,7 @@ void CPlayer::ExpireItems()
 			Entry = CInventoryEntry();
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", name);
+			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, name);
 			GameServer()->SendChatTarget(GetCid(), aBuf);
 		}
 	}
