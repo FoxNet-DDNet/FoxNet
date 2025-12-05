@@ -112,7 +112,10 @@ void CPowerUp::Tick()
 			NumCollected++;
 
 		if(NumCollected >= MAX_COLLECTIONS)
+		{
 			Reset();
+			return;
+		}
 	}
 }
 
