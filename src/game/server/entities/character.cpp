@@ -682,6 +682,8 @@ void CCharacter::FireWeapon()
 					pGren->GetNearestAirPos(CurPos, PrevPos, &ColPos);
 					pGren->Reset();
 					ForceSetPos(ColPos);
+					// And Set PrevPos so GetMapIndicies doesn't freak out
+					m_PrevPos = ColPos;
 					ResetVelocity();
 					ReleaseHook();
 
