@@ -72,6 +72,7 @@ public:
 	void LoadTeam(const char *pCode, int ClientId);
 	void GetSaves(int ClientId);
 	// <FoxNet
+	void InsertMapEntry(const char *pMapName, const char *pServer, const char *pMapper, int Points, int Stars, const char *pTimestamp);
 	void InsertPlayerRecord(int ClientId, const char *pName, const char *pMap, float Time);
 	void RemovePlayerRecords(const char *pName, const char *pMap);
 	void RemovePlayerRecordWithTime(const char *pName, const char *pMap, float Time);

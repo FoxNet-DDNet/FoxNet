@@ -286,13 +286,11 @@ struct CTeamrank
 
 	static bool GetSqlTop5Team(IDbConnection *pSqlServer, bool *pEnd, char *pError, int ErrorSize, char (*paMessages)[512], int *StartLine, int Count);
 };
-
+// <FoxNet
 struct CSqlMapCacheRequest : ISqlData
 {
 	CSqlMapCacheRequest(std::shared_ptr<CScorePlayerResult> pResult) :
-		ISqlData(std::move(pResult))
-	{
-	}
+		ISqlData(std::move(pResult)) {}
 
 	char m_aMap[MAX_MAP_LENGTH];
 	char Server[64];
@@ -302,6 +300,20 @@ struct CSqlMapCacheRequest : ISqlData
 	char Timestamp[24];
 	CGameContext *m_pGameServer;
 };
+
+struct CSqlNewMapEntry : ISqlData
+{
+	CSqlNewMapEntry(std::shared_ptr<CScorePlayerResult> pResult) :
+		ISqlData(std::move(pResult)) {}
+
+	char m_aMap[MAX_MAP_LENGTH];
+	char m_aServer[32];
+	char m_aMapper[128];
+	int Points;
+	int Stars;
+	char m_aTimestamp[32];
+};
+// FoxNet>
 
 struct CScoreWorker
 {
@@ -330,6 +342,8 @@ struct CScoreWorker
 	static bool SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	// <FoxNet
+	static bool InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
+
 	static bool RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool RemoveAllPlayerRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);

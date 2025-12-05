@@ -396,6 +396,21 @@ void CScore::GetSaves(int ClientId)
 	ExecPlayerThread(CScoreWorker::GetSaves, "get saves", ClientId, "", 0);
 }
 // <FoxNet
+void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const char *pMapper, int Points, int Stars, const char *pTimestamp)
+{
+	auto pResult = std::make_shared<CScorePlayerResult>();
+	auto Tmp = std::make_unique<CSqlNewMapEntry>(pResult);
+
+	str_copy(Tmp->m_aMap, pMapName, sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aServer, pServer, sizeof(Tmp->m_aServer));
+	str_copy(Tmp->m_aMapper, pMapper, sizeof(Tmp->m_aMapper));
+	Tmp->Points = Points;
+	Tmp->Stars = Stars;
+	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
+
+	m_pPool->ExecuteWrite(CScoreWorker::InsertMapEntry, std::move(Tmp), "insert map entry");
+}
+
 void CScore::InsertPlayerRecord(int ClientId, const char *pName, const char *pMap, float Time)
 {
 	CPlayer *pCurPlayer = GameServer()->m_apPlayers[ClientId];

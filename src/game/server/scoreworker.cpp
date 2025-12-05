@@ -768,7 +768,7 @@ bool CScoreWorker::SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGam
 		}
 		if(FoundTeam)
 		{
-			dbg_msg("sql", "found team rank from same team (old time: %f, new time: %f)", Time, pData->m_Time);
+			log_info("sql", "found team rank from same team (old time: %f, new time: %f)", Time, pData->m_Time);
 			if(pData->m_Time < Time)
 			{
 				str_format(aBuf, sizeof(aBuf),
@@ -1684,7 +1684,7 @@ bool CScoreWorker::SaveTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	char *pSaveState = pResult->m_SavedTeam.GetString();
 	char aBuf[65536];
 
-	dbg_msg("score/dbg", "code=%s failure=%d", pData->m_aCode, (int)w);
+	log_info("score/dbg", "code=%s failure=%d", pData->m_aCode, (int)w);
 	bool UseGeneratedCode = pData->m_aCode[0] == '\0' || w != Write::NORMAL;
 
 	str_copy(pResult->m_aGeneratedCode, pData->m_aGeneratedCode);
@@ -1745,7 +1745,7 @@ bool CScoreWorker::SaveTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 		pResult->m_Status != CScoreSaveResult::SAVE_WARNING &&
 		pResult->m_Status != CScoreSaveResult::SAVE_FALLBACKFILE)
 	{
-		dbg_msg("sql", "ERROR: This save-code already exists");
+		log_info("sql", "ERROR: This save-code already exists");
 		pResult->m_Status = CScoreSaveResult::SAVE_FAILED;
 		str_copy(pResult->m_aMessage, "This save-code already exists", sizeof(pResult->m_aMessage));
 	}
@@ -1941,6 +1941,46 @@ bool CScoreWorker::GetSaves(IDbConnection *pSqlServer, const ISqlData *pGameData
 }
 
 // <FoxNet
+
+bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGameData, Write /*w*/, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlNewMapEntry *>(pGameData);
+	if(!pData)
+	{
+		return false;
+	}
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf),
+		"INSERT INTO %s_maps (Map, Server, Mapper, Points, Stars, Timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+		pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+	{
+		return false;
+	}
+
+	pSqlServer->BindString(1, pData->m_aMap);
+	pSqlServer->BindString(2, pData->m_aServer);
+	pSqlServer->BindString(3, pData->m_aMapper);
+	pSqlServer->BindInt(4, pData->Points);
+	pSqlServer->BindInt(5, pData->Stars);
+	pSqlServer->BindString(6, pData->m_aTimestamp);
+	pSqlServer->Print();
+
+	int NumInserted = 0;
+	if(!pSqlServer->ExecuteUpdate(&NumInserted, pError, ErrorSize))
+		return false;
+
+	if(NumInserted != 1)
+	{
+		log_warn("sql", "Failed to insert map entry for map '%s'", pData->m_aMap);
+		return false;
+	}
+
+	log_info("sql", "Inserted map entry for map '%s'", pData->m_aMap);
+	return true;
+}
+
 bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);
@@ -1981,7 +2021,7 @@ bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlD
 	if(!pSqlServer->ExecuteUpdate(&NumUpdatedPoints, pError, ErrorSize))
 		return false;
 
-	dbg_msg("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s'", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap);
+	log_info("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s'", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap);
 	return true;
 }
 
@@ -2043,7 +2083,7 @@ bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const I
 			return false;
 	}
 
-	dbg_msg("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s' with time %.6f (remaining finishes on map: %d)", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap, pData->m_Time, NumRemaining);
+	log_info("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s' with time %.6f (remaining finishes on map: %d)", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap, pData->m_Time, NumRemaining);
 	return true;
 }
 
@@ -2073,7 +2113,7 @@ bool CScoreWorker::RemoveAllPlayerRecords(IDbConnection *pSqlServer, const ISqlD
 	if(!pSqlServer->ExecuteUpdate(&NumDeletedPoints, pError, ErrorSize))
 		return false;
 
-	dbg_msg("sql", "Removed %d records and %d points for player '%s'", NumDeletedRace, NumDeletedPoints, pData->m_aName);
+	log_info("sql", "Removed %d records and %d points for player '%s'", NumDeletedRace, NumDeletedPoints, pData->m_aName);
 	return true;
 }
 

@@ -850,6 +850,7 @@ private:
 
 	static void ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConInsertMapEntry(IConsole::IResult *pResult, void *pUserData);
 	static void ConInsertRecord(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveRecord(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveRecordWithTime(IConsole::IResult *pResult, void *pUserData);
