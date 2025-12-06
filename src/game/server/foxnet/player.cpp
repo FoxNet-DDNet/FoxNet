@@ -204,7 +204,7 @@ void CPlayer::GivePlaytime(long Amount)
 	if(Acc()->m_Playtime % 60 == 0)
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "+%ld%s for reaching %ld Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
+		str_format(aBuf, sizeof(aBuf), "+%d%s for reaching %ld Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 		GiveMoney(g_Config.m_SvPlaytimeMoney, false);
 	}
