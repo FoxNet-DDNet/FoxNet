@@ -37,7 +37,6 @@ void CLightSaber::Reset()
 	if(CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner))
 		pChr->m_pLightSaber = nullptr;
 	Server()->SnapFreeId(GetId());
-	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }
 
@@ -95,6 +94,11 @@ void CLightSaber::Tick()
 			m_Length = 0;
 			m_State = STATE_RETRACTED;
 		}
+	}
+	else if(m_State == STATE_RETRACTED)
+	{
+		Reset();
+		return;
 	}
 	m_Pos = pChr->m_Pos;
 	m_From = vec2(0, 0);
