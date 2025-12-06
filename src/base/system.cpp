@@ -4253,6 +4253,7 @@ bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize)
 	pStr[0] = '\0';
 	return false;
 }
+
 void FormatItemTime(int64_t Remaining, char *out, size_t outSize)
 {
 	if(Remaining <= 0)

@@ -17,6 +17,7 @@ class CSpeedupTile;
 class CSwitchTile;
 class CTuneTile;
 class CDoorTile;
+
 // <FoxNet
 class CQuad;
 class CMapItemLayerQuads;
@@ -26,7 +27,7 @@ public:
 	CQuad *m_pQuad = nullptr;
 	CMapItemLayerQuads *m_pLayer = nullptr;
 	int m_Type = 0;
-	vec2 m_Pos[5] = {vec2(0, 0)};
+	vec2 m_Pos[5] = {vec2(0, 0)}; // 4 corners + center
 	float m_Angle = 0.0f;
 };
 // FoxNet>
@@ -198,7 +199,6 @@ private:
 	bool m_HasSolidQuads = false;
 
 public:
-
 	bool HasMovingQuads() const { return !m_vQuads.empty() && !m_vNextQuads.empty(); }
 
 	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
@@ -215,7 +215,7 @@ public:
 	void Rotate(vec2 Center, vec2 *pPoint, float Rotation) const;
 
 	void SetTime(double Time) { m_Time = Time; }
-	bool InsideQuad(vec2 Pos, vec2 Size, vec2 TopLCorner, vec2 TopRCorner, vec2 BottomLCorner, vec2 BottomRCorner) const;
+	bool InsideQuad(vec2 Pos, vec2 Size, vec2 T0, vec2 T1, vec2 T2, vec2 T3) const;
 
 	void CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const;
 	int CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle = true) const;

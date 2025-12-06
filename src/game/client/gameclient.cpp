@@ -1612,6 +1612,7 @@ void CGameClient::OnNewSnapshot()
 {
 	Collision()->SetTime((double)(Client()->GetPredictionTick() + 1) / Client()->GameTickSpeed());
 	Collision()->UpdateQuadCache();
+
 	auto &&Evolve = [this](CNetObj_Character *pCharacter, int Tick) {
 		CWorldCore TempWorld;
 		CCharacterCore TempCore = CCharacterCore();
@@ -4538,6 +4539,10 @@ void CGameClient::LoadMapSettings()
 		char *pSettings = (char *)pMap->GetData(pItem->m_Settings);
 		char *pNext = pSettings;
 		Console()->SetUnknownCommandCallback(UnknownMapSettingCallback, nullptr);
+
+		g_Config.m_SvMovingTiles = false;
+		g_Config.m_SvTeleGrenade = false;
+
 		while(pNext < pSettings + Size)
 		{
 			if(str_find(pNext, "sv_kog_qquads_enable 1"))

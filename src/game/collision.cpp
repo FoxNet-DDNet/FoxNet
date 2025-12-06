@@ -185,6 +185,7 @@ void CCollision::Init(class CLayers *pLayers)
 			m_vNextQuads.push_back(QuadData);
 		}
 	}
+	m_vQuads = m_vNextQuads;
 
 	int QuadLayers = (int)m_pLayers->QuadLayers().size();
 	log_info("moving-tiles", "%d valid quadlayer%s with %d quads", QuadLayers, QuadLayers == 1 ? "" : "s", (int)m_vNextQuads.size());
@@ -450,13 +451,15 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 		if(CheckPoint(ix, iy, &pHitQuad))
 		{
 			if(!IsThrough(ix, iy, dx, dy, Pos0, Pos1))
+			{
 				Hit = GetCollisionAt(ix, iy);
 
-			if(!Hit && pHitQuad)
-			{
-				if(ppOutQuad)
-					*ppOutQuad = pHitQuad;
-				Hit = QuadTypeToTile(pHitQuad->m_Type);
+				if(pHitQuad)
+				{
+					if(ppOutQuad)
+						*ppOutQuad = pHitQuad;
+					Hit = QuadTypeToTile(pHitQuad->m_Type);
+				}
 			}
 		}
 		else if(IsHookBlocker(ix, iy, Pos0, Pos1))
@@ -596,6 +599,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> vec2 {
 		vec2 Delta = vec2(0, 0);
+		if(!g_Config.m_SvMovingTiles)
+			return Delta;
 		if(!m_HasSolidQuads)
 			return Delta;
 		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
@@ -1426,11 +1431,14 @@ size_t CCollision::TeleAllSize(int Number)
 		Total += m_TeleOthers[Number].size();
 	return Total;
 }
+
 // <FoxNet
 void CCollision::ClearQuadLayers()
 {
 	m_vQuads.clear();
+	m_vNextQuads.clear();
 	m_vQuads.shrink_to_fit();
+	m_vNextQuads.shrink_to_fit();
 }
 
 void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const
@@ -1682,17 +1690,17 @@ void CCollision::UpdateQuadCache()
 	}
 }
 
-bool CCollision::InsideQuad(vec2 Pos, vec2 Size, vec2 TopLCorner, vec2 TopRCorner, vec2 BottomLCorner, vec2 BottomRCorner) const
+bool CCollision::InsideQuad(vec2 Pos, vec2 Size, vec2 T0, vec2 T1, vec2 T2, vec2 T3) const
 {
 	auto IsLeft = [](const vec2 &A, const vec2 &B, const vec2 &P) -> bool {
 		return ((B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x)) >= 0.0f;
 	};
 
 	bool Inside =
-		IsLeft(TopLCorner, TopRCorner, Pos) &&
-		IsLeft(TopRCorner, BottomRCorner, Pos) &&
-		IsLeft(BottomRCorner, BottomLCorner, Pos) &&
-		IsLeft(BottomLCorner, TopLCorner, Pos);
+		IsLeft(T0, T1, Pos) &&
+		IsLeft(T1, T3, Pos) &&
+		IsLeft(T3, T2, Pos) &&
+		IsLeft(T2, T0, Pos);
 
 	if(Inside)
 		return true;
@@ -1708,22 +1716,22 @@ bool CCollision::InsideQuad(vec2 Pos, vec2 Size, vec2 TopLCorner, vec2 TopRCorne
 		return distance(C, Closest) <= R;
 	};
 
-	if(CircleIntersectsSegment(Pos, Size.x, TopLCorner, TopRCorner))
+	if(CircleIntersectsSegment(Pos, Size.x, T0, T1))
 		return true;
-	if(CircleIntersectsSegment(Pos, Size.x, TopRCorner, BottomRCorner))
+	if(CircleIntersectsSegment(Pos, Size.x, T1, T3))
 		return true;
-	if(CircleIntersectsSegment(Pos, Size.x, BottomRCorner, BottomLCorner))
+	if(CircleIntersectsSegment(Pos, Size.x, T3, T2))
 		return true;
-	if(CircleIntersectsSegment(Pos, Size.x, BottomLCorner, TopLCorner))
+	if(CircleIntersectsSegment(Pos, Size.x, T2, T0))
 		return true;
 
-	if(distance(Pos, TopLCorner) <= Size.x)
+	if(distance(Pos, T0) <= Size.x)
 		return true;
-	if(distance(Pos, TopRCorner) <= Size.x)
+	if(distance(Pos, T1) <= Size.x)
 		return true;
-	if(distance(Pos, BottomLCorner) <= Size.x)
+	if(distance(Pos, T2) <= Size.x)
 		return true;
-	if(distance(Pos, BottomRCorner) <= Size.x)
+	if(distance(Pos, T3) <= Size.x)
 		return true;
 
 	return false;

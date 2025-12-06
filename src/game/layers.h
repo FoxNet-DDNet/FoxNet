@@ -12,16 +12,6 @@ class CMapItemLayerTilemap;
 
 // <FoxNet
 class CMapItemLayerQuads;
-constexpr char ValidQuadNames[7][30] = {
-	"QFr",
-	"QUnFr",
-	"QDeath",
-	"QStopa",
-	"QCfrm",
-	"QHook",
-	"QUnHook"
-};
-
 enum QuadTypes
 {
 	// Follows order of ValidQuadNames
@@ -34,6 +24,16 @@ enum QuadTypes
 	QUADTYPE_HOOKABLE,
 	QUADTYPE_UNHOOKABLE,
 	NUM_QUADTYPES
+};
+
+constexpr char ValidQuadNames[NUM_QUADTYPES][30] = {
+	"QFr",
+	"QUnFr",
+	"QDeath",
+	"QStopa",
+	"QCfrm",
+	"QHook",
+	"QUnHook"
 };
 // FoxNet>
 
