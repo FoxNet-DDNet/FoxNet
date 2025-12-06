@@ -41,20 +41,30 @@ CProjectileText::CProjectileText(CGameWorld *pGameWorld, vec2 Pos, int Owner, in
 
 void CProjectileText::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
-		return;
-
 	if(!m_Mask.test(SnappingClient))
 		return;
+	const int tickParity = Server()->Tick() & 1;
 
+	size_t NumIds = m_pData.size();
+
+	int Idx = 0;
 	for(auto *pData : m_pData)
 	{
+		vec2 Pos = pData->m_Pos;
+		if(NetworkClipped(SnappingClient, Pos))
+			continue;
+		if(NumIds >= 135 && ((Idx + tickParity) & 1) != 0)
+		{
+			Idx++;
+			continue;
+		}
+
 		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(pData->m_Id);
 		if(!pProj)
-			return;
-
-		vec2 Pos = pData->m_Pos;
-
+		{
+			Idx++;
+			continue;
+		}
 		pProj->m_X = round_to_int(Pos.x * 100.0f);
 		pProj->m_Y = round_to_int(Pos.y * 100.0f);
 		pProj->m_Type = m_Type;
@@ -62,5 +72,6 @@ void CProjectileText::Snap(int SnappingClient)
 		pProj->m_StartTick = 0;
 		pProj->m_VelX = 0;
 		pProj->m_VelY = 0;
+		Idx++;
 	}
 }

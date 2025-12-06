@@ -40,22 +40,23 @@ CLaserText::CLaserText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTic
 
 void CLaserText::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
-		return;
-
 	if(!m_Mask.test(SnappingClient))
 		return;
 
 	for(auto *pData : m_pData)
 	{
+		vec2 Pos = pData->m_Pos;
+		if(NetworkClipped(SnappingClient, Pos))
+			continue;
+
 		CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(pData->m_Id);
 		if(!pObj)
 			return;
 
-		pObj->m_ToX = pData->m_Pos.x;
-		pObj->m_ToY = pData->m_Pos.y;
-		pObj->m_FromX = pData->m_Pos.x;
-		pObj->m_FromY = pData->m_Pos.y;
+		pObj->m_ToX = Pos.x;
+		pObj->m_ToY = Pos.y;
+		pObj->m_FromX = Pos.x;
+		pObj->m_FromY = Pos.y;
 		pObj->m_StartTick = Server()->Tick();
 		pObj->m_Owner = m_Owner;
 		pObj->m_Type = LASERTYPE_RIFLE;
