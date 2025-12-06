@@ -1255,14 +1255,16 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 	pThis->GameServer()->TeehistorianRecordPlayerJoin(ClientId, false);
 	pThis->Antibot()->OnEngineClientJoin(ClientId);
 
+	// <FoxNet
+	pThis->SendFoxnetInfo(ClientId);
+	pThis->m_aClients[ClientId].ResetContent();
+	// FoxNet>
+
 	pThis->SendCapabilities(ClientId);
 	pThis->SendMap(ClientId);
 #if defined(CONF_FAMILY_UNIX)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->ClientAddr(ClientId));
 #endif
-	// <FoxNet
-	pThis->m_aClients[ClientId].ResetContent();
-	// FoxNet>
 	return 0;
 }
 
@@ -1870,6 +1872,10 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					m_NetServer.Drop(ClientId, "This server is full");
 					return;
 				}
+
+				// <FoxNet
+				SendFoxnetInfo(ClientId);
+				// FoxNet>
 
 				m_aClients[ClientId].m_State = CClient::STATE_CONNECTING;
 				SendRconType(ClientId, m_AuthManager.NumNonDefaultKeys() > 0);
@@ -5155,5 +5161,12 @@ void CServer::CWebhook::Run()
 		dbg_msg("webhook", "Sending webhook message failed, returned %d", ret);
 		dbg_msg("webhook", "%s", m_aCommand);
 	}
+}
+
+void CServer::SendFoxnetInfo(int ClientId)
+{
+	CMsgPacker Msg(NETMSG_FOXNET_INFO, true);
+	Msg.AddInt(FOXNET_VERSION_NUMBER);
+	SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
 }
 // FoxNet>
