@@ -899,6 +899,10 @@ private:
 	bool m_IsWeekend;
 
 public:
+	void OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId) override;
+	bool IncludedInServerInfo(int ClientId) override;
+	void OnPreShutdown() override;
+	void OnPreReload() override;
 
 	bool m_MapVoteLock = false;
 
@@ -929,9 +933,6 @@ public:
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;
 
-	bool IncludedInServerInfo(int ClientId) override;
-	void OnPreShutdown() override;
-
 	void ClearVotes(int ClientId);
 	void SendEmote(int ClientId, int Type);
 
@@ -956,8 +957,6 @@ public:
 	std::optional<vec2> GetRandomAccessiblePos();
 
 	int RandGeometric(std::mt19937 &rng, int Min, int Max, double p);
-
-	void OnPreReload() override;
 
 	CSavePlayerData *m_apPersistentData[MAX_CLIENTS];
 

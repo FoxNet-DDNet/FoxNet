@@ -568,7 +568,7 @@ public:
 	static void ConHighBandwidth(IConsole::IResult *pResult, void *pUser);
 	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
 	static void ConGetClientTraffic(IConsole::IResult *pResult, void *pUser);
-	bool NetMsgCustomClient(int ClientId, int Msg, CUnpacker Unpacker);
+	bool FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker);
 	
 	class CWebhook : public IJob
 	{

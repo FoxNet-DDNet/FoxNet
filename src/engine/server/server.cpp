@@ -1781,8 +1781,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
 				GetClientVersion(ClientId),
-				m_aClients[ClientId].m_GotDDNetVersionPacket ? m_aClients[ClientId].m_aDDNetVersionStr : "unknown"
-			);
+				m_aClients[ClientId].m_GotDDNetVersionPacket ? m_aClients[ClientId].m_aDDNetVersionStr : "unknown");
 			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Stressing network");
 
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
@@ -2223,10 +2222,12 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			int Vital = (pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 ? MSGFLAG_VITAL : 0;
 			SendMsg(&Msgp, MSGFLAG_FLUSH | Vital, ClientId);
 		}
-		else if(NetMsgCustomClient(ClientId, Msg, Unpacker))
+		// <FoxNet
+		else if(FoxNetNetMsg(ClientId, Msg, Unpacker))
 		{
-			// <FoxNet>
+			GameServer()->OnFoxNetMessage(Msg, &Unpacker, ClientId);
 		}
+		// FoxNet>
 		else if(g_Config.m_SvExtraLogging)
 		{
 			log_info("server", "strange message ClientId=%d msg=%d data_size=%d", ClientId, Msg, pPacket->m_DataSize);
@@ -4775,7 +4776,7 @@ void CServer::CClient::ResetContent()
 	m_HighBandwidth = true;
 }
 
-bool CServer::NetMsgCustomClient(int ClientId, int Msg, CUnpacker Unpacker)
+bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 {
 	bool ReturnValue = false;
 	if(Unpacker.Error())
@@ -4783,13 +4784,14 @@ bool CServer::NetMsgCustomClient(int ClientId, int Msg, CUnpacker Unpacker)
 
 	switch(Msg)
 	{
+	case NETMSG_FOXNET_FASTINPUTS: ReturnValue = true; break;
+
 	case NETMSG_IAM_QXD:
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "E-Client");
 		ReturnValue = true;
 	}
 	break;
-
 	case NETMSG_IAM_AIODOB:
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "A-Client");

@@ -213,8 +213,7 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	auto pReq = std::make_unique<CAccRegisterRequest>(pRes);
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
-	time_t Now;
-	time(&Now);
+	time_t Now = time(0);
 	pReq->m_RegisterDate = Now;
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
 		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
@@ -234,37 +233,38 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 
 void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 {
-	{
-		CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 
-		time_t Now;
-		time(&Now);
+	bool NeedsOverride = Acc.m_Configs.m_SentFastInput;
+	bool FastInput = Acc.m_Configs.m_FastInputs;
+	time_t Now = time(0);
 
-		str_copy(Acc.m_aUsername, Res.m_aUsername);
-		Acc.m_RegisterDate = Res.m_RegisterDate;
-		str_copy(Acc.m_Name, Res.m_PlayerName);
-		str_copy(Acc.m_LastName, Res.m_LastPlayerName);
-		str_copy(Acc.CurrentIp, Server()->ClientAddrString(ClientId, false));
-		str_copy(Acc.LastIp, Res.m_LastIP);
-		Acc.m_LoggedIn = true;
-		Acc.m_LastLogin = Now;
-		Acc.m_Port = Server()->Port();
-		Acc.ClientId = ClientId;
-		Acc.m_Playtime = Res.m_Playtime;
-		Acc.m_Deaths = Res.m_Deaths;
-		Acc.m_Kills = Res.m_Kills;
-		Acc.m_Level = Res.m_Level;
-		Acc.m_XP = Res.m_XP;
-		Acc.m_Money = Res.m_Money;
-		Acc.m_LoginTick = Server()->Tick();
-		Acc.m_Inventory = Res.m_Inventory;
+	str_copy(Acc.m_aUsername, Res.m_aUsername);
+	Acc.m_RegisterDate = Res.m_RegisterDate;
+	str_copy(Acc.m_Name, Res.m_PlayerName);
+	str_copy(Acc.m_LastName, Res.m_LastPlayerName);
+	str_copy(Acc.CurrentIp, Server()->ClientAddrString(ClientId, false));
+	str_copy(Acc.LastIp, Res.m_LastIP);
+	Acc.m_LoggedIn = true;
+	Acc.m_LastLogin = Now;
+	Acc.m_Port = Server()->Port();
+	Acc.ClientId = ClientId;
+	Acc.m_Playtime = Res.m_Playtime;
+	Acc.m_Deaths = Res.m_Deaths;
+	Acc.m_Kills = Res.m_Kills;
+	Acc.m_Level = Res.m_Level;
+	Acc.m_XP = Res.m_XP;
+	Acc.m_Money = Res.m_Money;
+	Acc.m_LoginTick = Server()->Tick();
+	Acc.m_Inventory = Res.m_Inventory;
 
-		Acc.m_Configs = Res.m_Configs;
+	Acc.m_Configs = Res.m_Configs;
+	if(NeedsOverride)
+		Acc.m_Configs.m_FastInputs = FastInput;
 
-		Acc.m_MailBox = Res.m_MailBox;
-		Acc.m_LastMailboxFetch = Now;
-		Acc.m_MailboxFetchPending = false;
-	}
+	Acc.m_MailBox = Res.m_MailBox;
+	Acc.m_LastMailboxFetch = Now;
+	Acc.m_MailboxFetchPending = false;
 	GameServer()->OnLogin(ClientId);
 
 	// Apply equipped items to player cosmetics
@@ -288,8 +288,6 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
 	str_copy(pUpd->m_PlayerName, Server()->ClientName(ClientId), sizeof(pUpd->m_PlayerName));
 	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
-	time_t Now;
-	time(&Now);
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();
 	pUpd->m_ClientId = ClientId;
@@ -491,8 +489,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		if(!Data.m_LoggedIn)
 		{
-			time_t Now;
-			time(&Now);
+			time_t Now = time(0);
 			double Seconds = difftime(Now, Data.m_LastLogin);
 			int Days = (int)(Seconds / (60 * 60 * 24));
 			int Hours = (int)(Seconds / (60 * 60));
@@ -802,8 +799,7 @@ void CAccounts::FetchMailBox()
 	if(!m_pPool)
 		return;
 
-	time_t Now;
-	time(&Now);
+	time_t Now = time(0);
 
 	struct CSqlLoadMailbox : ISqlData
 	{

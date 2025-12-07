@@ -3764,10 +3764,10 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	if(!g_Config.m_SvExperimentalPrediction)
 		return Pos;
 
-	float FastInputs = Acc()->m_Configs.m_FastInputs ? 1.9f : 1.0f;
+	float FastInputs = Acc()->m_Configs.m_FastInputs ? 1.65f : 1.0f;
 
-	float Amp = (Pickup ? 0.5f : 0.35f) * FastInputs;
-	float AmpSpec = (Pickup ? 0.5f : 0.35f);
+	float Amp = (Pickup ? 0.5f : 0.32f) * FastInputs;
+	float AmpSpec = (Pickup ? 0.5f : 0.32f);
 
 	if(GetPlayer()->GetCid() != SnappingClient)
 		return Pos - GetVelocity() * AmpSpec;

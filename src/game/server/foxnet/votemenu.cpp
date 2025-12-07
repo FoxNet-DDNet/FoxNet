@@ -1089,7 +1089,6 @@ void CVoteMenu::SendPageVotes(int ClientId)
 void CVoteMenu::SendPageSettings(int ClientId)
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	const char *pClient = Server()->ClientName(ClientId);
 
 	AddVoteText("Sᴇᴛᴛɪɴɢs:");
 	if(pAcc->m_LoggedIn)

@@ -91,6 +91,7 @@ public:
 
 	// From TClient
 	bool m_FastInputs = false;
+	bool m_SentFastInput = false;
 
 	bool m_HidePowerUps = false;
 	int m_HatItemFlags = 0;

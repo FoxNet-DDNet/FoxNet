@@ -45,6 +45,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <engine/shared/protocol_ex_msgs.h>
 
 void CGameContext::FoxNetTick()
 {
@@ -963,24 +964,6 @@ void CGameContext::QuadDebugIds(bool Clear)
 	}
 }
 
-bool CGameContext::IncludedInServerInfo(int ClientId)
-{
-	bool Included = true;
-
-	if(Server()->DebugDummy(ClientId))
-		Included = false;
-
-	CPlayer *pPl = m_apPlayers[ClientId];
-	if(pPl)
-	{
-		if(pPl->m_IncludeServerInfo != -1)
-			Included = pPl->m_IncludeServerInfo;
-		if(pPl->m_Vanish)
-			Included = false;
-	}
-
-	return Included;
-}
 bool CGameContext::AddFakeMessage(const char *pName, const char *pMessage, const char *pSkinName, bool CustomColor, int ColorBody, int ColorFeet)
 {
 	if(!pName[0] || !pMessage[0])
@@ -1062,9 +1045,58 @@ bool CGameContext::RandomMapVote()
 	return true;
 }
 
+void CGameContext::OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)
+{
+	CAccountSession &Acc = m_aAccounts[ClientId];
+	switch(MsgId)
+	{
+	case NETMSG_FOXNET_FASTINPUTS:
+	{
+		const int Set = pUnpacker->GetInt();
+		log_info("foxnet", "Received Fast Inputs setting from ClientId=%d: %d", ClientId, Set);
+		Acc.m_Configs.m_FastInputs = Set;
+		Acc.m_Configs.m_SentFastInput = true; // mark as sent to not overwrite on next login
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+bool CGameContext::IncludedInServerInfo(int ClientId)
+{
+	bool Included = true;
+
+	if(Server()->DebugDummy(ClientId))
+		Included = false;
+
+	CPlayer *pPl = m_apPlayers[ClientId];
+	if(pPl)
+	{
+		if(pPl->m_IncludeServerInfo != -1)
+			Included = pPl->m_IncludeServerInfo;
+		if(pPl->m_Vanish)
+			Included = false;
+	}
+
+	return Included;
+}
+
 void CGameContext::OnPreShutdown()
 {
 	m_AccountManager.LogoutAllAccountsPort(Server()->Port()); // Save all info before CPlayer is destroyed
+}
+
+void CGameContext::OnPreReload()
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CPlayer *pPlayer = m_apPlayers[i];
+		if(!pPlayer)
+			continue;
+		m_apPersistentData[i] = new CSavePlayerData();
+		m_apPersistentData[i]->Save(pPlayer);
+	}
 }
 
 std::optional<vec2> CGameContext::GetRandomAccessiblePos()
@@ -1185,18 +1217,6 @@ int CGameContext::DirectionToEditorDeg(const vec2 &Dir)
 	if(Ideg < 0)
 		Ideg += 360;
 	return Ideg; // 0..359
-}
-
-void CGameContext::OnPreReload()
-{
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		CPlayer *pPlayer = m_apPlayers[i];
-		if(!pPlayer)
-			continue;
-		m_apPersistentData[i] = new CSavePlayerData();
-		m_apPersistentData[i]->Save(pPlayer);
-	}
 }
 
 int CGameContext::NumPlayersInTeam(int Team) const
