@@ -1176,7 +1176,7 @@ void CGameContext::ConSetVanish(IConsole::IResult *pResult, void *pUserData)
 	else
 		str_format(aBuf, sizeof(aBuf), "'%s' has left the game", pSelf->Server()->ClientName(Victim));
 
-	pSelf->SendChat(-1, 0, aBuf, -1, CGameContext::FLAG_SIX);
+	pSelf->SendChat(-1, TEAM_ALL, aBuf, -1, CGameContext::FLAG_SIX);
 }
 
 void CGameContext::ConSetVanishQuiet(IConsole::IResult *pResult, void *pUserData)

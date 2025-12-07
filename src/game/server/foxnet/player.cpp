@@ -101,7 +101,7 @@ void CPlayer::LootBoxTick()
 			pItem->m_Name,
 			m_LootBoxData.m_Days);
 
-		GameServer()->SendChat(-1, 0, aBuf);
+		GameServer()->SendChat(-1, TEAM_ALL, aBuf);
 
 		m_LootBoxData.m_Opening = false;
 		m_LootBoxData.m_Ticks = 0;

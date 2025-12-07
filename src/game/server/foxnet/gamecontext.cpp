@@ -147,7 +147,7 @@ void CGameContext::BotClientTick()
 
 				char aBuf[128];
 				str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
-				SendChat(-1, 0, aBuf);
+				SendChat(-1, TEAM_ALL, aBuf);
 			}
 		}
 
