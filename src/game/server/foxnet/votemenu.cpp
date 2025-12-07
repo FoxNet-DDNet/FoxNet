@@ -33,6 +33,7 @@
 
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
+constexpr const char *SETTINGS_FAST_INPUTS = "Using Fast Inputs?";
 
 constexpr const char *SETTINGS_COSMETICS_ANY = "Any Type";
 constexpr const char *SETTINGS_COSMETICS_RAINBOW = "Rainbow";
@@ -282,6 +283,22 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOption(pVote, SETTINGS_HIDE_POWERUPS))
 		{
 			pPl->SetHidePowerUps(!pPl->Acc()->m_Configs.m_HidePowerUps);
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_FAST_INPUTS))
+		{
+			const char *pClient = Server()->ClientName(ClientId);
+
+			if(!str_comp(pClient, "DDNet")) // DDNet doesn't have fast inputs
+			{
+				Acc.m_Configs.m_FastInputs = false;
+				GameServer()->SendChatTarget(ClientId, "DDNet Client does not have Fast Inputs.");
+				GameServer()->SendChatTarget(ClientId, "Download a Custom Client like:");
+				GameServer()->SendChatTarget(ClientId, "'entityclient.net', 'tclient.app'");
+				return true;
+			}
+
+			Acc.m_Configs.m_FastInputs = !Acc.m_Configs.m_FastInputs;
 			return true;
 		}
 
@@ -1072,11 +1089,13 @@ void CVoteMenu::SendPageVotes(int ClientId)
 void CVoteMenu::SendPageSettings(int ClientId)
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+	const char *pClient = Server()->ClientName(ClientId);
 
 	AddVoteText("Sᴇᴛᴛɪɴɢs:");
 	if(pAcc->m_LoggedIn)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
+	AddVoteCheckBox(SETTINGS_FAST_INPUTS, pAcc->m_Configs.m_FastInputs);
 
 	AddVoteSeparator();
 

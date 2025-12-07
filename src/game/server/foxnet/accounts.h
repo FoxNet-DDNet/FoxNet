@@ -28,15 +28,12 @@ enum
 	ACC_MAX_USERNAME_LENGTH = 32,
 	ACC_MIN_PASSW_LENGTH = 6,
 	ACC_MAX_PASSW_LENGTH = 128,
-
-	ACC_FLAG_AUTOLOGIN = 1 << 0,
-	ACC_FLAG_HIDE_COSMETICS = 1 << 1,
-	ACC_FLAG_HIDE_POWERUPS = 1 << 2,
 };
 
 enum Configs
 {
 	CONFIG_AUTLOGIN,
+	CONFIG_FASTINPUTS,
 	CONFIG_HIDEPOWERUPS,
 	CONFIG_HATITEMFLAGS,
 	CONFIG_COSMETIC_RAINBOW,
@@ -51,6 +48,8 @@ enum Configs
 
 constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
 	"AutoLogin",
+	"FastInputs",
+
 	"HidePowerUps",
 	"HatItemFlags",
 
@@ -89,6 +88,10 @@ class CAccConfigs
 {
 public:
 	bool m_AutoLogin = false;
+
+	// From TClient
+	bool m_FastInputs = false;
+
 	bool m_HidePowerUps = false;
 	int m_HatItemFlags = 0;
 

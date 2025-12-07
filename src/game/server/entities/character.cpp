@@ -3764,13 +3764,18 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	if(!g_Config.m_SvExperimentalPrediction)
 		return Pos;
 
+	float FastInputs = Acc()->m_Configs.m_FastInputs ? 1.9f : 1.0f;
+
+	float Amp = (Pickup ? 0.5f : 0.35f) * FastInputs;
+	float AmpSpec = (Pickup ? 0.5f : 0.35f);
+
 	if(GetPlayer()->GetCid() != SnappingClient)
-		return Pos - GetVelocity() * (Pickup ? 0.0f : 0.5f);
+		return Pos - GetVelocity() * AmpSpec;
 	if(GetPlayer()->IsPaused() && GetPlayer()->GetCid() == SnappingClient)
-		return Pos - GetVelocity() * (Pickup ? 0.0f : 0.5f);
+		return Pos - GetVelocity() * AmpSpec;
 
 	double Pred = GetPlayer()->GetClientPred();
-	float dist = distance(Pos, m_PrevPos) * (Pickup ? 0.5f : 0.35f); // Only Pickups interpolate
+	float dist = distance(Pos, m_PrevPos) * Amp;
 	vec2 Dir = normalize(Pos - m_PrevPos);
 	vec2 nVel = Dir * Pred * dist;
 	return Pos + nVel;

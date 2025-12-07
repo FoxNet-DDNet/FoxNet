@@ -308,10 +308,14 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 
 		if(!str_comp(aKey, g_apAccConfigNames[CONFIG_AUTLOGIN]))
 			Configs.m_AutoLogin = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_FASTINPUTS]))
+			Configs.m_FastInputs = On;
+
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDEPOWERUPS]))
 			Configs.m_HidePowerUps = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HATITEMFLAGS]))
 			Configs.m_HatItemFlags = Value;
+
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW]))
 			Configs.m_Cosmetics.m_ShowRainbow = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_GUNS]))
@@ -337,10 +341,14 @@ static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccCo
 {
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], Configs.m_AutoLogin, pError, ErrorSize))
 		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_FASTINPUTS], Configs.m_FastInputs, pError, ErrorSize))
+		return false;
+
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEPOWERUPS], Configs.m_HidePowerUps, pError, ErrorSize))
 		return false;
 	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_HATITEMFLAGS], Configs.m_HatItemFlags, pError, ErrorSize))
 		return false;
+
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW], Configs.m_Cosmetics.m_ShowRainbow, pError, ErrorSize))
 		return false;
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_GUNS], Configs.m_Cosmetics.m_ShowGuns, pError, ErrorSize))
@@ -481,6 +489,10 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 {
 	const auto *pReq = dynamic_cast<const CAccSaveInfo *>(pData);
 	if(!pReq)
+		return false;
+
+	// Persist config changes on logout as well
+	if(!SaveConfigs(pSql, pReq->m_aUsername, pReq->m_Configs, pError, ErrorSize))
 		return false;
 
 	// Upsert owned items (Quantity > 0)
