@@ -1,8 +1,12 @@
 ﻿/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include "gamecore.h"
+
 #include <antibot/antibot_data.h>
 
+#include <base/log.h>
 #include <base/math.h>
+#include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
 
@@ -14,15 +18,13 @@
 #include <game/layers.h>
 #include <game/mapitems.h>
 
+#include <algorithm>
 #include <cmath>
-
+#include <deque>
 #include <iterator>
 #include <random>
 #include <utility>
-#include <deque>
-#include <base/log.h>
-#include "gamecore.h"
-#include <engine/shared/protocol.h>
+#include <vector>
 
 vec2 ClampVel(int MoveRestriction, vec2 Vel)
 {
@@ -155,11 +157,17 @@ void CCollision::Init(class CLayers *pLayers)
 			}
 		}
 	}
-	// <FoxNet
-	BuildSpawnCandidatesOnLoad();
+}
 
+void CCollision::InitQuads()
+{
+	dbg_assert(m_pLayers, "m_pLayers must be valid");
+
+	ClearQuadLayers();
+
+	//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision.cpp#L79
 	for(const auto pQuadLayers : m_pLayers->QuadLayers())
-	{//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision.cpp#L79
+	{
 		CQuad *pQuads = (CQuad *)m_pLayers->Map()->GetDataSwapped(pQuadLayers->m_Data);
 		for(int i = 0; i < pQuadLayers->m_NumQuads; i++)
 		{
@@ -189,7 +197,11 @@ void CCollision::Init(class CLayers *pLayers)
 
 	int QuadLayers = (int)m_pLayers->QuadLayers().size();
 	log_info("moving-tiles", "%d valid quadlayer%s with %d quads", QuadLayers, QuadLayers == 1 ? "" : "s", (int)m_vNextQuads.size());
-	// FoxNet>
+}
+void CCollision::InitSpawnCandidates()
+{
+	dbg_assert(m_pLayers, "m_pLayers must be valid");
+	BuildSpawnCandidates();
 }
 
 void CCollision::Unload()
@@ -215,7 +227,6 @@ void CCollision::Unload()
 	m_pDoor = nullptr;
 	// <FoxNet
 	ClearQuadLayers();
-	m_HasSolidQuads = false;
 	m_SpawnCandidates.clear();
 	// FoxNet>
 }
@@ -466,7 +477,7 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 		{
 			Hit = TILE_NOHOOK;
 		}
-		
+
 		if(Hit)
 		{
 			if(pOutCollision)
@@ -630,7 +641,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			return Delta;
 
 		Delta += (NextCenter - CurCenter) * StepFraction;
-		
+
 		return Delta;
 	};
 
@@ -642,7 +653,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 	if(HitQuad)
 		ReturnValue = true;
 
-	if(Distance > 0.00001f || FullQuadDelta != vec2(0,0))
+	if(Distance > 0.00001f || FullQuadDelta != vec2(0, 0))
 	{
 		float Fraction = 1.f / (float)(Max + 1);
 		float ElasticityX = std::clamp(Elasticity.x, -1.0f, 1.0f);
@@ -650,7 +661,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		for(int i = 0; i <= Max; i++)
 		{
-			if(Vel == vec2(0, 0) && FullQuadDelta == vec2(0,0))
+			if(Vel == vec2(0, 0) && FullQuadDelta == vec2(0, 0))
 				break;
 
 			const vec2 QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuad);
@@ -1439,6 +1450,7 @@ void CCollision::ClearQuadLayers()
 	m_vNextQuads.clear();
 	m_vQuads.shrink_to_fit();
 	m_vNextQuads.shrink_to_fit();
+	m_HasSolidQuads = false;
 }
 
 void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const
@@ -1450,7 +1462,7 @@ void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const
 }
 
 std::vector<const CQuadData *> CCollision::GetQuadsAt(vec2 Pos) const
-{//https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1104
+{ //https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1104
 	std::vector<const CQuadData *> vpQuads;
 
 	if(!g_Config.m_SvMovingTiles)
@@ -1458,10 +1470,10 @@ std::vector<const CQuadData *> CCollision::GetQuadsAt(vec2 Pos) const
 
 	for(const auto &QuadData : m_vQuads)
 	{
-		vec2 TestRadius = vec2(0,0);
+		vec2 TestRadius = vec2(0, 0);
 		if(QuadData.m_Type == QUADTYPE_DEATH)
 			TestRadius = vec2(8, 8);
-		else if(QuadData.m_Type == QUADTYPE_STOPA || QuadData.m_Type == QUADTYPE_HOOKABLE|| QuadData.m_Type == QUADTYPE_UNHOOKABLE)
+		else if(QuadData.m_Type == QUADTYPE_STOPA || QuadData.m_Type == QUADTYPE_HOOKABLE || QuadData.m_Type == QUADTYPE_UNHOOKABLE)
 			TestRadius = CCharacterCore::PhysicalSizeVec2() * 0.55f;
 
 		if(InsideQuad(Pos, TestRadius, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
@@ -1672,7 +1684,7 @@ void CCollision::UpdateQuadCache()
 { // https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1073
 	if(!g_Config.m_SvMovingTiles)
 		return;
-	
+
 	m_vQuads = m_vNextQuads;
 
 	for(auto &QuadData : m_vNextQuads)
@@ -1797,7 +1809,7 @@ bool CCollision::HasSolidInRadius(vec2 Pos, int TileRadius, int MinCount, bool C
 	return CountSolidTilesInRadius(Pos, TileRadius, Circle) >= MinCount;
 }
 
-void CCollision::BuildSpawnCandidatesOnLoad()
+void CCollision::BuildSpawnCandidates()
 {
 	m_SpawnCandidates.clear();
 
@@ -1878,7 +1890,7 @@ void CCollision::BuildSpawnCandidatesOnLoad()
 	{
 		auto [x, y] = q.front();
 		q.pop_front();
-		
+
 		if(SurroundedByAir(x, y, 1) && !IsTeleTileAt(x, y))
 		{
 			const vec2 pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);

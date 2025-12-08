@@ -1610,9 +1610,6 @@ void CGameClient::InvalidateSnapshot()
 
 void CGameClient::OnNewSnapshot()
 {
-	Collision()->SetTime((double)(Client()->GetPredictionTick() + 1) / Client()->GameTickSpeed());
-	Collision()->UpdateQuadCache();
-
 	auto &&Evolve = [this](CNetObj_Character *pCharacter, int Tick) {
 		CWorldCore TempWorld;
 		CCharacterCore TempCore = CCharacterCore();

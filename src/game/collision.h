@@ -52,6 +52,10 @@ public:
 	~CCollision();
 
 	void Init(CLayers *pLayers);
+	// <FoxNet
+	void InitQuads(); 
+	void InitSpawnCandidates();
+	// FoxNet>
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
@@ -221,7 +225,7 @@ public:
 	int CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle = true) const;
 	bool HasSolidInRadius(vec2 Pos, int TileRadius, int MinCount = 1, bool Circle = true) const;
 
-	void BuildSpawnCandidatesOnLoad();
+	void BuildSpawnCandidates();
 	bool TryPickCachedCandidate(vec2 &out) const;
 	size_t SpawnCandidateCount() const { return m_SpawnCandidates.size(); }
 	// FoxNet>

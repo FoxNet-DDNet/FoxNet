@@ -4140,6 +4140,10 @@ void CGameContext::OnInit(const void *pPersistentData)
 
 	m_Layers.Init(Kernel()->RequestInterface<IMap>(), false);
 	m_Collision.Init(&m_Layers);
+	// <FoxNet
+	m_Collision.InitQuads();
+	m_Collision.InitSpawnCandidates();
+	// FoxNet>
 	m_World.Init(&m_Collision, m_aTuningList);
 
 	char aMapName[IO_MAX_PATH_LENGTH];

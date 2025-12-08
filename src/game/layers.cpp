@@ -155,8 +155,9 @@ void CLayers::Unload()
 	m_pFrontLayer = nullptr;
 	m_pSwitchLayer = nullptr;
 	m_pTuneLayer = nullptr;
-
+	// <FoxNet
 	m_vQuadLayers.clear();
+	// FoxNet>
 }
 
 void CLayers::InitTilemapSkip()
