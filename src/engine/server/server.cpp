@@ -87,7 +87,7 @@ void CServerBan::InitServerBan(IConsole *pConsole, IStorage *pStorage, CServer *
 	// overwrites base command, todo: improve this
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanTimestampExt, this, "Ban ip/client id until an absolute UNIX timestamp");
 
-	Console()->Register("ban", "s[ip|id] i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanExt, this, "Ban player with ip/client id for x minutes for any reason");
+	Console()->Register("ban", "s[ip|id] i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanExt, this, "Ban player with ip/client id for x minutes for any reason");
 	Console()->Register("ban_region", "s[region] s[ip|id] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegion, this, "Ban player in a region");
 	Console()->Register("ban_region_range", "s[region] s[first ip] s[last ip] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegionRange, this, "Ban range in a region");
 }
@@ -194,7 +194,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 	CServerBan *pThis = static_cast<CServerBan *>(pUser);
 
 	const char *pStr = pResult->GetString(0);
-	int Minutes = pResult->NumArguments() > 1 ? std::clamp(pResult->GetInteger(1), 0, 525600) : 10;
+	const int Minutes = std::clamp(pResult->GetInteger(1), 0, 525600);
 	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "Follow the server rules. Type /rules into the chat.";
 
 	if(str_isallnum(pStr))
@@ -203,7 +203,23 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS || pThis->Server()->m_aClients[ClientId].m_State == CServer::CClient::STATE_EMPTY)
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban error (invalid client id)");
 		else
+		{
+			const int UserId = pResult->m_ClientId;
+			if(UserId >= 0)
+			{
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`",
+					pThis->Server()->ClientName(UserId),
+					pThis->Server()->ClientAddrString(UserId, false),
+					pThis->Server()->ClientName(ClientId),
+					pThis->Server()->ClientAddrString(ClientId, false),
+					Minutes,
+					pReason);
+				pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, "[BAN] - Command");
+			}
+
 			pThis->BanAddr(pThis->Server()->ClientAddr(ClientId), Minutes * 60, pReason, false);
+		}
 	}
 	else
 		ConBan(pResult, pUser);
@@ -5160,8 +5176,8 @@ void CServer::CWebhook::Run()
 	int ret = system(m_aCommand);
 	if(ret)
 	{
-		dbg_msg("webhook", "Sending webhook message failed, returned %d", ret);
-		dbg_msg("webhook", "%s", m_aCommand);
+		log_info("webhook", "Sending webhook message failed, returned %d", ret);
+		log_info("webhook", "%s", m_aCommand);
 	}
 }
 
