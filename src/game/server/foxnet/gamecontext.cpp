@@ -98,16 +98,12 @@ void CGameContext::BotClientTick()
 
 		if(Info.m_pDDNetVersionStr)
 		{
-			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet") && str_find(Info.m_pDDNetVersionStr, "18.9.1"))
-				pPlayer->m_HasBotClient = true;
-
-			if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
-				pPlayer->m_HasBotClient = true;
-
 			const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
 			const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
 
-			bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
+			const bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
+
+			bool KnownBot = false;
 
 			// check if git rev short is empty
 			if(HasGitRevShort)
@@ -117,14 +113,23 @@ void CGameContext::BotClientTick()
 					char aGitRevShort[16];
 					str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
 					if(str_length(aGitRevShort) == 0)
-					{
 						pPlayer->m_HasBotClient = true;
-						continue;
-					}
 				}
 			}
 
-			bool KnownBot = false;
+			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet"))
+			{
+				if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
+					pPlayer->m_HasBotClient = true;
+				// Random Bot Client I found on my servers
+				if(Info.m_DDNetVersion == 19050 && str_find(Info.m_pDDNetVersionStr, "ff5e8321d31266da"))
+					KnownBot = true;
+				if(!HasGitRevShort && Info.m_DDNetVersion == 18090 && str_find(Info.m_pDDNetVersionStr, "18.9"))
+					pPlayer->m_HasBotClient = true;
+			}
+
+			if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
+				pPlayer->m_HasBotClient = true;
 
 			// Some random bot client I've seen
 			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
