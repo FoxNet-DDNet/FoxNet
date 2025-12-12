@@ -144,7 +144,12 @@ void CGameContext::BotClientTick()
 				if(g_Config.m_SvAntiBot == 2)
 				{
 					char aBanBuf[256];
-					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 240 minutes for using a bot client.", Server()->ClientName(ClientId), Server()->ClientAddrString(ClientId, false));
+					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 240 minutes for using a bot client.\n"
+						"ver: %d [%s]",
+						Server()->ClientName(ClientId),
+						Server()->ClientAddrString(ClientId, false),
+						GetClientVersion(ClientId),
+						GetClientVersionStr(ClientId));
 					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
 
 					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
@@ -492,14 +497,16 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
 				"Strings: `%s`\n"
-				"Msg: `%s`",
+				"Msg: `%s`\n"
+				"ver: %d [%s]",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
 				BanDuration,
 				InfoMsg,
-				pMsg); // Unconverted message for better understanding of what they tried to send
+				pMsg, // Unconverted message for better understanding of what they tried to send
+				GetClientVersion(ClientId),
+				GetClientVersionStr(ClientId));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
-
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
 		}
 		else
@@ -595,11 +602,14 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Name-detection.\n"
-				"Strings: %s",
+				"Strings: %s\n"
+				"ver: %d [%s]",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
 				BanDuration,
-				InfoMsg);
+				InfoMsg,
+				GetClientVersion(ClientId),
+				GetClientVersionStr(ClientId));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Name Detection");
 
 			Server()->Ban(ClientId, BanDuration * 60, Reason, false);

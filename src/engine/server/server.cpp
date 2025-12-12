@@ -208,13 +208,16 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			if(UserId >= 0)
 			{
 				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`",
+				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
+					"ver: %d [%s]",
 					pThis->Server()->ClientName(UserId),
 					pThis->Server()->ClientAddrString(UserId, false),
 					pThis->Server()->ClientName(ClientId),
 					pThis->Server()->ClientAddrString(ClientId, false),
 					Minutes,
-					pReason);
+					pReason,
+					pThis->Server()->GetClientVersion(ClientId),
+					pThis->Server()->GetClientVersionStr(ClientId));
 				pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, "[BAN] - Command");
 			}
 
@@ -1793,11 +1796,11 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
-				"Ver: %d [%s]",
+				"ver: %d [%s]",
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
 				GetClientVersion(ClientId),
-				m_aClients[ClientId].m_GotDDNetVersionPacket ? m_aClients[ClientId].m_aDDNetVersionStr : "unknown");
+				GetClientVersionStr(ClientId));
 			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Stressing network");
 
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
@@ -5187,4 +5190,18 @@ void CServer::SendFoxnetInfo(int ClientId)
 	Msg.AddInt(FOXNET_VERSION_NUMBER);
 	SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
 }
+
+const char *CServer::GetClientVersionStr(int ClientId) const
+{
+	// Assume latest client version for server demos
+	if(ClientId == SERVER_DEMO_CLIENT)
+		return "demo-client";
+
+	CClientInfo Info;
+	if(GetClientInfo(ClientId, &Info))
+		return Info.m_pDDNetVersionStr;
+	return "unknown";
+}
+
+
 // FoxNet>

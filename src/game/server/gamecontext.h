@@ -438,6 +438,7 @@ public:
 	int64_t m_NonEmptySince;
 	int64_t m_LastMapVote;
 	int GetClientVersion(int ClientId) const;
+	const char *GetClientVersionStr(int ClientId) const;
 	CClientMask ClientsMaskExcludeClientVersionAndHigher(int Version) const;
 	bool PlayerExists(int ClientId) const override { return m_apPlayers[ClientId]; }
 	// Returns true if someone is actively moderating.

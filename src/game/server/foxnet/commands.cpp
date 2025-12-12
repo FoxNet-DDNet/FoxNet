@@ -49,7 +49,12 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_AccRegisters >= 2)
 	{
 		char aBanBuf[256];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.", pSelf->Server()->ClientName(ClientId), pSelf->Server()->ClientAddrString(ClientId, false));
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
+			"ver: %d [%s]",
+			pSelf->Server()->ClientName(ClientId),
+			pSelf->Server()->ClientAddrString(ClientId, false),
+			pSelf->Server()->GetClientVersion(ClientId),
+			pSelf->Server()->GetClientVersionStr(ClientId));
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - /Register");
 		pSelf->Server()->Ban(ClientId, 1440 * 60, "Too many registrations.", false);
 		return;
@@ -103,7 +108,13 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvRconMaxTries)
 	{
 		char aBanBuf[256];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.", pSelf->Server()->ClientName(ClientId), pSelf->Server()->ClientAddrString(ClientId, false), g_Config.m_SvRconBantime);
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
+						     "ver: %d [%s]",
+			pSelf->Server()->ClientName(ClientId),
+			pSelf->Server()->ClientAddrString(ClientId, false),
+			g_Config.m_SvRconBantime,
+			pSelf->Server()->GetClientVersion(ClientId),
+			pSelf->Server()->GetClientVersionStr(ClientId));
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - /Login");
 		pSelf->Server()->Ban(ClientId, g_Config.m_SvRconBantime * 60, "Too many /login attempts.", false);
 		return;

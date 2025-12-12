@@ -5326,7 +5326,12 @@ int CGameContext::GetClientVersion(int ClientId) const
 {
 	return Server()->GetClientVersion(ClientId);
 }
-
+// <FoxNet
+const char *CGameContext::GetClientVersionStr(int ClientId) const
+{
+	return Server()->GetClientVersionStr(ClientId);
+}
+// FoxNet>
 CClientMask CGameContext::ClientsMaskExcludeClientVersionAndHigher(int Version) const
 {
 	CClientMask Mask;

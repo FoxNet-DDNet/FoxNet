@@ -581,6 +581,7 @@ public:
 	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
 
 	void SendFoxnetInfo(int ClientId);
+	const char *GetClientVersionStr(int ClientId) const override;
 	// FoxNet>
 };
 
