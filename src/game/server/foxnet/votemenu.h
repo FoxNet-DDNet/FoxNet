@@ -11,6 +11,8 @@
 
 #include <array>
 
+constexpr int MAX_VOTE_LENGTH = 60; // if a vote exceeds this and has a prefix, it will be truncated
+
 class CGameContext;
 class IServer;
 
@@ -159,7 +161,7 @@ class CVoteMenu
 	bool IsOptionWithSuffix(const char *pDesc, const char *pWantedOption) { return str_startswith(pDesc, pWantedOption) != 0; }
 	bool IsOption(const char *pDesc, const char *pWantedOption) { return !str_comp(pDesc, pWantedOption); }
 
-	void AddVoteImpl(const char *pDesc) { m_vDescriptions.emplace_back(pDesc); }
+	void AddVoteImpl(const char *pDesc);
 	void AddVoteText(const char *pDesc, EPrefix Prefix = EPrefix::NONE);
 	void AddVoteSeparator() { m_vDescriptions.emplace_back(" "); }
 	void AddVoteSubheader(const char *pDesc);

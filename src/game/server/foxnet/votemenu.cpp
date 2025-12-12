@@ -28,6 +28,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <base/log.h>
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
@@ -1133,7 +1134,6 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 
 	if(SubPage == SUB_MAILBOX_MAIN)
 	{
-		// ToDo: @qxdFox: Implement these when bulk actions are added
 		AddVoteText("╭───────  Actions");
 		AddVoteText(MAIL_MARK_ALL_READ, EPrefix::LONG_LINE);
 		AddVoteText(MAIL_CLAIM_ALL_REWARDS, EPrefix::LONG_LINE);
@@ -1215,6 +1215,7 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 		char aUnescaped[1024] = "";
 		str_copy(aUnescaped, Mail.m_aMessage, sizeof(aUnescaped));
 		UnescapeNewlines(aUnescaped);
+		StrNewlineExceedLength(aUnescaped, MAX_VOTE_LENGTH);
 		std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
 		for(const auto &Line : Lines)
 			AddVoteText(Line);
@@ -1613,7 +1614,13 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 			{
 				if(pRuleLine[0])
 				{
-					AddVoteText(pRuleLine, EPrefix::LONG_LINE);
+					char aUnescaped[1024] = "";
+					str_copy(aUnescaped, pRuleLine, sizeof(aUnescaped));
+					UnescapeNewlines(aUnescaped);
+					StrNewlineExceedLength(aUnescaped, MAX_VOTE_LENGTH);
+					std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
+					for(const auto &Line : Lines)
+						AddVoteText(Line, EPrefix::LONG_LINE);
 					Printed = true;
 				}
 			}
@@ -1623,7 +1630,7 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 			}
 		}
 		AddVoteText("╰────────────────────");
-		if(!g_Config.m_SvVoteMenuServerInfoRulesOnly)
+		if(g_Config.m_SvVoteMenuServerInfoRulesOnly)
 			return;
 
 		AddVoteSeparator();
@@ -1633,7 +1640,8 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::ARROWHEAD);
 			AddVoteText(SERVER_INFO_LEVELING, EPrefix::ARROWHEAD);
 		}
-		AddVoteText(SERVER_INFO_CONTRIBUTE, EPrefix::ARROWHEAD);
+		if(!g_Config.m_SvGithubRepo[0])
+			AddVoteText(SERVER_INFO_CONTRIBUTE, EPrefix::ARROWHEAD);
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
 	{
@@ -1662,6 +1670,12 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 	}
 	else if(SubPage == SUB_SERVERINFO_CONTRIBUTE)
 	{
+		if(!g_Config.m_SvGithubRepo[0])
+		{
+			AddVoteText("GitHub repository not set up by the server admin.");
+			return;
+		}
+
 		AddVoteText("╭───────    Cᴏɴᴛʀɪʙᴜᴛɪɴɢ");
 		AddVoteText("│ Want to contribute to the server?");
 		AddVoteText("│ Or have an Idea for a feature?");
@@ -1670,10 +1684,8 @@ void CVoteMenu::SendPageServerInfo(int ClientId)
 
 		AddVoteSeparator();
 
-		AddVoteText("╭───────    GɪᴛHᴜʙ");
-		AddVoteText(g_Config.m_SvGithubRepo, EPrefix::LONG_LINE);
-		AddVoteText(SERVER_INFO_GITHUB, EPrefix::LONG_LINE);
-		AddVoteText("╰────────────────────");
+		// AddVoteText(g_Config.m_SvGithubRepo, EPrefix::LONG_LINE);
+		AddVoteText(SERVER_INFO_GITHUB, EPrefix::ARROWHEAD);
 	}
 }
 
@@ -1784,11 +1796,18 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 	return false;
 }
 
+void CVoteMenu::AddVoteImpl(const char *pDesc)
+{
+	const int Length = str_length(pDesc);
+	dbg_assert(Length < VOTE_DESC_LENGTH, "Vote description too long '%s'", pDesc);
+	m_vDescriptions.emplace_back(pDesc);
+}
+
 void CVoteMenu::AddVoteText(const char *pDesc, EPrefix Prefix)
 {
 	const char *pPrefixes[] = {"", "•", "─", "➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
 
-	if(Prefix < EPrefix::NONE || Prefix >= EPrefix::NUM)
+	if((int)Prefix <= (int)EPrefix::NONE || (int)Prefix >= (int)EPrefix::NUM)
 	{
 		AddVoteImpl(pDesc);
 		return;

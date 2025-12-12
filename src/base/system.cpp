@@ -4326,6 +4326,80 @@ std::vector<const char *> StrSplit(const char *pMsg, char Delim)
 	return v;
 }
 
+std::vector<const char *> StrSplitLength(const char *pMsg, size_t Length)
+{
+	std::vector<const char *> v;
+	const char *pStart = pMsg;
+	const char *pCur = pMsg;
+	size_t Processed = 0;
+	while(*pCur && Processed < Length)
+	{
+		if(*pCur == ' ')
+		{
+			size_t Len = pCur - pStart;
+			char *pPart = (char *)malloc(Len + 1);
+			str_copy(pPart, pStart, Len + 1);
+			v.push_back(pPart);
+			pStart = pCur + 1;
+		}
+		pCur++;
+		Processed++;
+	}
+	if(pStart != pCur)
+	{
+		size_t Len = pCur - pStart;
+		char *pPart = (char *)malloc(Len + 1);
+		str_copy(pPart, pStart, Len + 1);
+		v.push_back(pPart);
+	}
+	return v;
+}
+
+void StrNewlineExceedLength(char *pOut, size_t MaxLength)
+{
+	if(!pOut || MaxLength == 0)
+		return;
+
+	const size_t Len = str_length(pOut);
+	if(Len <= MaxLength)
+		return;
+
+	size_t lineStart = 0;
+	while(lineStart < Len)
+	{
+		size_t lineEnd = lineStart;
+		while(lineEnd < Len && pOut[lineEnd] != '\n')
+			++lineEnd;
+
+		const size_t segmentLen = lineEnd - lineStart;
+		if(segmentLen <= MaxLength)
+		{
+			lineStart = (lineEnd < Len) ? (lineEnd + 1) : lineEnd;
+			continue;
+		}
+
+		const size_t wrapLimitIdx = lineStart + MaxLength; 
+		size_t lastSpace = SIZE_MAX;
+		for(size_t i = lineStart; i < wrapLimitIdx; ++i)
+		{
+			if(pOut[i] == ' ')
+				lastSpace = i;
+		}
+
+		if(lastSpace != SIZE_MAX)
+		{
+			pOut[lastSpace] = '\n';
+			lineStart = lastSpace + 1;
+		}
+		else
+		{
+			// No space to wrap on, break at MaxLength
+			pOut[wrapLimitIdx] = '\n';
+			lineStart = wrapLimitIdx + 1;
+		}
+	}
+}
+
 void UnescapeNewlines(char *pBuf)
 {
 	int i, j;

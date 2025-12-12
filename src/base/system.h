@@ -2150,5 +2150,7 @@ void FormatItemTime(int64_t Remaining, char *out, size_t outSize);
 const char *FormatPlaytime(int64_t Time);
 
 std::vector<const char *> StrSplit(const char *pMsg, char Delim);
+std::vector<const char *> StrSplitLength(const char *pMsg, size_t Length);
+void StrNewlineExceedLength(char *pOut, size_t MaxLength);
 void UnescapeNewlines(char *pBuf);
 // FoxNet>
