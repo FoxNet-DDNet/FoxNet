@@ -302,6 +302,8 @@ public:
 
 	std::vector<FTextData *> m_pData;
 
+	float m_CenterX;
+
 	char m_aText[MAX_TEXT_LEN];
 
 	void SetData(float Cell);
@@ -399,7 +401,7 @@ inline void CText::SetData(float Cell)
 		float TightWidth = (maxC >= minC) ? (float)(maxC - minC + 1) : 0.0f;
 
 		// Compute vertical offset in cells for this glyph
-		const float yOffCells = GlyphYOffset(ch);
+		const float yOffCells = GlyphYOffset(ch) - 2.0f;
 
 		// Render only the tight columns
 		if(TightWidth > 0.0f)
@@ -431,6 +433,7 @@ inline void CText::SetData(float Cell)
 		// Advance cursor by tight glyph width + per-glyph gap (in columns), then scale uniformly
 		xCursorCols += TightWidth + GlyphXGap(ch);
 	}
+	m_CenterX = (xCursorCols * Cell * 0.70f) / 2.0f;
 }
 
 inline CText::CText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTicks, const char *pText, int EntType) :

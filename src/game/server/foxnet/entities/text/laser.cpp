@@ -29,12 +29,9 @@ CLaserText::CLaserText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTic
 		m_Mask = pOwnerChar->TeamMask();
 
 	str_copy(m_aText, pText);
-
-	int strlen = str_length(m_aText);
 	m_Pos = Pos;
-	m_Pos -= vec2((strlen * (GlyphW + 1) - 1) * CellSize / 2.0f, GlyphH * CellSize / 2.0f); // center the text
-
 	SetData(CellSize);
+
 	GameWorld()->InsertEntity(this);
 }
 
@@ -45,7 +42,7 @@ void CLaserText::Snap(int SnappingClient)
 
 	for(auto *pData : m_pData)
 	{
-		vec2 Pos = pData->m_Pos;
+		vec2 Pos = pData->m_Pos - vec2(m_CenterX, 0);
 		if(NetworkClipped(SnappingClient, Pos))
 			continue;
 
