@@ -105,8 +105,10 @@ void CPowerUp::Tick()
 		if(!Server()->ClientIngame(ClientId))
 			continue;
 
-		if(!m_aClients[ClientId].m_Collected)
-			HandleClient(ClientId);
+		// Always run HandleClient for active clients so collection/address checks are evaluated
+		// This ensures rejoined players with the same address are detected and prevented
+		// from collecting repeatedly.
+		HandleClient(ClientId);
 
 		if(m_aClients[ClientId].m_Collected && m_aClients[ClientId].m_WasLoggedIn)
 			NumCollected++;
@@ -128,44 +130,44 @@ void CPowerUp::HandleClient(int ClientId)
 	CClientMask TeamMask = pChr->TeamMask();
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(!Server()->ClientIngame(i))
-		{
-			m_aClients[i].m_Collected = false;
-			m_aClients[i].m_WasLoggedIn = false;
-			continue;
-		}
-		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
-		if(!pPlayer)
-		{
-			m_aClients[i].m_Collected = false;
-			m_aClients[i].m_WasLoggedIn = false;
-			continue;
-		}
-		if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
+		// Only fetch player pointer for active slots.
+		CPlayer *pPlayer = nullptr;
+		if(Server()->ClientIngame(i))
+			CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+
+		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
 			TeamMask.set(ClientId).reset();
 
-		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &m_aClients[i].m_Addr) == 0 && i != ClientId)
+		// Prevent multi-collect from the same address (covers rejoin to different slot)
+		// If either current slot or inspected slot has a collected flag, compare addresses.
+		if(i != ClientId && (m_aClients[ClientId].m_Collected || m_aClients[i].m_Collected))
 		{
-			if(m_aClients[ClientId].m_Collected || m_aClients[i].m_Collected)
+			// Compare stored address (may have been set when someone collected).
+			if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &m_aClients[i].m_Addr) == 0)
 			{
-				// Prevent multi-collect from same address
 				m_aClients[ClientId].m_Collected = true;
 				m_aClients[i].m_Collected = true;
 			}
 		}
 	}
 
-	if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
+
+	
+	if(!m_aClients[ClientId].m_Collected)
 	{
-		GameServer()->OnCollectPowerup(ClientId, &m_Data);
-		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
+		if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))
+		{
+			GameServer()->OnCollectPowerup(ClientId, &m_Data);
+			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 
-		m_aClients[ClientId].m_Collected = true;
-		m_aClients[ClientId].m_WasLoggedIn = pChr->GetPlayer()->Acc()->m_LoggedIn;
+			m_aClients[ClientId].m_Collected = true;
+			m_aClients[ClientId].m_WasLoggedIn = pChr->GetPlayer()->Acc()->m_LoggedIn;
+			m_aClients[ClientId].m_Addr = *Server()->ClientAddr(ClientId);
 
-		if(m_Lifetime > Server()->TickSpeed() * 30)
-			m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
-		return;
+			if(m_Lifetime > Server()->TickSpeed() * 30)
+				m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
+			return;
+		}
 	}
 }
 
