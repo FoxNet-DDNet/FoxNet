@@ -57,19 +57,19 @@ class TestTimeout(namedtuple("TestTimeout", "")):
     def raise_on_error(self, timeout_id): # pylint: disable=unused-argument
         raise TimeoutError("test timeout")
 
-class Timeout(namedtuple("Timeout", "id")):
-    def raise_on_error(self, timeout_id):
-        if timeout_id == self.id:
-            raise TimeoutError("timeout")
+class Timeout(namedtuple("Timeout", ["id", "description"])):
+	def raise_on_error(self, timeout_id):
+		if timeout_id == self.id:
+			raise TimeoutError(f"timeout waiting for {self.description}")
 
 # This class is used to track that each timeout value is multiplied by
 # `timeout_multiplier` exactly once.
-class TimeoutParam(namedtuple("Timeout", "start unmultiplied_duration")):
-    def __new__(cls, duration):
-        return super().__new__(cls, time(), duration)
-    def remaining_duration(self, test_env):
-        duration = test_env.runner.timeout_multiplier * self.unmultiplied_duration
-        return max((self.start + duration) - time(), 0)
+class TimeoutParam(namedtuple("Timeout", ["start", "unmultiplied_duration", "description"])):
+	def __new__(cls, duration, description):
+		return super().__new__(cls, time(), duration, description)
+	def remaining_duration(self, test_env):
+		duration = test_env.runner.timeout_multiplier * self.unmultiplied_duration
+		return max((self.start + duration) - time(), 0)
 
 def relpath(path, start=os.curdir):
     try:
@@ -179,28 +179,28 @@ class TestEnvironment:
 add_path .
 add_path {relpath(self.runner.data_dir, tmp_dir)}
 """)
-        self.ddnet = os.path.relpath(runner.ddnet, self.tmp_dir)
-        self.ddnet_server = os.path.relpath(runner.ddnet_server, self.tmp_dir)
-        self.ddnet_mastersrv = os.path.relpath(runner.ddnet_mastersrv, self.tmp_dir) if runner.ddnet_mastersrv is not None else None
-        self.run_prefix_args = []
-        if self.runner.valgrind_memcheck:
-            self.run_prefix_args = [
-                "valgrind",
-                "--tool=memcheck",
-                "--gen-suppressions=all",
-                # pylint: disable=consider-using-f-string
-                "--suppressions={}".format(relpath(os.path.join(runner.repo_dir, "memcheck.supp"), self.tmp_dir)),
-                "--track-origins=yes",
-            ]
-        self.name = name
-        self.num_clients = 0
-        self.num_servers = 0
-        self.num_mastersrvs = 0
-        self.processes = []
-        self.run_id = uuid4()
-        self.full_stderrs = []
-        self.test_timeout_queue = Queue()
-        run_test_timeout_thread(f"{self.name}_timeout", self, self.test_timeout_queue, TimeoutParam(timeout))
+		self.ddnet = os.path.relpath(runner.ddnet, self.tmp_dir)
+		self.ddnet_server = os.path.relpath(runner.ddnet_server, self.tmp_dir)
+		self.ddnet_mastersrv = os.path.relpath(runner.ddnet_mastersrv, self.tmp_dir) if runner.ddnet_mastersrv is not None else None
+		self.run_prefix_args = []
+		if self.runner.valgrind_memcheck:
+			self.run_prefix_args = [
+				"valgrind",
+				"--tool=memcheck",
+				"--gen-suppressions=all",
+				# pylint: disable=consider-using-f-string
+				"--suppressions={}".format(relpath(os.path.join(runner.repo_dir, "memcheck.supp"), self.tmp_dir)),
+				"--track-origins=yes",
+			]
+		self.name = name
+		self.num_clients = 0
+		self.num_servers = 0
+		self.num_mastersrvs = 0
+		self.processes = []
+		self.run_id = uuid4()
+		self.full_stderrs = []
+		self.test_timeout_queue = Queue()
+		run_test_timeout_thread(f"{self.name}_timeout", self, self.test_timeout_queue, TimeoutParam(timeout, f"{self.name} test"))
 
     def __del__(self):
         self.kill_all()
@@ -263,18 +263,18 @@ def run_exit_thread(name, process, queue, allow_unclean_exit):
     Thread(name=name, target=thread, daemon=True).start()
 
 def run_timeout_thread(name, test_env, input_queue, output_queue):
-    def thread():
-        param = None
-        while True:
-            timeout = param.remaining_duration(test_env) if param is not None else None
-            try:
-                id, param = input_queue.get(timeout=timeout)
-            except queue.Empty:
-                output_queue.put(Timeout(id))
-                param = None
-                del id
-            # TODO: quit this thread
-    Thread(name=name, target=thread, daemon=True).start()
+	def thread():
+		param = None
+		while True:
+			timeout = param.remaining_duration(test_env) if param is not None else None
+			try:
+				id, param = input_queue.get(timeout=timeout)
+			except queue.Empty:
+				output_queue.put(Timeout(id, param.description))
+				param = None
+				del id
+			# TODO: quit this thread
+	Thread(name=name, target=thread, daemon=True).start()
 
 def run_test_timeout_thread(name, test_env, input_queue, param):
     def thread():
@@ -292,77 +292,79 @@ def run_test_timeout_thread(name, test_env, input_queue, param):
     Thread(name=name, target=thread, daemon=True).start()
 
 class Runnable:
-    # pylint: disable=dangerous-default-value
-    def __init__(self, test_env, name, args, *, extra_env_vars={}, log_is_stderr=False, allow_unclean_exit=False):
-        self.name = name
-        cur_env_vars = dict(os.environ)
-        intersection = set(cur_env_vars) & (set(test_env.runner.extra_env_vars) | set(extra_env_vars))
-        if intersection:
-            # pylint: disable=consider-using-f-string
-            raise ValueError("conflicting environment variable(s): {}".format(
-                ", ".join(sorted(intersection))
-            ))
-        new_env_vars = {**cur_env_vars, **test_env.runner.extra_env_vars, **extra_env_vars}
-        self.process = popen(
-            test_env.run_prefix_args + args,
-            cwd=test_env.tmp_dir,
-            env=new_env_vars,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout_wrapper = io.TextIOWrapper(self.process.stdout, encoding="utf-8", newline="\n")
-        stderr_wrapper = io.TextIOWrapper(self.process.stderr, encoding="utf-8", newline="\n")
-        self.full_stdout = []
-        self.full_stderr = []
-        test_env.register_process(self.process, self.full_stderr)
-        self.events = Queue()
-        test_env.register_events_queue(self.events)
-        self.next_timeout_id = 0
-        self.timeout_queue = Queue()
-        global_name = f"{test_env.name}_{self.name}"
-        stdout_path = os.path.join(test_env.tmp_dir, f"{self.name}.stdout")
-        stderr_path = os.path.join(test_env.tmp_dir, f"{self.name}.stderr")
-        run_timeout_thread(f"{global_name}_timeout", test_env, self.timeout_queue, self.events)
-        run_lines_thread(f"{global_name}_stdout", stdout_wrapper, stdout_path, self.full_stdout, self.events if not log_is_stderr else None)
-        run_lines_thread(f"{global_name}_stderr", stderr_wrapper, stderr_path, self.full_stderr, self.events if log_is_stderr else None)
-        run_exit_thread(f"{global_name}_exit", self.process, self.events, allow_unclean_exit)
-    def register_timeout(self, timeout):
-        timeout_id = self.next_timeout_id
-        self.next_timeout_id += 1
-        self.timeout_queue.put((timeout_id, TimeoutParam(timeout)))
-        return timeout_id
-    def next_event(self, timeout_id):
-        event = self.events.get()
-        event.raise_on_error(timeout_id)
-        return event
-    def clear_events(self):
-        while True:
-            try:
-                event = self.events.get(block=False)
-            except queue.Empty:
-                break
-            else:
-                event.raise_on_error(None)
-    def wait_for_log(self, fn, timeout=1):
-        timeout_id = self.register_timeout(timeout)
-        while True:
-            event = self.next_event(timeout_id)
-            if isinstance(event, Exit):
-                raise EOFError("program exited before reaching wanted log line")
-            elif isinstance(event, Log):
-                if fn(event):
-                    return event
-    def wait_for_log_prefix(self, prefix, timeout=1):
-        self.wait_for_log(lambda l: l.line.startswith(prefix), timeout=timeout)
-    def wait_for_log_exact(self, line, timeout=1):
-        self.wait_for_log(lambda l: l.line == line, timeout=timeout)
-    def wait_for_exit(self, timeout=10):
-        timeout_id = self.register_timeout(timeout)
-        while True:
-            event = self.next_event(timeout_id)
-            if isinstance(event, Exit):
-                return
+	# pylint: disable=dangerous-default-value
+	def __init__(self, test_env, name, args, *, extra_env_vars={}, log_is_stderr=False, allow_unclean_exit=False):
+		self.name = name
+		cur_env_vars = dict(os.environ)
+		intersection = set(cur_env_vars) & (set(test_env.runner.extra_env_vars) | set(extra_env_vars))
+		if intersection:
+			# pylint: disable=consider-using-f-string
+			raise ValueError("conflicting environment variable(s): {}".format(
+				", ".join(sorted(intersection))
+			))
+		new_env_vars = {**cur_env_vars, **test_env.runner.extra_env_vars, **extra_env_vars}
+		self.process = popen(
+			test_env.run_prefix_args + args,
+			cwd=test_env.tmp_dir,
+			env=new_env_vars,
+			stdin=subprocess.DEVNULL,
+			stdout=subprocess.PIPE,
+			stderr=subprocess.PIPE,
+		)
+		stdout_wrapper = io.TextIOWrapper(self.process.stdout, encoding="utf-8", newline="\n")
+		stderr_wrapper = io.TextIOWrapper(self.process.stderr, encoding="utf-8", newline="\n")
+		self.full_stdout = []
+		self.full_stderr = []
+		test_env.register_process(self.process, self.full_stderr)
+		self.events = Queue()
+		test_env.register_events_queue(self.events)
+		self.next_timeout_id = 0
+		self.timeout_queue = Queue()
+		global_name = f"{test_env.name}_{self.name}"
+		stdout_path = os.path.join(test_env.tmp_dir, f"{self.name}.stdout")
+		stderr_path = os.path.join(test_env.tmp_dir, f"{self.name}.stderr")
+		run_timeout_thread(f"{global_name}_timeout", test_env, self.timeout_queue, self.events)
+		run_lines_thread(f"{global_name}_stdout", stdout_wrapper, stdout_path, self.full_stdout, self.events if not log_is_stderr else None)
+		run_lines_thread(f"{global_name}_stderr", stderr_wrapper, stderr_path, self.full_stderr, self.events if log_is_stderr else None)
+		run_exit_thread(f"{global_name}_exit", self.process, self.events, allow_unclean_exit)
+	def register_timeout(self, timeout, description):
+		timeout_id = self.next_timeout_id
+		self.next_timeout_id += 1
+		self.timeout_queue.put((timeout_id, TimeoutParam(timeout, description)))
+		return timeout_id
+	def next_event(self, timeout_id):
+		event = self.events.get()
+		event.raise_on_error(timeout_id)
+		return event
+	def clear_events(self):
+		while True:
+			try:
+				event = self.events.get(block=False)
+			except queue.Empty:
+				break
+			else:
+				event.raise_on_error(None)
+	def wait_for_log(self, fn, description, timeout=1):
+		timeout_id = self.register_timeout(timeout, description)
+		while True:
+			event = self.next_event(timeout_id)
+			if isinstance(event, Exit):
+				raise EOFError(f"program exited unexpectedly waiting for {description}")
+			elif isinstance(event, Log):
+				if fn(event):
+					return event
+	def wait_for_log_prefix(self, prefix, timeout=1):
+		self.wait_for_log(lambda l: l.line.startswith(prefix), description=f"log line with prefix `{prefix}`", timeout=timeout)
+	def wait_for_log_suffix(self, suffix, timeout=1):
+		self.wait_for_log(lambda l: l.line.endswith(suffix), description=f"log line with suffix `{suffix}`", timeout=timeout)
+	def wait_for_log_exact(self, line, timeout=1):
+		self.wait_for_log(lambda l: l.line == line, description=f"log line exactly matching `{line}`", timeout=timeout)
+	def wait_for_exit(self, timeout=10):
+		timeout_id = self.register_timeout(timeout, "exit")
+		while True:
+			event = self.next_event(timeout_id)
+			if isinstance(event, Exit):
+				return
 
 def fifo_name(test_env, name):
     if os.name != "nt":
@@ -491,29 +493,29 @@ def wait_for_startup(l):
 
 @test(timeout=10)
 def meta_timeout(test_env):
-    server = test_env.server()
-    wait_for_startup([server])
-    try:
-        server.wait_for_exit(timeout=0.1)
-    except TimeoutError as e:
-        if str(e) != "timeout":
-            raise
-    else:
-        raise AssertionError("timeout should have triggered")
-    server.exit()
-    server.wait_for_exit()
+	server = test_env.server()
+	wait_for_startup([server])
+	try:
+		server.wait_for_exit(timeout=0.1)
+	except TimeoutError as e:
+		if str(e) != "timeout waiting for exit":
+			raise
+	else:
+		raise AssertionError("timeout should have triggered")
+	server.exit()
+	server.wait_for_exit()
 
 @test(timeout=0.1)
 def meta_test_timeout(test_env):
-    server = test_env.server()
-    try:
-        server.wait_for_exit(timeout=0.1)
-    except TimeoutError as e:
-        if str(e) != "test timeout":
-            raise
-    else:
-        raise AssertionError("timeout should have triggered")
-    # with the global timeout disabled, better exit the test quickly without waiting
+	server = test_env.server()
+	try:
+		server.wait_for_exit(timeout=1)
+	except TimeoutError as e:
+		if str(e) != "test timeout":
+			raise
+	else:
+		raise AssertionError("timeout should have triggered")
+	# with the global timeout disabled, better exit the test quickly without waiting
 
 @test
 def start_server(test_env):
@@ -568,16 +570,16 @@ def smoke_test(test_env):
     client1.command("debug 0")
     client1.command("record client1")
 
-    client2 = test_env.client(["logfile client2.log", "player_name client2", f"connect localhost:{server.port}"])
-    wait_for_startup([client2])
-    server.wait_for_log_prefix("server: player has entered the game", timeout=30)  # was 10
-
-    for _ in range(5):
-        server.wait_for_log(
-            lambda l: l.line.startswith("chat: *** client1 finished in:") or
-                      l.line.startswith("chat: *** client2 finished in:"),
-            timeout=120,  # was 40
-        )
+	client2 = test_env.client(["logfile client2.log", "player_name client2", f"connect localhost:{server.port}"])
+	wait_for_startup([client2])
+	server.wait_for_log_prefix("server: player has entered the game", timeout=10)
+	for _ in range(5):
+		server.wait_for_log(
+			lambda l: l.line.startswith("chat: *** client1 finished in:") or
+				l.line.startswith("chat: *** client2 finished in:"),
+			description="log lines with client1 and client2 finishes",
+			timeout=40,
+		)
 
     client1.command("say hello world")
     server.wait_for_log_exact("chat: 0:-2:client1: hello world")
@@ -674,28 +676,28 @@ def start_mastersrv(test_env):
 
 @test(requires_mastersrv=True)
 def server_can_register(test_env):
-    mastersrv = test_env.mastersrv()
-    wait_for_startup([mastersrv])
-    server = test_env.server([
-        "http_allow_insecure 1",
-        "sv_register ipv6",
-        f"sv_register_url http://[::1]:{mastersrv.port}/ddnet/15/register",
-    ])
-    wait_for_startup([server])
-    server.wait_for_log(lambda l: l.line.endswith("successfully registered"), timeout=5)
-    server.wait_for_log(lambda l: l.line.endswith("successfully registered"), timeout=5)
-    servers_json = mastersrv.servers_json()
-    if len(servers_json["servers"]) != 1 or servers_json["servers"][0]["info"]["map"]["name"] != "Tutorial" \
-            or len(servers_json["servers"][0]["addresses"]) != 2:
-        raise AssertionError(f"unexpected servers.json\n{servers_json}")
-    server.exit()
-    mastersrv.wait_for_log_prefix("mastersrv: successfully removed", timeout=5)
-    mastersrv.wait_for_log_prefix("mastersrv: successfully removed", timeout=5)
-    servers_json = mastersrv.servers_json()
-    if len(servers_json["servers"]) != 0:
-        raise AssertionError(f"unexpected servers.json\n{servers_json}")
-    mastersrv.exit()
-    mastersrv.wait_for_exit()
+	mastersrv = test_env.mastersrv()
+	wait_for_startup([mastersrv])
+	server = test_env.server([
+		"http_allow_insecure 1",
+		"sv_register ipv6",
+		f"sv_register_url http://[::1]:{mastersrv.port}/ddnet/15/register",
+	])
+	wait_for_startup([server])
+	server.wait_for_log_suffix("successfully registered", timeout=5)
+	server.wait_for_log_suffix("successfully registered", timeout=5)
+	servers_json = mastersrv.servers_json()
+	if len(servers_json["servers"]) != 1 or servers_json["servers"][0]["info"]["map"]["name"] != "Tutorial" \
+			or len(servers_json["servers"][0]["addresses"]) != 2:
+		raise AssertionError(f"unexpected servers.json\n{servers_json}")
+	server.exit()
+	mastersrv.wait_for_log_prefix("mastersrv: successfully removed", timeout=5)
+	mastersrv.wait_for_log_prefix("mastersrv: successfully removed", timeout=5)
+	servers_json = mastersrv.servers_json()
+	if len(servers_json["servers"]) != 0:
+		raise AssertionError(f"unexpected servers.json\n{servers_json}")
+	mastersrv.exit()
+	mastersrv.wait_for_exit()
 
 def server_can_register_protocol(test_env, protocol_config, protocol_log, protocol_scheme):
     mastersrv = test_env.mastersrv()

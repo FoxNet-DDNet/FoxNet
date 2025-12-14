@@ -238,6 +238,8 @@ void CEditorMap::ModifySoundIndex(const FIndexModifyFunction &IndexModifyFunctio
 
 void CEditorMap::Clean()
 {
+	m_aFilename[0] = '\0';
+	m_ValidSaveFilename = false;
 	ResetModifiedState();
 
 	m_vpGroups.clear();
@@ -264,6 +266,13 @@ void CEditorMap::Clean()
 
 	m_SelectedImage = 0;
 	m_SelectedSound = 0;
+
+	m_ShiftBy = 1;
+
+	m_QuadKnife.m_Active = false;
+	m_QuadKnife.m_Count = 0;
+	m_QuadKnife.m_SelectedQuadIndex = -1;
+	std::fill(std::begin(m_QuadKnife.m_aPoints), std::end(m_QuadKnife.m_aPoints), vec2(0.0f, 0.0f));
 }
 
 void CEditorMap::CreateDefault()

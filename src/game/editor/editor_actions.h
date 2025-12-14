@@ -112,6 +112,24 @@ private:
 	int m_QuadIndex;
 	std::vector<CPoint> m_vPreviousPoints;
 	std::vector<CPoint> m_vCurrentPoints;
+
+	void Apply(const std::vector<CPoint> &vValue);
+};
+
+class CEditorActionEditQuadColor : public CEditorActionLayerBase
+{
+public:
+	CEditorActionEditQuadColor(CEditorMap *pMap, int GroupIndex, int LayerIndex, int QuadIndex, std::vector<CColor> const &vPreviousColors, std::vector<CColor> const &vCurrentColors);
+
+	void Undo() override;
+	void Redo() override;
+
+private:
+	int m_QuadIndex;
+	std::vector<CColor> m_vPreviousColors;
+	std::vector<CColor> m_vCurrentColors;
+
+	void Apply(std::vector<CColor> &vValue);
 };
 
 class CEditorActionEditQuadProp : public CEditorActionLayerBase
@@ -483,13 +501,13 @@ private:
 class CEditorActionAddEnvelopePoint : public IEditorAction
 {
 public:
-	CEditorActionAddEnvelopePoint(CEditorMap *pMap, int EnvIndex, CFixedTime Time, ColorRGBA Channels);
+	CEditorActionAddEnvelopePoint(CEditorMap *pMap, int EnvelopeIndex, CFixedTime Time, ColorRGBA Channels);
 
 	void Undo() override;
 	void Redo() override;
 
 private:
-	int m_EnvIndex;
+	int m_EnvelopeIndex;
 	CFixedTime m_Time;
 	ColorRGBA m_Channels;
 };
@@ -497,13 +515,13 @@ private:
 class CEditorActionDeleteEnvelopePoint : public IEditorAction
 {
 public:
-	CEditorActionDeleteEnvelopePoint(CEditorMap *pMap, int EnvIndex, int PointIndex);
+	CEditorActionDeleteEnvelopePoint(CEditorMap *pMap, int EnvelopeIndex, int PointIndex);
 
 	void Undo() override;
 	void Redo() override;
 
 private:
-	int m_EnvIndex;
+	int m_EnvelopeIndex;
 	int m_PointIndex;
 	CEnvPoint_runtime m_Point;
 };
@@ -518,14 +536,14 @@ public:
 		POINT
 	};
 
-	CEditorActionEditEnvelopePointValue(CEditorMap *pMap, int EnvIndex, int PointIndex, int Channel, EType Type, CFixedTime OldTime, int OldValue, CFixedTime NewTime, int NewValue);
+	CEditorActionEditEnvelopePointValue(CEditorMap *pMap, int EnvelopeIndex, int PointIndex, int Channel, EType Type, CFixedTime OldTime, int OldValue, CFixedTime NewTime, int NewValue);
 
 	void Undo() override;
 	void Redo() override;
 
 private:
-	int m_EnvIndex;
-	int m_PtIndex;
+	int m_EnvelopeIndex;
+	int m_PointIndex;
 	int m_Channel;
 	EType m_Type;
 	CFixedTime m_OldTime;
@@ -539,13 +557,13 @@ private:
 class CEditorActionResetEnvelopePointTangent : public IEditorAction
 {
 public:
-	CEditorActionResetEnvelopePointTangent(CEditorMap *pMap, int EnvIndex, int PointIndex, int Channel, bool In);
+	CEditorActionResetEnvelopePointTangent(CEditorMap *pMap, int EnvelopeIndex, int PointIndex, int Channel, bool In);
 
 	void Undo() override;
 	void Redo() override;
 
 private:
-	int m_EnvIndex;
+	int m_EnvelopeIndex;
 	int m_PointIndex;
 	int m_Channel;
 	bool m_In;

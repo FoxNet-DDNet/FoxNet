@@ -883,9 +883,6 @@ Show others
 Unfinished map
 == Oavklarad bana
 
-Show quads
-== Visa quads
-
 Show names in chat in team colors
 == Visa namn in chatten med lagets färger
 
@@ -1314,7 +1311,7 @@ Close the demo player
 == Stäng demo spelaren
 
 Toggle keyboard shortcuts
-== Växla kortkommandon 
+== Växla kortkommandon
 
 Export demo cut
 == Exportera demo snitt
@@ -1368,7 +1365,7 @@ Open the directory that contains the configuration and user files
 == Öppna mappen som innehåller konfigurationen och användarfiler
 
 Open the directory to add custom themes
-== Öppna mappen för att lägga till egna teman 
+== Öppna mappen för att lägga till egna teman
 
 Loading skin files
 == Laddar skin filer
@@ -1781,7 +1778,7 @@ Show hook strength icon indicator
 == Visa hook styrka med en ikon
 
 Show hook strength number indicator
-== Visa hook styrka med ett nummer 
+== Visa hook styrka med ett nummer
 
 Show own player's hook collision line
 == Visa din egen hook kollisions linje
@@ -2168,7 +2165,7 @@ All
 == Alla
 
 Preview dummy's name plate
-== Förhandsvisning av namnskylt för dummy 
+== Förhandsvisning av namnskylt för dummy
 
 AntiPing: prediction margin
 == AntiPing: prediction marginal
@@ -2517,4 +2514,25 @@ You will be disconnected from the server.
 == 
 
 Are you sure that you want to disconnect and play this demo?
+== 
+
+Show background quads
+== 
+
+Scoreboard cursor
+== 
+
+Add friend
+== 
+
+Unmute
+== 
+
+Mute
+== 
+
+Unmute emoticons
+== 
+
+Mute emoticons
 == 

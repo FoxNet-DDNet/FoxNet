@@ -889,6 +889,24 @@ void CGameContext::SendBroadcast(const char *pText, int ClientId, bool IsImporta
 	m_apPlayers[ClientId]->m_LastBroadcastImportance = IsImportant;
 }
 
+void CGameContext::SendSkinChange7(int ClientId)
+{
+	dbg_assert(in_range(ClientId, 0, MAX_CLIENTS - 1), "Invalid ClientId: %d", ClientId);
+	dbg_assert(m_apPlayers[ClientId] != nullptr, "Client not online: %d", ClientId);
+
+	const CTeeInfo &Info = m_apPlayers[ClientId]->m_TeeInfos;
+	protocol7::CNetMsg_Sv_SkinChange Msg;
+	Msg.m_ClientId = ClientId;
+	for(int Part = 0; Part < protocol7::NUM_SKINPARTS; Part++)
+	{
+		Msg.m_apSkinPartNames[Part] = Info.m_aaSkinPartNames[Part];
+		Msg.m_aSkinPartColors[Part] = Info.m_aSkinPartColors[Part];
+		Msg.m_aUseCustomColors[Part] = Info.m_aUseCustomColors[Part];
+	}
+
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
+}
+
 void CGameContext::StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc)
 {
 	// reset votes
@@ -1330,9 +1348,11 @@ void CGameContext::OnTick()
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
-				Console()->ExecuteLine(m_aVoteCommand, m_VoteCreator);
-				SendChat(-1, TEAM_ALL, "Vote passed enforced by authorized player", -1, FLAG_SIX);
+				Server()->SetRconCid(IServer::RCON_CID_VOTE);
+				Console()->ExecuteLine(m_aVoteCommand);
+				Server()->SetRconCid(IServer::RCON_CID_SERV);
 				EndVote();
+				SendChat(-1, TEAM_ALL, "Vote passed enforced by authorized player", -1, FLAG_SIX);
 
 				if(m_VoteCreator != -1 && m_apPlayers[m_VoteCreator])
 					m_apPlayers[m_VoteCreator]->m_LastVoteCall = 0;
@@ -1987,9 +2007,8 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 			pMsg->m_pClan = pMsg7->m_pClan;
 			pMsg->m_Country = pMsg7->m_Country;
 
-			CTeeInfo Info(pMsg7->m_apSkinPartNames, pMsg7->m_aUseCustomColors, pMsg7->m_aSkinPartColors);
-			Info.FromSixup();
-			pPlayer->m_TeeInfos = Info;
+			pPlayer->m_TeeInfos = CTeeInfo(pMsg7->m_apSkinPartNames, pMsg7->m_aUseCustomColors, pMsg7->m_aSkinPartColors);
+			pPlayer->m_TeeInfos.FromSixup();
 			// <FoxNet
 			char SkinBuf[MAX_SKIN_LENGTH];
 			str_copy(SkinBuf, Info.m_aSkinName);
@@ -1998,7 +2017,7 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 
 			str_copy(pPlayer->m_TeeInfos.m_aSkinName, SkinBuf, sizeof(pPlayer->m_TeeInfos.m_aSkinName));
 			// FoxNet>
-			str_copy(s_aRawMsg + sizeof(*pMsg), Info.m_aSkinName, sizeof(s_aRawMsg) - sizeof(*pMsg));
+			str_copy(s_aRawMsg + sizeof(*pMsg), pPlayer->m_TeeInfos.m_aSkinName, sizeof(s_aRawMsg) - sizeof(*pMsg));
 
 			pMsg->m_pSkin = s_aRawMsg + sizeof(*pMsg);
 			pMsg->m_UseCustomColor = pPlayer->m_TeeInfos.m_UseCustomColor;
@@ -2017,17 +2036,7 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 			CTeeInfo Info(pMsg->m_apSkinPartNames, pMsg->m_aUseCustomColors, pMsg->m_aSkinPartColors);
 			Info.FromSixup();
 			pPlayer->m_TeeInfos = Info;
-
-			protocol7::CNetMsg_Sv_SkinChange Msg;
-			Msg.m_ClientId = ClientId;
-			for(int p = 0; p < protocol7::NUM_SKINPARTS; p++)
-			{
-				Msg.m_apSkinPartNames[p] = pMsg->m_apSkinPartNames[p];
-				Msg.m_aSkinPartColors[p] = pMsg->m_aSkinPartColors[p];
-				Msg.m_aUseCustomColors[p] = pMsg->m_aUseCustomColors[p];
-			}
-
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
+			SendSkinChange7(ClientId);
 
 			return nullptr;
 		}
@@ -2877,16 +2886,7 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 	}
 	else
 	{
-		protocol7::CNetMsg_Sv_SkinChange Msg;
-		Msg.m_ClientId = ClientId;
-		for(int p = 0; p < protocol7::NUM_SKINPARTS; p++)
-		{
-			Msg.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_aaSkinPartNames[p];
-			Msg.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
-			Msg.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
-		}
-
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
+		SendSkinChange7(ClientId);
 	}
 
 	Server()->ExpireServerInfo();
@@ -3060,8 +3060,8 @@ void CGameContext::OnStartInfoNetMessage(const CNetMsg_Cl_StartInfo *pMsg, int C
 
 	// client is ready to enter
 	pPlayer->m_IsReady = true;
-	CNetMsg_Sv_ReadyToEnter m;
-	Server()->SendPackMsg(&m, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+	CNetMsg_Sv_ReadyToEnter ReadyMsg;
+	Server()->SendPackMsg(&ReadyMsg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
 	Server()->ExpireServerInfo();
 }

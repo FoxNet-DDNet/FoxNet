@@ -20,6 +20,16 @@ bool CQuadEditTracker::QuadPointChanged(const std::vector<CPoint> &vCurrentPoint
 	return false;
 }
 
+bool CQuadEditTracker::QuadColorChanged(const std::vector<CColor> &vCurrentColors, int QuadIndex)
+{
+	for(size_t i = 0; i < vCurrentColors.size(); i++)
+	{
+		if(vCurrentColors[i] != m_InitialColors[QuadIndex][i])
+			return true;
+	}
+	return false;
+}
+
 void CQuadEditTracker::BeginQuadTrack(const std::shared_ptr<CLayerQuads> &pLayer, const std::vector<int> &vSelectedQuads, int GroupIndex, int LayerIndex)
 {
 	if(m_Tracking)
@@ -33,7 +43,7 @@ void CQuadEditTracker::BeginQuadTrack(const std::shared_ptr<CLayerQuads> &pLayer
 	for(auto QuadIndex : vSelectedQuads)
 	{
 		auto &pQuad = pLayer->m_vQuads[QuadIndex];
-		m_InitialPoints[QuadIndex] = std::vector<CPoint>(pQuad.m_aPoints, pQuad.m_aPoints + 5);
+		m_InitialPoints[QuadIndex] = std::vector<CPoint>(std::begin(pQuad.m_aPoints), std::end(pQuad.m_aPoints));
 		m_vSelectedQuads.push_back(QuadIndex);
 	}
 }
@@ -49,7 +59,7 @@ void CQuadEditTracker::EndQuadTrack()
 	for(auto QuadIndex : m_vSelectedQuads)
 	{
 		auto &pQuad = m_pLayer->m_vQuads[QuadIndex];
-		auto vCurrentPoints = std::vector<CPoint>(pQuad.m_aPoints, pQuad.m_aPoints + 5);
+		auto vCurrentPoints = std::vector<CPoint>(std::begin(pQuad.m_aPoints), std::end(pQuad.m_aPoints));
 		if(QuadPointChanged(vCurrentPoints, QuadIndex))
 			vpActions.push_back(std::make_shared<CEditorActionEditQuadPoint>(Map(), m_GroupIndex, m_LayerIndex, QuadIndex, m_InitialPoints[QuadIndex], vCurrentPoints));
 	}
@@ -73,11 +83,13 @@ void CQuadEditTracker::BeginQuadPropTrack(const std::shared_ptr<CLayerQuads> &pL
 	{
 		auto &Quad = pLayer->m_vQuads[QuadIndex];
 		if(Prop == EQuadProp::PROP_POS_X || Prop == EQuadProp::PROP_POS_Y)
-			m_InitialPoints[QuadIndex] = std::vector<CPoint>(Quad.m_aPoints, Quad.m_aPoints + 5);
+			m_InitialPoints[QuadIndex] = std::vector<CPoint>(std::begin(Quad.m_aPoints), std::end(Quad.m_aPoints));
 		else if(Prop == EQuadProp::PROP_POS_ENV)
 			m_PreviousValues[QuadIndex] = Quad.m_PosEnv;
 		else if(Prop == EQuadProp::PROP_POS_ENV_OFFSET)
 			m_PreviousValues[QuadIndex] = Quad.m_PosEnvOffset;
+		else if(Prop == EQuadProp::PROP_COLOR)
+			m_InitialColors[QuadIndex] = std::vector<CColor>(std::begin(Quad.m_aColors), std::end(Quad.m_aColors));
 		else if(Prop == EQuadProp::PROP_COLOR_ENV)
 			m_PreviousValues[QuadIndex] = Quad.m_ColorEnv;
 		else if(Prop == EQuadProp::PROP_COLOR_ENV_OFFSET)
@@ -97,9 +109,15 @@ void CQuadEditTracker::EndQuadPropTrack(EQuadProp Prop)
 		auto &Quad = m_pLayer->m_vQuads[QuadIndex];
 		if(Prop == EQuadProp::PROP_POS_X || Prop == EQuadProp::PROP_POS_Y)
 		{
-			auto vCurrentPoints = std::vector<CPoint>(Quad.m_aPoints, Quad.m_aPoints + 5);
+			auto vCurrentPoints = std::vector<CPoint>(std::begin(Quad.m_aPoints), std::end(Quad.m_aPoints));
 			if(QuadPointChanged(vCurrentPoints, QuadIndex))
 				vpActions.push_back(std::make_shared<CEditorActionEditQuadPoint>(Map(), m_GroupIndex, m_LayerIndex, QuadIndex, m_InitialPoints[QuadIndex], vCurrentPoints));
+		}
+		else if(Prop == EQuadProp::PROP_COLOR)
+		{
+			auto vCurrentColors = std::vector<CColor>(std::begin(Quad.m_aColors), std::end(Quad.m_aColors));
+			if(QuadColorChanged(vCurrentColors, QuadIndex))
+				vpActions.push_back(std::make_shared<CEditorActionEditQuadColor>(Map(), m_GroupIndex, m_LayerIndex, QuadIndex, m_InitialColors[QuadIndex], vCurrentColors));
 		}
 		else
 		{
@@ -151,7 +169,7 @@ void CQuadEditTracker::AddQuadPointPropTrack(EQuadPointProp Prop)
 	{
 		auto &Quad = m_pLayer->m_vQuads[QuadIndex];
 		if(Prop == EQuadPointProp::PROP_POS_X || Prop == EQuadPointProp::PROP_POS_Y)
-			m_InitialPoints[QuadIndex] = std::vector<CPoint>(Quad.m_aPoints, Quad.m_aPoints + 5);
+			m_InitialPoints[QuadIndex] = std::vector<CPoint>(std::begin(Quad.m_aPoints), std::end(Quad.m_aPoints));
 		else if(Prop == EQuadPointProp::PROP_COLOR)
 		{
 			for(int v = 0; v < 4; v++)
@@ -200,7 +218,7 @@ void CQuadEditTracker::EndQuadPointPropTrack(EQuadPointProp Prop)
 		auto &Quad = m_pLayer->m_vQuads[QuadIndex];
 		if(Prop == EQuadPointProp::PROP_POS_X || Prop == EQuadPointProp::PROP_POS_Y)
 		{
-			auto vCurrentPoints = std::vector<CPoint>(Quad.m_aPoints, Quad.m_aPoints + 5);
+			auto vCurrentPoints = std::vector<CPoint>(std::begin(Quad.m_aPoints), std::end(Quad.m_aPoints));
 			if(QuadPointChanged(vCurrentPoints, QuadIndex))
 				vpActions.push_back(std::make_shared<CEditorActionEditQuadPoint>(Map(), m_GroupIndex, m_LayerIndex, QuadIndex, m_InitialPoints[QuadIndex], vCurrentPoints));
 		}
@@ -245,7 +263,7 @@ void CQuadEditTracker::EndQuadPointPropTrackAll()
 			auto &Quad = m_pLayer->m_vQuads[QuadIndex];
 			if(Prop == EQuadPointProp::PROP_POS_X || Prop == EQuadPointProp::PROP_POS_Y)
 			{
-				auto vCurrentPoints = std::vector<CPoint>(Quad.m_aPoints, Quad.m_aPoints + 5);
+				auto vCurrentPoints = std::vector<CPoint>(std::begin(Quad.m_aPoints), std::end(Quad.m_aPoints));
 				if(QuadPointChanged(vCurrentPoints, QuadIndex))
 					vpActions.push_back(std::make_shared<CEditorActionEditQuadPoint>(Map(), m_GroupIndex, m_LayerIndex, QuadIndex, m_InitialPoints[QuadIndex], vCurrentPoints));
 			}
@@ -320,11 +338,11 @@ void CEnvelopeEditorOperationTracker::HandlePointDragStart()
 {
 	// Figure out which points are selected and which channels
 	// Save their X and Y position (time and value)
-	auto pEnv = Map()->m_vpEnvelopes[Editor()->m_SelectedEnvelope];
+	auto pEnvelope = Map()->m_vpEnvelopes[Editor()->m_SelectedEnvelope];
 
 	for(auto [PointIndex, Channel] : Editor()->m_vSelectedEnvelopePoints)
 	{
-		auto &Point = pEnv->m_vPoints[PointIndex];
+		auto &Point = pEnvelope->m_vPoints[PointIndex];
 		auto &Data = m_SavedValues[PointIndex];
 		Data.m_Values[Channel] = Point.m_aValues[Channel];
 		if(Data.m_Used)
@@ -339,19 +357,19 @@ void CEnvelopeEditorOperationTracker::HandlePointDragEnd(bool Switch)
 	if(Switch && m_TrackedOp != EEnvelopeEditorOp::OP_SCALE)
 		return;
 
-	int EnvIndex = Editor()->m_SelectedEnvelope;
-	auto pEnv = Map()->m_vpEnvelopes[EnvIndex];
+	int EnvelopeIndex = Editor()->m_SelectedEnvelope;
+	auto pEnvelope = Map()->m_vpEnvelopes[EnvelopeIndex];
 	std::vector<std::shared_ptr<IEditorAction>> vpActions;
 
 	for(auto const &Entry : m_SavedValues)
 	{
 		int PointIndex = Entry.first;
-		auto &Point = pEnv->m_vPoints[PointIndex];
+		auto &Point = pEnvelope->m_vPoints[PointIndex];
 		const auto &Data = Entry.second;
 
 		if(Data.m_Time != Point.m_Time)
 		{ // Save time
-			vpActions.push_back(std::make_shared<CEditorActionEnvelopeEditPointTime>(Map(), EnvIndex, PointIndex, Data.m_Time, Point.m_Time));
+			vpActions.push_back(std::make_shared<CEditorActionEnvelopeEditPointTime>(Map(), EnvelopeIndex, PointIndex, Data.m_Time, Point.m_Time));
 		}
 
 		for(auto Value : Data.m_Values)
@@ -360,7 +378,7 @@ void CEnvelopeEditorOperationTracker::HandlePointDragEnd(bool Switch)
 			int Channel = Value.first;
 			if(Value.second != Point.m_aValues[Channel])
 			{ // Save value
-				vpActions.push_back(std::make_shared<CEditorActionEnvelopeEditPoint>(Map(), EnvIndex, PointIndex, Channel, CEditorActionEnvelopeEditPoint::EEditType::VALUE, Value.second, Point.m_aValues[Channel]));
+				vpActions.push_back(std::make_shared<CEditorActionEnvelopeEditPoint>(Map(), EnvelopeIndex, PointIndex, Channel, CEditorActionEnvelopeEditPoint::EEditType::VALUE, Value.second, Point.m_aValues[Channel]));
 			}
 		}
 	}
@@ -508,7 +526,7 @@ int CLayerTilesPropTracker::PropToValue(ETilesProp Prop)
 	case ETilesProp::PROP_WIDTH: return m_pObject->m_Width;
 	case ETilesProp::PROP_IMAGE: return m_pObject->m_Image;
 	case ETilesProp::PROP_SEED: return m_pObject->m_Seed;
-	case ETilesProp::PROP_SHIFT_BY: return Editor()->m_ShiftBy;
+	case ETilesProp::PROP_SHIFT_BY: return Map()->m_ShiftBy;
 	default: return 0;
 	}
 }
@@ -565,7 +583,7 @@ bool CLayerTilesCommonPropTracker::EndChecker(ETilesCommonProp Prop, int Value)
 int CLayerTilesCommonPropTracker::PropToValue(ETilesCommonProp Prop)
 {
 	if(Prop == ETilesCommonProp::PROP_SHIFT_BY)
-		return Editor()->m_ShiftBy;
+		return Map()->m_ShiftBy;
 	return 0;
 }
 

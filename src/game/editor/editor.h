@@ -110,7 +110,6 @@ class CEditor : public IEditor, public IEnvelopeEval
 	class IClient *m_pClient = nullptr;
 	class IConfigManager *m_pConfigManager = nullptr;
 	class CConfig *m_pConfig = nullptr;
-	class IConsole *m_pConsole = nullptr;
 	class IEngine *m_pEngine = nullptr;
 	class IGraphics *m_pGraphics = nullptr;
 	class ITextRender *m_pTextRender = nullptr;
@@ -153,7 +152,6 @@ public:
 	class IClient *Client() const { return m_pClient; }
 	class IConfigManager *ConfigManager() const { return m_pConfigManager; }
 	class CConfig *Config() const { return m_pConfig; }
-	class IConsole *Console() const { return m_pConsole; }
 	class IEngine *Engine() const { return m_pEngine; }
 	class IGraphics *Graphics() const { return m_pGraphics; }
 	class ISound *Sound() const { return m_pSound; }
@@ -211,9 +209,7 @@ public:
 
 		m_BrushColorEnabled = true;
 
-		m_aFilename[0] = '\0';
-		m_aFilenamePending[0] = '\0';
-		m_ValidSaveFilename = false;
+		m_aFilenamePendingLoad[0] = '\0';
 
 		m_PopupEventActivated = false;
 		m_PopupEventWasActivated = false;
@@ -246,10 +242,6 @@ public:
 		m_SelectedTangentInPoint = std::pair(-1, -1);
 		m_SelectedTangentOutPoint = std::pair(-1, -1);
 		m_CurrentQuadIndex = -1;
-
-		m_QuadKnifeActive = false;
-		m_QuadKnifeCount = 0;
-		std::fill(std::begin(m_aQuadKnifePoints), std::end(m_aQuadKnifePoints), vec2(0.0f, 0.0f));
 
 		for(size_t i = 0; i < std::size(m_aSavedColors); ++i)
 		{
@@ -335,7 +327,6 @@ public:
 	 */
 	float m_LastAutosaveUpdateTime = -1.0f;
 	void HandleAutosave();
-	bool PerformAutosave();
 	void HandleWriterFinishJobs();
 
 	// TODO: The name of the ShowFileDialogError function is not accurate anymore, this is used for generic error messages.
@@ -413,9 +404,10 @@ public:
 
 	bool m_BrushColorEnabled;
 
-	char m_aFilename[IO_MAX_PATH_LENGTH];
-	char m_aFilenamePending[IO_MAX_PATH_LENGTH];
-	bool m_ValidSaveFilename;
+	/**
+	 * File which is pending to be loaded by @link POPEVENT_LOADDROP @endlink.
+	 */
+	char m_aFilenamePendingLoad[IO_MAX_PATH_LENGTH] = "";
 
 	enum
 	{
@@ -533,8 +525,6 @@ public:
 
 	std::vector<int> m_vSelectedLayers;
 	std::vector<int> m_vSelectedQuads;
-	int m_SelectedQuadPoint;
-	int m_SelectedQuadIndex;
 	int m_SelectedGroup;
 	int m_SelectedQuadPoints;
 	int m_SelectedEnvelope;
@@ -545,10 +535,6 @@ public:
 	std::pair<int, int> m_SelectedTangentInPoint;
 	std::pair<int, int> m_SelectedTangentOutPoint;
 	bool m_UpdateEnvPointInfo;
-
-	bool m_QuadKnifeActive;
-	int m_QuadKnifeCount;
-	vec2 m_aQuadKnifePoints[4];
 
 	// Color palette and pipette
 	ColorRGBA m_aSavedColors[8];
@@ -578,9 +564,7 @@ public:
 	CEditorMap m_Map;
 	std::deque<std::shared_ptr<CDataFileWriterFinishJob>> m_WriterFinishJobs;
 
-	int m_ShiftBy;
-
-	void EnvelopeEval(int TimeOffsetMillis, int Env, ColorRGBA &Result, size_t Channels) override;
+	void EnvelopeEval(int TimeOffsetMillis, int EnvelopeIndex, ColorRGBA &Result, size_t Channels) override;
 
 	CLineInputBuffered<256> m_SettingsCommandInput;
 	CMapSettingsBackend m_MapSettingsBackend;
@@ -631,8 +615,24 @@ public:
 		CLayerTiles::SCommonPropState m_CommonPropState;
 	};
 	static CUi::EPopupMenuFunctionResult PopupLayer(void *pContext, CUIRect View, bool Active);
+	class CQuadPopupContext : public SPopupMenuId
+	{
+	public:
+		CEditor *m_pEditor;
+		int m_SelectedQuadIndex;
+		int m_Color;
+	};
+	CQuadPopupContext m_QuadPopupContext;
 	static CUi::EPopupMenuFunctionResult PopupQuad(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupSource(void *pContext, CUIRect View, bool Active);
+	class CPointPopupContext : public SPopupMenuId
+	{
+	public:
+		CEditor *m_pEditor;
+		int m_SelectedQuadPoint;
+		int m_SelectedQuadIndex;
+	};
+	CPointPopupContext m_PointPopupContext;
 	static CUi::EPopupMenuFunctionResult PopupPoint(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupEnvPoint(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupEnvPointMulti(void *pContext, CUIRect View, bool Active);

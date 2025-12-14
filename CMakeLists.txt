@@ -2009,6 +2009,8 @@ set_src(BASE GLOB_RECURSE src/base
   log.h
   logger.h
   math.h
+  mem.cpp
+  mem.h
   rust.h
   str.cpp
   str.h
@@ -2023,6 +2025,8 @@ set_src(BASE GLOB_RECURSE src/base
   unicode/tolower_data.cpp
   unicode/tolower_data.h
   vmath.h
+  windows.cpp
+  windows.h
 )
 set_src(ENGINE_INTERFACE GLOB src/engine
   antibot.h
@@ -3120,7 +3124,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     mapbugs_test.cpp
     mapitems_test.cpp
     math_test.cpp
-    memory_test.cpp
+    mem_test.cpp
     name_ban_test.cpp
     net_test.cpp
     netaddr_test.cpp

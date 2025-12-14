@@ -11,7 +11,6 @@
 #include <base/system.h>
 
 #include <engine/client.h>
-#include <engine/console.h>
 #include <engine/engine.h>
 #include <engine/gfx/image_loader.h>
 #include <engine/gfx/image_manipulation.h>
@@ -19,7 +18,6 @@
 #include <engine/input.h>
 #include <engine/keys.h>
 #include <engine/shared/config.h>
-#include <engine/shared/filecollection.h>
 #include <engine/storage.h>
 #include <engine/textrender.h>
 
@@ -80,16 +78,16 @@ bool CEditor::IsVanillaImage(const char *pImage)
 	return std::any_of(std::begin(VANILLA_IMAGES), std::end(VANILLA_IMAGES), [pImage](const char *pVanillaImage) { return str_comp(pImage, pVanillaImage) == 0; });
 }
 
-void CEditor::EnvelopeEval(int TimeOffsetMillis, int Env, ColorRGBA &Result, size_t Channels)
+void CEditor::EnvelopeEval(int TimeOffsetMillis, int EnvelopeIndex, ColorRGBA &Result, size_t Channels)
 {
-	if(Env < 0 || Env >= (int)m_Map.m_vpEnvelopes.size())
+	if(EnvelopeIndex < 0 || EnvelopeIndex >= (int)m_Map.m_vpEnvelopes.size())
 		return;
 
-	std::shared_ptr<CEnvelope> pEnv = m_Map.m_vpEnvelopes[Env];
+	std::shared_ptr<CEnvelope> pEnvelope = m_Map.m_vpEnvelopes[EnvelopeIndex];
 	float Time = m_AnimateTime;
 	Time *= m_AnimateSpeed;
 	Time += (TimeOffsetMillis / 1000.0f);
-	pEnv->Eval(Time, Result, Channels);
+	pEnvelope->Eval(Time, Result, Channels);
 }
 
 std::shared_ptr<CLayerGroup> CEditor::GetSelectedGroup() const
@@ -164,7 +162,7 @@ void CEditor::AddSelectedLayer(int LayerIndex)
 {
 	m_vSelectedLayers.push_back(LayerIndex);
 
-	m_QuadKnifeActive = false;
+	m_Map.m_QuadKnife.m_Active = false;
 }
 
 void CEditor::SelectQuad(int Index)
@@ -456,7 +454,7 @@ bool CEditor::CallbackOpenMap(const char *pFilename, int StorageType, void *pUse
 	CEditor *pEditor = (CEditor *)pUser;
 	if(pEditor->Load(pFilename, StorageType))
 	{
-		pEditor->m_ValidSaveFilename = StorageType == IStorage::TYPE_SAVE && pEditor->m_FileBrowser.IsValidSaveFilename();
+		pEditor->m_Map.m_ValidSaveFilename = StorageType == IStorage::TYPE_SAVE && pEditor->m_FileBrowser.IsValidSaveFilename();
 		if(pEditor->m_Dialog == DIALOG_FILE)
 		{
 			pEditor->OnDialogClose();
@@ -480,7 +478,6 @@ bool CEditor::CallbackAppendMap(const char *pFilename, int StorageType, void *pU
 	}
 	else
 	{
-		pEditor->m_aFilename[0] = 0;
 		pEditor->ShowFileDialogError("Failed to load map from file '%s'.", pFilename);
 		return false;
 	}
@@ -495,11 +492,11 @@ bool CEditor::CallbackSaveMap(const char *pFilename, int StorageType, void *pUse
 	// Save map to specified file
 	if(pEditor->Save(pFilename))
 	{
-		if(pEditor->m_aFilename != pFilename)
+		if(pEditor->m_Map.m_aFilename != pFilename)
 		{
-			str_copy(pEditor->m_aFilename, pFilename);
+			str_copy(pEditor->m_Map.m_aFilename, pFilename);
 		}
-		pEditor->m_ValidSaveFilename = true;
+		pEditor->m_Map.m_ValidSaveFilename = true;
 		pEditor->m_Map.m_Modified = false;
 	}
 	else
@@ -512,7 +509,11 @@ bool CEditor::CallbackSaveMap(const char *pFilename, int StorageType, void *pUse
 	const float Time = pEditor->Client()->GlobalTime();
 	if(g_Config.m_EdAutosaveInterval > 0 && pEditor->m_Map.m_LastSaveTime < Time && Time - pEditor->m_Map.m_LastSaveTime > 30 * g_Config.m_EdAutosaveInterval)
 	{
-		if(!pEditor->PerformAutosave())
+		const auto &&ErrorHandler = [pEditor](const char *pErrorMessage) {
+			pEditor->ShowFileDialogError("%s", pErrorMessage);
+			log_error("editor/autosave", "%s", pErrorMessage);
+		};
+		if(!pEditor->m_Map.PerformAutosave(ErrorHandler))
 			return false;
 	}
 
@@ -1673,6 +1674,19 @@ void CEditor::ApplyAxisAlignment(ivec2 &Offset) const
 	Offset.y = ((Axis == EAxis::AXIS_NONE || Axis == EAxis::AXIS_Y) ? Offset.y : 0);
 }
 
+static CColor AverageColor(const std::vector<CQuad *> &vpQuads)
+{
+	CColor Average = {0, 0, 0, 0};
+	for(CQuad *pQuad : vpQuads)
+	{
+		for(CColor Color : pQuad->m_aColors)
+		{
+			Average += Color;
+		}
+	}
+	return Average / std::size(CQuad{}.m_aColors) / vpQuads.size();
+}
+
 void CEditor::DoQuad(int LayerIndex, const std::shared_ptr<CLayerQuads> &pLayer, CQuad *pQuad, int Index)
 {
 	enum
@@ -1842,10 +1856,11 @@ void CEditor::DoQuad(int LayerIndex, const std::shared_ptr<CLayerQuads> &pLayer,
 			{
 				if(m_vSelectedLayers.size() == 1)
 				{
-					m_SelectedQuadIndex = FindSelectedQuadIndex(Index);
-
-					static SPopupMenuId s_PopupQuadId;
-					Ui()->DoPopupMenu(&s_PopupQuadId, Ui()->MouseX(), Ui()->MouseY(), 120, 222, this, PopupQuad);
+					m_QuadPopupContext.m_pEditor = this;
+					m_QuadPopupContext.m_SelectedQuadIndex = FindSelectedQuadIndex(Index);
+					dbg_assert(m_QuadPopupContext.m_SelectedQuadIndex >= 0, "Selected quad index not found for quad popup");
+					m_QuadPopupContext.m_Color = PackColor(AverageColor(GetSelectedQuads()));
+					Ui()->DoPopupMenu(&m_QuadPopupContext, Ui()->MouseX(), Ui()->MouseY(), 120, 251, &m_QuadPopupContext, PopupQuad);
 					Ui()->DisableMouseLock();
 				}
 				s_Operation = OP_NONE;
@@ -2125,11 +2140,11 @@ void CEditor::DoQuadPoint(int LayerIndex, const std::shared_ptr<CLayerQuads> &pL
 					if(!IsQuadSelected(QuadIndex))
 						SelectQuad(QuadIndex);
 
-					m_SelectedQuadPoint = V;
-					m_SelectedQuadIndex = FindSelectedQuadIndex(QuadIndex);
-
-					static SPopupMenuId s_PopupPointId;
-					Ui()->DoPopupMenu(&s_PopupPointId, Ui()->MouseX(), Ui()->MouseY(), 120, 75, this, PopupPoint);
+					m_PointPopupContext.m_pEditor = this;
+					m_PointPopupContext.m_SelectedQuadPoint = V;
+					m_PointPopupContext.m_SelectedQuadIndex = FindSelectedQuadIndex(QuadIndex);
+					dbg_assert(m_PointPopupContext.m_SelectedQuadIndex >= 0, "Selected quad index not found for quad point popup");
+					Ui()->DoPopupMenu(&m_PointPopupContext, Ui()->MouseX(), Ui()->MouseY(), 120, 75, &m_PointPopupContext, PopupPoint);
 				}
 				Ui()->SetActiveItem(nullptr);
 			}
@@ -2221,8 +2236,14 @@ bool CEditor::IsInTriangle(vec2 Point, vec2 A, vec2 B, vec2 C)
 
 void CEditor::DoQuadKnife(int QuadIndex)
 {
+	if(m_Dialog != DIALOG_NONE || Ui()->IsPopupOpen())
+	{
+		return;
+	}
+
 	std::shared_ptr<CLayerQuads> pLayer = std::static_pointer_cast<CLayerQuads>(GetSelectedLayerType(0, LAYERTYPE_QUADS));
 	CQuad *pQuad = &pLayer->m_vQuads[QuadIndex];
+	CEditorMap::CQuadKnife &QuadKnife = m_Map.m_QuadKnife;
 
 	const bool IgnoreGrid = Input()->AltIsPressed();
 	float SnapRadius = 4.f * m_MouseWorldScale;
@@ -2240,7 +2261,7 @@ void CEditor::DoQuadKnife(int QuadIndex)
 
 	if(Ui()->MouseButtonClicked(1))
 	{
-		m_QuadKnifeActive = false;
+		QuadKnife.m_Active = false;
 		return;
 	}
 
@@ -2334,37 +2355,37 @@ void CEditor::DoQuadKnife(int QuadIndex)
 
 	if(Ui()->MouseButtonClicked(0) && ValidPosition)
 	{
-		m_aQuadKnifePoints[m_QuadKnifeCount] = Point;
-		m_QuadKnifeCount++;
+		QuadKnife.m_aPoints[QuadKnife.m_Count] = Point;
+		QuadKnife.m_Count++;
 	}
 
-	if(m_QuadKnifeCount == 4)
+	if(QuadKnife.m_Count == 4)
 	{
-		if(IsInTriangle(m_aQuadKnifePoints[3], m_aQuadKnifePoints[0], m_aQuadKnifePoints[1], m_aQuadKnifePoints[2]) ||
-			IsInTriangle(m_aQuadKnifePoints[1], m_aQuadKnifePoints[0], m_aQuadKnifePoints[2], m_aQuadKnifePoints[3]))
+		if(IsInTriangle(QuadKnife.m_aPoints[3], QuadKnife.m_aPoints[0], QuadKnife.m_aPoints[1], QuadKnife.m_aPoints[2]) ||
+			IsInTriangle(QuadKnife.m_aPoints[1], QuadKnife.m_aPoints[0], QuadKnife.m_aPoints[2], QuadKnife.m_aPoints[3]))
 		{
 			// Fix concave order
-			std::swap(m_aQuadKnifePoints[0], m_aQuadKnifePoints[3]);
-			std::swap(m_aQuadKnifePoints[1], m_aQuadKnifePoints[2]);
+			std::swap(QuadKnife.m_aPoints[0], QuadKnife.m_aPoints[3]);
+			std::swap(QuadKnife.m_aPoints[1], QuadKnife.m_aPoints[2]);
 		}
 
-		std::swap(m_aQuadKnifePoints[2], m_aQuadKnifePoints[3]);
+		std::swap(QuadKnife.m_aPoints[2], QuadKnife.m_aPoints[3]);
 
 		CQuad *pResult = pLayer->NewQuad(64, 64, 64, 64);
 		pQuad = &pLayer->m_vQuads[QuadIndex];
 
 		for(int i = 0; i < 4; i++)
 		{
-			int t = IsInTriangle(m_aQuadKnifePoints[i], v[0], v[3], v[2]) ? 2 : 1;
+			int t = IsInTriangle(QuadKnife.m_aPoints[i], v[0], v[3], v[2]) ? 2 : 1;
 
 			vec2 A = vec2(fx2f(pQuad->m_aPoints[0].x), fx2f(pQuad->m_aPoints[0].y));
 			vec2 B = vec2(fx2f(pQuad->m_aPoints[3].x), fx2f(pQuad->m_aPoints[3].y));
 			vec2 C = vec2(fx2f(pQuad->m_aPoints[t].x), fx2f(pQuad->m_aPoints[t].y));
 
 			float TriArea = TriangleArea(A, B, C);
-			float WeightA = TriangleArea(m_aQuadKnifePoints[i], B, C) / TriArea;
-			float WeightB = TriangleArea(m_aQuadKnifePoints[i], C, A) / TriArea;
-			float WeightC = TriangleArea(m_aQuadKnifePoints[i], A, B) / TriArea;
+			float WeightA = TriangleArea(QuadKnife.m_aPoints[i], B, C) / TriArea;
+			float WeightB = TriangleArea(QuadKnife.m_aPoints[i], C, A) / TriArea;
+			float WeightC = TriangleArea(QuadKnife.m_aPoints[i], A, B) / TriArea;
 
 			pResult->m_aColors[i].r = (int)std::round(pQuad->m_aColors[0].r * WeightA + pQuad->m_aColors[3].r * WeightB + pQuad->m_aColors[t].r * WeightC);
 			pResult->m_aColors[i].g = (int)std::round(pQuad->m_aColors[0].g * WeightA + pQuad->m_aColors[3].g * WeightB + pQuad->m_aColors[t].g * WeightC);
@@ -2374,14 +2395,14 @@ void CEditor::DoQuadKnife(int QuadIndex)
 			pResult->m_aTexcoords[i].x = (int)std::round(pQuad->m_aTexcoords[0].x * WeightA + pQuad->m_aTexcoords[3].x * WeightB + pQuad->m_aTexcoords[t].x * WeightC);
 			pResult->m_aTexcoords[i].y = (int)std::round(pQuad->m_aTexcoords[0].y * WeightA + pQuad->m_aTexcoords[3].y * WeightB + pQuad->m_aTexcoords[t].y * WeightC);
 
-			pResult->m_aPoints[i].x = f2fx(m_aQuadKnifePoints[i].x);
-			pResult->m_aPoints[i].y = f2fx(m_aQuadKnifePoints[i].y);
+			pResult->m_aPoints[i].x = f2fx(QuadKnife.m_aPoints[i].x);
+			pResult->m_aPoints[i].y = f2fx(QuadKnife.m_aPoints[i].y);
 		}
 
 		pResult->m_aPoints[4].x = ((pResult->m_aPoints[0].x + pResult->m_aPoints[3].x) / 2 + (pResult->m_aPoints[1].x + pResult->m_aPoints[2].x) / 2) / 2;
 		pResult->m_aPoints[4].y = ((pResult->m_aPoints[0].y + pResult->m_aPoints[3].y) / 2 + (pResult->m_aPoints[1].y + pResult->m_aPoints[2].y) / 2) / 2;
 
-		m_QuadKnifeCount = 0;
+		QuadKnife.m_Count = 0;
 		m_Map.m_EditorHistory.RecordAction(std::make_shared<CEditorActionNewQuad>(&m_Map, m_SelectedGroup, m_vSelectedLayers[0]));
 	}
 
@@ -2399,25 +2420,25 @@ void CEditor::DoQuadKnife(int QuadIndex)
 	Graphics()->LinesDraw(aEdges, std::size(aEdges));
 
 	IGraphics::CLineItem aLines[4];
-	int LineCount = maximum(m_QuadKnifeCount - 1, 0);
+	int LineCount = maximum(QuadKnife.m_Count - 1, 0);
 
 	for(int i = 0; i < LineCount; i++)
-		aLines[i] = IGraphics::CLineItem(m_aQuadKnifePoints[i], m_aQuadKnifePoints[i + 1]);
+		aLines[i] = IGraphics::CLineItem(QuadKnife.m_aPoints[i], QuadKnife.m_aPoints[i + 1]);
 
 	Graphics()->SetColor(1.f, 1.f, 1.f, 1.f);
 	Graphics()->LinesDraw(aLines, LineCount);
 
 	if(ValidPosition)
 	{
-		if(m_QuadKnifeCount > 0)
+		if(QuadKnife.m_Count > 0)
 		{
-			IGraphics::CLineItem LineCurrent(Point, m_aQuadKnifePoints[m_QuadKnifeCount - 1]);
+			IGraphics::CLineItem LineCurrent(Point, QuadKnife.m_aPoints[QuadKnife.m_Count - 1]);
 			Graphics()->LinesDraw(&LineCurrent, 1);
 		}
 
-		if(m_QuadKnifeCount == 3)
+		if(QuadKnife.m_Count == 3)
 		{
-			IGraphics::CLineItem LineClose(Point, m_aQuadKnifePoints[0]);
+			IGraphics::CLineItem LineClose(Point, QuadKnife.m_aPoints[0]);
 			Graphics()->LinesDraw(&LineClose, 1);
 		}
 	}
@@ -2427,11 +2448,11 @@ void CEditor::DoQuadKnife(int QuadIndex)
 
 	IGraphics::CQuadItem aMarkers[4];
 
-	for(int i = 0; i < m_QuadKnifeCount; i++)
-		aMarkers[i] = IGraphics::CQuadItem(m_aQuadKnifePoints[i].x, m_aQuadKnifePoints[i].y, 5.f * m_MouseWorldScale, 5.f * m_MouseWorldScale);
+	for(int i = 0; i < QuadKnife.m_Count; i++)
+		aMarkers[i] = IGraphics::CQuadItem(QuadKnife.m_aPoints[i].x, QuadKnife.m_aPoints[i].y, 5.f * m_MouseWorldScale, 5.f * m_MouseWorldScale);
 
 	Graphics()->SetColor(0.f, 0.f, 1.f, 1.f);
-	Graphics()->QuadsDraw(aMarkers, m_QuadKnifeCount);
+	Graphics()->QuadsDraw(aMarkers, QuadKnife.m_Count);
 
 	if(ValidPosition)
 	{
@@ -3016,7 +3037,7 @@ void CEditor::DoMapEditor(CUIRect View)
 					m_pBrush->Clear();
 				}
 
-				if(!Input()->ModifierIsPressed() && Ui()->MouseButton(0) && s_Operation == OP_NONE && !m_QuadKnifeActive)
+				if(!Input()->ModifierIsPressed() && Ui()->MouseButton(0) && s_Operation == OP_NONE && !m_Map.m_QuadKnife.m_Active)
 				{
 					Ui()->SetActiveItem(&m_MapEditorId);
 
@@ -3094,8 +3115,10 @@ void CEditor::DoMapEditor(CUIRect View)
 						if(m_ActiveEnvelopePreview == EEnvelopePreview::NONE)
 							m_ActiveEnvelopePreview = EEnvelopePreview::ALL;
 
-						if(m_QuadKnifeActive)
-							DoQuadKnife(m_vSelectedQuads[m_SelectedQuadIndex]);
+						if(m_Map.m_QuadKnife.m_Active)
+						{
+							DoQuadKnife(m_vSelectedQuads[m_Map.m_QuadKnife.m_SelectedQuadIndex]);
+						}
 						else
 						{
 							UpdateHotQuadPoint(pLayer.get());
@@ -6658,7 +6681,7 @@ void CEditor::RenderMenubar(CUIRect MenuBar)
 	}
 
 	char aBuf[IO_MAX_PATH_LENGTH + 32];
-	str_format(aBuf, sizeof(aBuf), "File: %s", m_aFilename);
+	str_format(aBuf, sizeof(aBuf), "File: %s", m_Map.m_aFilename);
 	SLabelProperties Props;
 	Props.m_MaxWidth = MenuBar.w;
 	Props.m_EllipsisAtEnd = true;
@@ -6819,7 +6842,6 @@ void CEditor::Render()
 			else
 			{
 				Reset();
-				m_aFilename[0] = 0;
 			}
 		}
 		// ctrl+o or ctrl+l to open
@@ -6853,7 +6875,7 @@ void CEditor::Render()
 		if(Input()->KeyPress(KEY_S) && ModPressed && ShiftPressed && AltPressed)
 		{
 			char aDefaultName[IO_MAX_PATH_LENGTH];
-			fs_split_file_extension(fs_filename(m_aFilename), aDefaultName, sizeof(aDefaultName));
+			fs_split_file_extension(fs_filename(m_Map.m_aFilename), aDefaultName, sizeof(aDefaultName));
 			m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, "Save map", "Save copy", "maps", aDefaultName, CallbackSaveCopyMap, this);
 		}
 		// ctrl+shift+s to save as
@@ -6864,9 +6886,9 @@ void CEditor::Render()
 		// ctrl+s to save
 		else if(Input()->KeyPress(KEY_S) && ModPressed)
 		{
-			if(m_aFilename[0] != '\0' && m_ValidSaveFilename)
+			if(m_Map.m_aFilename[0] != '\0' && m_Map.m_ValidSaveFilename)
 			{
-				CallbackSaveMap(m_aFilename, IStorage::TYPE_SAVE, this);
+				CallbackSaveMap(m_Map.m_aFilename, IStorage::TYPE_SAVE, this);
 			}
 			else
 			{
@@ -7417,7 +7439,6 @@ void CEditor::Reset(bool CreateDefault)
 
 	m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
 	m_QuadEnvelopePointOperation = EQuadEnvelopePointOperation::NONE;
-	m_ShiftBy = 1;
 
 	m_ResetZoomEnvelope = true;
 	m_SettingsCommandInput.Clear();
@@ -7477,7 +7498,6 @@ void CEditor::Init()
 	m_pClient = Kernel()->RequestInterface<IClient>();
 	m_pConfigManager = Kernel()->RequestInterface<IConfigManager>();
 	m_pConfig = m_pConfigManager->Values();
-	m_pConsole = Kernel()->RequestInterface<IConsole>();
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
 	m_pGraphics = Kernel()->RequestInterface<IGraphics>();
 	m_pTextRender = Kernel()->RequestInterface<ITextRender>();
@@ -7705,43 +7725,11 @@ void CEditor::HandleAutosave()
 	if(Time - m_Map.m_LastModifiedTime < 5.0f && Time - m_Map.m_LastSaveTime < 60 * (g_Config.m_EdAutosaveInterval + 1))
 		return;
 
-	PerformAutosave();
-}
-
-bool CEditor::PerformAutosave()
-{
-	char aDate[20];
-	char aAutosavePath[IO_MAX_PATH_LENGTH];
-	str_timestamp(aDate, sizeof(aDate));
-	char aFilenameNoExt[IO_MAX_PATH_LENGTH];
-	if(m_aFilename[0] == '\0')
-	{
-		str_copy(aFilenameNoExt, "unnamed");
-	}
-	else
-	{
-		const char *pFilename = fs_filename(m_aFilename);
-		str_truncate(aFilenameNoExt, sizeof(aFilenameNoExt), pFilename, str_length(pFilename) - str_length(".map"));
-	}
-	str_format(aAutosavePath, sizeof(aAutosavePath), "maps/auto/%s_%s.map", aFilenameNoExt, aDate);
-
-	m_Map.m_LastSaveTime = Client()->GlobalTime();
-	if(Save(aAutosavePath))
-	{
-		m_Map.m_ModifiedAuto = false;
-		// Clean up autosaves
-		if(g_Config.m_EdAutosaveMax)
-		{
-			CFileCollection AutosavedMaps;
-			AutosavedMaps.Init(Storage(), "maps/auto", aFilenameNoExt, ".map", g_Config.m_EdAutosaveMax);
-		}
-		return true;
-	}
-	else
-	{
-		ShowFileDialogError("Failed to automatically save map to file '%s'.", aAutosavePath);
-		return false;
-	}
+	const auto &&ErrorHandler = [this](const char *pErrorMessage) {
+		ShowFileDialogError("%s", pErrorMessage);
+		log_error("editor/autosave", "%s", pErrorMessage);
+	};
+	m_Map.PerformAutosave(ErrorHandler);
 }
 
 void CEditor::HandleWriterFinishJobs()
@@ -7759,7 +7747,7 @@ void CEditor::HandleWriterFinishJobs()
 	{
 		str_format(aBuf, sizeof(aBuf), "Saving failed: Could not remove old map file '%s'.", pJob->GetRealFilename());
 		ShowFileDialogError("%s", aBuf);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/save", aBuf);
+		log_error("editor/save", "%s", aBuf);
 		return;
 	}
 
@@ -7767,12 +7755,11 @@ void CEditor::HandleWriterFinishJobs()
 	{
 		str_format(aBuf, sizeof(aBuf), "Saving failed: Could not move temporary map file '%s' to '%s'.", pJob->GetTempFilename(), pJob->GetRealFilename());
 		ShowFileDialogError("%s", aBuf);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/save", aBuf);
+		log_error("editor/save", "%s", aBuf);
 		return;
 	}
 
-	str_format(aBuf, sizeof(aBuf), "saving '%s' done", pJob->GetRealFilename());
-	Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor/save", aBuf);
+	log_trace("editor/save", "Saved map to '%s'.", pJob->GetRealFilename());
 
 	// send rcon.. if we can
 	if(Client()->RconAuthed() && g_Config.m_EdAutoMapReload)
@@ -7908,12 +7895,12 @@ void CEditor::LoadCurrentMap()
 {
 	if(Load(m_pClient->GetCurrentMapPath(), IStorage::TYPE_SAVE))
 	{
-		m_ValidSaveFilename = !str_startswith(m_pClient->GetCurrentMapPath(), "downloadedmaps/");
+		m_Map.m_ValidSaveFilename = !str_startswith(m_pClient->GetCurrentMapPath(), "downloadedmaps/");
 	}
 	else
 	{
 		Load(m_pClient->GetCurrentMapPath(), IStorage::TYPE_ALL);
-		m_ValidSaveFilename = false;
+		m_Map.m_ValidSaveFilename = false;
 	}
 
 	CGameClient *pGameClient = (CGameClient *)Kernel()->RequestInterface<IGameClient>();
@@ -7930,7 +7917,7 @@ bool CEditor::Save(const char *pFilename)
 
 	const auto &&ErrorHandler = [this](const char *pErrorMessage) {
 		ShowFileDialogError("%s", pErrorMessage);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/save", pErrorMessage);
+		log_error("editor/save", "%s", pErrorMessage);
 	};
 	return m_Map.Save(pFilename, ErrorHandler);
 }
@@ -7939,7 +7926,7 @@ bool CEditor::HandleMapDrop(const char *pFilename, int StorageType)
 {
 	if(HasUnsavedData())
 	{
-		str_copy(m_aFilenamePending, pFilename);
+		str_copy(m_aFilenamePendingLoad, pFilename);
 		m_PopupEventType = CEditor::POPEVENT_LOADDROP;
 		m_PopupEventActivated = true;
 		return true;
@@ -7954,25 +7941,20 @@ bool CEditor::Load(const char *pFilename, int StorageType)
 {
 	const auto &&ErrorHandler = [this](const char *pErrorMessage) {
 		ShowFileDialogError("%s", pErrorMessage);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/load", pErrorMessage);
+		log_error("editor/load", "%s", pErrorMessage);
 	};
 
 	Reset();
 	bool Result = m_Map.Load(pFilename, StorageType, std::move(ErrorHandler));
 	if(Result)
 	{
-		str_copy(m_aFilename, pFilename);
 		m_Map.SortImages();
 		SelectGameLayer();
 
 		for(CEditorComponent &Component : m_vComponents)
 			Component.OnMapLoad();
 
-		log_info("editor/load", "Loaded map '%s'", m_aFilename);
-	}
-	else
-	{
-		m_aFilename[0] = 0;
+		log_info("editor/load", "Loaded map '%s'", m_Map.m_aFilename);
 	}
 	return Result;
 }
@@ -7983,7 +7965,7 @@ bool CEditor::Append(const char *pFilename, int StorageType, bool IgnoreHistory)
 
 	const auto &&ErrorHandler = [this](const char *pErrorMessage) {
 		ShowFileDialogError("%s", pErrorMessage);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/append", pErrorMessage);
+		log_error("editor/append", "%s", pErrorMessage);
 	};
 	if(!NewMap.Load(pFilename, StorageType, std::move(ErrorHandler)))
 		return false;
@@ -7996,13 +7978,13 @@ bool CEditor::Append(const char *pFilename, int StorageType, bool IgnoreHistory)
 
 	// Keep a map to check if specific indices have already been replaced to prevent
 	// replacing those indices again when transferring images
-	static std::map<int *, bool> s_ReplacedMap;
-	static const auto &&s_ReplaceIndex = [](int ToReplace, int ReplaceWith) {
-		return [ToReplace, ReplaceWith](int *pIndex) {
-			if(*pIndex == ToReplace && !s_ReplacedMap[pIndex])
+	std::map<int *, bool> ReplacedIndicesMap;
+	const auto &&ReplaceIndex = [&ReplacedIndicesMap](int ToReplace, int ReplaceWith) {
+		return [&ReplacedIndicesMap, ToReplace, ReplaceWith](int *pIndex) {
+			if(*pIndex == ToReplace && !ReplacedIndicesMap[pIndex])
 			{
 				*pIndex = ReplaceWith;
-				s_ReplacedMap[pIndex] = true;
+				ReplacedIndicesMap[pIndex] = true;
 			}
 		};
 	};
@@ -8017,7 +7999,6 @@ bool CEditor::Append(const char *pFilename, int StorageType, bool IgnoreHistory)
 	};
 
 	// Transfer non-duplicate images
-	s_ReplacedMap.clear();
 	for(auto NewMapIt = NewMap.m_vpImages.begin(); NewMapIt != NewMap.m_vpImages.end(); ++NewMapIt)
 	{
 		const auto &pNewImage = *NewMapIt;
@@ -8039,7 +8020,7 @@ bool CEditor::Append(const char *pFilename, int StorageType, bool IgnoreHistory)
 				dbg_msg("editor", "map already contains image %s with the same data, removing duplicate", pNewImage->m_aName);
 
 				// In the new map, replace the index of the duplicate image to the index of the same in the current map.
-				NewMap.ModifyImageIndex(s_ReplaceIndex(IndexToReplace, IndexToReplaceWith));
+				NewMap.ModifyImageIndex(ReplaceIndex(IndexToReplace, IndexToReplaceWith));
 			}
 			else
 			{
@@ -8048,14 +8029,14 @@ bool CEditor::Append(const char *pFilename, int StorageType, bool IgnoreHistory)
 
 				dbg_msg("editor", "map already contains image %s but contents of appended image is different. Renaming to %s", (*MatchInCurrentMap)->m_aName, pNewImage->m_aName);
 
-				NewMap.ModifyImageIndex(s_ReplaceIndex(IndexToReplace, m_Map.m_vpImages.size()));
+				NewMap.ModifyImageIndex(ReplaceIndex(IndexToReplace, m_Map.m_vpImages.size()));
 				pNewImage->OnAttach(&m_Map);
 				m_Map.m_vpImages.push_back(pNewImage);
 			}
 		}
 		else
 		{
-			NewMap.ModifyImageIndex(s_ReplaceIndex(IndexToReplace, m_Map.m_vpImages.size()));
+			NewMap.ModifyImageIndex(ReplaceIndex(IndexToReplace, m_Map.m_vpImages.size()));
 			pNewImage->OnAttach(&m_Map);
 			m_Map.m_vpImages.push_back(pNewImage);
 		}
