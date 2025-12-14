@@ -2011,7 +2011,7 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 			pPlayer->m_TeeInfos.FromSixup();
 			// <FoxNet
 			char SkinBuf[MAX_SKIN_LENGTH];
-			str_copy(SkinBuf, Info.m_aSkinName);
+			str_copy(SkinBuf, pPlayer->m_TeeInfos.m_aSkinName);
 			if((!str_comp_nocase(SkinBuf, "x_spec") || !str_comp_nocase(SkinBuf, "x_ninja")) && Server()->GetAuthedState(ClientId) < AUTHED_MOD)
 				str_copy(SkinBuf, "default");
 
