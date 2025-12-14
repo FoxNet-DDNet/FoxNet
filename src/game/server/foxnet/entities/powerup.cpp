@@ -133,7 +133,7 @@ void CPowerUp::HandleClient(int ClientId)
 		// Only fetch player pointer for active slots.
 		CPlayer *pPlayer = nullptr;
 		if(Server()->ClientIngame(i))
-			CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+			pPlayer = GameServer()->m_apPlayers[i];
 
 		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
 			TeamMask.set(ClientId).reset();
