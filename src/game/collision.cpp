@@ -202,6 +202,7 @@ void CCollision::InitSpawnCandidates()
 {
 	dbg_assert(m_pLayers, "m_pLayers must be valid");
 	BuildSpawnCandidates();
+	log_info("spawn-candidates", "found %d spawn point%s", (int)m_SpawnCandidates.size(), m_SpawnCandidates.size() == 1 ? "" : "s");
 }
 
 void CCollision::Unload()
@@ -1760,10 +1761,18 @@ void CCollision::CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const
 	{
 		for(int x = 0; x < W; ++x)
 		{
-			const int Ent = Entity(x, y, LAYER_GAME);
-			if(Ent >= ENTITY_SPAWN && Ent <= ENTITY_SPAWN_BLUE)
+			// Game layer
 			{
-				OutSeeds.emplace_back(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
+				const int Ent = Entity(x, y, LAYER_GAME);
+				if(Ent >= ENTITY_SPAWN && Ent <= ENTITY_SPAWN_BLUE)
+					OutSeeds.emplace_back(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
+			}
+			// Front layer (if present)
+			if(m_pFront)
+			{
+				const int FrontEnt = Entity(x, y, LAYER_FRONT);
+				if(FrontEnt >= ENTITY_SPAWN && FrontEnt <= ENTITY_SPAWN_BLUE)
+					OutSeeds.emplace_back(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 			}
 		}
 	}
@@ -1824,6 +1833,18 @@ void CCollision::BuildSpawnCandidates()
 	const auto ToIndex = [&](int x, int y) { return y * W + x; };
 	const auto InBounds = [&](int x, int y) { return x >= 0 && x < W && y >= 0 && y < H; };
 
+	// Detect whether the map contains any start tiles at all (game or front layer).
+	bool HasAnyStartTiles = false;
+	for(int y = 0; y < H && !HasAnyStartTiles; ++y)
+	{
+		for(int x = 0; x < W && !HasAnyStartTiles; ++x)
+		{
+			const int idx = ToIndex(x, y);
+			if(GetTileIndex(idx) == TILE_START || GetFrontTileIndex(idx) == TILE_START)
+				HasAnyStartTiles = true;
+		}
+	}
+
 	const auto IsAirAt = [&](int tx, int ty) -> bool {
 		if(!InBounds(tx, ty))
 			return false;
@@ -1863,11 +1884,77 @@ void CCollision::BuildSpawnCandidates()
 		return Solid || Finish || Kill || StopA;
 	};
 
-	const auto IsTeleInType = [](unsigned char t) {
-		return t == TILE_TELEIN || t == TILE_TELEINEVIL || t == TILE_TELECHECKIN || t == TILE_TELECHECKINEVIL;
+	// Start line: crossing when stepping onto a TILE_START on game or front layer
+	const auto IsStartAtIndex = [&](int idx) -> bool {
+		if(idx < 0)
+			return false;
+		return GetTileIndex(idx) == TILE_START || GetFrontTileIndex(idx) == TILE_START;
 	};
 
-	std::deque<std::pair<int, int>> q;
+	// Tele helpers
+	const auto IsTeleInRegular = [](unsigned char t) {
+		return t == TILE_TELEIN || t == TILE_TELEINEVIL;
+	};
+	const auto IsTeleInCheckpoint = [](unsigned char t) {
+		return t == TILE_TELECHECKIN || t == TILE_TELECHECKINEVIL;
+	};
+	const auto TeleCheckpointAtIndex = [&](int idx) -> int {
+		if(!m_pTele || idx < 0)
+			return 0;
+		if(m_pTele[idx].m_Type == TILE_TELECHECK)
+			return (int)m_pTele[idx].m_Number;
+		return 0;
+	};
+
+	// Helper: enqueue all valid destinations for a given tele number and type (regular tele outs)
+	auto EnqueueTeleDestinationsByTeleNum = [&](int teleNumMinusOne, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, int cp, bool crossedStart) {
+		auto it = m_TeleOuts.find(teleNumMinusOne);
+		if(it != m_TeleOuts.end())
+		{
+			for(const vec2 &outPos : it->second)
+			{
+				const int ox = std::clamp((int)std::floor(outPos.x / 32.0f), 0, W - 1);
+				const int oy = std::clamp((int)std::floor(outPos.y / 32.0f), 0, H - 1);
+				const int oIdx = ToIndex(ox, oy);
+				if(Visited[oIdx])
+					continue;
+				if(!IsBlockedForSpawnNav(ox, oy))
+				{
+					Visited[oIdx] = 1;
+					const bool nextCrossedStart = crossedStart || IsStartAtIndex(oIdx);
+					q.emplace_back(ox, oy, cp, nextCrossedStart);
+				}
+			}
+		}
+	};
+
+	// Helper: enqueue all valid checkpoint destinations using current cp number (checkpoint tele outs)
+	auto EnqueueTeleCheckpointDestinationsByCp = [&](int cpNumber, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, bool crossedStart) {
+		if(cpNumber <= 0)
+			return;
+		const int key = cpNumber - 1;
+		auto it = m_TeleCheckOuts.find(key);
+		if(it != m_TeleCheckOuts.end())
+		{
+			for(const vec2 &outPos : it->second)
+			{
+				const int ox = std::clamp((int)std::floor(outPos.x / 32.0f), 0, W - 1);
+				const int oy = std::clamp((int)std::floor(outPos.y / 32.0f), 0, H - 1);
+				const int oIdx = ToIndex(ox, oy);
+				if(Visited[oIdx])
+					continue;
+				if(!IsBlockedForSpawnNav(ox, oy))
+				{
+					Visited[oIdx] = 1;
+					const bool nextCrossedStart = crossedStart || IsStartAtIndex(oIdx);
+					q.emplace_back(ox, oy, cpNumber, nextCrossedStart);
+				}
+			}
+		}
+	};
+
+	// BFS carrying checkpoint number (cp) and whether we've crossed start line
+	std::deque<std::tuple<int, int, int, bool>> q; // x, y, cp, crossedStart
 	std::vector<uint8_t> Visited((size_t)W * H, 0);
 
 	for(const vec2 &s : seeds)
@@ -1878,7 +1965,9 @@ void CCollision::BuildSpawnCandidates()
 		if(!Visited[si])
 		{
 			Visited[si] = 1;
-			q.emplace_back(sx, sy);
+			// If there are no start tiles at all, treat as already crossed start.
+			const bool initialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(si) : true;
+			q.emplace_back(sx, sy, 0, initialCrossedStart);
 		}
 	}
 
@@ -1888,10 +1977,25 @@ void CCollision::BuildSpawnCandidates()
 
 	while(!q.empty())
 	{
-		auto [x, y] = q.front();
+		auto [x, y, cp, crossedStart] = q.front();
 		q.pop_front();
 
-		if(SurroundedByAir(x, y, 1) && !IsTeleTileAt(x, y))
+		const int curIdx = ToIndex(x, y);
+		if(m_pTele)
+		{
+			const int cpHere = TeleCheckpointAtIndex(curIdx);
+			if(cpHere > 0)
+				cp = cpHere;
+		}
+		// Crossing start if current tile is start
+		if(IsStartAtIndex(curIdx))
+			crossedStart = true;
+
+		// When no start tiles exist, allow candidates immediately (crossedStart treated as true).
+		const bool allowCandidateNow = crossedStart || !HasAnyStartTiles;
+
+		// Only consider pure air and not tele tiles for spawn candidates
+		if(allowCandidateNow && SurroundedByAir(x, y, 1) && !IsTeleTileAt(x, y))
 		{
 			const vec2 pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 			if(HasSolidInRadius(pos, kSolidRadius, 1, true))
@@ -1908,29 +2012,29 @@ void CCollision::BuildSpawnCandidates()
 			if(Visited[nIdx])
 				continue;
 
+			int nextCp = cp;
+			bool nextCrossedStart = crossedStart;
+
 			if(m_pTele)
 			{
+				const int cpNext = TeleCheckpointAtIndex(nIdx);
+				if(cpNext > 0)
+					nextCp = cpNext;
+
 				const unsigned char nType = m_pTele[nIdx].m_Type;
 				const unsigned char nNum = m_pTele[nIdx].m_Number;
-				if(nNum > 0 && IsTeleInType(nType))
+
+				if(nNum > 0 && (IsTeleInRegular(nType) || IsTeleInCheckpoint(nType)))
 				{
-					const int key = nNum - 1;
-					auto it = m_TeleOuts.find(key);
-					if(it != m_TeleOuts.end())
+					Visited[nIdx] = 1; // we don't stay on tele-in tiles
+					if(IsTeleInCheckpoint(nType))
 					{
-						for(const vec2 &outPos : it->second)
-						{
-							const int ox = std::clamp((int)std::floor(outPos.x / 32.0f), 0, W - 1);
-							const int oy = std::clamp((int)std::floor(outPos.y / 32.0f), 0, H - 1);
-							const int oIdx = ToIndex(ox, oy);
-							if(Visited[oIdx])
-								continue;
-							if(!IsBlockedForSpawnNav(ox, oy))
-							{
-								Visited[oIdx] = 1;
-								q.emplace_back(ox, oy);
-							}
-						}
+						if(nextCp > 0)
+							EnqueueTeleCheckpointDestinationsByCp(nextCp, Visited, q, nextCrossedStart);
+					}
+					else
+					{
+						EnqueueTeleDestinationsByTeleNum(nNum - 1, Visited, q, nextCp, nextCrossedStart);
 					}
 					continue;
 				}
@@ -1939,37 +2043,46 @@ void CCollision::BuildSpawnCandidates()
 			if(!IsBlockedForSpawnNav(nx, ny))
 			{
 				Visited[nIdx] = 1;
-				q.emplace_back(nx, ny);
+				// Crossing start if neighbor tile is start
+				nextCrossedStart = nextCrossedStart || IsStartAtIndex(nIdx);
+				q.emplace_back(nx, ny, nextCp, nextCrossedStart);
 			}
 		}
 
+		// Also process tele-in at current tile (if we happen to be standing on one)
 		if(m_pTele)
 		{
-			const int Idx = ToIndex(x, y);
-			const unsigned char tType = m_pTele[Idx].m_Type;
-			const unsigned char tNum = m_pTele[Idx].m_Number;
-			if(tNum > 0 && IsTeleInType(tType))
+			const unsigned char tType = m_pTele[curIdx].m_Type;
+			const unsigned char tNum = m_pTele[curIdx].m_Number;
+			if(tNum > 0 && (IsTeleInRegular(tType) || IsTeleInCheckpoint(tType)))
 			{
-				const int key = tNum - 1;
-				auto it = m_TeleOuts.find(key);
-				if(it != m_TeleOuts.end())
+				if(IsTeleInCheckpoint(tType))
 				{
-					for(const vec2 &OutPos : it->second)
-					{
-						const int ox = std::clamp((int)std::floor(OutPos.x / 32.0f), 0, W - 1);
-						const int oy = std::clamp((int)std::floor(OutPos.y / 32.0f), 0, H - 1);
-						const int oIdx = ToIndex(ox, oy);
-						if(Visited[oIdx])
-							continue;
-						if(!IsBlockedForSpawnNav(ox, oy))
-						{
-							Visited[oIdx] = 1;
-							q.emplace_back(ox, oy);
-						}
-					}
+					if(cp > 0)
+						EnqueueTeleCheckpointDestinationsByCp(cp, Visited, q, crossedStart);
+				}
+				else
+				{
+					EnqueueTeleDestinationsByTeleNum(tNum - 1, Visited, q, cp, crossedStart);
 				}
 			}
 		}
+	}
+	
+	// Final pass: remove all positions near any spawn seed within a radius (in tiles)
+	constexpr int kSpawnExclusionRadiusTiles = 42; 
+	const float exclusionRadiusPx = kSpawnExclusionRadiusTiles * 32.0f;
+
+	if(!seeds.empty() && !m_SpawnCandidates.empty())
+	{
+		std::erase_if(m_SpawnCandidates, [&](const vec2 &pos) {
+			for(const vec2 &seed : seeds)
+			{
+				if(distance(pos, seed) <= exclusionRadiusPx)
+					return true;
+			}
+			return false;
+		});
 	}
 }
 
