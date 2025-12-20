@@ -1870,8 +1870,35 @@ void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-void CGameContext::RegisterFoxNetCommands()
+void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pUserData)
 {
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	const char *pClientName = pResult->GetString(0);
+	const char *pDDNetVersionStr = pResult->GetString(1);
+	int ClientVersion = pResult->GetInteger(2);
+	int Ban = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
+
+	CBotClientDetection Entry;
+	str_copy(Entry.m_pClientName, pClientName);
+	str_copy(Entry.m_pDDNetVersionStr, pDDNetVersionStr);
+	Entry.m_DDNetVersion = ClientVersion;
+	Entry.m_Ban = Ban;
+
+	pSelf->m_vBotClientDetections.emplace_back(Entry);
+}
+
+void CGameContext::ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_vBotClientDetections.clear();
+}
+
+void CGameContext::RegisterFoxNetCommands()
+{	
+	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
+	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
+	
 	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
 
 	Console()->Register("lasertext", "r[string]", CFGFLAG_SERVER, ConLaserText, this, "laser text");

@@ -96,6 +96,8 @@ void CGameContext::BotClientTick()
 			continue;
 		}
 
+		const char *pClientName = Server()->GetCustomClient(ClientId);
+
 		if(Info.m_pDDNetVersionStr)
 		{
 			const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
@@ -117,7 +119,7 @@ void CGameContext::BotClientTick()
 				}
 			}
 
-			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "DDNet"))
+			if(!str_comp_nocase(pClientName, "DDNet"))
 			{
 				if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
 					pPlayer->m_HasBotClient = true;
@@ -132,11 +134,30 @@ void CGameContext::BotClientTick()
 				pPlayer->m_HasBotClient = true;
 
 			// Some random bot client I've seen
-			if(!str_comp_nocase(Server()->GetCustomClient(ClientId), "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
+			if(!str_comp_nocase(pClientName, "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
 				KnownBot = true;
 
 			if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
 				KnownBot = true;
+
+		
+			for(CBotClientDetection &Detection : m_vBotClientDetections)
+			{
+				if(Info.m_DDNetVersion != Detection.m_DDNetVersion)
+					continue;
+
+				if(str_comp(Detection.m_pClientName, pClientName) != 0)
+					continue;
+
+				if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
+					continue;
+
+				if(Detection.m_Ban)
+					KnownBot = true;
+				else
+					pPlayer->m_HasBotClient = true;
+				break;
+			}
 
 			if(KnownBot)
 			{
