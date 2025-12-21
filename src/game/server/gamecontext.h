@@ -744,7 +744,6 @@ private:
 
 	// Add
 	static void ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData);
-	void AddChatDetectionString(const char *pString, const char *pReason, bool pBan, int pBanTime, float pAddition = 1.0f);
 	// Remove
 	static void ConClearChatDetectionStrings(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveChatDetectionString(IConsole::IResult *pResult, void *pUserData);
@@ -754,7 +753,6 @@ private:
 
 	// Add
 	static void ConAddNameDetectionString(IConsole::IResult *pResult, void *pUserData);
-	void AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, int ExactName);
 	// Remove
 	static void ConClearNameDetectionStrings(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveNameDetectionString(IConsole::IResult *pResult, void *pUserData);

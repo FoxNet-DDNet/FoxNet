@@ -355,34 +355,30 @@ void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *p
 	float Addition = pResult->GetFloat(4);
 	if(BanTime < 0)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chat-detection", "Ban time must be greater than 0");
+		log_info("chat-detection", "Ban time must be greater than 0");
 		return;
 	}
 	if(Addition <= 0.0f)
 		Addition = 1.0f;
-
-	pSelf->AddChatDetectionString(String, Reason, Ban, BanTime, Addition);
-}
-
-void CGameContext::AddChatDetectionString(const char *pString, const char *pReason, bool pBan, int pBanTime, float pAddition)
-{
-	for(const auto &Words : m_vChatDetection)
+	for(const auto &Words : pSelf->m_vChatDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
-		if(!str_comp_nocase(Words.String(), pString))
+		if(!str_comp_nocase(Words.String(), String))
 		{
-			log_info("chat-detection", "String \"%s\" already exists in the list", pString);
+			log_info("chat-detection", "String \"%s\" already exists in the list", String);
 			return;
 		}
 	}
 
-	if(str_comp_nocase(pString, "") != 0)
+	if(str_comp_nocase(String, "") != 0)
 	{
-		m_vChatDetection.push_back(CStringDetection(pString, pReason, pAddition, pBan, pBanTime));
-		log_info("chat-detection", "Added \"%s\" to the Chat Detection List", pString);
+		pSelf->m_vChatDetection.push_back(CStringDetection(String, Reason, Addition, Ban, BanTime));
+		if(pResult->m_ClientId >= 0)
+			log_info("chat-detection", "Added \"%s\" to the Chat Detection List", String);
 	}
 }
+
 
 void CGameContext::ConClearChatDetectionStrings(IConsole::IResult *pResult, void *pUserData)
 {
@@ -458,26 +454,22 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 		return;
 	}
 
-	pSelf->AddNameDetectionString(String, Reason, BanTime, ExactName);
-}
-
-void CGameContext::AddNameDetectionString(const char *pString, const char *pReason, int pBanTime, int ExactName)
-{
-	for(const auto &Words : m_vNameDetection)
+	for(const auto &Words : pSelf->m_vNameDetection)
 	{
 		if(Words.String()[0] == '\0')
 			continue;
-		if(!str_comp_nocase(Words.String(), pString))
+		if(!str_comp_nocase(Words.String(), String))
 		{
-			log_info("name-detection", "Name \"%s\" already exists in the list", pString);
+			log_info("name-detection", "Name \"%s\" already exists in the list", String);
 			return;
 		}
 	}
 
-	if(str_comp_nocase(pString, "") != 0)
+	if(str_comp_nocase(String, "") != 0)
 	{
-		m_vNameDetection.push_back(CStringDetection(pString, pReason, 1, pBanTime, ExactName));
-		log_info("name-detection", "Added \"%s\" to the Name Detection List", pString);
+		pSelf->m_vNameDetection.push_back(CStringDetection(String, Reason, 1, BanTime, ExactName));
+		if(pResult->m_ClientId >= 0)
+			log_info("name-detection", "Added \"%s\" to the Name Detection List", String);
 	}
 }
 
@@ -622,17 +614,14 @@ void CGameContext::ConRainbowSpeed(IConsole::IResult *pResult, void *pUserData)
 	if(!pPl)
 		return;
 
-	char aBuf[64];
 	if(pResult->NumArguments() < 2)
 	{
-		str_format(aBuf, sizeof(aBuf), "Speed: %d", pPl->Cosmetics()->m_RainbowSpeed);
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cosmetics", aBuf);
+		log_info("cosmetics", "Speed: %d", pPl->Cosmetics()->m_RainbowSpeed);
 	}
 	else
 	{
 		int Speed = std::clamp(pResult->GetInteger(1), 1, 200);
-		str_format(aBuf, sizeof(aBuf), "Rainbow speed for '%s' changed to %d", pSelf->Server()->ClientName(Victim), Speed);
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cosmetics", aBuf);
+		log_info("cosmetics", "Rainbow speed for '%s' changed to %d", pSelf->Server()->ClientName(Victim), Speed);
 		pPl->Cosmetics()->m_RainbowSpeed = Speed;
 	}
 }
@@ -895,12 +884,10 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 		Power = pResult->GetInteger(0);
 	if(Power == -1)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "console", "~~~ Hook Powers ~~~");
+		log_info("console", "~~~ Hook Powers ~~~");
 		for(int i = 0; i < NUM_HOOKTYPES; i++)
 		{
-			char aBuf[64];
-			str_format(aBuf, sizeof(aBuf), "%d = %s", i, pSelf->HookTypeName(i));
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "hook-power", aBuf);
+			log_info("hook-power", "%d = %s", i, pSelf->HookTypeName(i));
 		}
 	}
 	else
@@ -908,7 +895,7 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 		if(pPl->Cosmetics()->m_HookPower == Power)
 			Power = HOOKTYPE_NORMAL;
 		pPl->HookPower(Power);
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "hook-power", pSelf->HookTypeName(Power));
+		log_info("hook-power", pSelf->HookTypeName(Power));
 	}
 }
 

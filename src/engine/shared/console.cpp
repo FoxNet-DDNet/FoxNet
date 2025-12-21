@@ -567,20 +567,15 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 			{
 				if(Stroke)
 				{
-					char aBuf[CMDLINE_LENGTH + 64];
-					str_format(aBuf, sizeof(aBuf), "Command '%s' cannot be executed from a map.", Result.m_pCommand);
-					Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
+					log_info("console", "Command '%s' cannot be executed from a map.", Result.m_pCommand);
 				}
 			}
 			else if(ClientId == IConsole::CLIENT_ID_NO_GAME && pCommand->m_Flags & CFGFLAG_GAME)
 			{
 				if(Stroke)
 				{
-					char aBuf[CMDLINE_LENGTH + 64];
-					str_format(aBuf, sizeof(aBuf), "Command '%s' cannot be executed from a non-map config file.", Result.m_pCommand);
-					Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-					str_format(aBuf, sizeof(aBuf), "Hint: Put the command in '%s.cfg' instead of '%s.map.cfg' ", g_Config.m_SvMap, g_Config.m_SvMap);
-					Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
+					log_info("console", "Command '%s' cannot be executed from a non-map config file.", Result.m_pCommand);
+					log_info("console", "Hint: Put the command in '%s.cfg' instead of '%s.map.cfg' ", g_Config.m_SvMap, g_Config.m_SvMap);
 				}
 			}
 			else if(CanUseCommand(Result.m_ClientId, pCommand))
@@ -605,16 +600,14 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 
 					if(int Error = ParseArgs(&Result, pCommand->m_pParams, IsColor))
 					{
-						char aBuf[CMDLINE_LENGTH + 64];
 						if(Error == PARSEARGS_INVALID_INTEGER)
-							str_format(aBuf, sizeof(aBuf), "%s is not a valid integer.", Result.GetString(Result.NumArguments() - 1));
+							log_info("chatresp", "%s is not a valid integer.", Result.GetString(Result.NumArguments() - 1));
 						else if(Error == PARSEARGS_INVALID_COLOR)
-							str_format(aBuf, sizeof(aBuf), "%s is not a valid color.", Result.GetString(Result.NumArguments() - 1));
+							log_info("chatresp", "%s is not a valid color.", Result.GetString(Result.NumArguments() - 1));
 						else if(Error == PARSEARGS_INVALID_FLOAT)
-							str_format(aBuf, sizeof(aBuf), "%s is not a valid decimal number.", Result.GetString(Result.NumArguments() - 1));
+							log_info("chatresp", "%s is not a valid decimal number.", Result.GetString(Result.NumArguments() - 1));
 						else
-							str_format(aBuf, sizeof(aBuf), "Invalid arguments. Usage: %s %s", pCommand->m_pName, pCommand->m_pParams);
-						Print(OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
+							log_info("chatresp", "Invalid arguments. Usage: %s %s", pCommand->m_pName, pCommand->m_pParams);
 					}
 					else if(m_StoreCommands && pCommand->m_Flags & CFGFLAG_STORE)
 					{
@@ -852,7 +845,6 @@ void CConsole::Con_Exec(IResult *pResult, void *pUserData)
 void CConsole::ConCommandAccess(IResult *pResult, void *pUser)
 {
 	CConsole *pConsole = static_cast<CConsole *>(pUser);
-	char aBuf[CMDLINE_LENGTH + 64];
 	CCommand *pCommand = pConsole->FindCommand(pResult->GetString(0), CFGFLAG_SERVER);
 	if(pCommand)
 	{
@@ -865,25 +857,17 @@ void CConsole::ConCommandAccess(IResult *pResult, void *pUser)
 				return;
 			}
 			pCommand->SetAccessLevel(AccessLevel.value());
-			str_format(aBuf, sizeof(aBuf), "moderator access for '%s' is now %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::MODERATOR ? "enabled" : "disabled");
-			pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-			str_format(aBuf, sizeof(aBuf), "helper access for '%s' is now %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::HELPER ? "enabled" : "disabled");
-			pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-			str_format(aBuf, sizeof(aBuf), "user access for '%s' is now %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::USER ? "enabled" : "disabled");
+			log_info("console", "moderator access for '%s' is now %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::MODERATOR ? "enabled" : "disabled");
+			log_info("console", "helper access for '%s' is now %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::HELPER ? "enabled" : "disabled");
 		}
 		else
 		{
-			str_format(aBuf, sizeof(aBuf), "moderator access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::MODERATOR ? "enabled" : "disabled");
-			pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-			str_format(aBuf, sizeof(aBuf), "helper access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::HELPER ? "enabled" : "disabled");
-			pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
-			str_format(aBuf, sizeof(aBuf), "user access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::USER ? "enabled" : "disabled");
+			log_info("console", "moderator access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::MODERATOR ? "enabled" : "disabled");
+			log_info("console", "helper access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::HELPER ? "enabled" : "disabled");
 		}
-	}
+	} 
 	else
-		str_format(aBuf, sizeof(aBuf), "No such command: '%s'.", pResult->GetString(0));
-
-	pConsole->Print(OUTPUT_LEVEL_STANDARD, "console", aBuf);
+		log_info("console", "No such command: '%s'.", pResult->GetString(0));
 }
 
 void CConsole::ConCommandStatus(IResult *pResult, void *pUser)
@@ -915,14 +899,14 @@ void CConsole::ConCommandStatus(IResult *pResult, void *pUser)
 			}
 			else
 			{
-				pConsole->Print(OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
+				log_info("chatresp", "%s", aBuf);
 				str_copy(aBuf, pCommand->m_pName);
 				Used = Length;
 			}
 		}
 	}
 	if(Used > 0)
-		pConsole->Print(OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
+		log_info("chatresp", "%s", aBuf);
 }
 
 void CConsole::ConUserCommandStatus(IResult *pResult, void *pUser)

@@ -104,7 +104,7 @@ void CServerBan::ConBanTimestampExt(IConsole::IResult *pResult, void *pUser)
 	{
 		int ClientId = str_toint(pStr);
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS || pThis->Server()->m_aClients[ClientId].m_State == CServer::CClient::STATE_EMPTY)
-			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban error (invalid client id)");
+			log_info("net_ban", "ban error (invalid client id)");
 		else
 			pThis->BanAddrTimestamp(pThis->Server()->ClientAddr(ClientId), Timestamp, pReason, false);
 	}
@@ -201,7 +201,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 	{
 		int ClientId = str_toint(pStr);
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS || pThis->Server()->m_aClients[ClientId].m_State == CServer::CClient::STATE_EMPTY)
-			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban error (invalid client id)");
+			log_info("net_ban", "ban error (invalid client id)");
 		else
 		{
 			const int UserId = pResult->m_ClientId;
@@ -3630,7 +3630,6 @@ void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 
 void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 {
-	char aBuf[1024];
 	CServer *pThis = static_cast<CServer *>(pUser);
 	const char *pName = pResult->NumArguments() == 1 ? pResult->GetString(0) : "";
 
@@ -3644,15 +3643,13 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 
 		if(pThis->m_aClients[i].m_State == CClient::STATE_INGAME)
 		{
-			char aDnsblStr[64];
-			aDnsblStr[0] = '\0';
+			char aDnsblStr[64] = "";
 			if(pThis->Config()->m_SvDnsbl)
 			{
 				str_format(aDnsblStr, sizeof(aDnsblStr), " dnsbl=%s", DnsblStateStr(pThis->m_aClients[i].m_DnsblState));
 			}
 
-			char aAuthStr[128];
-			aAuthStr[0] = '\0';
+			char aAuthStr[128] = "";
 			if(pThis->m_aClients[i].m_AuthKey >= 0)
 			{
 				const char *pAuthStr = "";
@@ -3679,15 +3676,14 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 			{
 				pClientPrefix = "0.7:";
 			}
-			str_format(aBuf, sizeof(aBuf), "id=%d addr=<{%s}> name='%s' client=%s%d secure=%s flags=%d%s%s",
+			log_info("server", "id=%d addr=<{%s}> name='%s' client=%s%d secure=%s flags=%d%s%s",
 				i, pThis->ClientAddrString(i, true), pThis->m_aClients[i].m_aName, pClientPrefix, pThis->m_aClients[i].m_DDNetVersion,
 				pThis->m_NetServer.HasSecurityToken(i) ? "yes" : "no", pThis->m_aClients[i].m_Flags, aDnsblStr, aAuthStr);
 		}
 		else
 		{
-			str_format(aBuf, sizeof(aBuf), "id=%d addr=<{%s}> connecting", i, pThis->ClientAddrString(i, true));
+			log_info("server", "id=%d addr=<{%s}> connecting", i, pThis->ClientAddrString(i, true));
 		}
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 	}
 }
 
@@ -3750,14 +3746,14 @@ void CServer::ConAuthAdd(IConsole::IResult *pResult, void *pUser)
 
 	if(!pManager->IsValidIdent(pIdent))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident is invalid");
+		log_info("auth", "ident is invalid");
 		return;
 	}
 
 	int Level = GetAuthLevel(pLevel);
 	if(Level == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
+		log_info("auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
 		return;
 	}
 	// back compat to change "mod", "modder" and so on as parameters to "moderator"
@@ -3765,12 +3761,12 @@ void CServer::ConAuthAdd(IConsole::IResult *pResult, void *pUser)
 
 	bool NeedUpdate = !pManager->NumNonDefaultKeys();
 	if(pManager->AddKey(pIdent, pPw, pLevel) < 0)
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident already exists");
+		log_info("auth", "ident already exists");
 	else
 	{
 		if(NeedUpdate)
 			pThis->SendRconType(-1, true);
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "key added");
+		log_info("auth", "added key ident='%s' level='%s'", pIdent, pLevel);
 	}
 }
 
@@ -3786,14 +3782,14 @@ void CServer::ConAuthAddHashed(IConsole::IResult *pResult, void *pUser)
 
 	if(!pManager->IsValidIdent(pIdent))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident is invalid");
+		log_info("auth", "ident is invalid");
 		return;
 	}
 
 	int Level = GetAuthLevel(pLevel);
 	if(Level == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
+		log_info("auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
 		return;
 	}
 	// back compat to change "mod", "modder" and so on as parameters to "moderator"
@@ -3804,24 +3800,24 @@ void CServer::ConAuthAddHashed(IConsole::IResult *pResult, void *pUser)
 
 	if(md5_from_str(&Hash, pPw))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "Malformed password hash");
+		log_info("auth", "Malformed password hash");
 		return;
 	}
 	if(str_hex_decode(aSalt, sizeof(aSalt), pSalt))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "Malformed salt hash");
+		log_info("auth", "Malformed salt hash");
 		return;
 	}
 
 	bool NeedUpdate = !pManager->NumNonDefaultKeys();
 
 	if(pManager->AddKeyHash(pIdent, Hash, aSalt, pLevel) < 0)
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident already exists");
+		log_info("auth", "ident already exists");
 	else
 	{
 		if(NeedUpdate)
 			pThis->SendRconType(-1, true);
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "key added");
+		log_info("auth", "added key ident='%s' level='%s'", pIdent, pLevel);
 	}
 }
 
@@ -3837,14 +3833,14 @@ void CServer::ConAuthUpdate(IConsole::IResult *pResult, void *pUser)
 	int KeySlot = pManager->FindKey(pIdent);
 	if(KeySlot == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident couldn't be found");
+		log_info("auth", "ident couldn't be found");
 		return;
 	}
 
 	int Level = GetAuthLevel(pLevel);
 	if(Level == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
+		log_info("auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
 		return;
 	}
 	// back compat to change "mod", "modder" and so on as parameters to "moderator"
@@ -3853,7 +3849,7 @@ void CServer::ConAuthUpdate(IConsole::IResult *pResult, void *pUser)
 	pManager->UpdateKey(KeySlot, pPw, pLevel);
 	pThis->LogoutKey(KeySlot, "key update");
 
-	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "key updated");
+	log_info("auth", "key updated ident='%s' level='%s'", pIdent, pLevel);
 }
 
 void CServer::ConAuthUpdateHashed(IConsole::IResult *pResult, void *pUser)
@@ -3869,14 +3865,14 @@ void CServer::ConAuthUpdateHashed(IConsole::IResult *pResult, void *pUser)
 	int KeySlot = pManager->FindKey(pIdent);
 	if(KeySlot == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident couldn't be found");
+		log_info("auth", "ident couldn't be found");
 		return;
 	}
 
 	int Level = GetAuthLevel(pLevel);
 	if(Level == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
+		log_info("auth", "level can be one of {\"admin\", \"mod(erator)\", \"helper\"}");
 		return;
 	}
 	// back compat to change "mod", "modder" and so on as parameters to "moderator"
@@ -3887,19 +3883,19 @@ void CServer::ConAuthUpdateHashed(IConsole::IResult *pResult, void *pUser)
 
 	if(md5_from_str(&Hash, pPw))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "Malformed password hash");
+		log_info("auth", "Malformed password hash");
 		return;
 	}
 	if(str_hex_decode(aSalt, sizeof(aSalt), pSalt))
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "Malformed salt hash");
+		log_info("auth", "Malformed salt hash");
 		return;
 	}
 
 	pManager->UpdateKeyHash(KeySlot, Hash, aSalt, pLevel);
 	pThis->LogoutKey(KeySlot, "key update");
 
-	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "key updated");
+	log_info("auth", "key updated ident='%s' level='%s'", pIdent, pLevel);
 }
 
 void CServer::ConAuthRemove(IConsole::IResult *pResult, void *pUser)
@@ -3912,7 +3908,7 @@ void CServer::ConAuthRemove(IConsole::IResult *pResult, void *pUser)
 	int KeySlot = pManager->FindKey(pIdent);
 	if(KeySlot == -1)
 	{
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident couldn't be found");
+		log_info("auth", "ident couldn't be found");
 		return;
 	}
 
@@ -3921,7 +3917,7 @@ void CServer::ConAuthRemove(IConsole::IResult *pResult, void *pUser)
 	if(!pManager->NumNonDefaultKeys())
 		pThis->SendRconType(-1, false);
 
-	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "key removed, all users logged out");
+	log_info("auth", "key removed, all users logged out");
 }
 
 static void ListKeysCallback(const char *pIdent, const char *pRoleName, void *pUser)
@@ -4904,7 +4900,6 @@ void CServer::ConHighBandwidth(IConsole::IResult *pResult, void *pUser)
 
 void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 {
-	char aBuf[1024] = "No Clients Ingame";
 	CServer *pThis = static_cast<CServer *>(pUser);
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
@@ -4916,11 +4911,9 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 		{
 			int DDnetVersion = pThis->GetClientVersion(ClientId);
 			if(pThis->m_aClients[ClientId].m_GotDDNetVersionPacket)
-				str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+				log_info("foxnet", "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
 			else
-				str_format(aBuf, sizeof(aBuf), "Name: %s (%d) | Client: %s (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion);
-
-			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "foxnet", aBuf);
+				log_info("foxnet", "Name: %s (%d) | Client: %s (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion);
 		}
 	}
 }
