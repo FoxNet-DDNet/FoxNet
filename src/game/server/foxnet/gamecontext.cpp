@@ -418,6 +418,15 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	if(m_vChatDetection.empty())
 		return false;
 
+	const char *pIgnoredPrefixes[] = {"/report"};
+
+	for(const char *pPrefix : pIgnoredPrefixes)
+	{
+		if(str_startswith_nocase(pMsg, pPrefix))
+			return false;
+	}
+
+
 	float count = 0; // amount of flagged strings (some strings may count more than others)
 	int BanDuration = 0;
 	char Reason[64] = "Chat Detection Auto Ban";
