@@ -895,7 +895,7 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 		if(pPl->Cosmetics()->m_HookPower == Power)
 			Power = HOOKTYPE_NORMAL;
 		pPl->HookPower(Power);
-		log_info("hook-power", pSelf->HookTypeName(Power));
+		log_info("hook-power", "%s", pSelf->HookTypeName(Power));
 	}
 }
 
@@ -1866,11 +1866,11 @@ void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pU
 	int ClientVersion = pResult->GetInteger(2);
 	int Ban = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
 
-	CBotClientDetection Entry;
-	str_copy(Entry.m_pClientName, pClientName);
-	str_copy(Entry.m_pDDNetVersionStr, pDDNetVersionStr);
-	Entry.m_DDNetVersion = ClientVersion;
-	Entry.m_Ban = Ban;
+	CBotClientDetection NewEntry;
+	str_copy(NewEntry.m_pClientName, pClientName);
+	str_copy(NewEntry.m_pDDNetVersionStr, pDDNetVersionStr);
+	NewEntry.m_DDNetVersion = ClientVersion;
+	NewEntry.m_Ban = Ban;
 
 	for(const auto &Entry : pSelf->m_vBotClientDetections)
 	{
@@ -1878,12 +1878,12 @@ void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pU
 			str_comp(Entry.m_pDDNetVersionStr, pDDNetVersionStr) == 0 &&
 			Entry.m_DDNetVersion == ClientVersion)
 		{
-			log_info("bot-client-detection", "Entry already exists", pClientName, pDDNetVersionStr, ClientVersion);
+			log_info("bot-client-detection", "Entry already exists");
 			return;
 		}
 	}
 
-	pSelf->m_vBotClientDetections.emplace_back(Entry);
+	pSelf->m_vBotClientDetections.emplace_back(NewEntry);
 }
 
 void CGameContext::ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData)
