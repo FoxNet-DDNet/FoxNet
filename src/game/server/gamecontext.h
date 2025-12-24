@@ -888,6 +888,7 @@ private:
 
 	static void ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pUserData);
 	static void ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData);
+	static void ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData);
 
 	struct CFakeSnapPlayer
 	{

@@ -1872,6 +1872,17 @@ void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pU
 	Entry.m_DDNetVersion = ClientVersion;
 	Entry.m_Ban = Ban;
 
+	for(const auto &Entry : pSelf->m_vBotClientDetections)
+	{
+		if(str_comp(Entry.m_pClientName, pClientName) == 0 &&
+			str_comp(Entry.m_pDDNetVersionStr, pDDNetVersionStr) == 0 &&
+			Entry.m_DDNetVersion == ClientVersion)
+		{
+			log_info("bot-client-detection", "Entry already exists", pClientName, pDDNetVersionStr, ClientVersion);
+			return;
+		}
+	}
+
 	pSelf->m_vBotClientDetections.emplace_back(Entry);
 }
 
@@ -1881,10 +1892,20 @@ void CGameContext::ConBotClientDetectionClear(IConsole::IResult *pResult, void *
 	pSelf->m_vBotClientDetections.clear();
 }
 
+void CGameContext::ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	for(const auto &Entry : pSelf->m_vBotClientDetections)
+	{
+		log_info("name-detection", "Client: %s (%d) [%s]", Entry.m_pClientName, Entry.m_DDNetVersion, Entry.m_pDDNetVersionStr);
+	}
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {	
 	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
 	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
+	Console()->Register("bot_client_strings_list", "", CFGFLAG_SERVER, ConBotClientDetectionList, this, "List bot client detection strings");
 	
 	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
 
