@@ -913,14 +913,14 @@ void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 		for(int i = 0; i < 137; i++) // 16:9 ratio default font
 			str_append(aBuf, " ", sizeof(aBuf));
 
-	if(!str_comp(m_BroadcastData.m_aMessage, aBuf) && m_BroadcastData.m_Time + Server()->TickSpeed() * 9 > Server()->Tick())
-		return;
-
 	SendBroadcast(aBuf);
 }
 
 void CPlayer::SendBroadcast(const char *pText)
 {
+	if(!str_comp(m_BroadcastData.m_aMessage, pText) && m_BroadcastData.m_Time + Server()->TickSpeed() * 9 > Server()->Tick())
+		return;
+
 	str_copy(m_BroadcastData.m_aMessage, pText);
 	m_BroadcastData.m_Time = Server()->Tick();
 
