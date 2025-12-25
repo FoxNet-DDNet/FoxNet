@@ -129,3 +129,7 @@ MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER 
 MACRO_CONFIG_INT(SvExtraLogging, sv_extra_logging, 0, 0, 2, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to enable extra logging")
 
 MACRO_CONFIG_INT(SvExecBasedOnPort, sv_execute_based_on_port, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Executes a file based on Port, if port=8303 -> execs /port/8303.cfg")
+
+// Random Stuff
+MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Display everyones position at their cursor")
+MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Set everyones snapping velocity to 0 (disables interpolation on the client)")

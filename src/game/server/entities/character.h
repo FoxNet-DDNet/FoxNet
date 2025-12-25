@@ -364,7 +364,7 @@ public:
 
 	bool m_MixedShield = false; // for Mixed Gun cosmetic
 
-	vec2 GetSpazzPos(vec2 Pos);
+	vec2 GetSpecialPos();
 
 	vec2 GetPredictedPos(int SnappingClient, bool Pickup = true);
 

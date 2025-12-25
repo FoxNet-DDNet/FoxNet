@@ -1334,11 +1334,15 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 				Faketuning |= FAKETUNE_NOJUMP;
 			// <FoxNet
 			if(m_InSnake || m_Ufo.Active())
-				Faketuning |= FAKETUNE_NOJUMP | FAKETUNE_NOHOOK | FAKETUNE_NOCOLL;
+				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOJUMP;
 			if(m_Core.m_Passive)
-				Faketuning |= FAKETUNE_NOHOOK | FAKETUNE_NOCOLL | FAKETUNE_NOHAMMER;
+				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOHAMMER;
 			if(m_Core.m_Collidable)
 				Faketuning |= FAKETUNE_NOCOLL;
+
+			if(g_Config.m_SvTeeCursor)
+				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOHAMMER;
+
 			// FoxNet>
 		}
 		if(Faketuning != m_NeededFaketuning)
@@ -1371,13 +1375,18 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 
 		pCore->Write(pCharacter);
 
-		// <FoxNet
-		if(GetPlayer()->m_Spazzing && (Id != SnappingClient || GetPlayer()->IsPaused()))
+		if(Id != SnappingClient || GetPlayer()->IsPaused())
 		{
-			pCharacter->m_X = GetSpazzPos(m_Pos).x;
-			pCharacter->m_Y = GetSpazzPos(m_Pos).y;
-			pCharacter->m_HookX = GetSpazzPos(m_Core.m_HookPos).x;
-			pCharacter->m_HookY = GetSpazzPos(m_Core.m_HookPos).y;
+			if(g_Config.m_SvTeeCursor)
+			{
+				pCharacter->m_VelY = 0;
+				pCharacter->m_VelX = 0;
+			}
+			if(g_Config.m_SvTeeCursor || GetPlayer()->m_Spazzing)
+			{
+				pCharacter->m_X = round_to_int(GetSpecialPos().x);
+				pCharacter->m_Y = round_to_int(GetSpecialPos().y);
+			}
 		}
 		// FoxNet>
 
@@ -1414,12 +1423,15 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 		pCore->Write(reinterpret_cast<CNetObj_CharacterCore *>(static_cast<protocol7::CNetObj_CharacterCore *>(pCharacter)));
 
 		// <FoxNet
-		if(GetPlayer()->m_Spazzing && (Id != SnappingClient || GetPlayer()->IsPaused()))
+		if(Id != SnappingClient || GetPlayer()->IsPaused())
 		{
-			pCharacter->m_X = GetSpazzPos(m_Pos).x;
-			pCharacter->m_Y = GetSpazzPos(m_Pos).y;
-			pCharacter->m_HookX = GetSpazzPos(m_Core.m_HookPos).x;
-			pCharacter->m_HookY = GetSpazzPos(m_Core.m_HookPos).y;
+			if(g_Config.m_SvTeeCursor)
+			{
+				pCharacter->m_VelY = 0;
+				pCharacter->m_VelX = 0;
+			}
+			pCharacter->m_X = GetSpecialPos().x;
+			pCharacter->m_Y = GetSpecialPos().y;
 		}
 		// FoxNet>
 
@@ -1662,7 +1674,7 @@ void CCharacter::Snap(int SnappingClient)
 		if(!pSnapChar->Core()->m_Hookable && Id != SnappingClient)
 			pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
 	}
-	if(m_Core.m_Passive)
+	if(m_Core.m_Passive || g_Config.m_SvTeeCursor)
 	{
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
@@ -3748,9 +3760,16 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 	}
 }
 
-vec2 CCharacter::GetSpazzPos(vec2 Pos)
+vec2 CCharacter::GetSpecialPos()
 {
 	vec2 OffsetPos = vec2(0, 0);
+	vec2 Pos = m_Pos;
+
+	if(g_Config.m_SvTeeCursor)
+	{
+		m_Core.m_ResendCore = true;
+		Pos = GetCursorPos();
+	}
 
 	if(GetPlayer()->m_Spazzing)
 		OffsetPos = random_direction() * random_float(0, 44.0f + GetPlayer()->GetCid() / 16.0f);
