@@ -400,8 +400,8 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			{
 				for(auto &Mail : Acc.m_MailBox.m_vMails)
 				{
-					const bool HasReward = Mail.m_aCmdName[0] && Mail.m_aCmd[0];
-					if(HasReward && !Mail.m_UsedCmd)
+					const bool HasUnclaimedReward = !Mail.m_UsedCmd && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
+					if(HasUnclaimedReward)
 					{
 						ExecMailCmd(ClientId, Mail);
 						Mail.m_UsedCmd = true;
@@ -1047,7 +1047,9 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 			int UnreadMails = 0;
 			for(const auto &Mail : pAcc->m_MailBox.m_vMails)
 			{
-				if(Mail.m_Unread)
+				const bool HasUnclaimedReward = !Mail.m_UsedCmd && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
+
+				if(Mail.m_Unread || HasUnclaimedReward)
 					UnreadMails++;
 			}
 			if(UnreadMails > 0)
