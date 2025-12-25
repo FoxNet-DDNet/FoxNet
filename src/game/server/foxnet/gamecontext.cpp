@@ -85,6 +85,8 @@ void CGameContext::BotClientTick()
 			continue;
 		if(pPlayer->m_HasBotClient)
 			continue;
+		if(pPlayer->m_BotChecked)
+			continue;
 
 		IServer::CClientInfo Info;
 		if(!Server()->GetClientInfo(ClientId, &Info))
@@ -165,15 +167,16 @@ void CGameContext::BotClientTick()
 				if(g_Config.m_SvAntiBot == 2)
 				{
 					char aBanBuf[256];
-					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 240 minutes for using a bot client.\n"
+					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for using a bot client.\n"
 						"ver: %d [%s]",
 						Server()->ClientName(ClientId),
 						Server()->ClientAddrString(ClientId, false),
+						g_Config.m_SvAntiBotBantime,
 						GetClientVersion(ClientId),
 						GetClientVersionStr(ClientId));
 					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
 
-					Server()->Ban(ClientId, 240 * 60, "Download the official ddnet client from ddnet.org/downloads", false);
+					Server()->Ban(ClientId, g_Config.m_SvAntiBotBantime * 60, "Download the official ddnet client from ddnet.org/downloads", false);
 					continue;
 				}
 
@@ -182,6 +185,7 @@ void CGameContext::BotClientTick()
 				SendChat(-1, TEAM_ALL, aBuf);
 			}
 		}
+		pPlayer->m_BotChecked = true;
 
 		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
 		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->

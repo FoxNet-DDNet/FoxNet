@@ -1884,6 +1884,15 @@ void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pU
 	}
 
 	pSelf->m_vBotClientDetections.emplace_back(NewEntry);
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(!pSelf->Server()->ClientIngame(i))
+			continue;
+		CPlayer *pPlayer = pSelf->m_apPlayers[i];
+		if(pPlayer)
+			pPlayer->m_BotChecked = false; // force recheck
+	}
 }
 
 void CGameContext::ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData)
