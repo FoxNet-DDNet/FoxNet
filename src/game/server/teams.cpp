@@ -829,7 +829,7 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 	}
 
 	// <FoxNet
-	if(Player->Acc()->m_LoggedIn && g_Config.m_SvAccounts)
+	if(pPlayer->Acc()->m_LoggedIn && g_Config.m_SvAccounts)
 	{
 		int64_t XP = 0;
 		if(GameServer()->m_MapInfoCache.m_Points > 0)
@@ -837,8 +837,8 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 
 		if(XP > 0)
 		{
-			Player->GiveXP(XP, "for finishing the map!");
-			GameServer()->m_AccountManager.SaveAccountsInfo(Player->GetCid(), *Player->Acc());
+			pPlayer->GiveXP(XP, "for finishing the map!");
+			GameServer()->m_AccountManager.SaveAccountsInfo(pPlayer->GetCid(), *pPlayer->Acc());
 		}
 	}
 	// FoxNet>

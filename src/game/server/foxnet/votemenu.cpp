@@ -196,7 +196,7 @@ void CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail Mail)
 	}
 	*pDst = '\0';
 
-	GameServer()->Console()->ExecuteLine(aCmd);
+	GameServer()->Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
 }
 
 const char *CVoteMenu::FormatItemVote(long Price)

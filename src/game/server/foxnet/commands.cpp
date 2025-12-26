@@ -1497,7 +1497,6 @@ void CGameContext::ConInsertRecord(IConsole::IResult *pResult, void *pUserData)
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
 		{
 			pSelf->Score()->PlayerData(ClientId)->Reset();
-			pSelf->m_apPlayers[ClientId]->m_Score.reset();
 			pSelf->Score()->LoadPlayerData(ClientId);
 			return;
 		}
@@ -1516,7 +1515,6 @@ void CGameContext::ConRemoveRecord(IConsole::IResult *pResult, void *pUserData)
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
 		{
 			pSelf->Score()->PlayerData(ClientId)->Reset();
-			pSelf->m_apPlayers[ClientId]->m_Score.reset();
 			pSelf->Score()->LoadPlayerData(ClientId);
 			return;
 		}
@@ -1535,7 +1533,6 @@ void CGameContext::ConRemoveRecordWithTime(IConsole::IResult *pResult, void *pUs
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
 		{
 			pSelf->Score()->PlayerData(ClientId)->Reset();
-			pSelf->m_apPlayers[ClientId]->m_Score.reset();
 			pSelf->Score()->LoadPlayerData(ClientId);
 			return;
 		}
@@ -1553,7 +1550,6 @@ void CGameContext::ConRemoveAllRecords(IConsole::IResult *pResult, void *pUserDa
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
 		{
 			pSelf->Score()->PlayerData(ClientId)->Reset();
-			pSelf->m_apPlayers[ClientId]->m_Score.reset();
 			pSelf->Score()->LoadPlayerData(ClientId);
 			return;
 		}

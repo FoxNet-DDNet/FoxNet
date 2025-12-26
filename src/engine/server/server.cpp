@@ -3286,7 +3286,7 @@ int CServer::Run()
 	{
 		char aExecFile[IO_MAX_PATH_LENGTH];
 		str_format(aExecFile, sizeof(aExecFile), "port/%d.cfg", this->Port());
-		Console()->ExecuteFile(aExecFile);
+		Console()->ExecuteFile(aExecFile, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 	// FoxNet>
 

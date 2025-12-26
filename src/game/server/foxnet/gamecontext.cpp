@@ -381,7 +381,7 @@ void CGameContext::BanSync()
 
 		if(ExecSaveDelay < Server()->Tick() && ExecBans)
 		{
-			Console()->ExecuteLine("bans_save \"Bans.cfg\"");
+			Console()->ExecuteLine("bans_save \"Bans.cfg\"", IConsole::CLIENT_ID_UNSPECIFIED);
 
 			// Info Message
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Saved Bans");
@@ -1090,7 +1090,7 @@ bool CGameContext::RandomMapVote()
 	std::uniform_int_distribution<int> dist(0, (int)MapVotes.size() - 1);
 	int Random = dist(rd);
 
-	Console()->ExecuteLine(MapVotes[Random]);
+	Console()->ExecuteLine(MapVotes[Random], IConsole::CLIENT_ID_UNSPECIFIED);
 	return true;
 }
 
