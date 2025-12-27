@@ -868,13 +868,16 @@ void CCharacter::SetEmote(int Emote, int Tick)
 	m_EmoteStop = Tick;
 }
 
-int CCharacter::DetermineEyeEmote()
+int CCharacter::DetermineEyeEmote(int SnappingClient, int Id)
 {
 	const bool IsFrozen = m_Core.m_DeepFrozen || m_FreezeTime > 0 || m_Core.m_LiveFrozen;
 	const bool HasNinjajetpack = m_pPlayer->m_NinjaJetpack && m_Core.m_Jetpack && m_Core.m_ActiveWeapon == WEAPON_GUN;
 
 	if(GetPlayer()->IsAfk() || GetPlayer()->IsPaused())
 		return IsFrozen ? EMOTE_NORMAL : EMOTE_BLINK;
+	// <FoxNet
+	if(GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowGuns && m_CosmeticEmoteType != EMOTE_NORMAL)
+		return m_CosmeticEmoteType;
 	if(m_EmoteType != EMOTE_NORMAL) // user manually set an eye emote using /emote
 		return m_EmoteType;
 	if(IsFrozen)
@@ -967,6 +970,13 @@ void CCharacter::PreTick()
 	{
 		SetEmote(m_pPlayer->GetDefaultEmote(), -1);
 	}
+	// <FoxNet
+	if(m_CosmeticEmoteStop < Server()->Tick())
+	{
+		m_CosmeticEmoteType = m_pPlayer->GetDefaultEmote();
+		m_CosmeticEmoteStop = -1;
+	}
+	// FoxNet>
 
 	DDRaceTick();
 
@@ -1150,6 +1160,10 @@ void CCharacter::TickPaused()
 		++m_Core.m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart;
 	if(m_EmoteStop > -1)
 		++m_EmoteStop;
+	// <FoxNet
+	if(m_CosmeticEmoteStop > -1)
+		++m_CosmeticEmoteStop;
+	// FoxNet>
 }
 
 bool CCharacter::IncreaseHealth(int Amount)
@@ -1294,7 +1308,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 	    AmmoCount = 0,
 	    Health = 0,
 	    Armor = 0;
-	int Emote = DetermineEyeEmote();
+	int Emote = DetermineEyeEmote(SnappingClient, Id);
 	int Tick;
 	if(!m_ReckoningTick || GameServer()->m_World.m_Paused)
 	{
@@ -3106,6 +3120,8 @@ void CCharacter::FoxNetTick()
 
 void CCharacter::FoxNetSpawn()
 {
+	m_CosmeticEmoteStop = -1;
+
 	m_Snake.OnSpawn(this);
 	m_Ufo.OnSpawn(this);
 	m_PowerHookedId = -1;

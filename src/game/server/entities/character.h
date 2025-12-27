@@ -108,7 +108,7 @@ public:
 	void SetEndlessHook(bool Enable);
 
 	void SetEmote(int Emote, int Tick);
-	int DetermineEyeEmote();
+	int DetermineEyeEmote(int SnappingClient, int Id);
 
 	void Rescue();
 
@@ -368,6 +368,10 @@ public:
 
 	vec2 GetPredictedPos(int SnappingClient, bool Pickup = true);
 
+	// <FoxNet
+	int m_CosmeticEmoteType;
+	int m_CosmeticEmoteStop;
+	// FoxNet>
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 

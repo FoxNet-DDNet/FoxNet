@@ -346,8 +346,18 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 	}
 	if(EmoteGun && pTargetChr)
 	{
-		GameServer()->SendEmote(pTargetChr->GetPlayer()->GetCid(), EmoteGun - 1);
-		CreateDmgInd = false;
+		const int TargetId = pTargetChr->GetPlayer()->GetCid();
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(m_CosmeticMask.test(i))
+			{
+				GameServer()->SendEmote(TargetId, EmoteGun - 1, i);
+				m_CosmeticMask.reset(i);
+				m_OppCosmeticMask.reset(i);
+			}
+			else
+				m_OppCosmeticMask.set(i);
+		}
 	}
 
 	if(PhaseGun && !pTargetChr)

@@ -701,8 +701,14 @@ void CGameContext::OnLogout(int ClientId)
 	ClearVotes(ClientId);
 }
 
-void CGameContext::SendEmote(int ClientId, int Type)
+void CGameContext::SendEmote(int ClientId, int Type, int TargetId)
 {
+	if(Server()->ClientSlotEmpty(ClientId) || Server()->ClientSlotEmpty(TargetId))
+		return;
+
+	if(!m_apPlayers[ClientId] || !m_apPlayers[TargetId])
+		return;
+
 	int EmoteType = Type;
 	switch(Type)
 	{
@@ -736,8 +742,10 @@ void CGameContext::SendEmote(int ClientId, int Type)
 		break;
 	}
 
-	GetPlayerChar(ClientId)->SetEmote(EmoteType, Server()->Tick() + 2 * Server()->TickSpeed());
-	SendEmoticon(ClientId, Type, -1);
+	GetPlayerChar(ClientId)->m_CosmeticEmoteType = EmoteType;
+	GetPlayerChar(ClientId)->m_CosmeticEmoteStop = Server()->Tick() + 2 * Server()->TickSpeed();
+
+	SendEmoticon(ClientId, Type, TargetId);
 }
 
 void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMask Mask)

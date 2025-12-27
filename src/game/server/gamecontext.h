@@ -951,7 +951,12 @@ public:
 	CShop m_Shop;
 
 	void ClearVotes(int ClientId);
-	void SendEmote(int ClientId, int Type);
+
+	/*
+	* @param ClientId: Tee which visually has the emote above their head
+	* @param TargetId: Client that receives the packet
+	*/
+	void SendEmote(int ClientId, int Type, int TargetId);
 
 	void CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMask Mask);
 
