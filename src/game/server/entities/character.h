@@ -108,7 +108,7 @@ public:
 	void SetEndlessHook(bool Enable);
 
 	void SetEmote(int Emote, int Tick);
-	int DetermineEyeEmote(int SnappingClient, int Id);
+	int DetermineEyeEmote(int SnappingClient = -1, int Id = -1);
 
 	void Rescue();
 

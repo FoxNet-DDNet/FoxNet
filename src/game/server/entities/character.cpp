@@ -876,8 +876,11 @@ int CCharacter::DetermineEyeEmote(int SnappingClient, int Id)
 	if(GetPlayer()->IsAfk() || GetPlayer()->IsPaused())
 		return IsFrozen ? EMOTE_NORMAL : EMOTE_BLINK;
 	// <FoxNet
-	if(GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowGuns && m_CosmeticEmoteType != EMOTE_NORMAL)
-		return m_CosmeticEmoteType;
+	if(SnappingClient > 0)
+	{
+		if(GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowGuns && m_CosmeticEmoteType != EMOTE_NORMAL)
+			return m_CosmeticEmoteType;
+	}
 	if(m_EmoteType != EMOTE_NORMAL) // user manually set an eye emote using /emote
 		return m_EmoteType;
 	if(IsFrozen)
