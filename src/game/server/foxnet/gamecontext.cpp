@@ -150,9 +150,17 @@ void CGameContext::BotClientTick()
 
 				if(str_comp(Detection.m_pClientName, pClientName) != 0)
 					continue;
-
-				if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
-					continue;
+					
+				if(Server()->GotDDNetVersionPacket(ClientId))
+				{
+					if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
+						continue;
+				}
+				else
+				{
+					if(str_comp(Detection.m_pDDNetVersionStr, "Client too old") != 0)
+						continue;
+				}
 
 				if(Detection.m_Ban)
 					KnownBot = true;

@@ -559,6 +559,7 @@ public:
 
 	bool IncludedInServerInfo(int ClientId);
 	bool DebugDummy(int ClientId) const override { return m_aClients[ClientId].m_DebugDummy; }
+	bool GotDDNetVersionPacket(int ClientId) const override { return m_aClients[ClientId].m_GotDDNetVersionPacket; }
 
 	void SetQuietBan(bool Quiet) override;
 	void OverrideClientName(int ClientId, const char *pName) override;

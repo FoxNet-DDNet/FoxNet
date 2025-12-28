@@ -297,6 +297,8 @@ public:
 	virtual bool IsSixup(int ClientId) const = 0;
 	// <FoxNet
 	virtual bool DebugDummy(int ClientId) const = 0;
+	virtual bool GotDDNetVersionPacket(int ClientId) const = 0;
+
 	virtual void SetQuietBan(bool Quiet) = 0;
 	virtual void OverrideClientName(int ClientId, const char *pName) = 0;
 	virtual const char *GetCustomClient(int ClientId) = 0;
