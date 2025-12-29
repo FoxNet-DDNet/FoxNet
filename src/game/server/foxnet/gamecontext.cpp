@@ -717,42 +717,6 @@ void CGameContext::SendEmote(int ClientId, int Type, int TargetId)
 	if(!m_apPlayers[ClientId] || !m_apPlayers[TargetId])
 		return;
 
-	int EmoteType = Type;
-	switch(Type)
-	{
-	case EMOTICON_EXCLAMATION:
-	case EMOTICON_GHOST:
-	case EMOTICON_QUESTION:
-	case EMOTICON_WTF:
-		EmoteType = EMOTE_SURPRISE;
-		break;
-	case EMOTICON_DOTDOT:
-	case EMOTICON_DROP:
-	case EMOTICON_ZZZ:
-		EmoteType = EMOTE_BLINK;
-		break;
-	case EMOTICON_EYES:
-	case EMOTICON_HEARTS:
-	case EMOTICON_MUSIC:
-		EmoteType = EMOTE_HAPPY;
-		break;
-	case EMOTICON_OOP:
-	case EMOTICON_SORRY:
-	case EMOTICON_SUSHI:
-		EmoteType = EMOTE_PAIN;
-		break;
-	case EMOTICON_DEVILTEE:
-	case EMOTICON_SPLATTEE:
-	case EMOTICON_ZOMG:
-		EmoteType = EMOTE_ANGRY;
-		break;
-	default:
-		break;
-	}
-
-	GetPlayerChar(ClientId)->m_CosmeticEmoteType = EmoteType;
-	GetPlayerChar(ClientId)->m_CosmeticEmoteStop = Server()->Tick() + 2 * Server()->TickSpeed();
-
 	SendEmoticon(ClientId, Type, TargetId);
 }
 

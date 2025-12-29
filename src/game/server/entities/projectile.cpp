@@ -351,12 +351,15 @@ void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwner
 		{
 			if(m_CosmeticMask.test(i))
 			{
+				CClientMask TeamMask = CClientMask().set();
+
+				if(pOwnerChr && pOwnerChr->IsAlive())
+					TeamMask = pOwnerChr->TeamMask();
+
 				GameServer()->SendEmote(TargetId, EmoteGun - 1, i);
 				m_CosmeticMask.reset(i);
 				m_OppCosmeticMask.reset(i);
 			}
-			else
-				m_OppCosmeticMask.set(i);
 		}
 	}
 
