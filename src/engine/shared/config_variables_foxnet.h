@@ -88,7 +88,7 @@ MACRO_CONFIG_INT(SvDropsMaxPerPlayer, sv_drops_max_per_player, 7, 0, 100, CFGFLA
 MACRO_CONFIG_INT(SvSpawnPowerUps, sv_spawn_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
 
 // Solo on Spawn
-MACRO_CONFIG_INT(SvSoloOnSpawn, sv_solo_on_spawn, 5, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether Players Should be solod on spawn + how long in seconds")
+MACRO_CONFIG_INT(SvSoloOnSpawn, sv_solo_on_spawn, 0, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether Players Should be solod on spawn + how long in seconds")
 
 // Flags
 MACRO_CONFIG_INT(SvAllowZoom, sv_allow_zoom, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow zoom or not")
