@@ -751,8 +751,8 @@ def smoke_test(test_env):
 	client1.command("play demos/server.demo")
 	client2.command("play demos/client1.demo")
 
-	client1.wait_for_log_prefix("server: *** client1 finished in:", timeout=20)
-	client2.wait_for_log_prefix("server: *** client1 finished in:", timeout=20)
+	client1.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=20)
+	client2.wait_for_log_prefix("chat/server: *** client1 finished in:", timeout=20)
 
 	client1.exit()
 	client2.exit()
