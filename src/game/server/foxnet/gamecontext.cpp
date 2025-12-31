@@ -213,7 +213,7 @@ void CGameContext::FoxNetInit()
 
 	RefreshWeekendFlag();
 
-	if(Score())
+	if(Score() && g_Config.m_SvAccounts)
 		Score()->CacheMapInfo();
 
 	if(!m_InitRandomMap)

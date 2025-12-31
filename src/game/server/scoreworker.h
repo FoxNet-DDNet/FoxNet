@@ -293,11 +293,11 @@ struct CSqlMapCacheRequest : ISqlData
 		ISqlData(std::move(pResult)) {}
 
 	char m_aMap[MAX_MAP_LENGTH];
-	char Server[64];
-	char Mapper[128];
-	int Points;
-	int Stars;
-	char Timestamp[24];
+	char m_aServer[64];
+	char m_aMapper[128];
+	int m_Points;
+	int m_Stars;
+	char m_aTimestamp[24];
 	CGameContext *m_pGameServer;
 };
 

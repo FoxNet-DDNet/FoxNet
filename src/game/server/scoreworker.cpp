@@ -2143,20 +2143,20 @@ bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGame
 
 	if(!End)
 	{
-		pSqlServer->GetString(1, pReq->Server, sizeof(pReq->Server));
-		pSqlServer->GetString(2, pReq->Mapper, sizeof(pReq->Mapper));
-		pReq->Points = pSqlServer->GetInt(3);
-		pReq->Stars = pSqlServer->GetInt(4);
-		pSqlServer->GetString(5, pReq->Timestamp, sizeof(pReq->Timestamp));
+		pSqlServer->GetString(1, pReq->m_aServer, sizeof(pReq->m_aServer));
+		pSqlServer->GetString(2, pReq->m_aMapper, sizeof(pReq->m_aMapper));
+		pReq->m_Points = pSqlServer->GetInt(3);
+		pReq->m_Stars = pSqlServer->GetInt(4);
+		pSqlServer->GetString(5, pReq->m_aTimestamp, sizeof(pReq->m_aTimestamp));
 
 		if(pReq->m_pGameServer)
 		{
 			auto &Dst = pReq->m_pGameServer->m_MapInfoCache;
-			str_copy(Dst.m_aServer, pReq->Server, sizeof(Dst.m_aServer));
-			str_copy(Dst.m_aMapper, pReq->Mapper, sizeof(Dst.m_aMapper));
-			Dst.m_Points = pReq->Points;
-			Dst.m_Stars = pReq->Stars;
-			str_copy(Dst.m_aTimestamp, pReq->Timestamp, sizeof(Dst.m_aTimestamp));
+			str_copy(Dst.m_aServer, pReq->m_aServer, sizeof(Dst.m_aServer));
+			str_copy(Dst.m_aMapper, pReq->m_aMapper, sizeof(Dst.m_aMapper));
+			Dst.m_Points = pReq->m_Points;
+			Dst.m_Stars = pReq->m_Stars;
+			str_copy(Dst.m_aTimestamp, pReq->m_aTimestamp, sizeof(Dst.m_aTimestamp));
 		}
 	}
 
