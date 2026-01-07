@@ -652,12 +652,14 @@ void CPickupDrop::Snap(int SnappingClient)
 			return;
 	}
 
+	int Tick = Server()->Tick() - m_StartTick;
+
 	CGameTeams Teams = GameServer()->m_pController->Teams();
 	if(!Teams.SetMaskWithFlags(SnappingClient, m_Team, CGameTeams::IGNORE_SOLO))
 		return;
 
 	// Make the pickup blink when about to disappear
-	if(m_Lifetime < Server()->TickSpeed() * 10 && (Server()->Tick() / (Server()->TickSpeed() / 4)) % 2 == 0)
+	if(m_Lifetime < Server()->TickSpeed() * 10 && (Tick / (Server()->TickSpeed() / 4)) % 2 == 0)
 		return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
@@ -678,7 +680,7 @@ void CPickupDrop::Snap(int SnappingClient)
 	else if(m_Type == WEAPON_PORTALGUN)
 	{
 		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
-		const vec2 Spin = vec2(cos((Server()->Tick() - m_StartTick) / 5.0f), sin((Server()->Tick() - m_StartTick) / 5.0f)) * 17.0f + OffSet;
+		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + OffSet;
 
 		CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIds[1]);
 		if(!pProj)
