@@ -1906,8 +1906,67 @@ void CGameContext::ConBotClientDetectionList(IConsole::IResult *pResult, void *p
 	}
 }
 
+void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Sound = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
+
+	if(Sound < 0 || Sound >= NUM_SOUNDS)
+	{
+		log_info("foxnet", "0  = Gun Fire");
+		log_info("foxnet", "1  = Shot Gun Fire");
+		log_info("foxnet", "2  = Grenade Fire");
+		log_info("foxnet", "3  = Hammer Fire");
+		log_info("foxnet", "4  = Hammer Hit");
+		log_info("foxnet", "5  = Ninja Fire");
+		log_info("foxnet", "6  = Grenade Explosion");
+		log_info("foxnet", "7  = Ninja Hit");
+		log_info("foxnet", "8  = Laser Fire");
+		log_info("foxnet", "9  = Laser Bounce");
+		log_info("foxnet", "10 = Weapon Switch");
+		log_info("foxnet", "11 = Player Pain Short");
+		log_info("foxnet", "12 = Player Pain Long");
+		log_info("foxnet", "13 = Body Land");
+		log_info("foxnet", "14 = Player Airjump");
+		log_info("foxnet", "15 = Player Jump");
+		log_info("foxnet", "16 = Player Die");
+		log_info("foxnet", "17 = Player Spawn");
+		log_info("foxnet", "18 = Player Skid");
+		log_info("foxnet", "19 = Tee Cry");
+		log_info("foxnet", "20 = Hook Loop");
+		log_info("foxnet", "21 = Hook Attach Ground");
+		log_info("foxnet", "22 = Hook Attach Player");
+		log_info("foxnet", "23 = Hook Sound No-Attach");
+		log_info("foxnet", "24 = Pickup Health");
+		log_info("foxnet", "25 = Pickup Armor");
+		log_info("foxnet", "26 = Pickup Grenade");
+		log_info("foxnet", "27 = Pickup Shotgun");
+		log_info("foxnet", "28 = Pickup Ninja");
+		log_info("foxnet", "29 = Weapon Spawn");
+		log_info("foxnet", "30 = Weapon No-Ammo");
+		log_info("foxnet", "31 = Hit");
+		log_info("foxnet", "32 = Chat Server");
+		log_info("foxnet", "33 = Chat Client");
+		log_info("foxnet", "34 = Chat Highlight");
+		log_info("foxnet", "35 = CTF Drop");
+		log_info("foxnet", "36 = CTF Return");
+		log_info("foxnet", "37 = CTF grab PL");
+		log_info("foxnet", "37 = CTF grab PL");
+		log_info("foxnet", "38 = CTF Grab EN");
+		log_info("foxnet", "39 = CTF Flag Capture");
+		log_info("foxnet", "40 = Menu");
+		return;
+	}
+
+	pSelf->CreateSoundGlobal(Sound);
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {	
+	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
+	
+	
 	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
 	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
 	Console()->Register("bot_client_strings_list", "", CFGFLAG_SERVER, ConBotClientDetectionList, this, "List bot client detection strings");

@@ -892,6 +892,8 @@ private:
 	static void ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData);
 	static void ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
+
 	struct CFakeSnapPlayer
 	{
 		int m_ClientId;
