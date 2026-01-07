@@ -34,6 +34,8 @@
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
 {
+	m_StartTick = Server()->Tick();
+
 	m_LastOwner = LastOwner;
 	m_PrevPos = m_Pos;
 	m_Pos = Pos;
@@ -489,59 +491,6 @@ void CPickupDrop::HandleTiles(int Index)
 	}
 }
 
-void CPickupDrop::Snap(int SnappingClient)
-{
-	if(NetworkClipped(SnappingClient))
-		return;
-
-	if(SnappingClient != SERVER_DEMO_CLIENT)
-	{
-		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		if(!pSnapPlayer)
-			return;
-	}
-
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	if(!Teams.SetMaskWithFlags(SnappingClient, m_Team, CGameTeams::IGNORE_SOLO))
-		return;
-
-	// Make the pickup blink when about to disappear
-	if(m_Lifetime < Server()->TickSpeed() * 10 && (Server()->Tick() / (Server()->TickSpeed() / 4)) % 2 == 0)
-		return;
-
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-	const int SubType = GameServer()->GetWeaponType(m_Type);
-
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, POWERUP_WEAPON, SubType, -1, PICKUPFLAG_NO_PREDICT);
-
-	vec2 OffSet = vec2(0.0f, -32.0f);
-	if(m_Type == WEAPON_HEARTGUN)
-	{
-		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, POWERUP_HEALTH, 0, -1, PICKUPFLAG_NO_PREDICT);
-	}
-	else if(m_Type == WEAPON_LIGHTSABER)
-	{
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
-	}
-	else if(m_Type == WEAPON_PORTALGUN)
-	{
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
-		const vec2 Spin = vec2(cos(Server()->Tick() / 5.0f), sin(Server()->Tick() / 5.0f)) * 17.0f + OffSet;
-
-		CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIds[1]);
-		if(!pProj)
-			return;
-
-		pProj->m_X = (int)(m_Pos.x + Spin.x);
-		pProj->m_Y = (int)(m_Pos.y + Spin.y);
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
-		pProj->m_StartTick = 0;
-		pProj->m_Type = WEAPON_HAMMER;
-	}
-}
-
 void CPickupDrop::TakeDamage(vec2 Force)
 {
 	vec2 Temp = m_Vel + Force;
@@ -688,5 +637,58 @@ void CPickupDrop::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, c
 			SetRawVelocity(vec2(0.0f, Vel.y));
 		if(AppliedY.y == 0.0f && MTV.y != 0.0f)
 			SetRawVelocity(vec2(Vel.x, 0.0f));
+	}
+}
+
+void CPickupDrop::Snap(int SnappingClient)
+{
+	if(NetworkClipped(SnappingClient))
+		return;
+
+	if(SnappingClient != SERVER_DEMO_CLIENT)
+	{
+		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+		if(!pSnapPlayer)
+			return;
+	}
+
+	CGameTeams Teams = GameServer()->m_pController->Teams();
+	if(!Teams.SetMaskWithFlags(SnappingClient, m_Team, CGameTeams::IGNORE_SOLO))
+		return;
+
+	// Make the pickup blink when about to disappear
+	if(m_Lifetime < Server()->TickSpeed() * 10 && (Server()->Tick() / (Server()->TickSpeed() / 4)) % 2 == 0)
+		return;
+
+	const int SnapVer = Server()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient);
+	const int SubType = GameServer()->GetWeaponType(m_Type);
+
+	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, POWERUP_WEAPON, SubType, -1, PICKUPFLAG_NO_PREDICT);
+
+	vec2 OffSet = vec2(0.0f, -32.0f);
+	if(m_Type == WEAPON_HEARTGUN)
+	{
+		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, POWERUP_HEALTH, 0, -1, PICKUPFLAG_NO_PREDICT);
+	}
+	else if(m_Type == WEAPON_LIGHTSABER)
+	{
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
+	}
+	else if(m_Type == WEAPON_PORTALGUN)
+	{
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
+		const vec2 Spin = vec2(cos((Server()->Tick() - m_StartTick) / 5.0f), sin((Server()->Tick() - m_StartTick) / 5.0f)) * 17.0f + OffSet;
+
+		CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIds[1]);
+		if(!pProj)
+			return;
+
+		pProj->m_X = (int)(m_Pos.x + Spin.x);
+		pProj->m_Y = (int)(m_Pos.y + Spin.y);
+		pProj->m_VelX = 0;
+		pProj->m_VelY = 0;
+		pProj->m_StartTick = 0;
+		pProj->m_Type = WEAPON_HAMMER;
 	}
 }

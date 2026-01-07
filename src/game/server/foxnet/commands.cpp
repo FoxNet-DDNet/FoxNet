@@ -1966,7 +1966,6 @@ void CGameContext::RegisterFoxNetCommands()
 {	
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 	
-	
 	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
 	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
 	Console()->Register("bot_client_strings_list", "", CFGFLAG_SERVER, ConBotClientDetectionList, this, "List bot client detection strings");

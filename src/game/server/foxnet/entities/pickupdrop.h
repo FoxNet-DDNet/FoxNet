@@ -12,6 +12,8 @@
 
 class CPickupDrop : public CEntity
 {
+	int m_StartTick;
+
 	int m_LastOwner;
 	int m_Lifetime; // In ticks
 	int m_PickupDelay; // In ticks
