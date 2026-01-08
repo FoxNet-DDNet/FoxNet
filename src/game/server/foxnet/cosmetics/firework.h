@@ -7,22 +7,22 @@
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
 
+static constexpr int MAX_FIREWORKS = 25;
+
 class CFirework : public CEntity
 {
 	int m_Owner;
 
-	int m_State;
 
 	int64_t m_StartTick;
 
-	enum
+	enum class State
 	{
-		MAX_FIREWORKS = 25,
+		NONE = 0,
+		START,
+		EXPLOSION,
+	} m_State;
 
-		STATE_NONE = 0,
-		STATE_START,
-		STATE_EXPLOSION,
-	};
 	float m_aLifetime[MAX_FIREWORKS];
 	vec2 m_aPos[MAX_FIREWORKS];
 	vec2 m_aVel[MAX_FIREWORKS];

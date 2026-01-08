@@ -44,7 +44,7 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 		m_aVel[i] = vec2(X(rd), Y(rd));
 		m_aLifetime[i] = Lt(rd) + i;
 	}
-	m_State = STATE_START;
+	m_State = State::START;
 	GameWorld()->InsertEntity(this);
 }
 
@@ -62,7 +62,7 @@ void CFirework::Reset()
 
 void CFirework::Tick()
 {
-	if(m_State == STATE_START)
+	if(m_State == State::START)
 	{
 		if(m_StartTick + Server()->TickSpeed() * LaunchTime < Server()->Tick())
 		{
@@ -72,17 +72,17 @@ void CFirework::Tick()
 				m_aPos[i].x = m_Pos.x;
 			}
 
-			m_State = STATE_EXPLOSION;
+			m_State = State::EXPLOSION;
 			m_StartTick = Server()->Tick();
 		}
 	}
-	else if(m_State == STATE_EXPLOSION)
+	else if(m_State == State::EXPLOSION)
 	{
 		for(int i = 0; i < MAX_FIREWORKS; i++)
 			m_aLifetime[i]--;
 
 		if(m_StartTick + Server()->TickSpeed() * FireworkTime < Server()->Tick())
-			m_State = STATE_NONE;
+			m_State = State::NONE;
 	}
 	else
 	{
@@ -121,7 +121,7 @@ void CFirework::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	if(m_State == STATE_START)
+	if(m_State == State::START)
 	{
 		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
 		if(!pProj)
@@ -135,7 +135,7 @@ void CFirework::Snap(int SnappingClient)
 		pProj->m_StartTick = m_StartTick;
 		pProj->m_Owner = m_Owner;
 	}
-	else if(m_State == STATE_EXPLOSION)
+	else if(m_State == State::EXPLOSION)
 	{
 		for(int i = 0; i < MAX_FIREWORKS; i++)
 		{

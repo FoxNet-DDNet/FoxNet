@@ -28,7 +28,7 @@ constexpr float MinPortalRad = 15.0f;
 constexpr int FadeOutTicks = SERVER_TICK_SPEED;
 constexpr int GrowTicks = SERVER_TICK_SPEED / 4;
 constexpr float MaxDistanceFromPlayer = 1500.0f;
-constexpr int Lifetime = 12.5 * SERVER_TICK_SPEED;
+constexpr int Lifetime = 12.5 * (float)SERVER_TICK_SPEED;
 
 CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntity(pGameWorld, CGameWorld::ENTTYPE_PORTALS, Pos)
@@ -220,7 +220,7 @@ void CPortal::HandleTele()
 }
 inline vec2 CPortal::CirclePos(int Portal, int Part) const
 {
-	vec2 Direction = direction(360.0f / CPortal::SEGMENTS * Part * (pi / 180.0f));
+	vec2 Direction = direction(360.0f / (float)CPortal::SEGMENTS * Part * (pi / 180.0f));
 	Direction *= m_aData[Portal].m_PortalRadius;
 	return Direction;
 }
@@ -312,8 +312,8 @@ void CPortal::RemovePortals()
 
 inline vec2 GetRandomPointInCircle(vec2 center, float radius)
 {
-	const float angle = static_cast<float>(rand()) / RAND_MAX * 2.0f * pi;
-	const float r = radius * sqrtf(static_cast<float>(rand()) / RAND_MAX);
+	const float angle = static_cast<float>(rand()) / (float)RAND_MAX * 2.0f * pi;
+	const float r = radius * sqrtf(static_cast<float>(rand()) / (float)RAND_MAX);
 	return center + vec2(cosf(angle), sinf(angle)) * r;
 }
 

@@ -4361,7 +4361,7 @@ void CGameContext::CreateAllEntities(bool Initial)
 			// <FoxNet
 			if(m_Layers.SpeedupLayer())
 			{
-				const int MapIndex = y * pTileMap->m_Width + x;
+				const int MapIndex = y * m_Layers.GameLayer()->m_Width + x;
 				if(Collision()->IsSpeedup(MapIndex))
 				{
 					vec2 Direction = vec2(0, 0);

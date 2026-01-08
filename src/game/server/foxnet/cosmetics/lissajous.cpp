@@ -93,7 +93,7 @@ vec2 CLissajous::LissajousPos(int Point)
 	float b = g_Config.m_SvLissajousB;
 	float delta = Tick / Speed;
 
-	float t = 2 * pi * Point / NUM_POINTS + Flow();
+	float t = 2 * pi * Point / (float)NUM_POINTS + Flow();
 
 	float x = A * sinf(a * t + delta);
 	float y = B * sinf(b * t);
