@@ -3399,17 +3399,23 @@ void CGameContext::ConSay(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Team = pResult->GetVictim();
+	int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+	{
+		log_info("server", "Client ID not found: %d", ClientId);
+		return;
+	}
+	if(!pSelf->m_apPlayers[ClientId])
+		return;
+
+	int Team = pResult->GetInteger(1);
+
 	if(!pSelf->m_pController->IsValidTeam(Team))
 	{
 		log_info("server", "Invalid Team: %d", Team);
 		return;
 	}
-
-	int ClientId = std::clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS - 1);
 	int Delay = pResult->NumArguments() > 2 ? pResult->GetInteger(2) : 0;
-	if(!pSelf->m_apPlayers[ClientId])
-		return;
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "moved client %d to the %s", ClientId, pSelf->m_pController->GetTeamName(Team));
