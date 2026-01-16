@@ -99,105 +99,119 @@ void CGameContext::BotClientTick()
 		}
 
 		const char *pClientName = Server()->GetCustomClient(ClientId);
+		const int ClientVersion = Info.m_DDNetVersion;
 
-		if(Info.m_pDDNetVersionStr)
+		if(!Info.m_pDDNetVersionStr)
 		{
-			const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
-			const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
+			pPlayer->m_BotChecked = true;
+			continue;
+		}
 
-			const bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
+		const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
+		const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
 
-			bool KnownBot = false;
+		const bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
 
-			// check if git rev short is empty
-			if(HasGitRevShort)
+		bool KnownBot = false;
+
+		// check if git rev short is empty
+		if(HasGitRevShort)
+		{
+			if(pStart && pEnd && pEnd > pStart + 1)
 			{
-				if(pStart && pEnd && pEnd > pStart + 1)
-				{
-					char aGitRevShort[16];
-					str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
-					if(str_length(aGitRevShort) == 0)
-						pPlayer->m_HasBotClient = true;
-				}
-			}
-
-			if(!str_comp_nocase(pClientName, "DDNet"))
-			{
-				if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
+				char aGitRevShort[16];
+				str_copy(aGitRevShort, pStart + 1, std::min<size_t>(pEnd - (pStart + 1) + 1, sizeof(aGitRevShort)));
+				if(str_length(aGitRevShort) == 0)
 					pPlayer->m_HasBotClient = true;
-				// Random Bot Client I found on my servers
-				if(Info.m_DDNetVersion == 19050 && str_find(Info.m_pDDNetVersionStr, "ff5e8321d31266da"))
-					KnownBot = true;
-				if(!HasGitRevShort && Info.m_DDNetVersion == 18090 && str_find(Info.m_pDDNetVersionStr, "18.9"))
-					pPlayer->m_HasBotClient = true;
-			}
-
-			if(Info.m_DDNetVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
-				pPlayer->m_HasBotClient = true;
-
-			// Some random bot client I've seen
-			if(!str_comp_nocase(pClientName, "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && Info.m_DDNetVersion == 19010)
-				KnownBot = true;
-
-			if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
-				KnownBot = true;
-
-		
-			for(CBotClientDetection &Detection : m_vBotClientDetections)
-			{
-				if(Info.m_DDNetVersion != Detection.m_DDNetVersion)
-					continue;
-
-				if(str_comp(Detection.m_pClientName, pClientName) != 0)
-					continue;
-					
-				if(Server()->GotDDNetVersionPacket(ClientId))
-				{
-					if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
-						continue;
-				}
-				else
-				{
-					if(str_comp(Detection.m_pDDNetVersionStr, "Client too old") != 0)
-						continue;
-				}
-
-				if(Detection.m_Ban)
-					KnownBot = true;
-				else
-					pPlayer->m_HasBotClient = true;
-				break;
-			}
-
-			if(KnownBot)
-			{
-				pPlayer->m_HasBotClient = true;
-				if(g_Config.m_SvAntiBot == 2)
-				{
-					char aBanBuf[256];
-					str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for using a bot client.\n"
-						"ver: %d [%s]",
-						Server()->ClientName(ClientId),
-						Server()->ClientAddrString(ClientId, false),
-						g_Config.m_SvAntiBotBantime,
-						GetClientVersion(ClientId),
-						GetClientVersionStr(ClientId));
-					Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
-
-					Server()->Ban(ClientId, g_Config.m_SvAntiBotBantime * 60, "Download the official ddnet client from ddnet.org/downloads", false);
-					continue;
-				}
-
-				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
-				SendChat(-1, TEAM_ALL, aBuf);
 			}
 		}
-		pPlayer->m_BotChecked = true;
 
-		// ToDo: m_pDDnetVersionStr has the client version aswell, if the client they are using allegidly is DDNet
-		//		 check the m_DDNetVersion and convert the version from the string, if they don't match up ->
-		//		 version manipulation -> bot client
+		if(!str_comp_nocase(pClientName, "DDNet"))
+		{
+			if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
+				pPlayer->m_HasBotClient = true;
+			// Random Bot Client I found on my servers
+			if(ClientVersion == 19050 && str_find(Info.m_pDDNetVersionStr, "ff5e8321d31266da"))
+				KnownBot = true;
+			if(!HasGitRevShort && ClientVersion == 18090 && str_find(Info.m_pDDNetVersionStr, "18.9"))
+				pPlayer->m_HasBotClient = true;
+		}
+
+		if(ClientVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
+			pPlayer->m_HasBotClient = true;
+
+		// Some random bot client I've seen
+		if(!str_comp_nocase(pClientName, "Cactus") && !str_comp(Info.m_pDDNetVersionStr, "DDNet 19.4") && ClientVersion == 19010)
+			KnownBot = true;
+
+		if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
+			KnownBot = true;
+
+		for(CBotClientDetection &Detection : m_vBotClientDetections)
+		{
+			if(ClientVersion != Detection.m_DDNetVersion)
+				continue;
+
+			if(str_comp(Detection.m_pClientName, pClientName) != 0)
+				continue;
+
+			if(Server()->GotDDNetVersionPacket(ClientId))
+			{
+				if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
+					continue;
+			}
+			else
+			{
+				if(str_comp(Detection.m_pDDNetVersionStr, "Client too old") != 0)
+					continue;
+			}
+
+			if(Detection.m_Ban)
+				KnownBot = true;
+			else
+				pPlayer->m_HasBotClient = true;
+			break;
+		}
+
+		if(KnownBot)
+		{
+			pPlayer->m_HasBotClient = true;
+			if(g_Config.m_SvAntiBot == 2)
+			{
+				char aBanBuf[256];
+				str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for using a bot client.\n"
+								     "ver: %d [%s]",
+					Server()->ClientName(ClientId),
+					Server()->ClientAddrString(ClientId, false),
+					g_Config.m_SvAntiBotBantime,
+					ClientVersion,
+					GetClientVersionStr(ClientId));
+				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
+
+				Server()->Ban(ClientId, g_Config.m_SvAntiBotBantime * 60, "Download the official ddnet client from ddnet.org/downloads", false);
+				continue;
+			}
+
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
+			SendChat(-1, TEAM_ALL, aBuf);
+		}
+
+	
+		const char *pVerStart = str_find_nocase(Info.m_pDDNetVersionStr, "DDNet ");
+		if(pVerStart)
+		{
+			pVerStart += str_length("DDNet ");
+			int Major = 0;
+			int Minor = 0;
+			int Patch = 0;
+			sscanf(pVerStart, "%d.%d.%d", &Major, &Minor, &Patch);
+			int CalculatedVersion = Major * 1000 + Minor * 10 + Patch;
+			if(CalculatedVersion != ClientVersion)
+				pPlayer->m_HasBotClient = true;
+		}
+
+		pPlayer->m_BotChecked = true;
 	}
 }
 
