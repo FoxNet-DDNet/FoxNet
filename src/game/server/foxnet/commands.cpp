@@ -50,7 +50,7 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	{
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
-			"ver: %d [%s]",
+						     "ver: %d [%s]",
 			pSelf->Server()->ClientName(ClientId),
 			pSelf->Server()->ClientAddrString(ClientId, false),
 			pSelf->Server()->GetClientVersion(ClientId),
@@ -379,7 +379,6 @@ void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *p
 	}
 }
 
-
 void CGameContext::ConClearChatDetectionStrings(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -430,7 +429,7 @@ void CGameContext::ConListChatDetectionStrings(IConsole::IResult *pResult, void 
 		if(Words.String()[0] == '\0')
 			continue;
 
-		log_info("chat-detection" ,"Str: %s | Reas: %s | Time: %d | Bans: %s | CountAdd: %.1f", Words.String(), Words.Reason(), Words.Time(), Words.IsBan() ? "Yes" : "No", Words.Addition());
+		log_info("chat-detection", "Str: %s | Reas: %s | Time: %d | Bans: %s | CountAdd: %.1f", Words.String(), Words.Reason(), Words.Time(), Words.IsBan() ? "Yes" : "No", Words.Addition());
 	}
 }
 
@@ -443,7 +442,6 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 	int ExactName = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
 	if(BanTime < 0)
 	{
-
 		log_info("name-detection", "Ban time must be greater than 0");
 		return;
 	}
@@ -631,13 +629,13 @@ void CGameContext::ConSparkle(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPlayer  = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPlayer )
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPlayer ->Cosmetics()->m_Sparkle;
-	pPlayer ->SetSparkle(Set);
+	bool Set = !pPlayer->Cosmetics()->m_Sparkle;
+	pPlayer->SetSparkle(Set);
 	log_info("cosmetics", "Set sparkle to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -646,7 +644,7 @@ void CGameContext::ConDotTrail(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPlayer  = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 	if(!pPlayer)
 		return;
 
@@ -1874,7 +1872,7 @@ void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pU
 			str_comp(Entry.m_pDDNetVersionStr, pDDNetVersionStr) == 0 &&
 			Entry.m_DDNetVersion == ClientVersion)
 		{
-			log_info("bot-client-detection", "Entry already exists");
+			log_info("bot-detection", "Entry already exists");
 			return;
 		}
 	}
@@ -1902,7 +1900,11 @@ void CGameContext::ConBotClientDetectionList(IConsole::IResult *pResult, void *p
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	for(const auto &Entry : pSelf->m_vBotClientDetections)
 	{
-		log_info("name-detection", "Client: %s (%d) [%s]", Entry.m_pClientName, Entry.m_DDNetVersion, Entry.m_pDDNetVersionStr);
+		const char *pClientName = Entry.m_pClientName[0] ? Entry.m_pClientName : "<any>";
+		const char *pDDNetVersionStr = Entry.m_pDDNetVersionStr[0] ? Entry.m_pDDNetVersionStr : "<any>";
+		int DDNetVersion = Entry.m_DDNetVersion;
+
+		log_info("bot-detection", "Client: %s (%d) [%s]", pClientName, DDNetVersion, pDDNetVersionStr);
 	}
 }
 
@@ -1963,13 +1965,13 @@ void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserDat
 }
 
 void CGameContext::RegisterFoxNetCommands()
-{	
+{
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
-	
+
 	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
 	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
 	Console()->Register("bot_client_strings_list", "", CFGFLAG_SERVER, ConBotClientDetectionList, this, "List bot client detection strings");
-	
+
 	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
 
 	Console()->Register("lasertext", "r[string]", CFGFLAG_SERVER, ConLaserText, this, "laser text");
@@ -2064,7 +2066,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Records
 	Console()->Register("insert_map_entry", "s[map] s[server] s[mapper] i[points] i[stars] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
-	
+
 	Console()->Register("record_insert", "s[name] s[map] f[time]", CFGFLAG_SERVER, ConInsertRecord, this, "Insert a new record for that name on the given map with given time");
 	Console()->Register("record_remove", "s[name] r[map]", CFGFLAG_SERVER, ConRemoveRecord, this, "Remove all records a name has on the given map");
 	Console()->Register("record_remove_time", "s[name] s[map] f[time]", CFGFLAG_SERVER, ConRemoveRecordWithTime, this, "Remove records a name has on given map with given time");
