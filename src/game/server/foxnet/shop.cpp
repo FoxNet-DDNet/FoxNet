@@ -113,11 +113,11 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
 		return false;
 
-	if(!pPl->CanUseMoney())
+	if(!pPlayer->CanUseMoney())
 	{
 		GameServer()->SendChatTarget(ClientId, "You cannot use Money right now");
 		GameServer()->SendChatTarget(ClientId, "Try again later");
@@ -132,7 +132,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
-	int Price = pPl->GetDiscountedPrice(Cfg->m_Price);
+	int Price = pPlayer->GetDiscountedPrice(Cfg->m_Price);
 
 	if(Acc.m_Money < Price)
 	{
@@ -143,7 +143,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
-	pPl->TakeMoney(Price, true);
+	pPlayer->TakeMoney(Price, true);
 	GiveItem(ClientId, Cfg, -1, "Shop");
 
 	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_Name);
@@ -151,7 +151,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 
 	if(Cfg->m_Group == EExclusiveGroup::Hat)
 	{
-		int TypeHat = (int)pPl->Cosmetics()->m_HatType;
+		int TypeHat = (int)pPlayer->Cosmetics()->m_HatType;
 		if(TypeHat <= (int)HatType::Ninja && TypeHat > (int)HatType::None)
 			GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
 	}

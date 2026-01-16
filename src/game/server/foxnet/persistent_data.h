@@ -14,8 +14,8 @@ class CSavePlayerData
 public:
 	CSavePlayerData() = default;
 	~CSavePlayerData() = default;
-	void Save(CPlayer *pPl);
-	bool Load(CPlayer *pPl) const;
+	void Save(CPlayer *pPlayer);
+	bool Load(CPlayer *pPlayer) const;
 
 private:
 	CAccConfigs m_Configs;

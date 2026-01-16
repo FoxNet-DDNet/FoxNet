@@ -71,12 +71,12 @@ void CPickupDrop::Reset(bool PickedUp)
 
 	if(m_LastOwner >= 0)
 	{
-		if(CPlayer *pPl = GameServer()->m_apPlayers[m_LastOwner])
+		if(CPlayer *pPlayer = GameServer()->m_apPlayers[m_LastOwner])
 		{
-			for(size_t i = 0; i < pPl->m_vPickupDrops.size(); i++)
+			for(size_t i = 0; i < pPlayer->m_vPickupDrops.size(); i++)
 			{
-				if(pPl->m_vPickupDrops[i] == this)
-					pPl->m_vPickupDrops.erase(pPl->m_vPickupDrops.begin() + i);
+				if(pPlayer->m_vPickupDrops[i] == this)
+					pPlayer->m_vPickupDrops.erase(pPlayer->m_vPickupDrops.begin() + i);
 			}
 		}
 	}

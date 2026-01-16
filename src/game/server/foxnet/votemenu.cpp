@@ -218,10 +218,10 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	if(pReason[0] && str_isallnum(pReason))
 		ReasonInt = str_toint(pReason);
 
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	CCharacter *pChr = pPl->GetCharacter();
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	CCharacter *pChr = pPlayer->GetCharacter();
 
-	if(!pVote || !pPl)
+	if(!pVote || !pPlayer)
 		return false;
 
 	if(Page < 0 || Page >= NUM_PAGES)
@@ -283,7 +283,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(IsOption(pVote, SETTINGS_HIDE_POWERUPS))
 		{
-			pPl->SetHidePowerUps(!pPl->Acc()->m_Configs.m_HidePowerUps);
+			pPlayer->SetHidePowerUps(!pPlayer->Acc()->m_Configs.m_HidePowerUps);
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_FAST_INPUTS))
@@ -522,7 +522,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		else if(SubPage == SUB_SHOP_ITEMINFO)
 		{
-			long Price = pPl->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
+			long Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
 
 			if(IsOption(pVote, FormatItemVote(Price)))
 			{
@@ -539,7 +539,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOptionWithSuffix(pVote, "Rainbow Speed"))
 		{
 			if(ReasonInt.has_value())
-				pPl->Cosmetics()->m_RainbowSpeed = ReasonInt.value();
+				pPlayer->Cosmetics()->m_RainbowSpeed = ReasonInt.value();
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
@@ -548,7 +548,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOptionWithSuffix(pVote, pEmoticonGunName))
 		{
 			if(ReasonInt.has_value())
-				pPl->UseItem(pEmoticonGunName, ReasonInt.value());
+				pPlayer->UseItem(pEmoticonGunName, ReasonInt.value());
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
 			return true;
@@ -567,7 +567,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOptionWithSuffix(pVote, Item.m_Name))
 			{
-				pPl->UseItem(Item.m_Name, -1);
+				pPlayer->UseItem(Item.m_Name, -1);
 				return true;
 			}
 		}
@@ -624,12 +624,12 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 			if(IsOption(pVote, ADMIN_UTIL_VANISH))
 			{
-				pPl->m_Vanish = !pPl->m_Vanish;
+				pPlayer->m_Vanish = !pPlayer->m_Vanish;
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_UTIL_SPIDERHOOK))
 			{
-				pPl->m_SpiderHook = !pPl->m_SpiderHook;
+				pPlayer->m_SpiderHook = !pPlayer->m_SpiderHook;
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_UTIL_PASSIVE))
@@ -647,7 +647,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 			if(IsOption(pVote, ADMIN_UTIL_TELEK_IMMUNITY))
 			{
-				pPl->SetTelekinesisImmunity(!pPl->m_TelekinesisImmunity);
+				pPlayer->SetTelekinesisImmunity(!pPlayer->m_TelekinesisImmunity);
 				return true;
 			}
 
@@ -687,12 +687,12 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOption(pVote, ADMIN_MISC_IGN_KILL_BORDER))
 			{
-				pPl->m_IgnoreGamelayer = !pPl->m_IgnoreGamelayer;
+				pPlayer->m_IgnoreGamelayer = !pPlayer->m_IgnoreGamelayer;
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_MISC_OBFUSCATED))
 			{
-				pPl->SetObfuscated(!pPl->m_Obfuscated);
+				pPlayer->SetObfuscated(!pPlayer->m_Obfuscated);
 				return true;
 			}
 			if(IsOption(pVote, ADMIN_MISC_HEARTGUN))
@@ -774,7 +774,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 			SetPage(ClientId, PAGE_MAIN);
 		return;
 	}
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 	CAccountSession &OldAcc = m_aClientData[ClientId].m_Account;
 
@@ -838,7 +838,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 	if(Changes)
 	{
 		m_aClientData[ClientId].m_Account = GameServer()->m_aAccounts[ClientId];
-		m_aClientData[ClientId].m_Cosmetics = *pPl->Cosmetics();
+		m_aClientData[ClientId].m_Cosmetics = *pPlayer->Cosmetics();
 		GameServer()->ClearVotes(ClientId);
 	}
 }
@@ -979,8 +979,8 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 	if(Server()->ClientSlotEmpty(ClientId))
 		return;
 
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
 
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
@@ -1027,7 +1027,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 			str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
 			AddVoteText(aBuf);
 			AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
-			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPl->StatMultiplier());
+			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPlayer->StatMultiplier());
 			AddVoteText(aBuf);
 			AddVoteText("╰────────────────────");
 			AddVoteSeparator();
@@ -1068,8 +1068,8 @@ void CVoteMenu::SendPageVotes(int ClientId)
 	if(Server()->ClientSlotEmpty(ClientId))
 		return;
 
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
 
 	char aBuf[VOTE_DESC_LENGTH];
@@ -1248,7 +1248,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return;
 	}
 
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
@@ -1290,7 +1290,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		return false;
 	};
 
-	auto CanBuyAnyOfType = [this, pAcc, pPl](EItemType Type) -> bool {
+	auto CanBuyAnyOfType = [this, pAcc, pPlayer](EItemType Type) -> bool {
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
@@ -1298,7 +1298,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 				continue;
 			if(Item.m_Price == -1)
 				continue;
-			if(pPl->GetDiscountedPrice(Item.m_Price) <= pAcc->m_Money)
+			if(pPlayer->GetDiscountedPrice(Item.m_Price) <= pAcc->m_Money)
 				return true;
 		}
 		return false;
@@ -1392,7 +1392,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
-		long Price = pPl->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
+		long Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
 
 		str_copy(aBuf, FormatItemVote(Price));
 		AddVoteText(aBuf);
@@ -1410,7 +1410,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 		return;
 	}
 
-	// CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	// CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CAccountSession Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
 	{
@@ -1426,7 +1426,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 		AddVoteText("Cosmetics are currently disabled");
 		return;
 	}
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 
 	std::vector<CVoteData> Votes;
 	int OwnedItems = 0;
@@ -1453,7 +1453,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 			Data.m_ItemType = Type;
 			Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
 			str_copy(Data.m_aVoteName, "Rainbow Speed");
-			Data.m_Value = pPl->Cosmetics()->m_RainbowSpeed;
+			Data.m_Value = pPlayer->Cosmetics()->m_RainbowSpeed;
 			Data.m_Max = 20;
 			Votes.push_back(Data);
 		}
@@ -1472,7 +1472,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 				continue;
 			if(Item.m_Price == -1)
 				continue;
-			if(!(pPl->OwnsItem(pItemName)))
+			if(!(pPlayer->OwnsItem(pItemName)))
 				continue;
 
 			OwnedItems++;
@@ -1517,7 +1517,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
 				str_copy(Data.m_aVoteName, pItemName);
-				Data.m_Value = pPl->Cosmetics()->m_EmoticonGun;
+				Data.m_Value = pPlayer->Cosmetics()->m_EmoticonGun;
 				Data.m_Prefix = EPrefix::NONE;
 				Data.m_Max = NUM_EMOTICONS;
 				if(Remaining > 0)
@@ -1539,7 +1539,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 				Data.m_pItem = &Item;
 				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
 				str_copy(Data.m_aVoteName, aVoteName);
-				Data.m_Value = pPl->ItemEnabled(pItemName);
+				Data.m_Value = pPlayer->ItemEnabled(pItemName);
 				Votes.push_back(Data);
 			}
 		}
@@ -1783,8 +1783,8 @@ void CVoteMenu::SendPageAdmin(int ClientId)
 bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl || !pAcc || !pAcc->m_LoggedIn)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer || !pAcc || !pAcc->m_LoggedIn)
 		return false;
 	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 	{
@@ -1792,7 +1792,7 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 
 		if(Item.m_Type != ItemType)
 			continue;
-		if(pPl->OwnsItem(Item.m_Name))
+		if(pPlayer->OwnsItem(Item.m_Name))
 			return true;
 	}
 	return false;

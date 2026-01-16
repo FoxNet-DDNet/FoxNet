@@ -268,9 +268,9 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	GameServer()->OnLogin(ClientId);
 
 	// Apply equipped items to player cosmetics
-	if(auto *pPl = GameServer()->m_apPlayers[ClientId])
+	if(auto *pPlayer = GameServer()->m_apPlayers[ClientId])
 	{
-		for(const auto &kv : pPl->Inv()->m_Map)
+		for(const auto &kv : pPlayer->Inv()->m_Map)
 		{
 			CInventoryEntry Entry = kv.second;
 			const CItemConfig *Cfg = GameServer()->m_Shop.FindItem(kv.first.c_str());
@@ -280,7 +280,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 			if(Val <= 0)
 				continue;
 
-			pPl->UseItem(kv.first.c_str(), Val, true);
+			pPlayer->UseItem(kv.first.c_str(), Val, true);
 		}
 	}
 

@@ -680,13 +680,13 @@ void CGameContext::OnLogin(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
-	CPlayer *pPl = m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
 
-	pPl->m_AccLoginAttempts = 0; // reset login attempts on successful login
+	pPlayer->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
-	if(pPl->Acc()->m_LastName[0] == '\0')
+	if(pPlayer->Acc()->m_LastName[0] == '\0')
 	{
 		SendChatTarget(ClientId, "This seems to be your first Login, welcome!");
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
@@ -695,7 +695,7 @@ void CGameContext::OnLogin(int ClientId)
 	else if(!Server()->ClientPrevIngame(ClientId))
 	{
 		int UnreadMails = 0;
-		for(const CMailBox::CMail &Mail : pPl->Acc()->m_MailBox.m_vMails)
+		for(const CMailBox::CMail &Mail : pPlayer->Acc()->m_MailBox.m_vMails)
 		{
 			const bool Unread = Mail.m_Unread || (!Mail.m_UsedCmd && Mail.m_aCmd[0] != '\0');
 			if(Unread)
@@ -716,10 +716,10 @@ void CGameContext::OnLogout(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
-	CPlayer *pPl = m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
-	pPl->DisableAllCosmetics();
+	pPlayer->DisableAllCosmetics();
 	ClearVotes(ClientId);
 }
 
@@ -1113,12 +1113,12 @@ bool CGameContext::IncludedInServerInfo(int ClientId)
 	if(Server()->DebugDummy(ClientId))
 		Included = false;
 
-	CPlayer *pPl = m_apPlayers[ClientId];
-	if(pPl)
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(pPlayer)
 	{
-		if(pPl->m_IncludeServerInfo != -1)
-			Included = pPl->m_IncludeServerInfo;
-		if(pPl->m_Vanish)
+		if(pPlayer->m_IncludeServerInfo != -1)
+			Included = pPlayer->m_IncludeServerInfo;
+		if(pPlayer->m_Vanish)
 			Included = false;
 	}
 

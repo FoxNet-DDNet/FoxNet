@@ -568,6 +568,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 
 	return true;
 }
+
 void CPlayer::RainbowTick()
 {
 	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOKTYPE_RAINBOW))

@@ -50,9 +50,9 @@ void CRoulette::ResetClients()
 {
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-		if(pPl && m_aClients[ClientId].m_Active)
-			pPl->m_BetAmount = -1;
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(pPlayer && m_aClients[ClientId].m_Active)
+			pPlayer->m_BetAmount = -1;
 
 		m_aClients[ClientId].m_BetAmount = -1;
 		m_aClients[ClientId].m_aBetOption[0] = '\0';
@@ -65,16 +65,16 @@ int CRoulette::AmountOfCloseClients()
 	int Count = 0;
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-		if(!pPl)
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer)
 			continue;
-		if(pPl->IsAfk())
+		if(pPlayer->IsAfk())
 			continue;
-		if(!pPl->Acc()->m_LoggedIn)
+		if(!pPlayer->Acc()->m_LoggedIn)
 			continue;
-		if(!pPl->Acc()->m_Money)
+		if(!pPlayer->Acc()->m_Money)
 			continue;
-		CCharacter *pCharacter = pPl->GetCharacter();
+		CCharacter *pCharacter = pPlayer->GetCharacter();
 		if(!pCharacter)
 			continue;
 		if(distance(pCharacter->m_Pos, m_Pos) > 32.0f * 13.0f)
@@ -89,12 +89,12 @@ int CRoulette::AmountOfCloseClients()
 
 bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 {
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 
-	if(pPl->GetArea() != AREA_ROULETTE)
+	if(pPlayer->GetArea() != AREA_ROULETTE)
 		return false;
 
-	CCharacter *pChr = pPl->GetCharacter();
+	CCharacter *pChr = pPlayer->GetCharacter();
 	if(pChr->Team() != TEAM_FLOCK)
 		return false;
 
@@ -110,7 +110,7 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 		return false;
 	}
 
-	if(!pPl->Acc()->m_LoggedIn)
+	if(!pPlayer->Acc()->m_LoggedIn)
 	{
 		GameServer()->SendChatTarget(ClientId, "You need to be logged in for this");
 		return false;
@@ -139,7 +139,7 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 
 	SetState(RStates::PREPARING);
 
-	pPl->m_BetAmount = -1;
+	pPlayer->m_BetAmount = -1;
 	m_aClients[ClientId].m_BetAmount = BetAmount;
 	str_copy(m_aClients[ClientId].m_aBetOption, pBetOption);
 	m_aClients[ClientId].m_Active = true;
@@ -216,10 +216,10 @@ void CRoulette::EvaluateBets()
 	{
 		if(!m_aClients[i].m_Active)
 			continue;
-		CPlayer *pPl = GameServer()->m_apPlayers[i];
-		if(!pPl)
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+		if(!pPlayer)
 			continue;
-		if(!pPl->Acc()->m_LoggedIn)
+		if(!pPlayer->Acc()->m_LoggedIn)
 			continue;
 
 		float PayoutMultiplier = 0;
@@ -245,9 +245,9 @@ void CRoulette::EvaluateBets()
 		int Amount = m_aClients[i].m_BetAmount;
 
 		if(Win)
-			pPl->GiveMoney((Amount * PayoutMultiplier) - Amount, false);
+			pPlayer->GiveMoney((Amount * PayoutMultiplier) - Amount, false);
 		else
-			pPl->TakeMoney(Amount);
+			pPlayer->TakeMoney(Amount);
 	}
 	m_Betters = 0;
 	m_TotalWager = 0;
@@ -322,14 +322,14 @@ void CRoulette::Tick()
 
 void CRoulette::SendBroadcast(int ClientId)
 {
-	CPlayer *pPl = GameServer()->m_apPlayers[ClientId];
-	if(!pPl)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
 
-	if(pPl->GetArea() != AREA_ROULETTE)
+	if(pPlayer->GetArea() != AREA_ROULETTE)
 		return;
 
-	CCharacter *pChr = pPl->GetCharacter();
+	CCharacter *pChr = pPlayer->GetCharacter();
 	if(pChr->Team() != TEAM_FLOCK)
 		return;
 
@@ -338,17 +338,17 @@ void CRoulette::SendBroadcast(int ClientId)
 
 	std::vector<std::string> Messages;
 
-	if(pPl->Acc()->m_LoggedIn)
+	if(pPlayer->Acc()->m_LoggedIn)
 	{
-		str_format(aBuf, sizeof(aBuf), "%ld%s", pPl->Acc()->m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "%ld%s", pPlayer->Acc()->m_Money, g_Config.m_SvCurrencyName);
 		Messages.push_back(aBuf);
 
 		if(m_State == RStates::IDLE)
 		{
-			if(pPl->m_BetAmount <= 0)
+			if(pPlayer->m_BetAmount <= 0)
 				str_copy(aBuf, "Wager: Nothing");
 			else
-				str_format(aBuf, sizeof(aBuf), "Wager: %d", pPl->m_BetAmount);
+				str_format(aBuf, sizeof(aBuf), "Wager: %d", pPlayer->m_BetAmount);
 			Messages.push_back(aBuf);
 		}
 	}
@@ -372,7 +372,7 @@ void CRoulette::SendBroadcast(int ClientId)
 		}
 	}
 
-	pPl->SendBroadcastHud(Messages, 2);
+	pPlayer->SendBroadcastHud(Messages, 2);
 }
 
 void CRoulette::Snap(int SnappingClient)

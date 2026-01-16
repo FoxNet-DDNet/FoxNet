@@ -563,15 +563,15 @@ void CGameContext::ConToggleItem(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const int ClientId = pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[ClientId];
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	const char *pItem = pResult->GetString(0);
 	const int Value = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : -1;
 
-	pPl->UseItem(pItem, Value);
+	pPlayer->UseItem(pItem, Value);
 }
 
 void CGameContext::ConRainbowBody(IConsole::IResult *pResult, void *pUserData)
@@ -579,13 +579,13 @@ void CGameContext::ConRainbowBody(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_RainbowBody;
-	pPl->SetRainbowBody(Set);
+	bool Set = !pPlayer->Cosmetics()->m_RainbowBody;
+	pPlayer->SetRainbowBody(Set);
 	log_info("cosmetics", "Set rainbow body to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -594,13 +594,13 @@ void CGameContext::ConRainbowFeet(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_RainbowFeet;
-	pPl->SetRainbowFeet(Set);
+	bool Set = !pPlayer->Cosmetics()->m_RainbowFeet;
+	pPlayer->SetRainbowFeet(Set);
 	log_info("cosmetics", "Set rainbow feet to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -609,20 +609,20 @@ void CGameContext::ConRainbowSpeed(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	if(pResult->NumArguments() < 2)
 	{
-		log_info("cosmetics", "Speed: %d", pPl->Cosmetics()->m_RainbowSpeed);
+		log_info("cosmetics", "Speed: %d", pPlayer->Cosmetics()->m_RainbowSpeed);
 	}
 	else
 	{
 		int Speed = std::clamp(pResult->GetInteger(1), 1, 200);
 		log_info("cosmetics", "Rainbow speed for '%s' changed to %d", pSelf->Server()->ClientName(Victim), Speed);
-		pPl->Cosmetics()->m_RainbowSpeed = Speed;
+		pPlayer->Cosmetics()->m_RainbowSpeed = Speed;
 	}
 }
 
@@ -631,13 +631,13 @@ void CGameContext::ConSparkle(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer  = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer )
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_Sparkle;
-	pPl->SetSparkle(Set);
+	bool Set = !pPlayer ->Cosmetics()->m_Sparkle;
+	pPlayer ->SetSparkle(Set);
 	log_info("cosmetics", "Set sparkle to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -646,13 +646,13 @@ void CGameContext::ConDotTrail(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
-	if(!pPl)
+	CPlayer *pPlayer  = pSelf->m_apPlayers[Victim];
+	if(!pPlayer)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAILTYPE_DOT ? TRAILTYPE_NONE : TRAILTYPE_DOT;
+	int Trail = pPlayer->Cosmetics()->m_Trail == TRAILTYPE_DOT ? TRAILTYPE_NONE : TRAILTYPE_DOT;
 
-	pPl->SetTrail(Trail);
+	pPlayer->SetTrail(Trail);
 	log_info("cosmetics", "Set trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
 }
 
@@ -661,14 +661,14 @@ void CGameContext::ConStarTrail(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	int Trail = pPl->Cosmetics()->m_Trail == TRAILTYPE_STAR ? TRAILTYPE_NONE : TRAILTYPE_STAR;
+	int Trail = pPlayer->Cosmetics()->m_Trail == TRAILTYPE_STAR ? TRAILTYPE_NONE : TRAILTYPE_STAR;
 
-	pPl->SetTrail(Trail);
+	pPlayer->SetTrail(Trail);
 	log_info("cosmetics", "Set star trail to %d for player %s", Trail, pSelf->Server()->ClientName(Victim));
 }
 
@@ -677,13 +677,13 @@ void CGameContext::ConInverseAim(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_InverseAim;
-	pPl->SetInverseAim(Set);
+	bool Set = !pPlayer->Cosmetics()->m_InverseAim;
+	pPlayer->SetInverseAim(Set);
 	log_info("cosmetics", "Set inverse aim to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -692,13 +692,13 @@ void CGameContext::ConLovely(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_Lovely;
-	pPl->SetLovely(Set);
+	bool Set = !pPlayer->Cosmetics()->m_Lovely;
+	pPlayer->SetLovely(Set);
 	log_info("cosmetics", "Set lovely to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -707,13 +707,13 @@ void CGameContext::ConRotatingBall(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_RotatingBall;
-	pPl->SetRotatingBall(Set);
+	bool Set = !pPlayer->Cosmetics()->m_RotatingBall;
+	pPlayer->SetRotatingBall(Set);
 	log_info("cosmetics", "Set rotating ball to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -722,13 +722,13 @@ void CGameContext::ConEpicCircle(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_EpicCircle;
-	pPl->SetEpicCircle(Set);
+	bool Set = !pPlayer->Cosmetics()->m_EpicCircle;
+	pPlayer->SetEpicCircle(Set);
 	log_info("cosmetics", "Set epic circle to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -737,13 +737,13 @@ void CGameContext::ConBloody(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_Bloody;
-	pPl->SetBloody(Set);
+	bool Set = !pPlayer->Cosmetics()->m_Bloody;
+	pPlayer->SetBloody(Set);
 	log_info("cosmetics", "Set bloody to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -752,13 +752,13 @@ void CGameContext::ConHeartHat(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_HeartHat;
-	pPl->SetHeartHat(Set);
+	bool Set = !pPlayer->Cosmetics()->m_HeartHat;
+	pPlayer->SetHeartHat(Set);
 	log_info("cosmetics", "Set heart hat to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -767,13 +767,13 @@ void CGameContext::ConDeathEffect(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
-	pPl->SetDeathEffect(Type);
+	pPlayer->SetDeathEffect(Type);
 	log_info("cosmetics", "Set death effect to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
@@ -783,13 +783,13 @@ void CGameContext::ConDamageIndType(IConsole::IResult *pResult, void *pUserData)
 
 	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
-	pPl->SetDamageIndType(Type);
+	pPlayer->SetDamageIndType(Type);
 	log_info("cosmetics", "Set damage ind to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
@@ -799,13 +799,13 @@ void CGameContext::ConGunType(IConsole::IResult *pResult, void *pUserData)
 
 	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
-	pPl->SetGunType(Type);
+	pPlayer->SetGunType(Type);
 	log_info("cosmetics", "Set gun type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
@@ -815,13 +815,13 @@ void CGameContext::ConHatType(IConsole::IResult *pResult, void *pUserData)
 
 	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Type = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0;
-	pPl->SetHatType((HatType)Type);
+	pPlayer->SetHatType((HatType)Type);
 	log_info("cosmetics", "Set hat type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
@@ -830,13 +830,13 @@ void CGameContext::ConStaffInd(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_StaffInd;
-	pPl->SetStaffInd(Set);
+	bool Set = !pPlayer->Cosmetics()->m_StaffInd;
+	pPlayer->SetStaffInd(Set);
 	log_info("cosmetics", "Set staff indicator to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -845,12 +845,12 @@ void CGameContext::ConSetPickupPet(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
-	bool Set = !pPl->Cosmetics()->m_PickupPet;
-	pPl->SetPickupPet(Set);
+	bool Set = !pPlayer->Cosmetics()->m_PickupPet;
+	pPlayer->SetPickupPet(Set);
 	log_info("cosmetics", "Set pickup pet to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -859,13 +859,13 @@ void CGameContext::ConLissajous(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_Lissajous;
-	pPl->SetLissajous(Set);
+	bool Set = !pPlayer->Cosmetics()->m_Lissajous;
+	pPlayer->SetLissajous(Set);
 	log_info("cosmetics", "Set lissajous to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -874,9 +874,9 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Power = -1;
@@ -892,9 +892,9 @@ void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		if(pPl->Cosmetics()->m_HookPower == Power)
+		if(pPlayer->Cosmetics()->m_HookPower == Power)
 			Power = HOOKTYPE_NORMAL;
-		pPl->HookPower(Power);
+		pPlayer->HookPower(Power);
 		log_info("hook-power", "%s", pSelf->HookTypeName(Power));
 	}
 }
@@ -904,13 +904,13 @@ void CGameContext::ConInvisible(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->m_Invisible;
-	pPl->SetInvisible(Set);
+	bool Set = !pPlayer->m_Invisible;
+	pPlayer->SetInvisible(Set);
 	log_info("cosmetics", "Set invisible to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -919,13 +919,13 @@ void CGameContext::ConStrongBloody(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_StrongBloody;
-	pPl->SetStrongBloody(Set);
+	bool Set = !pPlayer->Cosmetics()->m_StrongBloody;
+	pPlayer->SetStrongBloody(Set);
 	log_info("cosmetics", "Set strong bloody to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -947,13 +947,13 @@ void CGameContext::ConHidePowerUps(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Acc()->m_Configs.m_HidePowerUps;
-	pPl->SetHidePowerUps(Set);
+	bool Set = !pPlayer->Acc()->m_Configs.m_HidePowerUps;
+	pPlayer->SetHidePowerUps(Set);
 	log_info("cosmetics", "Set hide powerups to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -962,13 +962,13 @@ void CGameContext::ConSetEmoticonGun(IConsole::IResult *pResult, void *pUserData
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
 	int Set = pResult->GetInteger(0);
-	pPl->SetEmoticonGun(Set);
+	pPlayer->SetEmoticonGun(Set);
 	log_info("cosmetics", "Set emote gun to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -977,13 +977,13 @@ void CGameContext::ConPhaseGun(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	bool Set = !pPl->Cosmetics()->m_PhaseGun;
-	pPl->SetPhaseGun(Set);
+	bool Set = !pPlayer->Cosmetics()->m_PhaseGun;
+	pPlayer->SetPhaseGun(Set);
 	log_info("cosmetics", "Set phase gun to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -992,12 +992,12 @@ void CGameContext::ConSetConfettiGun(IConsole::IResult *pResult, void *pUserData
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
-	bool Set = !pPl->Cosmetics()->m_ConfettiGun;
-	pPl->SetConfettiGun(Set);
+	bool Set = !pPlayer->Cosmetics()->m_ConfettiGun;
+	pPlayer->SetConfettiGun(Set);
 	log_info("cosmetics", "Set confetti gun to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
@@ -1035,12 +1035,12 @@ void CGameContext::ConSetPlayerClan(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	pChr->Server()->SetClientClan(Victim, pResult->GetString(1));
+	pSelf->Server()->SetClientClan(Victim, pResult->GetString(1));
 	log_info("server", "changed player '%s's changed clan to '%s'", pSelf->Server()->ClientName(Victim), pResult->GetString(1));
 }
 
@@ -1049,12 +1049,12 @@ void CGameContext::ConSetPlayerSkin(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	str_copy(pChr->GetPlayer()->m_TeeInfos.m_aSkinName, pResult->GetString(1));
+	str_copy(pPlayer->m_TeeInfos.m_aSkinName, pResult->GetString(1));
 	log_info("server", "changed player '%s's changed skin to '%s'", pSelf->Server()->ClientName(Victim), pResult->GetString(1));
 }
 
@@ -1063,12 +1063,12 @@ void CGameContext::ConSetPlayerCustomColor(IConsole::IResult *pResult, void *pUs
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	pChr->GetPlayer()->m_TeeInfos.m_UseCustomColor = pResult->GetInteger(1);
+	pPlayer->m_TeeInfos.m_UseCustomColor = pResult->GetInteger(1);
 	log_info("server", "changed player '%s's changed custom color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 
@@ -1077,12 +1077,12 @@ void CGameContext::ConSetPlayerColorBody(IConsole::IResult *pResult, void *pUser
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	pChr->GetPlayer()->m_TeeInfos.m_ColorBody = pResult->GetInteger(1);
+	pPlayer->m_TeeInfos.m_ColorBody = pResult->GetInteger(1);
 	log_info("server", "changed player '%s's changed body color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 
@@ -1091,12 +1091,12 @@ void CGameContext::ConSetPlayerColorFeet(IConsole::IResult *pResult, void *pUser
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	pChr->GetPlayer()->m_TeeInfos.m_ColorFeet = pResult->GetInteger(1);
+	pPlayer->m_TeeInfos.m_ColorFeet = pResult->GetInteger(1);
 	log_info("server", "changed player '%s's changed feet color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 
@@ -1105,16 +1105,16 @@ void CGameContext::ConSetPlayerAfk(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pChr)
+	if(!pPlayer)
 		return;
 
-	bool Afk = !pChr->GetPlayer()->IsAfk();
+	bool Afk = !pPlayer->IsAfk();
 	if(pResult->NumArguments() > 1)
 		Afk = pResult->GetInteger(1);
 
-	pChr->GetPlayer()->SetInitialAfk(Afk);
+	pPlayer->SetInitialAfk(Afk);
 	log_info("server", "changed player '%s's afk status to '%d'", pSelf->Server()->ClientName(Victim), Afk);
 }
 
@@ -1153,23 +1153,23 @@ void CGameContext::ConSetVanish(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	pPl->m_Vanish = !pPl->m_Vanish;
+	pPlayer->m_Vanish = !pPlayer->m_Vanish;
 
 	char PlayerInfo[512] = " (No Client Info)";
 	char aBuf[128];
 
-	if(!pPl->m_Vanish)
+	if(!pPlayer->m_Vanish)
 	{
 		IServer::CClientInfo Info;
 		if(pSelf->Server()->GetClientInfo(Victim, &Info) && Info.m_GotDDNetVersion)
 			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", pSelf->Server()->GetCustomClient(Victim), Info.m_DDNetVersion);
 
-		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", pSelf->Server()->ClientName(Victim), pSelf->m_pController->GetTeamName(pPl->GetTeam()), PlayerInfo);
+		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", pSelf->Server()->ClientName(Victim), pSelf->m_pController->GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 	}
 	else
 		str_format(aBuf, sizeof(aBuf), "'%s' has left the game", pSelf->Server()->ClientName(Victim));
@@ -1182,12 +1182,12 @@ void CGameContext::ConSetVanishQuiet(IConsole::IResult *pResult, void *pUserData
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 
-	CPlayer *pPl = pSelf->m_apPlayers[Victim];
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
-	if(!pPl)
+	if(!pPlayer)
 		return;
 
-	pPl->m_Vanish = !pPl->m_Vanish;
+	pPlayer->m_Vanish = !pPlayer->m_Vanish;
 }
 
 void CGameContext::ConIncludeInServerInfo(IConsole::IResult *pResult, void *pUserData)
