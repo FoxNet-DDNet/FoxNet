@@ -1440,7 +1440,7 @@ void CGameContext::ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserD
 		if(pSelf->m_apPlayers[ClientId])
 		{
 			const int VoteMenuPage = pSelf->m_VoteMenu.GetPage(ClientId);
-			if(VoteMenuPage == PAGE_VOTES)
+			if(VoteMenuPage == PAGE_VOTES || !g_Config.m_SvCustomVoteMenu)
 				pSelf->ClearVotes(ClientId);
 		}
 	}
@@ -2119,6 +2119,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
 	Console()->Chain("sv_accounts", ConchainAccounts, this);
+	Console()->Chain("sv_custom_vote_menu", ConchainResendVoteMenu, this);
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
@@ -2190,4 +2191,14 @@ void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData,
 				pSelf->m_AccountManager.AutoLogin(ClientId); // try to login all clients
 		}
 	}
+}
+
+void CGameContext::ConchainResendVoteMenu(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(!pResult->NumArguments())
+		return;
+
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->ClearVotes(-1);
 }

@@ -161,6 +161,11 @@ class CVoteMenu
 	bool IsOptionWithSuffix(const char *pDesc, const char *pWantedOption) { return str_startswith(pDesc, pWantedOption) != 0; }
 	bool IsOption(const char *pDesc, const char *pWantedOption) { return !str_comp(pDesc, pWantedOption); }
 
+	void SendVotes(int ClientId, const std::vector<std::string> &vDescriptions);
+	
+	void ExecMailCmd(int ClientId, const CMailBox::CMail Mail);
+	const char *FormatItemVote(long Price);
+
 	void AddVoteImpl(const char *pDesc);
 	void AddVoteText(const char *pDesc, EPrefix Prefix = EPrefix::NONE);
 	void AddVoteSeparator() { m_vDescriptions.emplace_back(" "); }
@@ -169,18 +174,14 @@ class CVoteMenu
 	void AddVoteValueOption(const char *pDescription, int Value, int Max, EPrefix Prefix = EPrefix::NONE);
 	void AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc);
 
-	void SendPageMainMenu(int ClientId);
-	void SendPageVotes(int ClientId);
-	void SendPageSettings(int ClientId);
-	void SendPageMailbox(int ClientId);
-	void SendPageShop(int ClientId);
-	void SendPageInventory(int ClientId);
-	void SendPageServerInfo(int ClientId);
-	void SendPageAdmin(int ClientId);
-
-	void ExecMailCmd(int ClientId, const CMailBox::CMail Mail);
-
-	const char *FormatItemVote(long Price);
+	void PrepareMainMenu(int ClientId);
+	void PrepareNormalVotes(int ClientId);
+	void PrepareSettings(int ClientId);
+	void PrepareMailbox(int ClientId);
+	void PrepareShop(int ClientId);
+	void PrepareInventory(int ClientId);
+	void PrepareServerInfo(int ClientId);
+	void PrepareAdmin(int ClientId);
 
 	void UpdatePages(int ClientId);
 

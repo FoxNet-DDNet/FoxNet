@@ -123,6 +123,9 @@ void CVoteMenu::Init(CGameContext *pGameServer)
 
 bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 {
+	if(!g_Config.m_SvCustomVoteMenu)
+		return false;
+
 	if(str_comp_nocase(pMsg->m_pType, "option") != 0)
 		return false;
 
@@ -146,64 +149,6 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 		return true;
 	}
 	return false;
-}
-
-void CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail Mail)
-{
-	const char *pTemplate = Mail.m_aCmd;
-	char aCmd[256] = "";
-	char *pDst = aCmd;
-	size_t DstRemain = sizeof(aCmd) - 1;
-	for(const char *p = pTemplate; *p && DstRemain;)
-	{
-		if(*p == '%')
-		{
-			if(p[1] == '%')
-			{
-				if(DstRemain)
-				{
-					*pDst++ = '%';
-					--DstRemain;
-				}
-				p += 2;
-				continue;
-			}
-			else if(p[1] == 'd' || p[1] == 'i')
-			{
-				std::string Id = std::to_string(ClientId);
-				size_t IdLen = str_length(Id.c_str());
-				if(IdLen > DstRemain)
-					IdLen = DstRemain;
-				if(IdLen)
-				{
-					mem_copy(pDst, Id.c_str(), IdLen);
-					pDst += IdLen;
-					DstRemain -= IdLen;
-				}
-				p += 2;
-				continue;
-			}
-			if(DstRemain)
-			{
-				*pDst++ = *p++;
-				--DstRemain;
-			}
-			continue;
-		}
-
-		*pDst++ = *p++;
-		--DstRemain;
-	}
-	*pDst = '\0';
-
-	GameServer()->Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
-}
-
-const char *CVoteMenu::FormatItemVote(long Price)
-{
-	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%ld%s]", Price, g_Config.m_SvCurrencyName);
-	return aBuf;
 }
 
 bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
@@ -873,6 +818,14 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 	if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 		return;
 
+	if(!g_Config.m_SvCustomVoteMenu)
+	{
+		m_vDescriptions.clear();
+		PrepareNormalVotes(ClientId);
+		SendVotes(ClientId, m_vDescriptions);
+		return;
+	}
+
 	m_vDescriptions.clear();
 
 	if(Page != PAGE_MAIN)
@@ -884,14 +837,14 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 
 	switch(Page)
 	{
-	case PAGE_MAIN: SendPageMainMenu(ClientId); break;
-	case PAGE_VOTES: SendPageVotes(ClientId); break;
-	case PAGE_SETTINGS: SendPageSettings(ClientId); break;
-	case PAGE_MAILBOX: SendPageMailbox(ClientId); break;
-	case PAGE_SHOP: SendPageShop(ClientId); break;
-	case PAGE_INVENTORY: SendPageInventory(ClientId); break;
-	case PAGE_SERVERINFO: SendPageServerInfo(ClientId); break;
-	case PAGE_ADMIN: SendPageAdmin(ClientId); break;
+	case PAGE_MAIN: PrepareMainMenu(ClientId); break;
+	case PAGE_VOTES: PrepareNormalVotes(ClientId); break;
+	case PAGE_SETTINGS: PrepareSettings(ClientId); break;
+	case PAGE_MAILBOX: PrepareMailbox(ClientId); break;
+	case PAGE_SHOP: PrepareShop(ClientId); break;
+	case PAGE_INVENTORY: PrepareInventory(ClientId); break;
+	case PAGE_SERVERINFO: PrepareServerInfo(ClientId); break;
+	case PAGE_ADMIN: PrepareAdmin(ClientId); break;
 	}
 
 	if(Page != PAGE_MAIN)
@@ -900,7 +853,12 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 		AddVoteText(BACKPAGE);
 	}
 
-	const int NumVotesToSend = m_vDescriptions.size();
+	SendVotes(ClientId, m_vDescriptions);
+}
+
+void CVoteMenu::SendVotes(int ClientId, const std::vector<std::string> &vDescriptions)
+{
+	const int NumVotesToSend = vDescriptions.size();
 	int TotalVotesSent = 0;
 
 	CMsgPacker Msg(NETMSGTYPE_SV_VOTEOPTIONLISTADD);
@@ -913,7 +871,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 
 		while(CurIndex < VotesLeft)
 		{
-			Msg.AddString(m_vDescriptions.at(TotalVotesSent).c_str(), VOTE_DESC_LENGTH);
+			Msg.AddString(vDescriptions.at(TotalVotesSent).c_str(), VOTE_DESC_LENGTH);
 			CurIndex++;
 			TotalVotesSent++;
 		}
@@ -971,7 +929,7 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 		GameServer()->ClearVotes(ClientId);
 }
 
-void CVoteMenu::SendPageMainMenu(int ClientId)
+void CVoteMenu::PrepareMainMenu(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
@@ -1060,7 +1018,7 @@ void CVoteMenu::SendPageMainMenu(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageVotes(int ClientId)
+void CVoteMenu::PrepareNormalVotes(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
@@ -1089,7 +1047,7 @@ void CVoteMenu::SendPageVotes(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageSettings(int ClientId)
+void CVoteMenu::PrepareSettings(int ClientId)
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
@@ -1124,7 +1082,7 @@ void CVoteMenu::SendPageSettings(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageMailbox(int ClientId)
+void CVoteMenu::PrepareMailbox(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
@@ -1237,7 +1195,7 @@ void CVoteMenu::SendPageMailbox(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageShop(int ClientId)
+void CVoteMenu::PrepareShop(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
@@ -1402,7 +1360,7 @@ void CVoteMenu::SendPageShop(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageInventory(int ClientId)
+void CVoteMenu::PrepareInventory(int ClientId)
 {
 	if(!g_Config.m_SvAccounts)
 	{
@@ -1584,7 +1542,7 @@ void CVoteMenu::SendPageInventory(int ClientId)
 	}
 }
 
-void CVoteMenu::SendPageServerInfo(int ClientId)
+void CVoteMenu::PrepareServerInfo(int ClientId)
 {
 	const int SubPage = GetSubPage(ClientId);
 
@@ -1709,7 +1667,7 @@ bool CVoteMenu::CanUseCmd(int ClientId, const char *pCmd) const
 	return Required >= ClientLevel;
 }
 
-void CVoteMenu::SendPageAdmin(int ClientId)
+void CVoteMenu::PrepareAdmin(int ClientId)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
@@ -1796,6 +1754,64 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 			return true;
 	}
 	return false;
+}
+
+const char *CVoteMenu::FormatItemVote(long Price)
+{
+	static char aBuf[64];
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%ld%s]", Price, g_Config.m_SvCurrencyName);
+	return aBuf;
+}
+
+void CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail Mail)
+{
+	const char *pTemplate = Mail.m_aCmd;
+	char aCmd[256] = "";
+	char *pDst = aCmd;
+	size_t DstRemain = sizeof(aCmd) - 1;
+	for(const char *p = pTemplate; *p && DstRemain;)
+	{
+		if(*p == '%')
+		{
+			if(p[1] == '%')
+			{
+				if(DstRemain)
+				{
+					*pDst++ = '%';
+					--DstRemain;
+				}
+				p += 2;
+				continue;
+			}
+			else if(p[1] == 'd' || p[1] == 'i')
+			{
+				std::string Id = std::to_string(ClientId);
+				size_t IdLen = str_length(Id.c_str());
+				if(IdLen > DstRemain)
+					IdLen = DstRemain;
+				if(IdLen)
+				{
+					mem_copy(pDst, Id.c_str(), IdLen);
+					pDst += IdLen;
+					DstRemain -= IdLen;
+				}
+				p += 2;
+				continue;
+			}
+			if(DstRemain)
+			{
+				*pDst++ = *p++;
+				--DstRemain;
+			}
+			continue;
+		}
+
+		*pDst++ = *p++;
+		--DstRemain;
+	}
+	*pDst = '\0';
+
+	GameServer()->Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
 }
 
 void CVoteMenu::AddVoteImpl(const char *pDesc)
