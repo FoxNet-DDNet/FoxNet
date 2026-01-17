@@ -1419,7 +1419,15 @@ void CGameContext::OnTick()
 			if(m_SqlRandomMapResult->m_ClientId != -1 && m_apPlayers[m_SqlRandomMapResult->m_ClientId] && m_SqlRandomMapResult->m_aMessage[0] != '\0')
 				SendChat(-1, TEAM_ALL, m_SqlRandomMapResult->m_aMessage);
 			if(m_SqlRandomMapResult->m_aMap[0] != '\0')
+			{
+				char aCmd[256];
+				str_format(aCmd, sizeof(aCmd),
+					"sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"",
+					g_Config.m_SvServerType, m_SqlRandomMapResult->m_aMap);
+				Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
+
 				Server()->ChangeMap(m_SqlRandomMapResult->m_aMap);
+			}
 			else
 				m_LastMapVote = 0;
 		}
