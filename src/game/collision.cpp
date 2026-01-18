@@ -1871,6 +1871,26 @@ void CCollision::BuildSpawnCandidates()
 		return m_pTele[Idx].m_Type != 0;
 	};
 
+	const auto IsFreezeLikeAtIndex = [&](int idx) -> bool {
+		const int Game = GetTileIndex(idx);
+		const int Front = GetFrontTileIndex(idx);
+		const int Sw = GetSwitchType(idx);
+		return Game == TILE_FREEZE || Game == TILE_DFREEZE || Game == TILE_LFREEZE ||
+		       Front == TILE_FREEZE || Front == TILE_DFREEZE || Front == TILE_LFREEZE ||
+		       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
+	};
+
+	const auto IsUnfreezeLikeAtIndex = [&](int idx) -> bool {
+		const int Game = GetTileIndex(idx);
+		const int Front = GetFrontTileIndex(idx);
+		const int Sw = GetSwitchType(idx);
+
+		// Note: switch layer does not have TILE_UNFREEZE, only DUNFREEZE/LUNFREEZE.
+		return Game == TILE_UNFREEZE || Game == TILE_DUNFREEZE || Game == TILE_LUNFREEZE ||
+		       Front == TILE_UNFREEZE || Front == TILE_DUNFREEZE || Front == TILE_LUNFREEZE ||
+		       Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE;
+	};
+
 	const auto IsBlockedForSpawnNav = [&](int tx, int ty) -> bool {
 		if(!InBounds(tx, ty))
 			return true;
@@ -1906,6 +1926,87 @@ void CCollision::BuildSpawnCandidates()
 		return 0;
 	};
 
+	// Freeze -> Unfreeze "skip" search window
+	constexpr int kUnfreezeRadiusX = 13;
+	constexpr int kUnfreezeRadiusUp = 7;
+	constexpr int kUnfreezeRadiusDown = 50;
+
+	// Returns true and outputs (outIdx) if an unfreeze-like tile is found near (tx,ty).
+	// Prefers the closest one (Manhattan distance) inside that rectangle.
+	const auto FindNearbyUnfreezeIndex = [&](int tx, int ty, const std::vector<uint8_t> &Visited, int &outIdx) -> bool {
+		if(!InBounds(tx, ty))
+			return false;
+
+		const int minX = std::max(0, tx - kUnfreezeRadiusX);
+		const int maxX = std::min(W - 1, tx + kUnfreezeRadiusX);
+		const int minY = std::max(0, ty - kUnfreezeRadiusUp);
+		const int maxY = std::min(H - 1, ty + kUnfreezeRadiusDown);
+
+		bool Found = false;
+		int BestIdx = -1;
+
+		for(int y = minY; y <= maxY; ++y)
+		{
+			for(int x = minX; x <= maxX; ++x)
+			{
+				const int idx = ToIndex(x, y);
+				if(!IsUnfreezeLikeAtIndex(idx))
+					continue;
+
+				if(IsBlockedForSpawnNav(x, y))
+					continue;
+
+				const bool CandidateUnvisited = !Visited[idx];
+				const bool CandidateBelow = y >= ty;
+				const int Dy = std::abs(y - ty);
+				const int Dx = std::abs(x - tx);
+
+				if(!Found)
+				{
+					Found = true;
+					BestIdx = idx;
+					continue;
+				}
+
+				const int bx = BestIdx % W;
+				const int by = BestIdx / W;
+
+				const bool BestUnvisited = !Visited[BestIdx];
+				const bool BestBelow = by >= ty;
+				const int BestDy = std::abs(by - ty);
+				const int BestDx = std::abs(bx - tx);
+
+				// Compare (unvisited desc, below desc, dy asc, dx asc)
+				if(CandidateUnvisited != BestUnvisited)
+				{
+					if(CandidateUnvisited && !BestUnvisited)
+						BestIdx = idx;
+					continue;
+				}
+				if(CandidateBelow != BestBelow)
+				{
+					if(CandidateBelow && !BestBelow)
+						BestIdx = idx;
+					continue;
+				}
+				if(Dy != BestDy)
+				{
+					if(Dy < BestDy)
+						BestIdx = idx;
+					continue;
+				}
+				if(Dx < BestDx)
+					BestIdx = idx;
+			}
+		}
+
+		if(!Found)
+			return false;
+
+		outIdx = BestIdx;
+		return true;
+	};
+
 	// Helper: enqueue all valid destinations for a given tele number and type (regular tele outs)
 	auto EnqueueTeleDestinationsByTeleNum = [&](int teleNumMinusOne, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, int cp, bool crossedStart) {
 		auto it = m_TeleOuts.find(teleNumMinusOne);
@@ -1932,7 +2033,7 @@ void CCollision::BuildSpawnCandidates()
 	auto EnqueueTeleCheckpointDestinationsByCp = [&](int cpNumber, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, bool crossedStart) {
 		if(cpNumber <= 0)
 			return;
-		const int key = cpNumber - 1;
+		const int key = cpNumber;
 		auto it = m_TeleCheckOuts.find(key);
 		if(it != m_TeleCheckOuts.end())
 		{
@@ -1965,7 +2066,6 @@ void CCollision::BuildSpawnCandidates()
 		if(!Visited[si])
 		{
 			Visited[si] = 1;
-			// If there are no start tiles at all, treat as already crossed start.
 			const bool initialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(si) : true;
 			q.emplace_back(sx, sy, 0, initialCrossedStart);
 		}
@@ -1987,14 +2087,11 @@ void CCollision::BuildSpawnCandidates()
 			if(cpHere > 0)
 				cp = cpHere;
 		}
-		// Crossing start if current tile is start
 		if(IsStartAtIndex(curIdx))
 			crossedStart = true;
 
-		// When no start tiles exist, allow candidates immediately (crossedStart treated as true).
 		const bool allowCandidateNow = crossedStart || !HasAnyStartTiles;
 
-		// Only consider pure air and not tele tiles for spawn candidates
 		if(allowCandidateNow && SurroundedByAir(x, y, 1) && !IsTeleTileAt(x, y))
 		{
 			const vec2 pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
@@ -2040,13 +2137,31 @@ void CCollision::BuildSpawnCandidates()
 				}
 			}
 
-			if(!IsBlockedForSpawnNav(nx, ny))
+			if(IsBlockedForSpawnNav(nx, ny))
+				continue;
+
+			// If we would step into freeze, try to "skip" to a nearby unfreeze.
+			if(IsFreezeLikeAtIndex(nIdx))
 			{
-				Visited[nIdx] = 1;
-				// Crossing start if neighbor tile is start
-				nextCrossedStart = nextCrossedStart || IsStartAtIndex(nIdx);
-				q.emplace_back(nx, ny, nextCp, nextCrossedStart);
+				int UnfreezeIdx = -1;
+				if(!FindNearbyUnfreezeIndex(nx, ny, Visited, UnfreezeIdx))
+					continue;
+
+				const int ux = UnfreezeIdx % W;
+				const int uy = UnfreezeIdx / W;
+
+				if(!Visited[UnfreezeIdx])
+				{
+					Visited[UnfreezeIdx] = 1;
+					const bool unfreezeCrossedStart = nextCrossedStart || IsStartAtIndex(UnfreezeIdx);
+					q.emplace_back(ux, uy, nextCp, unfreezeCrossedStart);
+				}
+				continue;
 			}
+
+			Visited[nIdx] = 1;
+			nextCrossedStart = nextCrossedStart || IsStartAtIndex(nIdx);
+			q.emplace_back(nx, ny, nextCp, nextCrossedStart);
 		}
 
 		// Also process tele-in at current tile (if we happen to be standing on one)
@@ -2068,9 +2183,8 @@ void CCollision::BuildSpawnCandidates()
 			}
 		}
 	}
-	
-	// Final pass: remove all positions near any spawn seed within a radius (in tiles)
-	constexpr int kSpawnExclusionRadiusTiles = 42; 
+
+	constexpr int kSpawnExclusionRadiusTiles = 42;
 	const float exclusionRadiusPx = kSpawnExclusionRadiusTiles * 32.0f;
 
 	if(!seeds.empty() && !m_SpawnCandidates.empty())
