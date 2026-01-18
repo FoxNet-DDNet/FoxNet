@@ -280,7 +280,7 @@ void CGameContext::PowerUpSpawner()
 		return;
 	if(!g_Config.m_SvAccounts)
 		return; // Powerups require accounts to store the data
-	if(m_vPowerups.size() >= 5)
+	if(m_vPowerups.size() >= 6)
 		return;
 	if(m_PowerUpDelay > Server()->Tick())
 		return;
@@ -288,7 +288,7 @@ void CGameContext::PowerUpSpawner()
 	const auto RandomPos = GetRandomAccessiblePos();
 	if(!RandomPos)
 	{
-		m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
+		m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
 		return;
 	}
 
