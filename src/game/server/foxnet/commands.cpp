@@ -1166,6 +1166,8 @@ void CGameContext::ConSetVanish(IConsole::IResult *pResult, void *pUserData)
 		IServer::CClientInfo Info;
 		if(pSelf->Server()->GetClientInfo(Victim, &Info) && Info.m_GotDDNetVersion)
 			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", pSelf->Server()->GetCustomClient(Victim), Info.m_DDNetVersion);
+		else if(Info.m_GotDDNetVersion)
+			str_format(PlayerInfo, sizeof(PlayerInfo), "(%d)", Info.m_DDNetVersion);
 
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", pSelf->Server()->ClientName(Victim), pSelf->m_pController->GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 	}
