@@ -2795,8 +2795,10 @@ void CServer::UpdateRegisterServerInfo()
 	JsonWriter.WriteAttribute("client_score_kind");
 	JsonWriter.WriteStrValue("time"); // "points" or "time"
 
+	// <FoxNet
 	JsonWriter.WriteAttribute("requires_login");
-	JsonWriter.WriteBoolValue(false);
+	JsonWriter.WriteBoolValue((g_Config.m_SvAccountsForced));
+	// FoxNet>
 
 	{
 		bool FoundFlags = false;
@@ -4539,6 +4541,7 @@ void CServer::RegisterCommands()
 	// <FoxNet
 	Console()->Chain("include_serverinfo", ConchainSpecialInfoupdate, this);
 	Console()->Chain("sv_foxnet_type", ConchainSpecialInfoupdate, this);
+	Console()->Chain("sv_accounts_forced", ConchainSpecialInfoupdate, this);
 	// FoxNet>
 
 	Console()->Chain("sv_max_clients_per_ip", ConchainMaxclientsperipUpdate, this);

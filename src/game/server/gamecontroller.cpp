@@ -757,6 +757,13 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	if(Team == pPlayer->GetTeam())
 		return;
 
+	if(g_Config.m_SvAccountsForced && !pPlayer->Acc()->m_LoggedIn)
+	{
+		GameServer()->SendChatTarget(pPlayer->GetCid(), "In order to play you need to login");
+		GameServer()->SendChatTarget(pPlayer->GetCid(), "Use /register if you don't have an account");
+		return;
+	}
+
 	pPlayer->SetTeam(Team);
 	int ClientId = pPlayer->GetCid();
 

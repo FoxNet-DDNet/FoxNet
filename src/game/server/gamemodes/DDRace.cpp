@@ -198,12 +198,7 @@ void CGameControllerDDRace::OnPlayerConnect(CPlayer *pPlayer)
 		GameServer()->SendChatTarget(ClientId, "FoxNetwork Mod " FOXNET_VERSION);
 		// FoxNet>
 	}
-	if(GameServer()->Collision()->HasMovingQuads())
-	{
-		const char *pWarn = "Turn off entities, this map uses Moving Tiles";
-		GameServer()->SendBroadcast(pWarn, ClientId);
-		GameServer()->SendChatTarget(ClientId, pWarn);
-	}
+	GameServer()->SendMovingTilesInfo(ClientId);
 }
 
 void CGameControllerDDRace::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)

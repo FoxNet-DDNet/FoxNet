@@ -744,6 +744,7 @@ private:
 	static void ConchainCosmetics(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainAccounts(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainResendVoteMenu(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void ConchainAccountsForced(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	// Add
 	static void ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData);
@@ -919,6 +920,8 @@ private:
 	bool m_IsWeekend;
 
 public:
+	void SendMovingTilesInfo(int ClientId);
+
 	void OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId) override;
 	bool IncludedInServerInfo(int ClientId) override;
 	void OnPreShutdown() override;

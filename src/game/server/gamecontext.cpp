@@ -1792,7 +1792,13 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 	}
 
 	// Check which team the player should be on
-	const int StartTeam = (Spec || g_Config.m_SvTournamentMode) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientId);
+	// <FoxNet
+	// 	const int StartTeam = (Spec || g_Config.m_SvTournamentMode) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientId);
+	int StartTeam = m_pController->GetAutoTeam(ClientId);
+	if(Spec || g_Config.m_SvTournamentMode || g_Config.m_SvAccountsForced)
+		StartTeam = TEAM_SPECTATORS;
+	// FoxNet>
+	
 	CreatePlayer(ClientId, StartTeam, Afk, LastWhisperTo);
 
 	SendMotd(ClientId);

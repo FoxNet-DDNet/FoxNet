@@ -689,6 +689,12 @@ void CGameContext::OnLogin(int ClientId)
 	if(!pPlayer)
 		return;
 
+	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() == TEAM_SPECTATORS)
+	{
+		SendMovingTilesInfo(ClientId);
+		pPlayer->SetTeam(TEAM_GAME, false);
+	}
+
 	pPlayer->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
 	if(pPlayer->Acc()->m_LastName[0] == '\0')
@@ -725,6 +731,10 @@ void CGameContext::OnLogout(int ClientId)
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
+
+	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() != TEAM_SPECTATORS)
+		pPlayer->SetTeam(TEAM_SPECTATORS, false);
+
 	pPlayer->DisableAllCosmetics();
 	ClearVotes(ClientId);
 }
@@ -1092,6 +1102,16 @@ bool CGameContext::RandomMapVote()
 
 	Console()->ExecuteLine(MapVotes[Random], IConsole::CLIENT_ID_UNSPECIFIED);
 	return true;
+}
+
+void CGameContext::SendMovingTilesInfo(int ClientId)
+{
+	if(Collision()->HasMovingQuads())
+	{
+		const char *pWarn = "Turn off entities, this map uses Moving Tiles";
+		SendBroadcast(pWarn, ClientId);
+		SendChatTarget(ClientId, pWarn);
+	}
 }
 
 void CGameContext::OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)

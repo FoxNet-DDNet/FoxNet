@@ -2122,6 +2122,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
 	Console()->Chain("sv_accounts", ConchainAccounts, this);
 	Console()->Chain("sv_custom_vote_menu", ConchainResendVoteMenu, this);
+	Console()->Chain("sv_accounts_forced", ConchainAccountsForced, this);
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
@@ -2203,4 +2204,36 @@ void CGameContext::ConchainResendVoteMenu(IConsole::IResult *pResult, void *pUse
 
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->ClearVotes(-1);
+}
+
+void CGameContext::ConchainAccountsForced(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	if(!pResult->NumArguments())
+		return;
+	if(!g_Config.m_SvAccounts)
+	{
+		log_info("accounts", "Cannot force accounts when accounts are disabled. Disabling forced accounts.");
+		g_Config.m_SvAccountsForced = 0;
+		return;
+	}
+
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Value = pResult->GetInteger(0);
+
+	if(Value)
+	{
+		for(CPlayer *pPl : pSelf->m_apPlayers)
+		{
+			if(!pPl)
+				continue;
+			if(pPl->GetTeam() == TEAM_SPECTATORS)
+				continue;
+			if(pPl->Acc()->m_LoggedIn)
+				continue;
+			pSelf->SendChatTarget(pPl->GetCid(), "You have been moved to spectators because accounts are now forced on this server.");
+			pPl->SetTeam(TEAM_SPECTATORS, false);
+		}
+	}
 }
