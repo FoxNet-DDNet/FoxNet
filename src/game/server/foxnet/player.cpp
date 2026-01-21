@@ -882,6 +882,9 @@ int CPlayer::NumDDraceHudRows()
 	if(pChr->Teams()->IsPractice(pChr->Team()) || pChr->Teams()->TeamLocked(pChr->Team()) || pChr->Core()->m_DeepFrozen || pChr->Core()->m_LiveFrozen)
 		Rows++;
 
+	if(GameServer()->m_VoteCloseTime)
+		Rows += 3;
+
 	return Rows;
 }
 
