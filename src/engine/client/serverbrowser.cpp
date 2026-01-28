@@ -322,6 +322,13 @@ const CServerInfo *CServerBrowser::SortedGet(int Index) const
 	return &m_vpServerlist[m_vSortedServerlist[Index]]->m_Info;
 }
 
+const CServerInfo *CServerBrowser::Get(int Index) const
+{
+	if(Index < 0 || Index >= (int)m_vpServerlist.size())
+		return nullptr;
+	return &m_vpServerlist[Index]->m_Info;
+}
+
 int CServerBrowser::GenerateToken(const NETADDR &Addr) const
 {
 	SHA256_CTX Sha256;
@@ -416,6 +423,11 @@ void CServerBrowser::Filter()
 
 	m_vSortedServerlist.clear();
 	m_vSortedServerlist.reserve(m_vpServerlist.size());
+
+	for(auto &Community : m_vCommunities)
+	{
+		Community.m_NumPlayers = 0;
+	}
 
 	// filter the servers
 	for(int ServerIndex = 0; ServerIndex < (int)m_vpServerlist.size(); ServerIndex++)
@@ -573,17 +585,32 @@ void CServerBrowser::Filter()
 			}
 		}
 
+		UpdateServerFriends(&Info);
+
 		if(!Filtered)
 		{
-			UpdateServerFriends(&Info);
-
 			if(!g_Config.m_BrFilterFriends || Info.m_FriendState != IFriends::FRIEND_NO)
 			{
 				m_NumSortedPlayers += Info.m_NumFilteredPlayers;
 				m_vSortedServerlist.push_back(ServerIndex);
 			}
 		}
+
+		if(Info.m_NumClients > 0)
+		{
+			auto Community = std::find_if(m_vCommunities.begin(), m_vCommunities.end(), [Info](const auto &Elem) {
+				return str_comp(Elem.Id(), Info.m_aCommunityId) == 0;
+			});
+			if(Community != m_vCommunities.end())
+			{
+				Community->m_NumPlayers += Info.m_NumClients;
+			}
+		}
 	}
+
+	std::stable_sort(m_vCommunities.begin(), m_vCommunities.end(), [](const CCommunity &Lhs, const CCommunity &Rhs) {
+		return Lhs.NumPlayers() > Rhs.NumPlayers();
+	});
 }
 
 int CServerBrowser::SortHash() const
@@ -1349,6 +1376,7 @@ const json_value *CServerBrowser::LoadDDNetInfo()
 		UpdateServerRank(&pEntry->m_Info);
 	}
 	ValidateServerlistType();
+	RequestResort();
 	return m_pDDNetInfo;
 }
 
@@ -1358,7 +1386,7 @@ void CServerBrowser::LoadDDNetInfoJson()
 	unsigned Length;
 	if(!m_pStorage->ReadFile(DDNET_INFO_FILE, IStorage::TYPE_SAVE, &pBuf, &Length))
 	{
-		m_DDNetInfoSha256 = SHA256_ZEROED;
+		// Keep old info if available
 		return;
 	}
 
@@ -1592,7 +1620,7 @@ void CServerBrowser::LoadDDNetServers()
 
 	// Add default none community
 	{
-		CCommunity NoneCommunity(COMMUNITY_NONE, "None", SHA256_ZEROED, "");
+		CCommunity NoneCommunity(COMMUNITY_NONE, "None", std::nullopt, "");
 		NoneCommunity.m_vCountries.emplace_back(COMMUNITY_COUNTRY_NONE, -1);
 		NoneCommunity.m_vTypes.emplace_back(COMMUNITY_TYPE_NONE);
 		m_vCommunities.push_back(std::move(NoneCommunity));

@@ -19,13 +19,7 @@
 #include <game/server/entity.h>
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamemodes/DDRace.h>
-#include <game/server/player.h>
-
-#include <array>
-#include <cmath>
-#include <utility>
-#include <base/log.h>
+#include <game/server/gamemodes/ddnet.h>
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,

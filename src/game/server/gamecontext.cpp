@@ -3,10 +3,7 @@
 #include "gamecontext.h"
 
 #include "entities/character.h"
-#include "entity.h"
-#include "foxnet/accounts.h"
-#include "foxnet/shop.h"
-#include "gamemodes/DDRace.h"
+#include "gamemodes/ddnet.h"
 #include "gamemodes/mod.h"
 #include "gameworld.h"
 #include "player.h"
@@ -117,6 +114,9 @@ CGameContext::CGameContext(bool Resetting) :
 	m_LastMapVote = 0;
 
 	m_SqlRandomMapResult = nullptr;
+
+	m_pLoadMapInfoResult = nullptr;
+	m_aMapInfoMessage[0] = '\0';
 
 	m_pScore = nullptr;
 
@@ -1434,6 +1434,19 @@ void CGameContext::OnTick()
 		m_SqlRandomMapResult = nullptr;
 	}
 
+	// check for map info result from database
+	if(m_pLoadMapInfoResult != nullptr && m_pLoadMapInfoResult->m_Completed)
+	{
+		if(m_pLoadMapInfoResult->m_Success && m_pLoadMapInfoResult->m_Data.m_aaMessages[0][0] != '\0')
+		{
+			str_copy(m_aMapInfoMessage, m_pLoadMapInfoResult->m_Data.m_aaMessages[0]);
+			CNetMsg_Sv_MapInfo MapInfoMsg;
+			MapInfoMsg.m_pDescription = m_aMapInfoMessage;
+			Server()->SendPackMsg(&MapInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, -1);
+		}
+		m_pLoadMapInfoResult = nullptr;
+	}
+
 	// Record player position at the end of the tick
 	if(m_TeeHistorianActive)
 	{
@@ -1664,6 +1677,14 @@ void CGameContext::OnClientEnter(int ClientId)
 		SendVoteSet(ClientId);
 
 	Server()->ExpireServerInfo();
+
+	// send map info if loaded from database
+	if(m_aMapInfoMessage[0] != '\0')
+	{
+		CNetMsg_Sv_MapInfo MapInfoMsg;
+		MapInfoMsg.m_pDescription = m_aMapInfoMessage;
+		Server()->SendPackMsg(&MapInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+	}
 
 	CPlayer *pNewPlayer = m_apPlayers[ClientId];
 	mem_zero(&m_aLastPlayerInput[ClientId], sizeof(m_aLastPlayerInput[ClientId]));
@@ -3722,10 +3743,10 @@ struct CMapNameItem
 
 	static bool CompareFilenameAscending(const CMapNameItem Lhs, const CMapNameItem Rhs)
 	{
-		if(str_comp(Lhs.m_aName, "..") == 0)
-			return true;
 		if(str_comp(Rhs.m_aName, "..") == 0)
 			return false;
+		if(str_comp(Lhs.m_aName, "..") == 0)
+			return true;
 		if(Lhs.m_IsDirectory != Rhs.m_IsDirectory)
 			return Lhs.m_IsDirectory;
 		return str_comp_filenames(Lhs.m_aName, Rhs.m_aName) < 0;
@@ -4247,7 +4268,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 	if(!str_comp(Config()->m_SvGametype, "mod"))
 		m_pController = new CGameControllerMod(this);
 	else
-		m_pController = new CGameControllerDDRace(this);
+		m_pController = new CGameControllerDDNet(this);
 
 	ReadCensorList();
 
@@ -4323,6 +4344,9 @@ void CGameContext::OnInit(const void *pPersistentData)
 	{
 		m_pScore = new CScore(this, ((CServer *)Server())->DbPool());
 	}
+
+	// load map info from database
+	Score()->LoadMapInfo();
 
 	// create all entities from the game layer
 	CreateAllEntities(true);
@@ -4804,8 +4828,10 @@ bool CGameContext::IsClientHighBandwidth(int ClientId) const
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
 // <FoxNet
-const char *CGameContext::GameType()
+const char *CGameContext::GameType() const
 {
+	dbg_assert(m_pController, "no controller");
+	dbg_assert(m_pController->m_pGameType, "no gametype");
 	static const char GameTypes[3][16] = {
 		"FoxNet Gores",
 		"FoxNet DDRace",
@@ -4813,8 +4839,8 @@ const char *CGameContext::GameType()
 	};
 	return GameTypes[g_Config.m_SvFoxNetType];
 }
-// FoxNet>
 const char *CGameContext::Version() const { return FOXNET_VERSION; }
+// FoxNet>
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
@@ -4861,12 +4887,15 @@ bool CGameContext::IsRunningKickOrSpecVote(int ClientId) const
 
 void CGameContext::SendRecord(int ClientId)
 {
+	if(Server()->IsSixup(ClientId) || GetClientVersion(ClientId) >= VERSION_DDNET_MAP_BESTTIME)
+		return;
+
 	CNetMsg_Sv_Record Msg;
 	CNetMsg_Sv_RecordLegacy MsgLegacy;
 	MsgLegacy.m_PlayerTimeBest = Msg.m_PlayerTimeBest = round_to_int(Score()->PlayerData(ClientId)->m_BestTime.value_or(0.0f) * 100.0f);
-	MsgLegacy.m_ServerTimeBest = Msg.m_ServerTimeBest = m_pController->m_CurrentRecord.has_value() && !g_Config.m_SvHideScore ? round_to_int(m_pController->m_CurrentRecord.value() * 100.0f) : 0; //TODO: finish this
+	MsgLegacy.m_ServerTimeBest = Msg.m_ServerTimeBest = m_pController->m_CurrentRecord.has_value() && !g_Config.m_SvHideScore ? round_to_int(m_pController->m_CurrentRecord.value() * 100.0f) : 0;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientId);
-	if(!Server()->IsSixup(ClientId) && GetClientVersion(ClientId) < VERSION_DDNET_MSG_LEGACY)
+	if(GetClientVersion(ClientId) < VERSION_DDNET_MSG_LEGACY)
 	{
 		Server()->SendPackMsg(&MsgLegacy, MSGFLAG_VITAL, ClientId);
 	}

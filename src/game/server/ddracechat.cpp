@@ -10,7 +10,7 @@
 
 #include <game/mapitems.h>
 #include <game/server/entities/character.h>
-#include <game/server/gamemodes/DDRace.h>
+#include <game/server/gamemodes/ddnet.h>
 #include <game/server/teams.h>
 #include <game/team_state.h>
 #include <game/teamscore.h>
@@ -554,6 +554,14 @@ void CGameContext::ConMapInfo(IConsole::IResult *pResult, void *pUserData)
 	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
 	if(!pPlayer)
 		return;
+
+	// use cached map info for current map
+	const bool IsCurrentMap = pResult->NumArguments() == 0 || str_comp_nocase(pResult->GetString(0), pSelf->Server()->GetMapName()) == 0;
+	if(IsCurrentMap && pSelf->m_aMapInfoMessage[0] != '\0')
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, pSelf->m_aMapInfoMessage);
+		return;
+	}
 
 	if(pResult->NumArguments() > 0)
 		pSelf->Score()->MapInfo(pResult->m_ClientId, pResult->GetString(0));
@@ -1787,7 +1795,7 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 
 	if(pPlayer->m_RescueMode == RESCUEMODE_MANUAL)
 	{
-		// if character can't set his rescue state then we should rescue him instead
+		// if character can't set their rescue state then we should rescue them instead
 		GoRescue = !pChr->TrySetRescue(RESCUEMODE_MANUAL);
 	}
 

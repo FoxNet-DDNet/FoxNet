@@ -69,7 +69,6 @@
 #include <shellapi.h>
 #include <shlobj.h> // SHGetKnownFolderPath
 #include <shlwapi.h>
-#include <wincrypt.h>
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -376,39 +375,12 @@ IOHANDLE io_stderr()
 
 IOHANDLE io_current_exe()
 {
-	// From https://stackoverflow.com/a/1024937.
-#if defined(CONF_FAMILY_WINDOWS)
-	wchar_t wide_path[IO_MAX_PATH_LENGTH];
-	if(GetModuleFileNameW(nullptr, wide_path, std::size(wide_path)) == 0 || GetLastError() != ERROR_SUCCESS)
+	char path[IO_MAX_PATH_LENGTH];
+	if(fs_executable_path(path, sizeof(path)) != 0)
 	{
 		return nullptr;
 	}
-	const std::optional<std::string> path = windows_wide_to_utf8(wide_path);
-	return path.has_value() ? io_open(path.value().c_str(), IOFLAG_READ) : nullptr;
-#elif defined(CONF_PLATFORM_MACOS)
-	char path[IO_MAX_PATH_LENGTH];
-	uint32_t path_size = sizeof(path);
-	if(_NSGetExecutablePath(path, &path_size))
-	{
-		return 0;
-	}
 	return io_open(path, IOFLAG_READ);
-#else
-	static const char *NAMES[] = {
-		"/proc/self/exe", // Linux, Android
-		"/proc/curproc/exe", // NetBSD
-		"/proc/curproc/file", // DragonFly
-	};
-	for(auto &name : NAMES)
-	{
-		IOHANDLE result = io_open(name, IOFLAG_READ);
-		if(result)
-		{
-			return result;
-		}
-	}
-	return 0;
-#endif
 }
 
 #define ASYNC_BUFSIZE (8 * 1024)
@@ -2371,6 +2343,65 @@ int fs_storage_path(const char *appname, char *path, int max)
 #endif
 }
 
+int fs_executable_path(char *buffer, int buffer_size)
+{
+	// https://stackoverflow.com/a/1024937
+#if defined(CONF_FAMILY_WINDOWS)
+	wchar_t wide_path[IO_MAX_PATH_LENGTH];
+	if(GetModuleFileNameW(nullptr, wide_path, std::size(wide_path)) == 0 || GetLastError() != ERROR_SUCCESS)
+	{
+		buffer[0] = '\0';
+		return -1;
+	}
+	const std::optional<std::string> path = windows_wide_to_utf8(wide_path);
+	if(!path.has_value())
+	{
+		buffer[0] = '\0';
+		return -1;
+	}
+	str_copy(buffer, path.value().c_str(), buffer_size);
+	return 0;
+#elif defined(CONF_PLATFORM_MACOS)
+	// Get the size
+	uint32_t path_size = 0;
+	_NSGetExecutablePath(nullptr, &path_size);
+
+	char *path = (char *)malloc(path_size);
+	if(_NSGetExecutablePath(path, &path_size) != 0)
+	{
+		free(path);
+		buffer[0] = '\0';
+		return -1;
+	}
+	str_copy(buffer, path, buffer_size);
+	free(path);
+	return 0;
+#else
+	char path[IO_MAX_PATH_LENGTH];
+	static const char *NAMES[] = {
+		"/proc/self/exe", // Linux, Android
+		"/proc/curproc/exe", // NetBSD
+		"/proc/curproc/file", // DragonFly
+	};
+	for(auto &name : NAMES)
+	{
+		if(ssize_t bytes_written = readlink(name, path, sizeof(path) - 1); bytes_written != -1)
+		{
+			path[bytes_written] = '\0'; // readlink does NOT null-terminate
+			// if the file gets deleted or replaced (not renamed) linux appends (deleted) to the symlink (see https://man7.org/linux/man-pages/man5/proc_pid_exe.5.html)
+			if(const char *deleted = str_endswith(path, " (deleted)"); deleted != nullptr)
+			{
+				path[deleted - path] = '\0';
+			}
+			str_copy(buffer, path, buffer_size);
+			return 0;
+		}
+	}
+	buffer[0] = '\0';
+	return -1;
+#endif
+}
+
 int fs_makedir_rec_for(const char *path)
 {
 	char buffer[IO_MAX_PATH_LENGTH];
@@ -3084,112 +3115,6 @@ int open_file(const char *path)
 #endif
 }
 #endif // !defined(CONF_PLATFORM_ANDROID)
-
-struct SECURE_RANDOM_DATA
-{
-	std::once_flag initialized_once_flag;
-#if defined(CONF_FAMILY_WINDOWS)
-	HCRYPTPROV provider;
-#else
-	IOHANDLE urandom;
-#endif
-};
-
-static struct SECURE_RANDOM_DATA secure_random_data = {};
-
-static void ensure_secure_random_init()
-{
-	std::call_once(secure_random_data.initialized_once_flag, []() {
-#if defined(CONF_FAMILY_WINDOWS)
-		if(!CryptAcquireContext(&secure_random_data.provider, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
-		{
-			const DWORD LastError = GetLastError();
-			dbg_assert_failed("Failed to initialize secure random: CryptAcquireContext failure (%ld '%s')", LastError, windows_format_system_message(LastError).c_str());
-		}
-#else
-		secure_random_data.urandom = io_open("/dev/urandom", IOFLAG_READ);
-		dbg_assert(secure_random_data.urandom != nullptr, "Failed to initialize secure random: failed to open /dev/urandom");
-#endif
-	});
-}
-
-void generate_password(char *buffer, unsigned length, const unsigned short *random, unsigned random_length)
-{
-	static const char VALUES[] = "ABCDEFGHKLMNPRSTUVWXYZabcdefghjkmnopqt23456789";
-	static const size_t NUM_VALUES = sizeof(VALUES) - 1; // Disregard the '\0'.
-	unsigned i;
-	dbg_assert(length >= random_length * 2 + 1, "too small buffer");
-	dbg_assert(NUM_VALUES * NUM_VALUES >= 2048, "need at least 2048 possibilities for 2-character sequences");
-
-	buffer[random_length * 2] = 0;
-
-	for(i = 0; i < random_length; i++)
-	{
-		unsigned short random_number = random[i] % 2048;
-		buffer[2 * i + 0] = VALUES[random_number / NUM_VALUES];
-		buffer[2 * i + 1] = VALUES[random_number % NUM_VALUES];
-	}
-}
-
-#define MAX_PASSWORD_LENGTH 128
-
-void secure_random_password(char *buffer, unsigned length, unsigned pw_length)
-{
-	unsigned short random[MAX_PASSWORD_LENGTH / 2];
-	// With 6 characters, we get a password entropy of log(2048) * 6/2 = 33bit.
-	dbg_assert(length >= pw_length + 1, "too small buffer");
-	dbg_assert(pw_length >= 6, "too small password length");
-	dbg_assert(pw_length % 2 == 0, "need an even password length");
-	dbg_assert(pw_length <= MAX_PASSWORD_LENGTH, "too large password length");
-
-	secure_random_fill(random, pw_length);
-
-	generate_password(buffer, length, random, pw_length / 2);
-}
-
-#undef MAX_PASSWORD_LENGTH
-
-void secure_random_fill(void *bytes, unsigned length)
-{
-	ensure_secure_random_init();
-#if defined(CONF_FAMILY_WINDOWS)
-	if(!CryptGenRandom(secure_random_data.provider, length, (unsigned char *)bytes))
-	{
-		const DWORD LastError = GetLastError();
-		dbg_assert_failed("CryptGenRandom failure (%ld '%s')", LastError, windows_format_system_message(LastError).c_str());
-	}
-#else
-	dbg_assert(length == io_read(secure_random_data.urandom, bytes, length), "io_read returned with a short read");
-#endif
-}
-
-// From https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2.
-static unsigned int find_next_power_of_two_minus_one(unsigned int n)
-{
-	n--;
-	n |= n >> 1;
-	n |= n >> 2;
-	n |= n >> 4;
-	n |= n >> 4;
-	n |= n >> 16;
-	return n;
-}
-
-int secure_rand_below(int below)
-{
-	unsigned int mask = find_next_power_of_two_minus_one(below);
-	dbg_assert(below > 0, "below must be positive");
-	while(true)
-	{
-		unsigned int n;
-		secure_random_fill(&n, sizeof(n));
-		n &= mask;
-		if((int)n < below)
-		{
-			return n;
-		}
-	}
-}
 
 bool os_version_str(char *version, size_t length)
 {

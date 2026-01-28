@@ -6,6 +6,7 @@
 
 #include <base/system.h>
 
+#include <engine/server.h>
 #include <engine/server/databases/connection_pool.h>
 #include <engine/shared/config.h>
 #include <engine/shared/console.h>
@@ -14,7 +15,8 @@
 
 #include <generated/wordlist.h>
 
-#include <game/server/gamemodes/DDRace.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamemodes/ddnet.h>
 #include <game/team_state.h>
 
 #include <memory>
@@ -120,6 +122,20 @@ void CScore::LoadBestTime()
 	auto Tmp = std::make_unique<CSqlLoadBestTimeRequest>(LoadBestTimeResult);
 	str_copy(Tmp->m_aMap, Server()->GetMapName(), sizeof(Tmp->m_aMap));
 	m_pPool->Execute(CScoreWorker::LoadBestTime, std::move(Tmp), "load best time");
+}
+
+void CScore::LoadMapInfo()
+{
+	if(m_pGameServer->m_pLoadMapInfoResult)
+		return; // already in progress
+
+	auto pResult = std::make_shared<CScorePlayerResult>();
+	m_pGameServer->m_pLoadMapInfoResult = pResult;
+
+	auto Tmp = std::make_unique<CSqlPlayerRequest>(pResult);
+	str_copy(Tmp->m_aName, Server()->GetMapName(), sizeof(Tmp->m_aName));
+	Tmp->m_aRequestingPlayer[0] = '\0'; // no player, so no "your time" in result
+	m_pPool->Execute(CScoreWorker::MapInfo, std::move(Tmp), "load map info");
 }
 
 void CScore::LoadPlayerData(int ClientId, const char *pName)

@@ -397,7 +397,7 @@ void CCharacter::HandleNinja()
 
 				// Don't hit players in solo parts
 				if(Teams()->m_Core.GetSolo(ClientId))
-					return;
+					continue;
 				// <FoxNet
 				if(Core()->m_Passive)
 					continue;
@@ -423,7 +423,7 @@ void CCharacter::HandleNinja()
 
 				// Hit a player, give them damage and stuffs...
 				GameServer()->CreateSound(pChr->m_Pos, SOUND_NINJA_HIT, TeamMask());
-				// set his velocity to fast upward (for now)
+				// set their velocity to fast upward (for now)
 				dbg_assert(m_NumObjectsHit < MAX_CLIENTS, "m_aHitObjects overflow");
 				m_aHitObjects[m_NumObjectsHit++] = ClientId;
 
@@ -438,7 +438,9 @@ void CCharacter::HandleNinja()
 void CCharacter::DoWeaponSwitch()
 {
 	// make sure we can switch
-	if(m_ReloadTimer != 0 || m_QueuedWeapon == -1 || m_Core.m_aWeapons[WEAPON_NINJA].m_Got || !m_Core.m_aWeapons[m_QueuedWeapon].m_Got)
+	if(m_ReloadTimer != 0 || m_QueuedWeapon == -1)
+		return;
+	if(m_Core.m_aWeapons[WEAPON_NINJA].m_Got || !m_Core.m_aWeapons[m_QueuedWeapon].m_Got)
 		return;
 
 	// switch Weapon
@@ -605,7 +607,7 @@ void CCharacter::FireWeapon()
 				continue;
 			// FoxNet>
 
-			// set his velocity to fast upward (for now)
+			// set their velocity to fast upward (for now)
 			if(length(pTarget->m_Pos - ProjStartPos) > 0.0f)
 				GameServer()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f, TeamMask());
 			else
@@ -844,8 +846,8 @@ void CCharacter::GiveNinja()
 		m_LastWeapon = m_Core.m_ActiveWeapon;
 	SetActiveWeapon(WEAPON_NINJA);
 
-	if(!m_Core.m_aWeapons[WEAPON_NINJA].m_Got)
-		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, TeamMask());
+	// not used on ddrace
+	// GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, TeamMask());
 }
 
 void CCharacter::RemoveNinja()
@@ -873,8 +875,7 @@ int CCharacter::DetermineEyeEmote()
 	const bool HasNinjajetpack = m_pPlayer->m_NinjaJetpack && m_Core.m_Jetpack && m_Core.m_ActiveWeapon == WEAPON_GUN;
 
 	if(GetPlayer()->IsAfk() || GetPlayer()->IsPaused())
-		return IsFrozen ? EMOTE_NORMAL : EMOTE_BLINK;
-	// <FoxNet
+		return (m_Core.m_DeepFrozen || m_FreezeTime > 0) ? EMOTE_NORMAL : EMOTE_BLINK;
 	if(m_EmoteType != EMOTE_NORMAL) // user manually set an eye emote using /emote
 		return m_EmoteType;
 	if(IsFrozen)
@@ -1499,7 +1500,7 @@ bool CCharacter::IsSnappingCharacterInView(int SnappingClientId)
 {
 	int Id = m_pPlayer->GetCid();
 
-	// A player may not be clipped away if his hook or a hook attached to him is in the field of view
+	// A player may not be clipped away if their hook or a hook attached to them is in the field of view
 	bool PlayerAndHookNotInView = NetworkClippedLine(SnappingClientId, m_Pos, m_Core.m_HookPos);
 	bool AttachedHookInView = false;
 	if(PlayerAndHookNotInView)
@@ -2642,12 +2643,12 @@ void CCharacter::DDRacePostCoreTick()
 	// following jump rules can be overridden by tiles, like Refill Jumps, Stopper and Wall Jump
 	if(m_Core.m_Jumps == -1)
 	{
-		// The player has only one ground jump, so his feet are always dark
+		// The player has only one ground jump, so their feet are always dark
 		m_Core.m_Jumped |= 2;
 	}
 	else if(m_Core.m_Jumps == 0)
 	{
-		// The player has no jumps at all, so his feet are always dark
+		// The player has no jumps at all, so their feet are always dark
 		m_Core.m_Jumped |= 2;
 	}
 	else if(m_Core.m_Jumps == 1 && m_Core.m_Jumped > 0)
@@ -2657,7 +2658,7 @@ void CCharacter::DDRacePostCoreTick()
 	}
 	else if(m_Core.m_JumpedTotal < m_Core.m_Jumps - 1 && m_Core.m_Jumped > 1)
 	{
-		// The player has not yet used up all his jumps, so his feet remain light
+		// The player has not yet used up all their jumps, so their feet remain light
 		m_Core.m_Jumped = 1;
 	}
 
