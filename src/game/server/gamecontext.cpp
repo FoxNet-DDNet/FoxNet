@@ -4828,7 +4828,7 @@ bool CGameContext::IsClientHighBandwidth(int ClientId) const
 
 CUuid CGameContext::GameUuid() const { return m_GameUuid; }
 // <FoxNet
-const char *CGameContext::GameType() const
+const char *CGameContext::GameType()
 {
 	dbg_assert(m_pController, "no controller");
 	dbg_assert(m_pController->m_pGameType, "no gametype");

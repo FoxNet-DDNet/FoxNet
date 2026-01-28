@@ -307,16 +307,14 @@ int CConsole::ParseArgs(CResult *pResult, const char *pFormat)
 				const char *pNum = pResult->GetString(pResult->NumArguments() - 1);
 				if(!*pNum)
 				{
-					Error = PARSEARGS_INVALID_INTEGER;
-					break;
+					return PARSEARGS_INVALID_INTEGER;
 				}
 				char *pEnd = nullptr;
 				errno = 0;
 				(void)strtoll(pNum, &pEnd, 10);
 				if(pEnd == nullptr || *pEnd != '\0' || errno == ERANGE)
 				{
-					Error = PARSEARGS_INVALID_INTEGER;
-					break;
+					return PARSEARGS_INVALID_INTEGER;
 				}
 			}
 			// FoxNet>

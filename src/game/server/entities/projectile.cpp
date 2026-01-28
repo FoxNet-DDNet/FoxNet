@@ -20,6 +20,7 @@
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/ddnet.h>
+#include <base/log.h>
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,
