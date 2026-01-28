@@ -2402,8 +2402,8 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 						size_t descLen = str_length(aDesc);
 						memmove(aDesc, aDesc + prefixLen, descLen - prefixLen + 1);
 
-						if(str_startswith(aCmd, " "))
-							memmove(aCmd, aCmd + 1, str_length(aCmd));
+						if(str_startswith(aDesc, " "))
+							memmove(aDesc, aDesc + 1, str_length(aDesc));
 						break;
 					}
 				}
@@ -2786,7 +2786,7 @@ void CGameContext::OnSetSpectatorModeNetMessage(const CNetMsg_Cl_SetSpectatorMod
 	pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 	pPlayer->UpdatePlaytime();
 	// <FoxNet
-	if(SpectatorId >= 0 && (!m_apPlayers[SpectatorId] || m_apPlayers[SpectatorId]->m_Vanish))
+	if(SpectatorId >= 0 && ((!m_apPlayers[SpectatorId] || m_apPlayers[SpectatorId]->m_Vanish) && !pPlayer->m_Vanish))
 	{
 		SendChatTarget(ClientId, "Invalid spectator id used");
 		return;
@@ -5196,7 +5196,7 @@ void CGameContext::WhisperId(int ClientId, int VictimId, const char *pMessage)
 	dbg_assert(CheckClientId(ClientId) && m_apPlayers[ClientId] != nullptr, "ClientId invalid");
 	dbg_assert(CheckClientId(VictimId) && m_apPlayers[VictimId] != nullptr, "VictimId invalid");
 	
-	if(m_apPlayers[VictimId]->m_Vanish && !Server()->IsRconAuthed(ClientId))
+	if(m_apPlayers[VictimId]->m_Vanish && (!Server()->IsRconAuthed(ClientId) || m_apPlayers[ClientId]->m_Vanish))
 	{
 		SendChatTarget(ClientId, "Invalid whisper");
 		return;
@@ -5284,7 +5284,7 @@ void CGameContext::Converse(int ClientId, char *pStr)
 		SendChatTarget(ClientId, "You do not have an ongoing conversation. Whisper to someone to start one");
 	else if(!m_apPlayers[pPlayer->m_LastWhisperTo])
 		SendChatTarget(ClientId, "The player you were whispering to hasn't reconnected yet or left. Please wait or whisper to someone else");
-	else if(m_apPlayers[pPlayer->m_LastWhisperTo]->m_Vanish && !Server()->IsRconAuthed(ClientId))
+	else if(m_apPlayers[pPlayer->m_LastWhisperTo]->m_Vanish && (!Server()->IsRconAuthed(ClientId) || m_apPlayers[ClientId]->m_Vanish))
 		SendChatTarget(ClientId, "The player you were whispering to has left the game.");
 	else
 		WhisperId(ClientId, pPlayer->m_LastWhisperTo, pStr);
