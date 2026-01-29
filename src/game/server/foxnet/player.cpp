@@ -260,7 +260,7 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		{
 			if(GameServer()->m_apPlayers[i] && i != m_ClientId)
 			{
-				str_format(aBuf, sizeof(aBuf), "%s is now level %ld!", Server()->ClientName(m_ClientId), Acc()->m_Level);
+				str_format(aBuf, sizeof(aBuf), "'%s' leveled up to level %ld!", Server()->ClientName(m_ClientId), Acc()->m_Level);
 				GameServer()->SendChatTarget(i, aBuf);
 			}
 		}
