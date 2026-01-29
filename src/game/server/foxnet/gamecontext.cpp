@@ -205,7 +205,7 @@ void CGameContext::BotClientTick()
 					pClientName,
 					ClientVersion,
 					GetClientVersionStr(ClientId));
-				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client (imacrack)");
+				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client");
 
 				Server()->Ban(ClientId, g_Config.m_SvAntiBotBantime * 60, "Download the official ddnet client from ddnet.org/downloads/", false);
 				continue;
