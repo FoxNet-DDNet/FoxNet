@@ -1404,3 +1404,25 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 		pChr->SetReloadTimer(FireDelay * Server()->TickSpeed() / 1000);
 	}
 }
+
+bool CGameContext::SetPredictEventsFlag(int ClientId) const
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
+		return false;
+
+	if(pPlayer->Cosmetics()->m_ConfettiGun)
+		return false;
+	if(pPlayer->Cosmetics()->m_DamageIndType != INDTYPE_NONE)
+		return false;
+	if(pPlayer->Cosmetics()->m_GunType != GUNTYPE_NONE)
+		return false;
+	if(pPlayer->Cosmetics()->m_PhaseGun)
+		return false;
+	if(pPlayer->Cosmetics()->m_EmoticonGun)
+		return false;
+
+	return true;
+}
