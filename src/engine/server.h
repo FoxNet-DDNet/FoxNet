@@ -304,6 +304,7 @@ public:
 	virtual const char *GetCustomClient(int ClientId) = 0;
 	virtual bool QuietJoin(int ClientId) = 0;
 	virtual void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
+	virtual void SystemCall(const char *pCommand) = 0;
 	virtual const char *GetClientVersionStr(int ClientId) const = 0;
 	// FoxNet>
 };

@@ -27,6 +27,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "foxnet/scripting/scripting.h"
 
 /*
 	Tick
@@ -736,6 +737,7 @@ private:
 	void FoxNetSnap(int ClientId, bool GlobalSnap);
 	void FoxNetPostGlobalSnap();
 	void RegisterFoxNetCommands();
+	void OnFoxNetConsoleInit();
 	void PowerUpSpawner();
 
 	void SnapDebuggedQuad(int ClientId);
@@ -957,6 +959,7 @@ public:
 
 	CAccountSession m_aAccounts[MAX_CLIENTS];
 	CAccounts m_AccountManager;
+	CScripting m_Scripting;
 
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;

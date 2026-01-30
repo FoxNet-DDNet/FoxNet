@@ -258,7 +258,7 @@ public:
 	int m_RconAuthLevel;
 	int m_PrintCBIndex;
 	char m_aShutdownReason[128];
-	void *m_pPersistentData;
+	void *m_pPersistentData = nullptr;
 
 	enum
 	{
@@ -582,6 +582,15 @@ public:
 		char m_aCommand[1024];
 	};
 	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
+
+	class CSystemCall : public IJob // For ChaiScript system calls
+	{
+		void Run() override;
+	public:
+		CSystemCall(const char *pCommand) { str_copy(m_aCommand, pCommand, sizeof(m_aCommand)); }
+		char m_aCommand[1024];
+	};
+	void SystemCall(const char *pCommand) override;
 
 	void SendFoxnetInfo(int ClientId);
 	const char *GetClientVersionStr(int ClientId) const override;

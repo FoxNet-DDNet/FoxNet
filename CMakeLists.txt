@@ -287,7 +287,8 @@ if(NOT MSVC AND NOT HAIKU)
   endif()
 
   # Disable exceptions as DDNet does not use them.
-  add_cxx_compiler_flag_if_supported(OUR_FLAGS -fno-exceptions)
+  # ChaiScript//
+  # add_cxx_compiler_flag_if_supported(OUR_FLAGS -fno-exceptions)
 
   # Inaccurate floating point numbers cause problems on mingw-w64-gcc when
   # compiling for x86, might cause problems elsewhere. So don't store floats
@@ -1862,7 +1863,7 @@ set(EXPECTED_DATA
   wordlist.txt
 )
 
-set_glob(DATA GLOB_RECURSE "cfg;frag;json;map;otf;png;rules;ttc;ttf;txt;vert;wv" data ${EXPECTED_DATA})
+set_glob(DATA GLOB_RECURSE "cfg;chai;frag;json;map;otf;png;rules;ttc;ttf;txt;vert;wv" data ${EXPECTED_DATA})
 
 ########################################################################
 # COPY DATA AND SHARED LIBS
@@ -2169,6 +2170,18 @@ set_src(ENGINE_SHARED GLOB_RECURSE src/engine/shared
   websockets.cpp
   websockets.h
 )
+
+set_src(ENGINE_EXTERNAL GLOB src/engine/external
+  regex.cpp
+  regex.h
+)
+
+# ChaiScript
+file(GLOB_RECURSE ENGINE_EXTERNAL_CHAISCRIPT
+  "${PROJECT_SOURCE_DIR}/src/engine/external/chaiscript/*.hpp"
+)
+list(APPEND ENGINE_EXTERNAL ${ENGINE_EXTERNAL_CHAISCRIPT})
+
 set_src(ENGINE_GFX GLOB src/engine/gfx
   image.cpp
   image_loader.cpp
@@ -2252,7 +2265,7 @@ set(LIBS
 # Targets
 add_library(engine-gfx EXCLUDE_FROM_ALL OBJECT ${ENGINE_GFX})
 target_include_directories(engine-gfx PRIVATE ${PNG_INCLUDE_DIRS})
-add_library(engine-shared EXCLUDE_FROM_ALL OBJECT ${ENGINE_INTERFACE} ${ENGINE_SHARED} ${ENGINE_UUID_SHARED} ${BASE})
+add_library(engine-shared EXCLUDE_FROM_ALL OBJECT ${ENGINE_EXTERNAL} ${ENGINE_INTERFACE} ${ENGINE_SHARED} ${ENGINE_UUID_SHARED} ${BASE})
 add_library(game-shared EXCLUDE_FROM_ALL OBJECT ${GAME_SHARED} ${GAME_GENERATED_SHARED})
 add_dependencies(engine-shared generate_protocol)
 add_dependencies(game-shared generate_protocol)
@@ -2877,6 +2890,10 @@ if(SERVER)
     foxnet/persistent_data.cpp
     foxnet/persistent_data.h
     foxnet/player.cpp
+    foxnet/scripting/impl.cpp
+    foxnet/scripting/impl.h
+    foxnet/scripting/scripting.cpp
+    foxnet/scripting/scripting.h
     foxnet/shop.cpp
     foxnet/shop.h
     foxnet/vehicles/snake.cpp
@@ -2987,6 +3004,21 @@ if(SERVER)
   set_property(TARGET game-server
       PROPERTY OUTPUT_NAME ${SERVER_EXECUTABLE}
   )
+
+  if(MSVC)
+    target_compile_options(game-server-without-main PRIVATE /bigobj) # required for ChaiScript
+    target_link_options(game-server-without-main PRIVATE /ENTRY:mainCRTStartup)
+  endif()
+
+  if(WIN32 AND NOT MSVC)
+    target_compile_options(game-server-without-main PRIVATE -Wa,-mbig-obj) # required for ChaiScript
+  endif()
+
+  # Silence warnings from ChaiScript
+  target_include_directories(game-server-without-main SYSTEM PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/engine/external/chaiscript)
+
+
   target_link_libraries(game-server ${LIBS_SERVER})
   list(APPEND TARGETS_OWN game-server)
   list(APPEND TARGETS_LINK game-server)

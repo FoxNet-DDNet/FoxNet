@@ -220,8 +220,15 @@ void CGameContext::BotClientTick()
 	}
 }
 
+void CGameContext::OnFoxNetConsoleInit()
+{
+	m_Scripting.OnConsoleInit(this);
+	RegisterFoxNetCommands();
+}
+
 void CGameContext::FoxNetInit()
 {
+	m_Scripting.OnInit(this);
 	m_AccountManager.Init(this, ((CServer *)Server())->DbPool());
 	m_VoteMenu.Init(this);
 	m_Shop.Init(this);

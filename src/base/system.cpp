@@ -3553,4 +3553,90 @@ void UnescapeNewlines(char *pBuf)
 	pBuf[j] = '\0';
 }
 
+
+const char *EscapeMessage(const char *pMessage)
+{
+	static char aEscaped[2048];
+	char *pDst = aEscaped;
+	const unsigned char *pSrc = (const unsigned char *)pMessage;
+
+	while(*pSrc && (size_t)(pDst - aEscaped) < sizeof(aEscaped) - 7)
+	{
+		unsigned char c = *pSrc++;
+		switch(c)
+		{
+		case '\"':
+			*pDst++ = '\\';
+			*pDst++ = '\"';
+			break;
+		case '\\':
+			*pDst++ = '\\';
+			*pDst++ = '\\';
+			break;
+		case '`':
+			*pDst++ = '\\';
+			*pDst++ = '`';
+			break; // prevent shell command substitution on Linux
+		case '$':
+			*pDst++ = '\\';
+			*pDst++ = '$';
+			break; // prevent $(...) and $VAR expansion
+		case '\b':
+			*pDst++ = '\\';
+			*pDst++ = 'b';
+			break;
+		case '\f':
+			*pDst++ = '\\';
+			*pDst++ = 'f';
+			break;
+		case '\n':
+			*pDst++ = '\\';
+			*pDst++ = 'n';
+			break;
+		case '\r':
+			*pDst++ = '\\';
+			*pDst++ = 'r';
+			break;
+		case '\t':
+			*pDst++ = '\\';
+			*pDst++ = 't';
+			break;
+		case '<':
+			*pDst++ = '\\';
+			*pDst++ = 'u';
+			*pDst++ = '0';
+			*pDst++ = '0';
+			*pDst++ = '3';
+			*pDst++ = 'c';
+			break;
+		case '>':
+			*pDst++ = '\\';
+			*pDst++ = 'u';
+			*pDst++ = '0';
+			*pDst++ = '0';
+			*pDst++ = '3';
+			*pDst++ = 'e';
+			break;
+		default:
+			if(c < 0x20)
+			{
+				*pDst++ = '\\';
+				*pDst++ = 'u';
+				*pDst++ = '0';
+				*pDst++ = '0';
+				static const char HEX[] = "0123456789abcdef";
+				*pDst++ = HEX[(c >> 4) & 0xF];
+				*pDst++ = HEX[c & 0xF];
+			}
+			else
+			{
+				*pDst++ = (char)c;
+			}
+			break;
+		}
+	}
+	*pDst = '\0';
+	return aEscaped;
+}
+
 // FoxNet>

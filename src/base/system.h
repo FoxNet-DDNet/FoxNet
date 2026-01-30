@@ -1607,4 +1607,6 @@ std::vector<const char *> StrSplit(const char *pMsg, char Delim);
 std::vector<const char *> StrSplitLength(const char *pMsg, size_t Length);
 void StrNewlineExceedLength(char *pOut, size_t MaxLength);
 void UnescapeNewlines(char *pBuf);
+
+const char *EscapeMessage(const char *pMessage);
 // FoxNet>

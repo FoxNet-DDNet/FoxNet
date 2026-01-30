@@ -5070,91 +5070,6 @@ void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
 	pThis->SendMapByName(ClientId, pMapName);
 }
 
-static const char *EscapeMessage(const char *pMessage)
-{
-	static char aEscaped[2048];
-	char *pDst = aEscaped;
-	const unsigned char *pSrc = (const unsigned char *)pMessage;
-
-	while(*pSrc && (size_t)(pDst - aEscaped) < sizeof(aEscaped) - 7)
-	{
-		unsigned char c = *pSrc++;
-		switch(c)
-		{
-		case '\"':
-			*pDst++ = '\\';
-			*pDst++ = '\"';
-			break;
-		case '\\':
-			*pDst++ = '\\';
-			*pDst++ = '\\';
-			break;
-		case '`':
-			*pDst++ = '\\';
-			*pDst++ = '`';
-			break; // prevent shell command substitution on Linux
-		case '$':
-			*pDst++ = '\\';
-			*pDst++ = '$';
-			break; // prevent $(...) and $VAR expansion
-		case '\b':
-			*pDst++ = '\\';
-			*pDst++ = 'b';
-			break;
-		case '\f':
-			*pDst++ = '\\';
-			*pDst++ = 'f';
-			break;
-		case '\n':
-			*pDst++ = '\\';
-			*pDst++ = 'n';
-			break;
-		case '\r':
-			*pDst++ = '\\';
-			*pDst++ = 'r';
-			break;
-		case '\t':
-			*pDst++ = '\\';
-			*pDst++ = 't';
-			break;
-		case '<':
-			*pDst++ = '\\';
-			*pDst++ = 'u';
-			*pDst++ = '0';
-			*pDst++ = '0';
-			*pDst++ = '3';
-			*pDst++ = 'c';
-			break;
-		case '>':
-			*pDst++ = '\\';
-			*pDst++ = 'u';
-			*pDst++ = '0';
-			*pDst++ = '0';
-			*pDst++ = '3';
-			*pDst++ = 'e';
-			break;
-		default:
-			if(c < 0x20)
-			{
-				*pDst++ = '\\';
-				*pDst++ = 'u';
-				*pDst++ = '0';
-				*pDst++ = '0';
-				static const char HEX[] = "0123456789abcdef";
-				*pDst++ = HEX[(c >> 4) & 0xF];
-				*pDst++ = HEX[c & 0xF];
-			}
-			else
-			{
-				*pDst++ = (char)c;
-			}
-			break;
-		}
-	}
-	*pDst = '\0';
-	return aEscaped;
-}
-
 void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
 {
 	if(pUrl[0] == '\0' || pMessage[0] == '\0')
@@ -5186,6 +5101,28 @@ void CServer::CWebhook::Run()
 		log_info("webhook", "Sending webhook message failed, returned %d", ret);
 		log_info("webhook", "%s", m_aCommand);
 	}
+}
+
+void CServer::SystemCall(const char *pCommand)
+{	
+	std::string Command = pCommand;
+	
+// Makes the console shut up
+#if defined(_WIN32) || defined(_WIN64)
+	Command += " > NUL 2>&1";
+#else
+	Command += " > /dev/null 2>&1";
+#endif
+
+	IEngine *pEngine = Kernel()->RequestInterface<IEngine>();
+	pEngine->AddJob(std::make_shared<CSystemCall>(Command.c_str()));
+}
+
+void CServer::CSystemCall::Run()
+{
+	int ret = system(m_aCommand);
+	if(ret)
+		log_info("system-call", "failed, returned %d", ret);
 }
 
 void CServer::SendFoxnetInfo(int ClientId)
