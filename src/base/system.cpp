@@ -3639,55 +3639,102 @@ const char *EscapeMessage(const char *pMessage)
 	return aEscaped;
 }
 
-const char *GetParsedArgument(const char *pStr, int Index)
+const char *GetParsedArgument(const char *pStr, int Index, bool Rest)
 {
-	std::vector<std::string> vArgs;
+	static char aOutBuf[2048]; // persistent buffer for non-Rest results
 	const char *pCur = pStr;
+	int TokenIndex = 0;
 
+	// Scan and locate the start of the requested token
 	while(*pCur)
 	{
+		// skip leading spaces
 		while(*pCur && std::isspace(static_cast<unsigned char>(*pCur)))
 			pCur++;
 		if(!*pCur)
 			break;
 
-		std::string Token;
+		const char *pTokenStart = pCur;
+
+		// If this is the token we want and Rest is requested, return the rest from here.
+		if(TokenIndex == Index && Rest)
+		{
+			return pTokenStart;
+		}
+
+		// Parse and advance pCur to the end of this token
 		if(*pCur == '"')
 		{
-			pCur++;
+			pCur++; // skip opening quote
 			while(*pCur)
 			{
 				if(*pCur == '\\' && (pCur[1] == '\\' || pCur[1] == '"'))
 				{
-					Token.push_back(pCur[1]);
-					pCur += 2;
+					pCur += 2; // skip escaped char
 					continue;
 				}
 				if(*pCur == '"')
 				{
-					pCur++;
+					pCur++; // consume closing quote
 					break;
 				}
-				Token.push_back(*pCur);
 				pCur++;
 			}
 		}
 		else
 		{
 			while(*pCur && !std::isspace(static_cast<unsigned char>(*pCur)))
-			{
-				Token.push_back(*pCur);
 				pCur++;
-			}
 		}
 
-		vArgs.push_back(std::move(Token));
+		// If this is the token we want and Rest is false, extract the single token into aOutBuf.
+		if(TokenIndex == Index && !Rest)
+		{
+			// Re-parse the token content to produce the unescaped token into aOutBuf.
+			char *pDst = aOutBuf;
+			size_t Remaining = sizeof(aOutBuf) - 1;
+
+			const char *pRead = pTokenStart;
+			if(*pRead == '"')
+			{
+				pRead++; // skip opening quote
+				while(*pRead && Remaining)
+				{
+					if(*pRead == '\\' && (pRead[1] == '\\' || pRead[1] == '"'))
+					{
+						*pDst++ = pRead[1];
+						Remaining--;
+						pRead += 2;
+						continue;
+					}
+					if(*pRead == '"')
+					{
+						// end of quoted token
+						pRead++;
+						break;
+					}
+					*pDst++ = *pRead++;
+					Remaining--;
+				}
+			}
+			else
+			{
+				while(*pRead && !std::isspace(static_cast<unsigned char>(*pRead)) && Remaining)
+				{
+					*pDst++ = *pRead++;
+					Remaining--;
+				}
+			}
+
+			*pDst = '\0';
+			return aOutBuf[0] ? aOutBuf : nullptr;
+		}
+
+		TokenIndex++;
 	}
 
-	if(Index >= (int)vArgs.size())
-		return nullptr;
-
-	return vArgs[Index].c_str();
+	// Index out of range
+	return nullptr;
 }
 
 // FoxNet>

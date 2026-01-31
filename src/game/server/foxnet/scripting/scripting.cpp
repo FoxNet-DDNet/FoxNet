@@ -179,7 +179,7 @@ public:
 		if(RequestedIndex < 0)
 			return std::string();
 
-		return std::string(GetParsedArgument(Str.c_str(), RequestedIndex));
+		return std::string(GetParsedArgument(Str.c_str(), RequestedIndex, false));
 	}
 
 	static CScriptingCtx::Any GetOs()
