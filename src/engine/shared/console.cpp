@@ -788,7 +788,7 @@ bool CConsole::ExecuteBansFile()
 			if(str_find_nocase(pLine, "Banned by vote") || str_find_nocase(pLine, "No Reason Given")) // Don't add Vote Bans to the list
 				continue;
 
-			ExecuteLine(pLine, -1);
+			ExecuteLine(pLine, IConsole::CLIENT_ID_UNSPECIFIED);
 			BanCount++;
 		}
 		Success = true;

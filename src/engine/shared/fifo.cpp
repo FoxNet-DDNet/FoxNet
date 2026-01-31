@@ -107,13 +107,13 @@ void CFifo::Update()
 		aBuf[i] = '\0';
 		if(str_utf8_check(pCur))
 		{
-			m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_UNSPECIFIED);
+			m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_FIFO);
 		}
 		pCur = aBuf + i + 1;
 	}
 	if(pCur < aBuf + Length && str_utf8_check(pCur)) // missed the last line
 	{
-		m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_UNSPECIFIED);
+		m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_FIFO);
 	}
 }
 
@@ -237,13 +237,13 @@ void CFifo::Update()
 			pBuf[i] = '\0';
 			if(pCur[0] != '\0' && str_utf8_check(pCur))
 			{
-				m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_UNSPECIFIED);
+				m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_FIFO);
 			}
 			pCur = pBuf + i + 1;
 		}
 		if(pCur < pBuf + Length && pCur[0] != '\0' && str_utf8_check(pCur)) // missed the last line
 		{
-			m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_UNSPECIFIED);
+			m_pConsole->ExecuteLineFlag(pCur, m_Flag, IConsole::CLIENT_ID_FIFO);
 		}
 
 		free(pBuf);
