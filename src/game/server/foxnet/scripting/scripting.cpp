@@ -170,6 +170,63 @@ public:
 		std::string SubStr = std::get<std::string>(Arg);
 		return str_comp_nocase(Str.c_str(), SubStr.c_str());
 	}
+	static CScriptingCtx::Any ParseArgument(const std::string &Str, const CScriptingCtx::Any &Arg)
+	{
+		if(!std::holds_alternative<int>(Arg))
+			return std::string();
+
+		const int RequestedIndex = std::get<int>(Arg);
+		if(RequestedIndex < 0)
+			return std::string();
+
+		std::vector<std::string> vArgs;
+		const char *pStr = Str.c_str();
+
+		while(*pStr)
+		{
+			while(*pStr && std::isspace(static_cast<unsigned char>(*pStr)))
+				pStr++;
+			if(!*pStr)
+				break;
+
+			std::string Token;
+			if(*pStr == '"')
+			{
+				pStr++;
+				while(*pStr)
+				{
+					if(*pStr == '\\' && (pStr[1] == '\\' || pStr[1] == '"'))
+					{
+						Token.push_back(pStr[1]);
+						pStr += 2;
+						continue;
+					}
+					if(*pStr == '"')
+					{
+						pStr++;
+						break;
+					}
+					Token.push_back(*pStr);
+					pStr++;
+				}
+			}
+			else
+			{
+				while(*pStr && !std::isspace(static_cast<unsigned char>(*pStr)))
+				{
+					Token.push_back(*pStr);
+					pStr++;
+				}
+			}
+
+			vArgs.push_back(std::move(Token));
+		}
+
+		if(RequestedIndex >= (int)vArgs.size())
+			return std::string();
+
+		return vArgs[RequestedIndex];
+	}
 
 	static CScriptingCtx::Any GetOs()
 	{
@@ -233,6 +290,10 @@ public:
 		});
 		m_ScriptingCtx.AddFunction("str_comp_nocase", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
 			return StrCompNocase(Str, Arg);
+		});
+
+		m_ScriptingCtx.AddFunction("parse_argument", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return ParseArgument(Str, Arg);
 		});
 
 		// Return current OS as a string
