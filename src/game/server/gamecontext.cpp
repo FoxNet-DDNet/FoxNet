@@ -1581,6 +1581,13 @@ void CGameContext::OnClientPredictedEarlyInput(int ClientId, const void *pInput)
 void CGameContext::OnClientEnter(int ClientId)
 {
 	// <FoxNet
+	if(g_Config.m_SvScriptPlayerConnect[0])
+	{
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerConnect, ClientId);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+
 	if(NameDetection(ClientId, Server()->ClientName(ClientId)))
 		return;
 	// FoxNet>
@@ -1833,6 +1840,13 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 	LogEvent("Disconnect", ClientId);
 
 	// <FoxNet
+	if(g_Config.m_SvScriptPlayerDisconnect[0])
+	{
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerDisconnect, ClientId);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+
 	m_VoteMenu.OnClientDrop(ClientId);
 	m_AccountManager.Logout(ClientId);
 	m_aAccounts[ClientId] = CAccountSession(); // reset
@@ -4625,6 +4639,15 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	{
 		pPersistent->m_PrevGameUuid = m_GameUuid;
 	}
+
+	// <FoxNet
+	if(g_Config.m_SvScriptShutdown[0])
+	{
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s", g_Config.m_SvScriptShutdown);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+	// FoxNet>
 
 	Antibot()->RoundEnd();
 

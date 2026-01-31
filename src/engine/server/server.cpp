@@ -595,6 +595,17 @@ void CServer::Kick(int ClientId, const char *pReason)
 	}
 
 	m_NetServer.Drop(ClientId, pReason);
+	// <FoxNet
+	if(g_Config.m_SvScriptPlayerKicks[0])
+	{
+		char aScriptArgs[128];
+		str_format(aScriptArgs, sizeof(aScriptArgs), "%d \"%s\"", ClientId, pReason);
+
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerKicks, aScriptArgs);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+	// FoxNet>
 }
 
 void CServer::Ban(int ClientId, int Seconds, const char *pReason, bool VerbatimReason)
@@ -3295,6 +3306,12 @@ int CServer::Run()
 		char aExecFile[IO_MAX_PATH_LENGTH];
 		str_format(aExecFile, sizeof(aExecFile), "port/%d.cfg", this->Port());
 		Console()->ExecuteFile(aExecFile, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+	if(g_Config.m_SvScriptStartup[0])
+	{
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptStartup, this->Port());
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 	// FoxNet>
 

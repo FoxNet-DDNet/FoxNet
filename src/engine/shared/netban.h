@@ -5,6 +5,8 @@
 
 #include <engine/console.h>
 
+#include <engine/shared/config.h>
+
 inline int NetComp(const NETADDR *pAddr1, const NETADDR *pAddr2)
 {
 	return mem_comp(pAddr1, pAddr2, pAddr1->type == NETTYPE_IPV4 ? 8 : 20);
@@ -254,6 +256,29 @@ void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, in
 	}
 	else
 		str_format(pBuf, BuffSize, "%s (%s)", aBuf, pBan->m_Info.m_aReason);
+
+	// <FoxNet
+	if(g_Config.m_SvScriptPlayerBans[0] && Type != MSGTYPE_PLAYER)
+	{
+		// ip minutes reason
+		char aScriptingArgs[256] = "";
+		char aAddrStr[NETADDR_MAXSTRSIZE];
+		const NETADDR *Addr = nullptr;
+		if constexpr(std::is_same_v<T, NETADDR>)
+			Addr = &pBan->m_Data;
+		else if constexpr(std::is_same_v<T, CNetRange>)
+			return;
+		net_addr_str(Addr, aAddrStr, sizeof(aAddrStr), false);
+		int Mins = ((pBan->m_Info.m_Expires - time_timestamp()) + 59) / 60;
+		if(pBan->m_Info.m_Expires == CBanInfo::EXPIRES_NEVER)
+			Mins = CBanInfo::EXPIRES_NEVER;
+		str_format(aScriptingArgs, sizeof(aScriptingArgs), "%s %s %d \"%s\"", Type == MSGTYPE_BANREM ? "unban" : "ban", aAddrStr, Mins, pBan->m_Info.m_aReason);
+
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
+	// FoxNet>
 }
 
 #endif

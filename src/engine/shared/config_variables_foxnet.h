@@ -135,3 +135,11 @@ MACRO_CONFIG_INT(SvExecBasedOnPort, sv_execute_based_on_port, 0, 0, 1, CFGFLAG_S
 // Random Stuff
 MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Display everyones position at their cursor")
 MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Set everyones snapping velocity to 0 (disables interpolation on the client)")
+
+// Scripting
+MACRO_CONFIG_STR(SvScriptStartup, sv_script_startup, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server start")
+MACRO_CONFIG_STR(SvScriptShutdown, sv_script_shutdown, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server shutdown")
+MACRO_CONFIG_STR(SvScriptPlayerConnect, sv_script_player_connect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player connects")
+MACRO_CONFIG_STR(SvScriptPlayerDisconnect, sv_script_player_disconnect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player disconnects")
+MACRO_CONFIG_STR(SvScriptPlayerBans, sv_script_player_bans, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when an ip gets banned/unbanned")
+MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when an ip gets banned/unbanned")
