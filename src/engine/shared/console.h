@@ -111,10 +111,12 @@ class CConsole : public IConsole
 
 		const char *GetString(unsigned Index) const override;
 		int GetInteger(unsigned Index) const override;
-		int64_t GetInteger64(unsigned Index) const override;
 		float GetFloat(unsigned Index) const override;
 		ColorHSLA GetColor(unsigned Index, float DarkestLighting) const override;
 
+		// <FoxNet
+		int64_t GetInteger64(unsigned Index) const override;
+		const char *GetCommand() const override { return m_pCommand; }
 		// DDRace
 
 		enum
