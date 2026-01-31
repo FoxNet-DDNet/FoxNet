@@ -48,6 +48,7 @@ public:
 		CLIENT_ID_GAME = -2,
 		CLIENT_ID_NO_GAME = -3,
 		CLIENT_ID_FIFO = -4,
+		CLIENT_ID_ECON = -5,
 
 		FILE_RECURSION_LIMIT = 16,
 	};
