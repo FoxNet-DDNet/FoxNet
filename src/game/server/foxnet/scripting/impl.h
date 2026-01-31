@@ -27,6 +27,8 @@ public:
 	CScriptingCtx();
 	~CScriptingCtx();
 
+	static void BuildEngine(CScriptingCtx::CScriptingCtxData *pData);
+
 	template<typename T>
 	void AddGlobal(const char *pName, const T &Object);
 	template<typename T>

@@ -19,9 +19,7 @@
 #include <base/str.h>
 #include <game/server/entities/character.h>
 #include <base/vmath.h>
-
-static CScriptingCtx g_ScriptingCtx; // persistent VM
-static bool g_ScriptingInitialized = false;
+#include <memory>
 
 static const char *DetectOS()
 {
@@ -45,12 +43,11 @@ class CScriptRunner
 private:
 	CGameContext *m_pGameServer;
 
-	CScriptingCtx *m_pScriptingCtx;
+	CScriptingCtx m_ScriptingCtx;
 
-	void InitGameServer(CGameContext *pGameServer, CScriptingCtx *pSharedCtx)
+	void InitGameServer(CGameContext *pGameServer)
 	{
 		m_pGameServer = pGameServer;
-		m_pScriptingCtx = pSharedCtx;
 	}
 
 public:
@@ -188,18 +185,77 @@ public:
 	// ToDo: add a getter for all g_Config. server variables
 
 public:
-	CScriptRunner(CGameContext *pGameServer, CScriptingCtx *pSharedCtx)
+	CScriptRunner(CGameContext *pGameServer)
 	{
-		InitGameServer(pGameServer, pSharedCtx);
-		// Functions are registered once in CScripting::OnConsoleInit
+		InitGameServer(pGameServer);
+
+		m_ScriptingCtx.AddFunction("exec", [this](const std::string &Str) {
+			m_pGameServer->Console()->ExecuteLine(Str.c_str(), IConsole::CLIENT_ID_UNSPECIFIED);
+		});
+		m_ScriptingCtx.AddFunction("say", [this](const std::string &Str) {
+			m_pGameServer->SendChat(-1, TEAM_ALL, Str.c_str());
+		});
+		m_ScriptingCtx.AddFunction("system", [this](const std::string &Str) {
+			m_pGameServer->Server()->SystemCall(Str.c_str());
+		});
+
+		m_ScriptingCtx.AddFunction("say_target", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return SendChatTarget(Str, Arg);
+		});
+		m_ScriptingCtx.AddFunction("client_info", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return ClientInfo(Str, Arg);
+		});
+
+		m_ScriptingCtx.AddFunction("log_info", [](const std::string &Str) {
+			log_info(SCRIPTING_IMPL, "%s", Str.c_str());
+		});
+		m_ScriptingCtx.AddFunction("print", [](const std::string &Str) {
+			log_info(SCRIPTING_IMPL, "%s", Str.c_str());
+		});
+
+		m_ScriptingCtx.AddFunction("escape_message", [](const std::string &Str, const CScriptingCtx::Any &) {
+			return EscapeString(Str);
+		});
+		m_ScriptingCtx.AddFunction("to_lower", [](const std::string &Str, const CScriptingCtx::Any &) {
+			return ToLower(Str);
+		});
+		m_ScriptingCtx.AddFunction("to_upper", [](const std::string &Str, const CScriptingCtx::Any &) {
+			return ToUpper(Str);
+		});
+		m_ScriptingCtx.AddFunction("str_find", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return StrFind(Str, Arg);
+		});
+		m_ScriptingCtx.AddFunction("str_find_nocase", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return StrFindNocase(Str, Arg);
+		});
+		m_ScriptingCtx.AddFunction("str_comp", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return StrComp(Str, Arg);
+		});
+		m_ScriptingCtx.AddFunction("str_comp_nocase", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return StrCompNocase(Str, Arg);
+		});
+
+		// Return current OS as a string
+		m_ScriptingCtx.AddFunction("os", []() {
+			return GetOs();
+		});
+		m_ScriptingCtx.AddFunction("port", [this]() {
+			return GetPort();
+		});
 	}
 
 	void Run(const char *pFilename, const char *pArgs)
 	{
-		m_pScriptingCtx->Run(m_pGameServer->Storage(), pFilename, pArgs);
+		m_ScriptingCtx.Run(m_pGameServer->Storage(), pFilename, pArgs);
 	}
 };
 
+CScripting::~CScripting() = default;
+
+void CScriptRunnerDeleter::operator()(CScriptRunner *pRunner) const
+{
+	delete pRunner;
+}
 void CScripting::ConExecScript(IConsole::IResult *pResult, void *pUserData)
 {
 	CScripting *pThis = static_cast<CScripting *>(pUserData);
@@ -208,84 +264,31 @@ void CScripting::ConExecScript(IConsole::IResult *pResult, void *pUserData)
 
 void CScripting::ExecScript(const char *pFilename, const char *pArgs)
 {
-	// Reuse the persistent VM; no per-call rebind/creation
 	if(!m_pGameServer)
 	{
 		log_error(SCRIPTING_IMPL, "GameContext is null, %s %s", pFilename, pArgs);
 		return;
 	}
 
-	CScriptRunner Runner(m_pGameServer, &g_ScriptingCtx);
-	Runner.Run(pFilename, pArgs);
+	if(!m_pRunner)
+	{
+		m_pRunner.reset(new CScriptRunner(m_pGameServer));
+	}
+
+	m_pRunner->Run(pFilename, pArgs);
 }
 
 void CScripting::OnInit(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
+	if(!m_pRunner)
+		m_pRunner.reset(new CScriptRunner(m_pGameServer));
 }
 
 void CScripting::OnConsoleInit(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
+	if(!m_pRunner)
+		m_pRunner.reset(new CScriptRunner(m_pGameServer));
 	m_pGameServer->Console()->Register(SCRIPTING_IMPL, "s[file] ?r[args]", CFGFLAG_SERVER, ConExecScript, this, "Execute a " SCRIPTING_IMPL " script");
-	RegisterScriptingFunctions();
-}
-
-void CScripting::RegisterScriptingFunctions()
-{
-	if(g_ScriptingInitialized)
-		return;
-
-	g_ScriptingCtx.AddFunction("exec", [this](const std::string &Str) {
-		m_pGameServer->Console()->ExecuteLine(Str.c_str(), IConsole::CLIENT_ID_UNSPECIFIED);
-	});
-	g_ScriptingCtx.AddFunction("say", [this](const std::string &Str) {
-		m_pGameServer->SendChat(-1, TEAM_ALL, Str.c_str());
-	});
-	g_ScriptingCtx.AddFunction("system", [this](const std::string &Str) {
-		m_pGameServer->Server()->SystemCall(Str.c_str());
-	});
-
-	g_ScriptingCtx.AddFunction("say_target", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner(m_pGameServer, &g_ScriptingCtx).SendChatTarget(Str, Arg);
-	});
-	g_ScriptingCtx.AddFunction("client_info", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner(m_pGameServer, &g_ScriptingCtx).ClientInfo(Str, Arg);
-	});
-
-	g_ScriptingCtx.AddFunction("log_info", [](const std::string &Str) {
-		log_info(SCRIPTING_IMPL, "%s", Str.c_str());
-	});
-
-	g_ScriptingCtx.AddFunction("escape_message", [](const std::string &Str, const CScriptingCtx::Any &) {
-		return CScriptRunner::EscapeString(Str);
-	});
-	g_ScriptingCtx.AddFunction("to_lower", [](const std::string &Str, const CScriptingCtx::Any &) {
-		return CScriptRunner::ToLower(Str);
-	});
-	g_ScriptingCtx.AddFunction("to_upper", [](const std::string &Str, const CScriptingCtx::Any &) {
-		return CScriptRunner::ToUpper(Str);
-	});
-	g_ScriptingCtx.AddFunction("str_find", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner::StrFind(Str, Arg);
-	});
-	g_ScriptingCtx.AddFunction("str_find_nocase", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner::StrFindNocase(Str, Arg);
-	});
-	g_ScriptingCtx.AddFunction("str_comp", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner::StrComp(Str, Arg);
-	});
-	g_ScriptingCtx.AddFunction("str_comp_nocase", [](const std::string &Str, const CScriptingCtx::Any &Arg) {
-		return CScriptRunner::StrCompNocase(Str, Arg);
-	});
-
-	// Return current OS as a string
-	g_ScriptingCtx.AddFunction("os", []() {
-		return CScriptRunner::GetOs();
-	});
-	g_ScriptingCtx.AddFunction("port", [this]() {
-		return CScriptRunner(m_pGameServer, &g_ScriptingCtx).GetPort();
-	});
-
-	g_ScriptingInitialized = true;
 }
