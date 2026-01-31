@@ -50,10 +50,6 @@ void CRoulette::ResetClients()
 {
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-		if(pPlayer && m_aClients[ClientId].m_Active)
-			pPlayer->m_BetAmount = -1;
-
 		m_aClients[ClientId].m_BetAmount = -1;
 		m_aClients[ClientId].m_aBetOption[0] = '\0';
 		m_aClients[ClientId].m_Active = false;
@@ -139,7 +135,6 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 
 	SetState(RStates::PREPARING);
 
-	pPlayer->m_BetAmount = -1;
 	m_aClients[ClientId].m_BetAmount = BetAmount;
 	str_copy(m_aClients[ClientId].m_aBetOption, pBetOption);
 	m_aClients[ClientId].m_Active = true;
