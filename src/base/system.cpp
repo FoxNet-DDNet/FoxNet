@@ -3639,4 +3639,55 @@ const char *EscapeMessage(const char *pMessage)
 	return aEscaped;
 }
 
+const char *GetParsedArgument(const char *pStr, int Index)
+{
+	std::vector<std::string> vArgs;
+	const char *pCur = pStr;
+
+	while(*pCur)
+	{
+		while(*pCur && std::isspace(static_cast<unsigned char>(*pCur)))
+			pCur++;
+		if(!*pCur)
+			break;
+
+		std::string Token;
+		if(*pCur == '"')
+		{
+			pCur++;
+			while(*pCur)
+			{
+				if(*pCur == '\\' && (pCur[1] == '\\' || pCur[1] == '"'))
+				{
+					Token.push_back(pCur[1]);
+					pCur += 2;
+					continue;
+				}
+				if(*pCur == '"')
+				{
+					pCur++;
+					break;
+				}
+				Token.push_back(*pCur);
+				pCur++;
+			}
+		}
+		else
+		{
+			while(*pCur && !std::isspace(static_cast<unsigned char>(*pCur)))
+			{
+				Token.push_back(*pCur);
+				pCur++;
+			}
+		}
+
+		vArgs.push_back(std::move(Token));
+	}
+
+	if(Index >= (int)vArgs.size())
+		return nullptr;
+
+	return vArgs[Index].c_str();
+}
+
 // FoxNet>

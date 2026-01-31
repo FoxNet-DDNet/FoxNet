@@ -1609,4 +1609,5 @@ void StrNewlineExceedLength(char *pOut, size_t MaxLength);
 void UnescapeNewlines(char *pBuf);
 
 const char *EscapeMessage(const char *pMessage);
+const char *GetParsedArgument(const char *pStr, int Index);
 // FoxNet>
