@@ -196,18 +196,21 @@ void CGameContext::BotClientTick()
 			pPlayer->m_HasBotClient = true;
 			if(g_Config.m_SvAntiBot == 2)
 			{
+				const char *pClientAddr = Server()->ClientAddrString(ClientId, false);
 				char aBanBuf[256];
 				str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for using a bot client.\n"
 								     "ver: %s (%d) [%s]",
 					Server()->ClientName(ClientId),
-					Server()->ClientAddrString(ClientId, false),
+					pClientAddr,
 					g_Config.m_SvAntiBotBantime,
 					pClientName,
 					ClientVersion,
 					GetClientVersionStr(ClientId));
 				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client");
 
-				Server()->Ban(ClientId, g_Config.m_SvAntiBotBantime * 60, "Download the official ddnet client from ddnet.org/downloads/", false);
+				char aCmdBuf[512];
+				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime * 60, "Download a suitable client form ddnet.org or entityclient.net");
+				Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 				continue;
 			}
 
@@ -561,6 +564,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	{
 		if(IsBan)
 		{
+			const char *pClientAddr = Server()->ClientAddrString(ClientId, false);
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
@@ -568,14 +572,16 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				"Msg: `%s`\n"
 				"ver: %d [%s]",
 				Server()->ClientName(ClientId),
-				Server()->ClientAddrString(ClientId, false),
+				pClientAddr,
 				BanDuration,
 				InfoMsg,
 				pMsg, // Unconverted message for better understanding of what they tried to send
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
-			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
+			char aCmdBuf[512];
+			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration * 60, Reason);
+			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		}
 		else
 			MuteWithMessage(Server()->ClientAddr(ClientId), BanDuration * 60, Reason, ClientName);
@@ -667,6 +673,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 
 		if(!PreventNameChange && BanDuration > 0)
 		{
+			const char *pClientAddr = Server()->ClientAddrString(ClientId, false);
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Name-detection.\n"
@@ -680,7 +687,9 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 				GetClientVersionStr(ClientId));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Name Detection");
 
-			Server()->Ban(ClientId, BanDuration * 60, Reason, false);
+			char aCmdBuf[512];
+			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration * 60, Reason);
+			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		}
 		return true;
 	}

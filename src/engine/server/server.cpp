@@ -748,7 +748,10 @@ int CServer::GetAuthedState(int ClientId) const
 	if(ClientId == IConsole::CLIENT_ID_NO_GAME)
 		return AUTHED_ADMIN;
 	// <FoxNet
-	if(ClientId == IConsole::CLIENT_ID_FIFO || ClientId == IConsole::CLIENT_ID_ECON || ClientId == IConsole::CLIENT_ID_SCRIPTING)
+	if(ClientId == IConsole::CLIENT_ID_FOXNET || 
+		ClientId == IConsole::CLIENT_ID_FIFO || 
+		ClientId == IConsole::CLIENT_ID_ECON ||
+		ClientId == IConsole::CLIENT_ID_SCRIPTING)
 		return AUTHED_ADMIN;
 	// FoxNet>
 	dbg_assert(ClientId >= 0 && ClientId < MAX_CLIENTS, "Invalid ClientId: %d", ClientId);
@@ -5164,5 +5167,4 @@ const char *CServer::GetClientVersionStr(int ClientId) const
 		return Info.m_pDDNetVersionStr;
 	return "unknown";
 }
-
 // FoxNet>

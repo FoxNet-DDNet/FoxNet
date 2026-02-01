@@ -205,7 +205,7 @@ public:
 		InitGameServer(pGameServer);
 
 		m_ScriptingCtx.AddFunction("exec", [this](const std::string &Str) {
-			m_pGameServer->Console()->ExecuteLine(Str.c_str(), IConsole::CLIENT_ID_UNSPECIFIED);
+			m_pGameServer->Console()->ExecuteLine(Str.c_str(), IConsole::CLIENT_ID_SCRIPTING);
 		});
 		m_ScriptingCtx.AddFunction("say", [this](const std::string &Str) {
 			m_pGameServer->SendChat(-1, TEAM_ALL, Str.c_str());
