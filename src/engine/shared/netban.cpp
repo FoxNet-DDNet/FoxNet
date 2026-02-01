@@ -794,3 +794,14 @@ void CNetBan::ConBansSave(IConsole::IResult *pResult, void *pUser)
 	str_format(aBuf, sizeof(aBuf), "saved banlist to '%s' (absolute timestamps)", pResult->GetString(0));
 	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
 }
+
+NETADDR *CNetBan::GetAddrFromBanIndex(int Index) const
+{
+	int Idx = Index;
+	if(Idx == -1)
+		Idx = m_BanAddrPool.Num() - 1;
+	CBanAddr *pBan = m_BanAddrPool.Get(Idx);
+	if(pBan)
+		return &pBan->m_Data;
+	return nullptr;
+}

@@ -1584,7 +1584,7 @@ void CGameContext::OnClientEnter(int ClientId)
 	if(g_Config.m_SvScriptPlayerConnect[0])
 	{
 		char aScriptingBuf[256];
-		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerConnect, ClientId);
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptPlayerConnect, ClientId);
 		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 
@@ -1843,7 +1843,7 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 	if(g_Config.m_SvScriptPlayerDisconnect[0])
 	{
 		char aScriptingBuf[256];
-		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerDisconnect, ClientId);
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptPlayerDisconnect, ClientId);
 		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 

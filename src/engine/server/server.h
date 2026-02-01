@@ -594,6 +594,7 @@ public:
 
 	void SendFoxnetInfo(int ClientId);
 	const char *GetClientVersionStr(int ClientId) const override;
+	NETADDR *GetAddrFromBanIndex(int Index) const override;
 	// FoxNet>
 };
 

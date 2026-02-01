@@ -23,7 +23,10 @@
 #include <game/server/score.h>
 
 #include <algorithm>
-#include <string>
+#include <cstdint>
+#include <ctime>
+#include <base/time.h>
+#include <base/types.h>
 
 void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 {
@@ -2116,13 +2119,107 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
-
+	
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
 	Console()->Chain("sv_accounts", ConchainAccounts, this);
 	Console()->Chain("sv_custom_vote_menu", ConchainResendVoteMenu, this);
 	Console()->Chain("sv_accounts_forced", ConchainAccountsForced, this);
+
+	Console()->Chain("unban", ConchainScriptingBan, this);
+	Console()->Chain("ban", ConchainScriptingBan, this);
+	Console()->Chain("ban_timestamp", ConchainScriptingBan, this);
+}
+
+void CGameContext::ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int NumArgs = pResult->NumArguments();
+	if(!pResult->NumArguments())
+		return;
+	int UserId = pResult->m_ClientId;
+	if(!CheckClientId(UserId) && UserId != IConsole::CLIENT_ID_FOXNET)
+		return;
+
+	char aCmdBuf[1028];
+	char aArgBuf[256] = "";
+	for(int i = 0; i < NumArgs; i++)
+	{
+		if(i > 0)
+			str_append(aArgBuf, " ", sizeof(aArgBuf));
+		str_append(aArgBuf, pResult->GetString(i), sizeof(aArgBuf));
+	}
+	str_format(aCmdBuf, sizeof(aCmdBuf), "%s %s", pResult->GetCommand(), aArgBuf);
+	pSelf->FormatAndRunScriptingBan(aCmdBuf, UserId);
+}
+
+void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
+{
+	if(!CheckClientId(UserId) && UserId != IConsole::CLIENT_ID_FOXNET)
+		return;
+
+	if(g_Config.m_SvScriptPlayerBans[0])
+	{
+		// (un)ban ip minutes reason
+		char aScriptingArgs[256] = "";
+		NETADDR Addr;
+		char aAddrStr[NETADDR_MAXSTRSIZE] = "";
+		const char *pArg = GetParsedArgument(pStr, 1, false);
+		if(!pArg)
+			return;
+
+		if(str_startswith(pStr, "unban "))
+		{
+			if(str_isallnum(pArg))
+			{
+				int Index = str_toint(pArg);
+				const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(Index);
+				if(pTempAddr)
+					net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
+			}
+			else if(!net_addr_from_str(&Addr, pArg))
+				str_copy(aAddrStr, pArg, sizeof(aAddrStr));
+
+			if(aAddrStr[0])
+			{
+				str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s \"\" \"\"", aAddrStr);
+			}
+		}
+		else if(str_startswith(pStr, "ban ") || str_startswith(pStr, "ban_timestamp "))
+		{
+			if(str_isallnum(pArg))
+			{
+				int ClientId = str_toint(pArg);
+				if(ClientId == UserId)
+					return; // prevent self ban
+
+				const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(-1);
+				if(pTempAddr)
+					net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
+			}
+			else if(!net_addr_from_str(&Addr, pArg))
+				str_copy(aAddrStr, pArg, sizeof(aAddrStr));
+
+			if(aAddrStr[0])
+			{
+				const char *pMinutesStr = GetParsedArgument(pStr, 2, false);
+				long Minutes = (pMinutesStr && str_isallnum(pMinutesStr)) ? (long)str_toint(pMinutesStr) : 5;
+				const char *pReason = GetParsedArgument(pStr, 3, true);
+				if(!pReason)
+					pReason = "No Reason Provided.";
+				str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld \"%s\"", aAddrStr, Minutes, pReason);
+			}
+		}
+
+		if(!aScriptingArgs[0])
+			return;
+
+		char aScriptingBuf[256];
+		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+	}
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

@@ -202,13 +202,15 @@ public:
 	static void ConBansFind(class IConsole::IResult *pResult, void *pUser);
 
 	// <FoxNet
-	virtual int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason);
-	virtual int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason);
+	int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason);
+	int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason);
 	static void ConBansSaveOld(class IConsole::IResult *pResult, void *pUser);
 	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanTimestamp(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanRangeTimestamp(class IConsole::IResult *pResult, void *pUser);
 	bool m_QuietBan;
+
+	NETADDR *GetAddrFromBanIndex(int Index) const;
 	// FoxNet>
 };
 
@@ -256,29 +258,6 @@ void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, in
 	}
 	else
 		str_format(pBuf, BuffSize, "%s (%s)", aBuf, pBan->m_Info.m_aReason);
-
-	// <FoxNet
-	if(g_Config.m_SvScriptPlayerBans[0] && Type != MSGTYPE_PLAYER)
-	{
-		// ip minutes reason
-		char aScriptingArgs[256] = "";
-		char aAddrStr[NETADDR_MAXSTRSIZE];
-		const NETADDR *Addr = nullptr;
-		if constexpr(std::is_same_v<T, NETADDR>)
-			Addr = &pBan->m_Data;
-		else if constexpr(std::is_same_v<T, CNetRange>)
-			return;
-		net_addr_str(Addr, aAddrStr, sizeof(aAddrStr), false);
-		int Mins = ((pBan->m_Info.m_Expires - time_timestamp()) + 59) / 60;
-		if(pBan->m_Info.m_Expires == CBanInfo::EXPIRES_NEVER)
-			Mins = CBanInfo::EXPIRES_NEVER;
-		str_format(aScriptingArgs, sizeof(aScriptingArgs), "%s %s %d \"%s\"", Type == MSGTYPE_BANREM ? "unban" : "ban", aAddrStr, Mins, pBan->m_Info.m_aReason);
-
-		char aScriptingBuf[256];
-		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
-	}
-	// FoxNet>
 }
 
 #endif

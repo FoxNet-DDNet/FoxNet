@@ -5167,4 +5167,9 @@ const char *CServer::GetClientVersionStr(int ClientId) const
 		return Info.m_pDDNetVersionStr;
 	return "unknown";
 }
+
+NETADDR *CServer::GetAddrFromBanIndex(int Index) const
+{
+	return m_NetServer.NetBan()->GetAddrFromBanIndex(Index);
+}
 // FoxNet>

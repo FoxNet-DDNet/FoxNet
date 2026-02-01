@@ -306,6 +306,8 @@ public:
 	virtual void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
 	virtual void SystemCall(const char *pCommand) = 0;
 	virtual const char *GetClientVersionStr(int ClientId) const = 0;
+
+	virtual NETADDR *GetAddrFromBanIndex(int Index) const = 0;
 	// FoxNet>
 };
 
