@@ -191,8 +191,8 @@ void CCollision::InitQuads()
 				continue;
 			if(QuadData.m_Type == QUADTYPE_HOOKABLE || QuadData.m_Type == QUADTYPE_UNHOOKABLE)
 				m_HasSolidQuads = true;
-			for(int i = 0; i < 5; i++)
-				QuadData.m_Pos[i] = (vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
+			for(int j = 0; j < 5; j++)
+				QuadData.m_Pos[j] = (vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y)));
 
 			UpdateSmallBoundingBox(QuadData);
 
@@ -1504,7 +1504,6 @@ const CQuadData *CCollision::GetQuad(vec2 Pos) const
 			TestRadius = vec2(8, 8);
 		else if(QuadData.m_Type == QUADTYPE_STOPA)
 			TestRadius = CCharacterCore::PhysicalSizeVec2() * 0.6f;
-		log_info("test", "%.3f %.3d", QuadData.m_Pos[4].x, QuadData.m_Pos[4].y);
 
 		if(InsideQuad(Pos, TestRadius, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
 			return &QuadData;
@@ -1951,12 +1950,6 @@ void CCollision::BuildSpawnCandidates()
 			return false;
 		const int Idx = ToIndex(tx, ty);
 		return m_pTele[Idx].m_Type != 0;
-	};
-
-	const auto IndexToWorldCenter = [&](int Idx) -> vec2 {
-		const int tx = Idx % m_Width;
-		const int ty = Idx / m_Width;
-		return vec2(tx * 32.0f + 16.0f, ty * 32.0f + 16.0f);
 	};
 
 	const auto IsFreezeLikeAtIndex = [&](int Idx) -> bool {
