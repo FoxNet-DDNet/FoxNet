@@ -16,6 +16,7 @@
 #include <engine/server/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
+#include <engine/shared/protocol_ex_msgs.h>
 #include <engine/storage.h>
 
 #include <generated/protocol.h>
@@ -45,7 +46,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <engine/shared/protocol_ex_msgs.h>
 
 void CGameContext::FoxNetTick()
 {
@@ -209,7 +209,7 @@ void CGameContext::BotClientTick()
 				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client");
 
 				char aCmdBuf[512];
-				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime * 60, "Download a suitable client form ddnet.org or entityclient.net");
+				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime, "Download a suitable client form ddnet.org or entityclient.net");
 				Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 				continue;
 			}
@@ -467,7 +467,6 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			return false;
 	}
 
-
 	float count = 0; // amount of flagged strings (some strings may count more than others)
 	int BanDuration = 0;
 	char Reason[64] = "Chat Detection Auto Ban";
@@ -580,7 +579,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				GetClientVersionStr(ClientId));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
 			char aCmdBuf[512];
-			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration * 60, Reason);
+			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);
 			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		}
 		else
@@ -688,7 +687,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Name Detection");
 
 			char aCmdBuf[512];
-			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration * 60, Reason);
+			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);
 			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		}
 		return true;
