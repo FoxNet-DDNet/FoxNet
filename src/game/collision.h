@@ -29,6 +29,11 @@ public:
 	int m_Type = 0;
 	vec2 m_Pos[5] = {vec2(0, 0)}; // 4 corners + center
 	float m_Angle = 0.0f;
+
+	// Bounding box
+	// This does not include envelopes, just for rotation to have a rectangle bounding box.
+	vec2 m_TopLeft = vec2(0, 0);
+	vec2 m_BottomRight = vec2(0, 0);
 };
 // FoxNet>
 
@@ -202,10 +207,15 @@ private:
 
 	bool m_HasSolidQuads = false;
 
+	std::vector<uint8_t> m_UnfreezeQuadMask;
 public:
 	bool HasMovingQuads() const { return !m_vQuads.empty() && !m_vNextQuads.empty(); }
 
 	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
+
+	void UpdateSmallBoundingBox(CQuadData &QuadData) const;
+	void UpdateUnfreezeQuadMask();
+
 	void UpdateQuadCache();
 
 	std::vector<const CQuadData *> GetQuadsAt(vec2 Pos) const;
@@ -228,6 +238,11 @@ public:
 	void BuildSpawnCandidates();
 	bool TryPickCachedCandidate(vec2 &out) const;
 	size_t SpawnCandidateCount() const { return m_SpawnCandidates.size(); }
+
+	int PosToIndex(vec2 Pos) const;
+	vec2 IndexToPos(int Index) const;
+
+		
 	// FoxNet>
 };
 

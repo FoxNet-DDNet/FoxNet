@@ -157,6 +157,7 @@ void CCollision::Init(class CLayers *pLayers)
 			}
 		}
 	}
+	m_UnfreezeQuadMask.assign((size_t)m_Width * (size_t)m_Height, 0);
 }
 
 void CCollision::InitQuads()
@@ -190,10 +191,16 @@ void CCollision::InitQuads()
 				continue;
 			if(QuadData.m_Type == QUADTYPE_HOOKABLE || QuadData.m_Type == QUADTYPE_UNHOOKABLE)
 				m_HasSolidQuads = true;
+			for(int i = 0; i < 5; i++)
+				QuadData.m_Pos[i] = (vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
+
+			UpdateSmallBoundingBox(QuadData);
+
 			m_vNextQuads.push_back(QuadData);
 		}
 	}
 	m_vQuads = m_vNextQuads;
+	UpdateUnfreezeQuadMask();
 
 	int QuadLayers = (int)m_pLayers->QuadLayers().size();
 	log_info("moving-tiles", "%d valid quadlayer%s with %d quads", QuadLayers, QuadLayers == 1 ? "" : "s", (int)m_vNextQuads.size());
@@ -628,12 +635,12 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		const CQuadData *pBase = m_vQuads.data();
 
-		ptrdiff_t idx = pQuad - pBase;
-		if(idx < 0 || (size_t)idx >= m_vNextQuads.size())
+		ptrdiff_t Idx = pQuad - pBase;
+		if(Idx < 0 || (size_t)Idx >= m_vNextQuads.size())
 			return Delta;
 
-		const vec2 CurCenter = vec2(round_to_int(m_vQuads[(size_t)idx].m_Pos[4].x * 100) / 100, round_to_int(m_vQuads[(size_t)idx].m_Pos[4].y * 100) / 100);
-		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[(size_t)idx].m_Pos[4].x * 100) / 100, round_to_int(m_vNextQuads[(size_t)idx].m_Pos[4].y * 100) / 100);
+		const vec2 CurCenter = vec2(round_to_int(m_vQuads[(size_t)Idx].m_Pos[4].x * 100) / 100, round_to_int(m_vQuads[(size_t)Idx].m_Pos[4].y * 100) / 100);
+		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[(size_t)Idx].m_Pos[4].x * 100) / 100, round_to_int(m_vNextQuads[(size_t)Idx].m_Pos[4].y * 100) / 100);
 
 		if(CurCenter.y > NextCenter.y) // causes entities to float a bit above the platform? dunno dont care - it works
 			return Delta;
@@ -1452,6 +1459,9 @@ void CCollision::ClearQuadLayers()
 	m_vQuads.shrink_to_fit();
 	m_vNextQuads.shrink_to_fit();
 	m_HasSolidQuads = false;
+	// This is used in the BFS
+	m_UnfreezeQuadMask.clear();
+	m_UnfreezeQuadMask.shrink_to_fit();
 }
 
 void CCollision::Rotate(vec2 Center, vec2 *pPoint, float Rotation) const
@@ -1494,6 +1504,7 @@ const CQuadData *CCollision::GetQuad(vec2 Pos) const
 			TestRadius = vec2(8, 8);
 		else if(QuadData.m_Type == QUADTYPE_STOPA)
 			TestRadius = CCharacterCore::PhysicalSizeVec2() * 0.6f;
+		log_info("test", "%.3f %.3d", QuadData.m_Pos[4].x, QuadData.m_Pos[4].y);
 
 		if(InsideQuad(Pos, TestRadius, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
 			return &QuadData;
@@ -1681,8 +1692,75 @@ void CCollision::GetAnimationTransform(float GlobalTime, int Env, vec2 &Position
 	Angle = (r0 + (r1 - r0) * a) / 360.0f * pi * 2.0f;
 }
 
+static inline bool InsideQuadCenterFast(const vec2 &P, const vec2 &T0, const vec2 &T1, const vec2 &T2, const vec2 &T3)
+{
+	auto IsLeft = [](const vec2 &A, const vec2 &B, const vec2 &P_) -> bool {
+		return ((B.x - A.x) * (P_.y - A.y) - (B.y - A.y) * (P_.x - A.x)) >= 0.0f;
+	};
+	return IsLeft(T0, T1, P) && IsLeft(T1, T3, P) && IsLeft(T3, T2, P) && IsLeft(T2, T0, P);
+}
+
+void CCollision::UpdateSmallBoundingBox(CQuadData &QuadData) const
+{
+	QuadData.m_TopLeft = QuadData.m_Pos[0];
+	QuadData.m_BottomRight = QuadData.m_Pos[0];
+	for(int j = 1; j < 4; j++)
+	{
+		QuadData.m_TopLeft.x = std::min(QuadData.m_TopLeft.x, QuadData.m_Pos[j].x);
+		QuadData.m_TopLeft.y = std::min(QuadData.m_TopLeft.y, QuadData.m_Pos[j].y);
+		QuadData.m_BottomRight.x = std::max(QuadData.m_BottomRight.x, QuadData.m_Pos[j].x);
+		QuadData.m_BottomRight.y = std::max(QuadData.m_BottomRight.y, QuadData.m_Pos[j].y);
+	}
+}
+
+void CCollision::UpdateUnfreezeQuadMask()
+{
+	// Ensure mask matches current map size before filling
+	const size_t expectedSize = (size_t)m_Width * (size_t)m_Height;
+	if(m_UnfreezeQuadMask.size() != expectedSize)
+	{
+		m_UnfreezeQuadMask.assign(expectedSize, 0);
+	}
+	else
+	{
+		std::fill(m_UnfreezeQuadMask.begin(), m_UnfreezeQuadMask.end(), 0);
+	}
+
+	if(m_Width > 0 && m_Height > 0)
+	{
+		for(const auto &QuadData : m_vQuads)
+		{
+			if(QuadData.m_Type != QUADTYPE_UNFREEZE)
+				continue;
+
+			const int minTx = std::clamp((int)std::floor(QuadData.m_TopLeft.x / 32.0f), 0, m_Width - 1);
+			const int maxTx = std::clamp((int)std::floor(QuadData.m_BottomRight.x / 32.0f), 0, m_Width - 1);
+			const int minTy = std::clamp((int)std::floor(QuadData.m_TopLeft.y / 32.0f), 0, m_Height - 1);
+			const int maxTy = std::clamp((int)std::floor(QuadData.m_BottomRight.y / 32.0f), 0, m_Height - 1);
+
+			for(int ty = minTy; ty <= maxTy; ++ty)
+			{
+				for(int tx = minTx; tx <= maxTx; ++tx)
+				{
+					const int idx = ty * m_Width + tx;
+					// extra safety
+					if(idx < 0 || (size_t)idx >= m_UnfreezeQuadMask.size())
+						continue;
+
+					const vec2 Center(tx * 32.0f + 16.0f, ty * 32.0f + 16.0f);
+					// Fast center-in-quad check (no radius work)
+					if(InsideQuadCenterFast(Center, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]))
+					{
+						m_UnfreezeQuadMask[(size_t)idx] = 1;
+					}
+				}
+			}
+		}
+	}
+}
+
 void CCollision::UpdateQuadCache()
-{ // https://github.com/M0REKZ/kaizo-network/blob/ebe1f88f356d396da6f48ce62e830faa93f9eb8a/src/game/collision_kz.cpp#L1073
+{
 	if(!g_Config.m_SvMovingTiles)
 		return;
 
@@ -1695,12 +1773,16 @@ void CCollision::UpdateQuadCache()
 		for(int i = 0; i < 5; i++)
 			QuadData.m_Pos[i] = (Position + vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
 
-		if(QuadData.m_Angle == 0)
-			continue;
+		if(QuadData.m_Angle != 0)
+		{
+			for(int i = 0; i < 4; i++)
+				Rotate(QuadData.m_Pos[4], &QuadData.m_Pos[i], QuadData.m_Angle);
+		}
 
-		for(int i = 0; i < 4; i++)
-			Rotate(QuadData.m_Pos[4], &QuadData.m_Pos[i], QuadData.m_Angle);
+		UpdateSmallBoundingBox(QuadData);
 	}
+
+	UpdateUnfreezeQuadMask();
 }
 
 bool CCollision::InsideQuad(vec2 Pos, vec2 Size, vec2 T0, vec2 T1, vec2 T2, vec2 T3) const
@@ -1839,8 +1921,8 @@ void CCollision::BuildSpawnCandidates()
 	{
 		for(int x = 0; x < W && !HasAnyStartTiles; ++x)
 		{
-			const int idx = ToIndex(x, y);
-			if(GetTileIndex(idx) == TILE_START || GetFrontTileIndex(idx) == TILE_START)
+			const int Idx = ToIndex(x, y);
+			if(GetTileIndex(Idx) == TILE_START || GetFrontTileIndex(Idx) == TILE_START)
 				HasAnyStartTiles = true;
 		}
 	}
@@ -1871,24 +1953,32 @@ void CCollision::BuildSpawnCandidates()
 		return m_pTele[Idx].m_Type != 0;
 	};
 
-	const auto IsFreezeLikeAtIndex = [&](int idx) -> bool {
-		const int Game = GetTileIndex(idx);
-		const int Front = GetFrontTileIndex(idx);
-		const int Sw = GetSwitchType(idx);
-		return Game == TILE_FREEZE || Game == TILE_DFREEZE || Game == TILE_LFREEZE ||
-		       Front == TILE_FREEZE || Front == TILE_DFREEZE || Front == TILE_LFREEZE ||
-		       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
+	const auto IndexToWorldCenter = [&](int Idx) -> vec2 {
+		const int tx = Idx % m_Width;
+		const int ty = Idx / m_Width;
+		return vec2(tx * 32.0f + 16.0f, ty * 32.0f + 16.0f);
 	};
 
-	const auto IsUnfreezeLikeAtIndex = [&](int idx) -> bool {
-		const int Game = GetTileIndex(idx);
-		const int Front = GetFrontTileIndex(idx);
-		const int Sw = GetSwitchType(idx);
+	const auto IsFreezeLikeAtIndex = [&](int Idx) -> bool {
+			const int Game = GetTileIndex(Idx);
+			const int Front = GetFrontTileIndex(Idx);
+			const int Sw = GetSwitchType(Idx);
+			return Game == TILE_FREEZE || Game == TILE_DFREEZE || Game == TILE_LFREEZE ||
+			       Front == TILE_FREEZE || Front == TILE_DFREEZE || Front == TILE_LFREEZE ||
+			       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
+		};
 
-		// Note: switch layer does not have TILE_UNFREEZE, only DUNFREEZE/LUNFREEZE.
+	const auto IsUnfreezeLikeAtIndex = [&](int Idx) -> bool {
+		const int Game = GetTileIndex(Idx);
+		const int Front = GetFrontTileIndex(Idx);
+		const int Sw = GetSwitchType(Idx);
+
+		const bool QuadUnfreeze = !m_UnfreezeQuadMask.empty() && Idx >= 0 && (size_t)Idx < m_UnfreezeQuadMask.size() && m_UnfreezeQuadMask[(size_t)Idx] != 0;
+
 		return Game == TILE_UNFREEZE || Game == TILE_DUNFREEZE || Game == TILE_LUNFREEZE ||
 		       Front == TILE_UNFREEZE || Front == TILE_DUNFREEZE || Front == TILE_LUNFREEZE ||
-		       Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE;
+		       Sw == TILE_UNFREEZE || Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE ||
+		       QuadUnfreeze;
 	};
 
 	const auto IsBlockedForSpawnNav = [&](int tx, int ty) -> bool {
@@ -1904,11 +1994,10 @@ void CCollision::BuildSpawnCandidates()
 		return Solid || Finish || Kill || StopA;
 	};
 
-	// Start line: crossing when stepping onto a TILE_START on game or front layer
-	const auto IsStartAtIndex = [&](int idx) -> bool {
-		if(idx < 0)
+	const auto IsStartAtIndex = [&](int Idx) -> bool {
+		if(Idx < 0)
 			return false;
-		return GetTileIndex(idx) == TILE_START || GetFrontTileIndex(idx) == TILE_START;
+		return GetTileIndex(Idx) == TILE_START || GetFrontTileIndex(Idx) == TILE_START;
 	};
 
 	// Tele helpers
@@ -1918,11 +2007,11 @@ void CCollision::BuildSpawnCandidates()
 	const auto IsTeleInCheckpoint = [](unsigned char t) {
 		return t == TILE_TELECHECKIN || t == TILE_TELECHECKINEVIL;
 	};
-	const auto TeleCheckpointAtIndex = [&](int idx) -> int {
-		if(!m_pTele || idx < 0)
+	const auto TeleCheckpointAtIndex = [&](int Idx) -> int {
+		if(!m_pTele || Idx < 0)
 			return 0;
-		if(m_pTele[idx].m_Type == TILE_TELECHECK)
-			return (int)m_pTele[idx].m_Number;
+		if(m_pTele[Idx].m_Type == TILE_TELECHECK)
+			return (int)m_pTele[Idx].m_Number;
 		return 0;
 	};
 
@@ -1949,14 +2038,14 @@ void CCollision::BuildSpawnCandidates()
 		{
 			for(int x = minX; x <= maxX; ++x)
 			{
-				const int idx = ToIndex(x, y);
-				if(!IsUnfreezeLikeAtIndex(idx))
+				const int Idx = ToIndex(x, y);
+				if(!IsUnfreezeLikeAtIndex(Idx))
 					continue;
 
 				if(IsBlockedForSpawnNav(x, y))
 					continue;
 
-				const bool CandidateUnvisited = !Visited[idx];
+				const bool CandidateUnvisited = !Visited[Idx];
 				const bool CandidateBelow = y >= ty;
 				const int Dy = std::abs(y - ty);
 				const int Dx = std::abs(x - tx);
@@ -1964,7 +2053,7 @@ void CCollision::BuildSpawnCandidates()
 				if(!Found)
 				{
 					Found = true;
-					BestIdx = idx;
+					BestIdx = Idx;
 					continue;
 				}
 
@@ -1980,23 +2069,23 @@ void CCollision::BuildSpawnCandidates()
 				if(CandidateUnvisited != BestUnvisited)
 				{
 					if(CandidateUnvisited && !BestUnvisited)
-						BestIdx = idx;
+						BestIdx = Idx;
 					continue;
 				}
 				if(CandidateBelow != BestBelow)
 				{
 					if(CandidateBelow && !BestBelow)
-						BestIdx = idx;
+						BestIdx = Idx;
 					continue;
 				}
 				if(Dy != BestDy)
 				{
 					if(Dy < BestDy)
-						BestIdx = idx;
+						BestIdx = Idx;
 					continue;
 				}
 				if(Dx < BestDx)
-					BestIdx = idx;
+					BestIdx = Idx;
 			}
 		}
 
@@ -2208,6 +2297,24 @@ bool CCollision::TryPickCachedCandidate(vec2 &out) const
 	std::uniform_int_distribution<size_t> pick(0, m_SpawnCandidates.size() - 1);
 	out = m_SpawnCandidates[pick(rng)];
 	return true;
+}
+
+
+int CCollision::PosToIndex(vec2 Pos) const
+{
+	const int x = (int)(Pos.x / 32.0f);
+	const int y = (int)(Pos.y / 32.0f);
+	if(x < 0 || x >= GetWidth() || y < 0 || y >= GetHeight())
+		return -1;
+	return y * GetWidth() + x;
+}
+
+vec2 CCollision::IndexToPos(int Index) const
+{
+	const int W = GetWidth();
+	const int x = Index % W;
+	const int y = Index / W;
+	return vec2(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 }
 
 // FoxNet>
