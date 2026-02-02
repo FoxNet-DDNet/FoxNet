@@ -2,24 +2,26 @@
 
 #include "impl.h"
 
+#include <base/log.h>
+#include <base/str.h>
+#include <base/system.h>
+#include <base/vmath.h>
+
 #include <engine/console.h>
+#include <engine/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
+#include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 
 #include <algorithm>
 #include <cctype>
+#include <memory>
 #include <string>
 #include <variant>
-#include <base/log.h>
-#include <base/system.h>
-#include <base/str.h>
-#include <game/server/entities/character.h>
-#include <base/vmath.h>
-#include <memory>
 
 static const char *DetectOS()
 {
@@ -51,62 +53,120 @@ private:
 	}
 
 public:
+
+	const bool CheckClient(const int ClientId)
+	{
+		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+			return false;
+		if(m_pGameServer->Server()->ClientSlotEmpty(ClientId))
+			return false;
+		if(!m_pGameServer->PlayerExists(ClientId))
+			return false;
+		return true;
+	}
+
 	CScriptingCtx::Any ClientInfo(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
 		if(!std::holds_alternative<int>(Arg))
 			return nullptr;
 		const int ClientId = std::get<int>(Arg);
 
-		if(Str == "exists")
-			return CheckClientId(ClientId) && m_pGameServer->PlayerExists(ClientId);
+		if(Str == "exists") // chai script throws if nullptr is returned, this is so you can iterate trough all clients
+			return CheckClient(ClientId);
 
-		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		if(!CheckClient(ClientId))
 			return nullptr;
 
-		if(Str == "player_exists")
-			return m_pGameServer->PlayerExists(ClientId);
-		if(Str == "acc_logged_in")
+		if(Str == "name")
+			return m_pGameServer->Server()->ClientName(ClientId);
+		else if(Str == "clan")
+			return m_pGameServer->Server()->ClientClan(ClientId);
+		else if(Str == "country")
+			return m_pGameServer->Server()->ClientCountry(ClientId);
+		else if(Str == "auth_level")
+			return m_pGameServer->Server()->GetAuthedState(ClientId);
+		else if(Str == "ip")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+
+			return m_pGameServer->Server()->ClientAddrString(ClientId, false);
+		}
+		else if(Str == "ddnet_version")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+
+			IServer::CClientInfo Info;
+			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
+				return nullptr;
+
+			if(!Info.m_GotDDNetVersion)
+				return nullptr;
+
+			return Info.m_DDNetVersion;
+		}
+		else if(Str == "ddnet_version_str")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+
+			IServer::CClientInfo Info;
+			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
+				return nullptr;
+
+			if(!Info.m_GotDDNetVersion)
+				return nullptr;
+
+			return Info.m_pDDNetVersionStr ? Info.m_pDDNetVersionStr : "Client too old";
+		}
+		else if(Str == "acc_logged_in")
 			return m_pGameServer->m_aAccounts[ClientId].m_LoggedIn;
-		if(Str == "acc_username")
+		else if(Str == "acc_username")
 			return m_pGameServer->m_aAccounts[ClientId].m_aUsername;
-		if(Str == "acc_deaths")
+		else if(Str == "acc_deaths")
 			return m_pGameServer->m_aAccounts[ClientId].m_Deaths;
-		if(Str == "acc_disabled")
+		else if(Str == "acc_disabled")
 			return m_pGameServer->m_aAccounts[ClientId].m_Disabled;
-		if(Str == "acc_kills")
+		else if(Str == "acc_kills")
 			return m_pGameServer->m_aAccounts[ClientId].m_Kills;
-		if(Str == "acc_last_login") // unix timestamp
+		else if(Str == "acc_last_login") // unix timestamp
 			return m_pGameServer->m_aAccounts[ClientId].m_LastLogin;
-		if(Str == "acc_last_name")
+		else if(Str == "acc_last_name")
 			return m_pGameServer->m_aAccounts[ClientId].m_LastName;
-		if(Str == "acc_level")
+		else if(Str == "acc_level")
 			return m_pGameServer->m_aAccounts[ClientId].m_Level;
-		if(Str == "acc_xp")
+		else if(Str == "acc_xp")
 			return m_pGameServer->m_aAccounts[ClientId].m_XP;
-		if(Str == "acc_money")
+		else if(Str == "acc_money")
 			return m_pGameServer->m_aAccounts[ClientId].m_Money;
-		if(Str == "acc_playtime")
+		else if(Str == "acc_playtime")
 			return m_pGameServer->m_aAccounts[ClientId].m_Playtime;
-		if(Str == "acc_register_date") // unix timestamp
+		else if(Str == "acc_register_date") // unix timestamp
 			return m_pGameServer->m_aAccounts[ClientId].m_RegisterDate;
 		else if(Str == "char_exists")
+		{
+			if(!CheckClient(ClientId))
+				return false;
+
 			return (bool)m_pGameServer->GetPlayerChar(ClientId);
+		}
 		else if(Str == "char_alive")
 		{
-			if(!m_pGameServer->GetPlayerChar(ClientId))
-				return false;
+			if(!CheckClient(ClientId))
+				return nullptr;
 			return m_pGameServer->GetPlayerChar(ClientId)->IsAlive();
 		}
 		else if(Str == "char_grounded")
 		{
-			if(!m_pGameServer->GetPlayerChar(ClientId))
-				return false;
+			if(!CheckClient(ClientId))
+				return nullptr;
 			return m_pGameServer->GetPlayerChar(ClientId)->IsGrounded();
 		}
 		else if(Str == "char_pos")
 		{
-			if(!m_pGameServer->GetPlayerChar(ClientId))
-				return false;
+			if(!CheckClient(ClientId))
+				return nullptr;
 			const vec2 Pos = m_pGameServer->GetPlayerChar(ClientId)->GetPos();
 			char aBuf[64];
 			str_format(aBuf, sizeof(aBuf), "%.3f %.3f", Pos.x, Pos.y);
@@ -120,7 +180,7 @@ public:
 	{
 		std::string UpperStr = Str;
 		std::transform(UpperStr.begin(), UpperStr.end(), UpperStr.begin(), ::toupper);
-	
+
 		if(!std::holds_alternative<int>(Arg))
 			return false;
 		const int ClientId = std::get<int>(Arg);
@@ -133,9 +193,8 @@ public:
 		return true;
 	}
 
-
 	static CScriptingCtx::Any EscapeString(const std::string &Str)
-	{	
+	{
 		return EscapeMessage(Str.c_str());
 	}
 	static CScriptingCtx::Any ToLower(const std::string &Str)

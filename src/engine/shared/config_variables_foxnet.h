@@ -137,9 +137,16 @@ MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_G
 MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Set everyones snapping velocity to 0 (disables interpolation on the client)")
 
 // Scripting
+
+// Notes:
+// If a script bans a player, sv_script_player_bans will not be executed.
+// ^ Applies to all scripts, scripts do not trigger other scripts automatically to avoid infinite loops.
+// So if you want some fifo server wide banning or something like that, you have to do it in every script manually, sv_script_player_bans will not be called
 MACRO_CONFIG_STR(SvScriptStartup, sv_script_startup, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server start")
 MACRO_CONFIG_STR(SvScriptShutdown, sv_script_shutdown, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server shutdown")
 MACRO_CONFIG_STR(SvScriptPlayerConnect, sv_script_player_connect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player connects")
 MACRO_CONFIG_STR(SvScriptPlayerDisconnect, sv_script_player_disconnect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player disconnects")
-MACRO_CONFIG_STR(SvScriptPlayerBans, sv_script_player_bans, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when an ip gets banned/unbanned")
-MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when an ip gets banned/unbanned")
+MACRO_CONFIG_STR(SvScriptPlayerBans, sv_script_player_bans, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after an ip gets banned/unbanned")
+MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets kicked")
+MACRO_CONFIG_STR(SvScriptPlayerMutes, sv_script_player_mutes, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets muted")
+MACRO_CONFIG_STR(SvScriptPlayerBotDetection, sv_script_player_bot_detection, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when the bot client detection happens (sv_anti_bot >= 1)")

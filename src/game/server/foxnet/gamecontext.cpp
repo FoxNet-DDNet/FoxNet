@@ -98,17 +98,13 @@ void CGameContext::BotClientTick()
 			continue;
 		}
 
+		const char *pClientAddr = Server()->ClientAddrString(ClientId, false);
 		const char *pClientName = Server()->GetCustomClient(ClientId);
 		const int ClientVersion = Info.m_DDNetVersion;
+		const char *pVersionStr = Info.m_pDDNetVersionStr ? Info.m_pDDNetVersionStr : "Client too old";
 
-		if(!Info.m_pDDNetVersionStr)
-		{
-			pPlayer->m_BotChecked = true;
-			continue;
-		}
-
-		const char *pStart = str_find(Info.m_pDDNetVersionStr, "(");
-		const char *pEnd = str_find(Info.m_pDDNetVersionStr, ")");
+		const char *pStart = str_find(pVersionStr, "(");
+		const char *pEnd = str_find(pVersionStr, ")");
 
 		const bool HasGitRevShort = pStart && pEnd && pEnd > pStart;
 
@@ -128,22 +124,17 @@ void CGameContext::BotClientTick()
 
 		if(!str_comp_nocase(pClientName, "DDNet"))
 		{
-			if(str_find(Info.m_pDDNetVersionStr, "18.9.1"))
-				pPlayer->m_HasBotClient = true;
-			// Random Bot Client I found on my servers
-			if(ClientVersion == 19050 && str_find(Info.m_pDDNetVersionStr, "ff5e8321d31266da"))
-				KnownBot = true;
-			if(!HasGitRevShort && ClientVersion == 18090 && str_find(Info.m_pDDNetVersionStr, "18.9"))
+			if(str_find(pVersionStr, "18.9.1"))
 				pPlayer->m_HasBotClient = true;
 		}
 
 		if(ClientVersion == 18091) // Most likely a bot, if not they should just update to the newest ddnet version.
 			pPlayer->m_HasBotClient = true;
 
-		if(str_find(Info.m_pDDNetVersionStr, "imacrack")) // free version of a bot client sends this.
+		if(str_find(pVersionStr, "imacrack")) // free version of a bot client sends this.
 			KnownBot = true;
 
-		const char *pVerStart = str_find_nocase(Info.m_pDDNetVersionStr, "DDNet ");
+		const char *pVerStart = str_find_nocase(pVersionStr, "DDNet ");
 		if(pVerStart)
 		{
 			pVerStart += str_length("DDNet ");
@@ -174,7 +165,7 @@ void CGameContext::BotClientTick()
 			{
 				if(Detection.m_pDDNetVersionStr[0] != '\0')
 				{
-					if(str_comp(Detection.m_pDDNetVersionStr, Info.m_pDDNetVersionStr) != 0)
+					if(str_comp(Detection.m_pDDNetVersionStr, pVersionStr) != 0)
 						continue;
 				}
 			}
@@ -196,7 +187,6 @@ void CGameContext::BotClientTick()
 			pPlayer->m_HasBotClient = true;
 			if(g_Config.m_SvAntiBot == 2)
 			{
-				const char *pClientAddr = Server()->ClientAddrString(ClientId, false);
 				char aBanBuf[256];
 				str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for using a bot client.\n"
 								     "ver: %s (%d) [%s]",
@@ -205,7 +195,7 @@ void CGameContext::BotClientTick()
 					g_Config.m_SvAntiBotBantime,
 					pClientName,
 					ClientVersion,
-					GetClientVersionStr(ClientId));
+					pVersionStr);
 				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client");
 
 				char aCmdBuf[512];
@@ -217,6 +207,19 @@ void CGameContext::BotClientTick()
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "'%s' is using a Cheat Client, laugh at them.", Server()->ClientName(ClientId));
 			SendChat(-1, TEAM_ALL, aBuf);
+		}
+
+		if(g_Config.m_SvScriptPlayerBotDetection[0])
+		{
+			char aScriptArgs[128];
+			str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d", pClientAddr, ClientId);
+
+			char aScriptingBuf[256];
+			str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBotDetection, aScriptArgs);
+			Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+
+			if(Server()->ClientSlotEmpty(ClientId))
+				continue;
 		}
 
 		pPlayer->m_BotChecked = true;
