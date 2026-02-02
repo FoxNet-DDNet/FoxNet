@@ -54,7 +54,7 @@ private:
 
 public:
 
-	const bool CheckClient(const int ClientId)
+	bool CheckClient(const int ClientId)
 	{
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 			return false;
