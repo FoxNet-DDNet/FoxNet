@@ -1703,12 +1703,12 @@ void CCollision::UpdateSmallBoundingBox(CQuadData &QuadData) const
 {
 	QuadData.m_TopLeft = QuadData.m_Pos[0];
 	QuadData.m_BottomRight = QuadData.m_Pos[0];
-	for(int j = 1; j < 4; j++)
+	for(int i = 1; i < 4; i++)
 	{
-		QuadData.m_TopLeft.x = std::min(QuadData.m_TopLeft.x, QuadData.m_Pos[j].x);
-		QuadData.m_TopLeft.y = std::min(QuadData.m_TopLeft.y, QuadData.m_Pos[j].y);
-		QuadData.m_BottomRight.x = std::max(QuadData.m_BottomRight.x, QuadData.m_Pos[j].x);
-		QuadData.m_BottomRight.y = std::max(QuadData.m_BottomRight.y, QuadData.m_Pos[j].y);
+		QuadData.m_TopLeft.x = std::min(QuadData.m_TopLeft.x, QuadData.m_Pos[i].x);
+		QuadData.m_TopLeft.y = std::min(QuadData.m_TopLeft.y, QuadData.m_Pos[i].y);
+		QuadData.m_BottomRight.x = std::max(QuadData.m_BottomRight.x, QuadData.m_Pos[i].x);
+		QuadData.m_BottomRight.y = std::max(QuadData.m_BottomRight.y, QuadData.m_Pos[i].y);
 	}
 }
 
