@@ -196,7 +196,9 @@ void CGameContext::BotClientTick()
 					pClientName,
 					ClientVersion,
 					pVersionStr);
-				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Bot Client");
+				char aTitle[32];
+				str_format(aTitle, sizeof(aTitle), "[BAN] - Bot Client (%d)", Server()->Port());
+				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 				char aCmdBuf[512];
 				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime, "Download a suitable client form ddnet.org or entityclient.net");
@@ -580,7 +582,9 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				pMsg, // Unconverted message for better understanding of what they tried to send
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
-			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Chat Detection");
+			char aTitle[32];
+			str_format(aTitle, sizeof(aTitle), "[BAN] - Chat Detection (%d)", Server()->Port());
+			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);	
 			char aCmdBuf[512];
 			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);
 			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
@@ -687,7 +691,9 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 				InfoMsg,
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
-			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - Name Detection");
+			char aTitle[32];
+			str_format(aTitle, sizeof(aTitle), "[BAN] - Name Detection (%d)", Server()->Port());
+			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 			char aCmdBuf[512];
 			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);

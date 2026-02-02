@@ -58,7 +58,9 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Server()->ClientAddrString(ClientId, false),
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - /Register");
+		char aTitle[32];
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
+		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 		pSelf->Server()->Ban(ClientId, 1440 * 60, "Too many registrations.", false);
 		return;
 	}
@@ -118,7 +120,9 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 			g_Config.m_SvRconBantime,
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, "[BAN] - /Login");
+		char aTitle[32];
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
+		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 		pSelf->Server()->Ban(ClientId, g_Config.m_SvRconBantime * 60, "Too many /login attempts.", false);
 		return;
 	}
