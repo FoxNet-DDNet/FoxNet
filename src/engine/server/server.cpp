@@ -4867,6 +4867,13 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		break;
 	}
 	break;
+	case NETMSG_IAM_KOSHKA:
+	{
+		str_copy(m_aClients[ClientId].m_CustomClient, "Koshka");
+		ReturnValue = true;
+		break;
+	}
+	break;
 	case NETMSG_IAM_CACTUS:
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "Cactus");
