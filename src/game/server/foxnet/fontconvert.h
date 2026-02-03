@@ -1,43 +1,56 @@
-#ifndef GAME_SERVER_FOXNET_FONTCONVERT_H
+﻿#ifndef GAME_SERVER_FOXNET_FONTCONVERT_H
 #define GAME_SERVER_FOXNET_FONTCONVERT_H
 
-bool IsLetterA(const char *pStr);
-bool IsLetterB(const char *pStr);
-bool IsLetterC(const char *pStr);
-bool IsLetterD(const char *pStr);
-bool IsLetterE(const char *pStr);
-bool IsLetterF(const char *pStr);
-bool IsLetterG(const char *pStr);
-bool IsLetterH(const char *pStr);
-bool IsLetterI(const char *pStr);
-bool IsLetterJ(const char *pStr);
-bool IsLetterK(const char *pStr);
-bool IsLetterL(const char *pStr);
-bool IsLetterM(const char *pStr);
-bool IsLetterN(const char *pStr);
-bool IsLetterO(const char *pStr);
-bool IsLetterP(const char *pStr);
-bool IsLetterQ(const char *pStr);
-bool IsLetterR(const char *pStr);
-bool IsLetterS(const char *pStr);
-bool IsLetterT(const char *pStr);
-bool IsLetterU(const char *pStr);
-bool IsLetterV(const char *pStr);
-bool IsLetterW(const char *pStr);
-bool IsLetterX(const char *pStr);
-bool IsLetterY(const char *pStr);
-bool IsLetterZ(const char *pStr);
-bool IsNumber0(const char *pStr);
-bool IsNumber1(const char *pStr);
-bool IsNumber2(const char *pStr);
-bool IsNumber3(const char *pStr);
-bool IsNumber4(const char *pStr);
-bool IsNumber5(const char *pStr);
-bool IsNumber6(const char *pStr);
-bool IsNumber7(const char *pStr);
-bool IsNumber8(const char *pStr);
-bool IsNumber9(const char *pStr);
+#include <array>
+#include <string_view>
 
-const char *FontConvert(const char *pStr);
+constexpr size_t LETTER_COUNT = 26;
+constexpr size_t NUMBER_COUNT = 10;
+constexpr size_t MAX_SYMBOLS_PER_LETTER = 13;
+constexpr size_t SYMBOLS_PER_NUMBER = 6;
+
+constexpr std::array<std::array<std::string_view, MAX_SYMBOLS_PER_LETTER>, LETTER_COUNT> g_LetterSymbols = {{
+	{"A", "ᴀ", "ᴬ", "ᵃ", "𝔸", "𝕒", "🄰", "🅐", "Ａ", "ａ", "Ⓐ", "ⓐ"}, // A (12)
+	{"B", "ʙ", "ᴮ", "ᵇ", "𝔹", "𝕓", "🄱", "🅑", "Ｂ", "ｂ", "Ⓑ", "ⓑ"}, // B (12)
+	{"C", "ᴄ", "ᶜ", "ℂ", "𝕔", "🄲", "🅒", "Ｃ", "ｃ", "Ⓒ", "ⓒ"}, // C (11)
+	{"D", "ᴅ", "ᴰ", "ᵈ", "𝔻", "𝕕", "🄳", "🅓", "Ｄ", "ｄ", "Ⓓ", "ⓓ"}, // D (12)
+	{"E", "ᴇ", "ᴱ", "ᵉ", "𝔼", "𝕖", "🄴", "🅔", "Ｅ", "ｅ", "Ⓔ", "ⓔ"}, // E (12)
+	{"F", "ғ", "ᶠ", "𝔽", "𝕗", "🄵", "🅕", "Ｆ", "ｆ", "Ⓕ", "ⓕ"}, // F (11)
+	{"G", "ɢ", "ᴳ", "ᵍ", "𝔾", "𝕘", "🄶", "🅖", "Ｇ", "ｇ", "Ⓖ", "ⓖ"}, // G (12)
+	{"H", "ʜ", "ᴴ", "ʰ", "ℍ", "𝕙", "🄷", "🅗", "Ｈ", "ｈ", "Ⓗ", "ⓗ"}, // H (12)
+	{"I", "ɪ", "ᶦ", "ᴵ", "ⁱ", "𝕀", "𝕚", "🄸", "🅘", "Ｉ", "ｉ", "Ⓘ", "ⓘ"}, // I (13)
+	{"J", "ᴊ", "ᴶ", "ʲ", "𝕁", "𝕛", "🄹", "🅙", "Ｊ", "ｊ", "Ⓙ", "ⓙ"}, // J (12)
+	{"K", "ᴋ", "ᴷ", "ᵏ", "𝕂", "𝕜", "🄺", "🅚", "Ｋ", "ｋ", "Ⓚ", "ⓚ"}, // K (12)
+	{"L", "ʟ", "ᴸ", "ˡ", "𝕃", "𝕝", "🄻", "🅛", "Ｌ", "ｌ", "Ⓛ", "ⓛ"}, // L (12)
+	{"M", "ᴍ", "ᴹ", "ᵐ", "𝕄", "𝕞", "🄼", "🅜", "Ｍ", "ｍ", "Ⓜ", "ⓜ"}, // M (12)
+	{"N", "ɴ", "ᴺ", "ⁿ", "ℕ", "𝕟", "🄽", "🅝", "Ｎ", "ｎ", "Ⓝ", "ⓝ"}, // N (12)
+	{"O", "ᴏ", "ᴼ", "ᵒ", "𝕆", "𝕠", "🄾", "🅞", "Ｏ", "ｏ", "Ⓞ", "ⓞ"}, // O (12)
+	{"P", "ᴘ", "ᴾ", "ᵖ", "ℙ", "𝕡", "🄿", "🅟", "Ｐ", "ｐ", "Ⓟ", "ⓟ"}, // P (12)
+	{"Q", "ᴏ̨", "ᑫ", "ℚ", "𝕢", "🅀", "🅠", "Ｑ", "ｑ", "Ⓠ", "ⓠ"}, // Q (11)
+	{"R", "ʀ", "ᴿ", "ʳ", "ℝ", "𝕣", "🅁", "🅡", "Ｒ", "ｒ", "Ⓡ", "ⓡ"}, // R (12)
+	{"S", "ˣ", "ᔆ", "ˢ", "𝕊", "𝕤", "🅂", "🅢", "Ｓ", "ｓ", "Ⓢ", "ⓢ"}, // S (12)
+	{"T", "ᴛ", "ᵀ", "ᵗ", "𝕋", "𝕥", "🅃", "🅣", "Ｔ", "ｔ", "Ⓣ", "ⓣ"}, // T (12)
+	{"U", "ᴜ", "ᵁ", "ᵘ", "𝕌", "𝕦", "🅄", "🅤", "Ｕ", "ｕ", "Ⓤ", "ⓤ"}, // U (12)
+	{"V", "ᴠ", "ⱽ", "ᵛ", "𝕍", "𝕧", "🅅", "🅥", "Ｖ", "ｖ", "Ⓥ", "ⓥ"}, // V (12)
+	{"W", "ᴡ", "ᵂ", "ʷ", "𝕎", "𝕨", "🅆", "🅦", "Ｗ", "ｗ", "Ⓦ", "ⓦ"}, // W (12)
+	{"X", "ˣ", "𝕏", "𝕩", "🅇", "🅧", "Ｘ", "ｘ", "Ⓧ", "ⓧ"}, // X (10)
+	{"Y", "ʏ", "ʸ", "𝕐", "𝕪", "🅈", "🅨", "Ｙ", "ｙ", "Ⓨ", "ⓨ"}, // Y (11)
+	{"Z", "ᴢ", "ᶻ", "ℤ", "𝕫", "🅉", "🅩", "Ｚ", "ｚ", "Ⓩ", "ⓩ"} // Z (11)
+}};
+
+constexpr std::array<std::array<std::string_view, SYMBOLS_PER_NUMBER>, NUMBER_COUNT> g_NumberSymbols = {{
+	{"0", "⁰", "𝟘", "⓿", "０", "⓪"}, // 0
+	{"1", "¹", "𝟙", "➊", "１", "①"}, // 1
+	{"2", "²", "𝟚", "➋", "２", "②"}, // 2
+	{"3", "³", "𝟛", "➌", "３", "③"}, // 3
+	{"4", "⁴", "𝟜", "➍", "４", "④"}, // 4
+	{"5", "⁵", "𝟝", "➎", "５", "⑤"}, // 5
+	{"6", "⁶", "𝟞", "➏", "６", "⑥"}, // 6
+	{"7", "⁷", "𝟟", "➐", "７", "⑦"}, // 7
+	{"8", "⁸", "𝟠", "➑", "８", "⑧"}, // 8
+	{"9", "⁹", "𝟡", "➒", "９", "⑨"} // 9
+}};
+
+const char *FontConvert(const char *pMsg);
 
 #endif // GAME_SERVER_FOXNET_FONTCONVERT_H
