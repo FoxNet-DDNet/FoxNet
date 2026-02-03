@@ -53,9 +53,10 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	{
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
-						     "ver: %d [%s]",
+						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
 			pSelf->Server()->ClientAddrString(ClientId, false),
+			pSelf->Server()->GetCustomClient(ClientId),
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
 		char aTitle[32];
@@ -114,10 +115,11 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	{
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
-						     "ver: %d [%s]",
+						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
 			pSelf->Server()->ClientAddrString(ClientId, false),
 			g_Config.m_SvRconBantime,
+			pSelf->Server()->GetCustomClient(ClientId),
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
 		char aTitle[32];

@@ -574,12 +574,13 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				"`%s` [%s] was banned for %d minutes for triggering the Chat-Detection.\n"
 				"Strings: `%s`\n"
 				"Msg: `%s`\n"
-				"ver: %d [%s]",
+				"ver: %s (%d) [%s]",
 				Server()->ClientName(ClientId),
 				pClientAddr,
 				BanDuration,
 				InfoMsg,
 				pMsg, // Unconverted message for better understanding of what they tried to send
+				Server()->GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[32];
@@ -684,11 +685,12 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for %d minutes for triggering the Name-detection.\n"
 				"Strings: %s\n"
-				"ver: %d [%s]",
+				"ver: %s (%d) [%s]",
 				Server()->ClientName(ClientId),
 				Server()->ClientAddrString(ClientId, false),
 				BanDuration,
 				InfoMsg,
+				Server()->GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[32];

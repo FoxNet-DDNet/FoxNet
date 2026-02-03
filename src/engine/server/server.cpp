@@ -209,13 +209,14 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			{
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
-					"ver: %d [%s]",
+					"ver: %s (%d) [%s]",
 					pThis->Server()->ClientName(UserId),
 					pThis->Server()->ClientAddrString(UserId, false),
 					pThis->Server()->ClientName(ClientId),
 					pThis->Server()->ClientAddrString(ClientId, false),
 					Minutes,
 					pReason,
+					pThis->Server()->GetCustomClient(ClientId),
 					pThis->Server()->GetClientVersion(ClientId),
 					pThis->Server()->GetClientVersionStr(ClientId));
 				char aTitle[32];
@@ -1815,9 +1816,10 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			char aBanBuf[256];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
-				"ver: %d [%s]",
+				"ver: %s (%d) [%s]",
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
+				GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[40];
