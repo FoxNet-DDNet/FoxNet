@@ -2394,8 +2394,6 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 					return;
 				}
 
-				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientId),
-					pOption->m_aDescription, aReason);
 				str_copy(aDesc, pOption->m_aDescription);
 
 				if((str_endswith(pOption->m_aCommand, "random_map") || str_endswith(pOption->m_aCommand, "random_unfinished_map")))
@@ -2442,6 +2440,8 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 						break;
 					}
 				}
+				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientId),
+					aDesc, aReason);
 				// FoxNet>
 				m_LastMapVote = time_get();
 				break;
