@@ -211,19 +211,6 @@ void CGameContext::BotClientTick()
 			SendChat(-1, TEAM_ALL, aBuf);
 		}
 
-		if(g_Config.m_SvScriptPlayerBotDetection[0])
-		{
-			char aScriptArgs[128];
-			str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d", pClientAddr, ClientId);
-
-			char aScriptingBuf[256];
-			str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBotDetection, aScriptArgs);
-			Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
-
-			if(Server()->ClientSlotEmpty(ClientId))
-				continue;
-		}
-
 		pPlayer->m_BotChecked = true;
 	}
 }

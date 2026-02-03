@@ -19,6 +19,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <exception>
 #include <memory>
 #include <string>
 #include <variant>
@@ -40,6 +42,17 @@ static const char *DetectOS()
 #endif
 }
 
+const bool GetBooleanFromString(const std::string &Str)
+{
+	std::string LowerStr = Str;
+	std::transform(LowerStr.begin(), LowerStr.end(), LowerStr.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+	if(LowerStr == "1" || LowerStr == "true" || LowerStr == "yes" || LowerStr == "on")
+		return true;
+	else
+		return false;
+}
+
 class CScriptRunner
 {
 private:
@@ -53,7 +66,6 @@ private:
 	}
 
 public:
-
 	bool CheckClient(const int ClientId)
 	{
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
@@ -67,9 +79,27 @@ public:
 
 	CScriptingCtx::Any ClientInfo(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
-		if(!std::holds_alternative<int>(Arg))
+		int ClientId = -1;
+		if(std::holds_alternative<int>(Arg))
+		{
+			ClientId = std::get<int>(Arg);
+		}
+		else if(std::holds_alternative<std::string>(Arg))
+		{
+			const std::string &ArgStr = std::get<std::string>(Arg);
+			if(!ArgStr.empty() && str_isallnum(ArgStr.c_str()))
+			{
+				ClientId = std::stoi(ArgStr);
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+		else
+		{
 			return nullptr;
-		const int ClientId = std::get<int>(Arg);
+		}
 
 		if(Str == "exists") // chai script throws if nullptr is returned, this is so you can iterate trough all clients
 			return CheckClient(ClientId);
@@ -91,6 +121,45 @@ public:
 				return nullptr;
 
 			return m_pGameServer->Server()->ClientAddrString(ClientId, false);
+		}
+		else if(Str == "client_name")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+			return m_pGameServer->Server()->GetCustomClient(ClientId);
+		}
+		else if(Str == "calculated_ddnet_version")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+
+			IServer::CClientInfo Info;
+			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
+				return nullptr;
+
+			const char *pVerStart = str_find_nocase(Info.m_pDDNetVersionStr, "DDNet ");
+			if(pVerStart)
+			{
+				pVerStart += str_length("DDNet ");
+				int Major = 0;
+				int Minor = 0;
+				int Patch = 0;
+				sscanf(pVerStart, "%d.%d.%d", &Major, &Minor, &Patch);
+				int CalculatedVersion = Major * 1000 + Minor * 10 + Patch;
+				return CalculatedVersion;
+			}
+			return -1;
+		}
+		else if(Str == "got_ddnet_version")
+		{
+			if(!CheckClient(ClientId))
+				return nullptr;
+
+			IServer::CClientInfo Info;
+			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
+				return nullptr;
+
+			return Info.m_GotDDNetVersion;
 		}
 		else if(Str == "ddnet_version")
 		{
@@ -184,12 +253,45 @@ public:
 		if(!std::holds_alternative<int>(Arg))
 			return false;
 		const int ClientId = std::get<int>(Arg);
-		if(!CheckClientId(ClientId))
+		if(!CheckClient(ClientId))
 			return false;
 		if(!m_pGameServer->PlayerExists(ClientId))
 			return false;
 
 		m_pGameServer->SendChatTarget(ClientId, Str.c_str());
+		return true;
+	}
+
+	CScriptingCtx::Any HasBotClient(const std::string &Str)
+	{
+		if(Str.empty())
+			return nullptr;
+		if(!str_isallnum(Str.c_str()))
+			return nullptr;
+		int ClientId = std::stoi(Str);
+
+		if(!CheckClient(ClientId))
+			return nullptr;
+
+		return m_pGameServer->m_apPlayers[ClientId]->m_HasBotClient;
+	}
+
+	CScriptingCtx::Any SetHasBotClient(const std::string &Str, const CScriptingCtx::Any &Arg)
+	{
+		if(!std::holds_alternative<std::string>(Arg))
+			return nullptr;
+		if(Str.empty())
+			return nullptr;
+		if(!str_isallnum(Str.c_str()))
+			return nullptr;
+
+		bool Value = GetBooleanFromString(std::get<std::string>(Arg));
+		int ClientId = std::stoi(Str);
+
+		if(!CheckClient(ClientId))
+			return nullptr;
+
+		m_pGameServer->m_apPlayers[ClientId]->m_HasBotClient = Value;
 		return true;
 	}
 
@@ -199,34 +301,71 @@ public:
 	}
 	static CScriptingCtx::Any ToLower(const std::string &Str)
 	{
+		if(Str.empty())
+			return nullptr;
+
 		std::string LowerStr = Str;
 		std::transform(LowerStr.begin(), LowerStr.end(), LowerStr.begin(), ::tolower);
 		return LowerStr;
 	}
 	static CScriptingCtx::Any ToUpper(const std::string &Str)
 	{
+		if(Str.empty())
+			return nullptr;
+
 		std::string UpperStr = Str;
 		std::transform(UpperStr.begin(), UpperStr.end(), UpperStr.begin(), ::toupper);
 		return UpperStr;
 	}
 	static CScriptingCtx::Any StrFind(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
+		if(!std::holds_alternative<std::string>(Arg))
+			return nullptr;
+
 		std::string SubStr = std::get<std::string>(Arg);
-		return str_find(Str.c_str(), SubStr.c_str());
+		if(Str.empty() || SubStr.empty())
+			return nullptr;
+
+		const char *pFound = str_find(Str.c_str(), SubStr.c_str());
+		if(!pFound)
+			return "";
+
+		return pFound;
 	}
 	static CScriptingCtx::Any StrFindNocase(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
+		if(!std::holds_alternative<std::string>(Arg))
+			return nullptr;
+
 		std::string SubStr = std::get<std::string>(Arg);
-		return str_find_nocase(Str.c_str(), SubStr.c_str());
+		if(Str.empty() || SubStr.empty())
+			return nullptr;
+
+		const char *pFound = str_find_nocase(Str.c_str(), SubStr.c_str());
+		if(!pFound)
+			return "";
+
+		return pFound;
 	}
 	static CScriptingCtx::Any StrComp(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
+		if(!std::holds_alternative<std::string>(Arg))
+			return nullptr;
+
 		std::string SubStr = std::get<std::string>(Arg);
+		if(Str.empty() || SubStr.empty())
+			return nullptr;
+
 		return str_comp(Str.c_str(), SubStr.c_str());
 	}
 	static CScriptingCtx::Any StrCompNocase(const std::string &Str, const CScriptingCtx::Any &Arg)
 	{
+		if(!std::holds_alternative<std::string>(Arg))
+			return nullptr;
+
 		std::string SubStr = std::get<std::string>(Arg);
+		if(Str.empty() || SubStr.empty())
+			return nullptr;
 		return str_comp_nocase(Str.c_str(), SubStr.c_str());
 	}
 	static CScriptingCtx::Any ParseArgument(const std::string &Str, const CScriptingCtx::Any &Arg)
@@ -236,6 +375,9 @@ public:
 
 		const int RequestedIndex = std::get<int>(Arg);
 		if(RequestedIndex < 0)
+			return std::string();
+
+		if(Str.empty())
 			return std::string();
 
 		const char *pArg = GetParsedArgument(Str.c_str(), RequestedIndex, false);
@@ -276,8 +418,15 @@ public:
 		m_ScriptingCtx.AddFunction("say_target", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
 			return SendChatTarget(Str, Arg);
 		});
-		m_ScriptingCtx.AddFunction("client_info", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
+		m_ScriptingCtx.AddFunction("client", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
 			return ClientInfo(Str, Arg);
+		});
+
+		m_ScriptingCtx.AddFunction("has_bot_client", [this](const std::string &Str, const CScriptingCtx::Any &) {
+			return HasBotClient(Str);
+		});
+		m_ScriptingCtx.AddFunction("set_has_bot_client", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
+			return SetHasBotClient(Str, Arg);
 		});
 
 		m_ScriptingCtx.AddFunction("log_info", [](const std::string &Str) {

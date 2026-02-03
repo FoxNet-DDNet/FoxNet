@@ -149,4 +149,3 @@ MACRO_CONFIG_STR(SvScriptPlayerDisconnect, sv_script_player_disconnect, 128, "",
 MACRO_CONFIG_STR(SvScriptPlayerBans, sv_script_player_bans, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after an ip gets banned/unbanned")
 MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets kicked")
 MACRO_CONFIG_STR(SvScriptPlayerMutes, sv_script_player_mutes, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets muted")
-MACRO_CONFIG_STR(SvScriptPlayerBotDetection, sv_script_player_bot_detection, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when the bot client detection happens (sv_anti_bot >= 1)")
