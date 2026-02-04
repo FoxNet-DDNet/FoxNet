@@ -42,7 +42,7 @@ static const char *DetectOS()
 #endif
 }
 
-const bool GetBooleanFromString(const std::string &Str)
+bool GetBooleanFromString(const std::string &Str)
 {
 	std::string LowerStr = Str;
 	std::transform(LowerStr.begin(), LowerStr.end(), LowerStr.begin(),
