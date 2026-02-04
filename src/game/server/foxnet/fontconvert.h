@@ -1,4 +1,5 @@
-﻿#ifndef GAME_SERVER_FOXNET_FONTCONVERT_H
+﻿// Co-authored-by: ByFox <byfox213@gmail.com>
+#ifndef GAME_SERVER_FOXNET_FONTCONVERT_H
 #define GAME_SERVER_FOXNET_FONTCONVERT_H
 
 #include <array>

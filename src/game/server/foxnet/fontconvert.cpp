@@ -1,4 +1,5 @@
-﻿#include <base/system.h>
+﻿// Co-authored-by: ByFox <byfox213@gmail.com>
+#include <base/system.h>
 #include "fontconvert.h"
 #include <span>
 #include <algorithm>
