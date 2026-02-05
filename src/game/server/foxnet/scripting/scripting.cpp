@@ -105,18 +105,9 @@ public:
 		else if(Str == "auth_level")
 			return m_pGameServer->Server()->GetAuthedState(ClientId);
 		else if(Str == "ip")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
-
 			return m_pGameServer->Server()->ClientAddrString(ClientId, false);
-		}
 		else if(Str == "client_name")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
 			return m_pGameServer->Server()->GetCustomClient(ClientId);
-		}
 		else if(Str == "acc_logged_in")
 			return m_pGameServer->m_aAccounts[ClientId].m_LoggedIn;
 		else if(Str == "acc_username")
@@ -143,26 +134,26 @@ public:
 			return m_pGameServer->m_aAccounts[ClientId].m_RegisterDate;
 		else if(Str == "char_exists")
 		{
-			if(!CheckClient(ClientId))
+			if(!m_pGameServer->GetPlayerChar(ClientId))
 				return false;
 
 			return (bool)m_pGameServer->GetPlayerChar(ClientId);
 		}
 		else if(Str == "char_alive")
 		{
-			if(!CheckClient(ClientId))
+			if(!m_pGameServer->GetPlayerChar(ClientId))
 				return nullptr;
 			return m_pGameServer->GetPlayerChar(ClientId)->IsAlive();
 		}
 		else if(Str == "char_grounded")
 		{
-			if(!CheckClient(ClientId))
+			if(!m_pGameServer->GetPlayerChar(ClientId))
 				return nullptr;
 			return m_pGameServer->GetPlayerChar(ClientId)->IsGrounded();
 		}
 		else if(Str == "char_pos")
 		{
-			if(!CheckClient(ClientId))
+			if(!m_pGameServer->GetPlayerChar(ClientId))
 				return nullptr;
 			const vec2 Pos = m_pGameServer->GetPlayerChar(ClientId)->GetPos();
 			char aBuf[64];
