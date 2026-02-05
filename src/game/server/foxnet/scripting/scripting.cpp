@@ -42,17 +42,6 @@ static const char *DetectOS()
 #endif
 }
 
-bool GetBooleanFromString(const std::string &Str)
-{
-	std::string LowerStr = Str;
-	std::transform(LowerStr.begin(), LowerStr.end(), LowerStr.begin(),
-		[](unsigned char c) { return std::tolower(c); });
-	if(LowerStr == "1" || LowerStr == "true" || LowerStr == "yes" || LowerStr == "on")
-		return true;
-	else
-		return false;
-}
-
 class CScriptRunner
 {
 private:
@@ -128,67 +117,6 @@ public:
 				return nullptr;
 			return m_pGameServer->Server()->GetCustomClient(ClientId);
 		}
-		else if(Str == "calculated_ddnet_version")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
-
-			IServer::CClientInfo Info;
-			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
-				return nullptr;
-
-			const char *pVerStart = str_find_nocase(Info.m_pDDNetVersionStr, "DDNet ");
-			if(pVerStart)
-			{
-				pVerStart += str_length("DDNet ");
-				int Major = 0;
-				int Minor = 0;
-				int Patch = 0;
-				sscanf(pVerStart, "%d.%d.%d", &Major, &Minor, &Patch);
-				int CalculatedVersion = Major * 1000 + Minor * 10 + Patch;
-				return CalculatedVersion;
-			}
-			return -1;
-		}
-		else if(Str == "got_ddnet_version")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
-
-			IServer::CClientInfo Info;
-			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
-				return nullptr;
-
-			return Info.m_GotDDNetVersion;
-		}
-		else if(Str == "ddnet_version")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
-
-			IServer::CClientInfo Info;
-			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
-				return nullptr;
-
-			if(!Info.m_GotDDNetVersion)
-				return nullptr;
-
-			return Info.m_DDNetVersion;
-		}
-		else if(Str == "ddnet_version_str")
-		{
-			if(!CheckClient(ClientId))
-				return nullptr;
-
-			IServer::CClientInfo Info;
-			if(!m_pGameServer->Server()->GetClientInfo(ClientId, &Info))
-				return nullptr;
-
-			if(!Info.m_GotDDNetVersion)
-				return nullptr;
-
-			return Info.m_pDDNetVersionStr ? Info.m_pDDNetVersionStr : "Client too old";
-		}
 		else if(Str == "acc_logged_in")
 			return m_pGameServer->m_aAccounts[ClientId].m_LoggedIn;
 		else if(Str == "acc_username")
@@ -259,39 +187,6 @@ public:
 			return false;
 
 		m_pGameServer->SendChatTarget(ClientId, Str.c_str());
-		return true;
-	}
-
-	CScriptingCtx::Any HasBotClient(const std::string &Str)
-	{
-		if(Str.empty())
-			return nullptr;
-		if(!str_isallnum(Str.c_str()))
-			return nullptr;
-		int ClientId = std::stoi(Str);
-
-		if(!CheckClient(ClientId))
-			return nullptr;
-
-		return m_pGameServer->m_apPlayers[ClientId]->m_HasBotClient;
-	}
-
-	CScriptingCtx::Any SetHasBotClient(const std::string &Str, const CScriptingCtx::Any &Arg)
-	{
-		if(!std::holds_alternative<std::string>(Arg))
-			return nullptr;
-		if(Str.empty())
-			return nullptr;
-		if(!str_isallnum(Str.c_str()))
-			return nullptr;
-
-		bool Value = GetBooleanFromString(std::get<std::string>(Arg));
-		int ClientId = std::stoi(Str);
-
-		if(!CheckClient(ClientId))
-			return nullptr;
-
-		m_pGameServer->m_apPlayers[ClientId]->m_HasBotClient = Value;
 		return true;
 	}
 
@@ -420,13 +315,6 @@ public:
 		});
 		m_ScriptingCtx.AddFunction("client", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
 			return ClientInfo(Str, Arg);
-		});
-
-		m_ScriptingCtx.AddFunction("has_bot_client", [this](const std::string &Str, const CScriptingCtx::Any &) {
-			return HasBotClient(Str);
-		});
-		m_ScriptingCtx.AddFunction("set_has_bot_client", [this](const std::string &Str, const CScriptingCtx::Any &Arg) {
-			return SetHasBotClient(Str, Arg);
 		});
 
 		m_ScriptingCtx.AddFunction("log_info", [](const std::string &Str) {
