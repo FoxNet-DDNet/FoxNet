@@ -304,9 +304,9 @@ long CPlayer::GetDiscountedPrice(long Price)
 {
 	float Discount = 0.0f;
 
-	if(Acc()->m_Inventory.Owns("VIP"))
+	if(OwnsItem(EItemId::VIP))
 		Discount = 0.10f;
-	if(Acc()->m_Inventory.Owns("MVP"))
+	if(OwnsItem(EItemId::MVP))
 		Discount = 0.25f;
 
 	return (long)(Price * (1.0f - Discount));
@@ -328,6 +328,15 @@ bool CPlayer::OwnsItem(const char *pItemName)
 		return false;
 
 	return Acc()->m_Inventory.Owns(pItemName);
+}
+
+bool CPlayer::OwnsItem(EItemId ItemId)
+{
+	if(!Acc()->m_LoggedIn)
+		return false;
+
+	const CItemConfig *cfg = GameServer()->m_Shop.Registry().FindById(ItemId);
+	return cfg && Acc()->m_Inventory.Owns(cfg->m_Name);
 }
 
 bool CPlayer::ItemEnabled(const char *pItemName)
@@ -1018,9 +1027,9 @@ float CPlayer::StatMultiplier()
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
-	if(Acc()->m_Inventory.Owns("VIP"))
+	if(OwnsItem(EItemId::VIP))
 		Multiplier += 1.5f;
-	if(Acc()->m_Inventory.Owns("MVP"))
+	if(OwnsItem(EItemId::MVP))
 		Multiplier += 2.5f;
 	return Multiplier;
 }

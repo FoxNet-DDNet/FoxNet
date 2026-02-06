@@ -169,23 +169,18 @@ public:
 	std::unordered_map<std::string, CInventoryEntry> m_Map;
 	CCosmetics m_Cosmetics;
 
-	bool Has(const std::string &name) const
+	bool Has(const std::string &Name) const
 	{
-		return m_Map.find(name) != m_Map.end();
+		return m_Map.find(Name) != m_Map.end();
 	}
 
-	bool Owns(const char *name) const
+	bool Owns(const char *pName) const
 	{
-		auto it = m_Map.find(std::string(name));
+		auto it = m_Map.find(std::string(pName));
 		return it != m_Map.end() && it->second.m_Quantity > 0;
 	}
 
-	CInventoryEntry &Entry(const std::string &name) { return m_Map[name]; }
-	bool Owns(const std::string &name) const
-	{
-		auto it = m_Map.find(name);
-		return it != m_Map.end() && it->second.m_Quantity > 0;
-	}
+	CInventoryEntry &Entry(const std::string &Name) { return m_Map[Name]; }
 	void SetQuantity(const char *pName, int Quantity) { Entry(pName).m_Quantity = Quantity; }
 	void SetValue(const char *pName, int Equipped) { Entry(pName).m_Value = Equipped; }
 	void SetAcquiredAt(const char *pName, int64_t AcquiredAt) { Entry(pName).m_AcquiredAt = AcquiredAt; }
@@ -504,6 +499,7 @@ public:
 	long GetDiscountedPrice(long Price);
 
 	bool OwnsItem(const char *pItemName);
+	bool OwnsItem(const EItemId ItemId);
 
 	void UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept);
 	bool UseItem(const char *pName, int OverrideValue, bool Force = false);
