@@ -1028,8 +1028,8 @@ float CPlayer::StatMultiplier()
 		return Multiplier;
 
 	if(OwnsItem(EItemId::VIP))
-		Multiplier += 1.5f;
-	if(OwnsItem(EItemId::MVP))
 		Multiplier += 2.5f;
+	if(OwnsItem(EItemId::MVP))
+		Multiplier += 3.5f;
 	return Multiplier;
 }
