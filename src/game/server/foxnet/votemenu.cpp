@@ -1314,7 +1314,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			if(Item.m_Price == -1)
 				continue;
 
-			if(Data.m_OnlyAffordable && Item.m_Price > pAcc->m_Money)
+			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(Item.m_Price) > pAcc->m_Money)
 				continue;
 			AmountShown++;
 			AddVoteText(Item.m_Name, EPrefix::ARROWHEAD);
@@ -1389,8 +1389,8 @@ void CVoteMenu::PrepareInventory(int ClientId)
 	std::vector<CVoteData> Votes;
 	int OwnedItems = 0;
 
-	int TotalItems = (int)EItemType::COUNT;
-	for(int i = 0; i < TotalItems; i++)
+	const int NumItemTypes = (int)EItemType::COUNT;
+	for(int i = 0; i < NumItemTypes; i++)
 	{
 		EItemType Type = static_cast<EItemType>(i);
 		// Type | ItemType | ItemName | VoteName
@@ -1502,7 +1502,7 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			}
 		}
 
-		if(i != TotalItems - 1)
+		if(i != NumItemTypes - 1)
 		{
 			CVoteData Data;
 			Data.m_ItemType = Type;
