@@ -95,7 +95,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 {
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS foxnet_accounts ("
-		"  Version INTEGER NOT NULL DEFAULT 5, "
+		"  Version INTEGER NOT NULL DEFAULT 6, "
 		"  Username VARCHAR(32) COLLATE %s NOT NULL, "
 		"  Password VARCHAR(128) COLLATE %s NOT NULL, "
 		"  RegisterDate %s NOT NULL, "
@@ -113,7 +113,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  Level %s DEFAULT 0, "
 		"  XP INTEGER DEFAULT 0, "
 		"  Money %s DEFAULT 0, "
-		"  Disabled BOOL DEFAULT %s, "
+		"  Disabled INTEGER DEFAULT 0, "
 		"  PRIMARY KEY (Username)"
 		")",
 		BinaryCollate(),
@@ -128,8 +128,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		Int64Type(),
 		Int64Type(),
 		Int64Type(),
-		Int64Type(),
-		False());
+		Int64Type());
 }
 
 void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const
