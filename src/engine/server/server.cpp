@@ -4837,6 +4837,8 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 	bool ReturnValue = false;
 	if(Unpacker.Error())
 		return true;
+	if(str_comp(m_aClients[ClientId].m_CustomClient, "DDNet") != 0)
+		return false; // Don't process if the client is already identified as a custom client
 
 	switch(Msg)
 	{
@@ -4848,35 +4850,21 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		ReturnValue = true;
 	}
 	break;
-	case NETMSG_IAM_AIODOB:
-	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "A-Client");
-		ReturnValue = true;
-	}
-	break;
 	case NETMSG_IAM_TATER:
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "T-Client");
 		ReturnValue = true;
 	}
 	break;
-	case NETMSG_IAM_CHILLERBOT:
-	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "ChillerBot");
-		ReturnValue = true;
-		break;
-	}
-	break;
-	case NETMSG_IAM_KOSHKA:
-	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Koshka");
-		ReturnValue = true;
-		break;
-	}
-	break;
 	case NETMSG_IAM_CACTUS:
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "Cactus");
+		ReturnValue = true;
+	}
+	break;
+	case NETMSG_IAM_AIODOB:
+	{
+		str_copy(m_aClients[ClientId].m_CustomClient, "A-Client");
 		ReturnValue = true;
 	}
 	break;
@@ -4902,6 +4890,27 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 	{
 		str_copy(m_aClients[ClientId].m_CustomClient, "S-Client");
 		ReturnValue = true;
+	}
+	break;
+	case NETMSG_IAM_CHILLERBOT:
+	{
+		str_copy(m_aClients[ClientId].m_CustomClient, "ChillerBot");
+		ReturnValue = true;
+		break;
+	}
+	break;
+	case NETMSG_IAM_KOSHKA:
+	{
+		str_copy(m_aClients[ClientId].m_CustomClient, "Koshka");
+		ReturnValue = true;
+		break;
+	}
+	break;
+	case NETMSG_IAM_RUSHIE:
+	{
+		str_copy(m_aClients[ClientId].m_CustomClient, "R-Client");
+		ReturnValue = true;
+		break;
 	}
 	break;
 
