@@ -312,16 +312,22 @@ void CItemRegistry::Init()
 		30});
 
 	// Roles (not toggleable)
+	add({EItemId::BOOSTER, EItemType::Role,
+		"Server Booster", "BOOST",
+		EItemFlag::None, EExclusiveGroup::None,
+		125000, 25, 2, EItemRarity::Epic, "Grants a 1.5x boost on XP/Money for everyone",
+		nullptr, nullptr, 30});
+
 	add({EItemId::VIP, EItemType::Role,
 		"VIP", "VIP",
 		EItemFlag::None, EExclusiveGroup::None,
-		200000, 40, 2, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
+		250000, 40, 4, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	add({EItemId::MVP, EItemType::Role,
 		"MVP", "MVP",
 		EItemFlag::None, EExclusiveGroup::None,
-		650000, 65, 2, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
+		600000, 65, 4, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	// Loot cases

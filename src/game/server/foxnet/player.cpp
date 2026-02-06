@@ -1027,6 +1027,20 @@ float CPlayer::StatMultiplier()
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		if(Server()->ClientSlotEmpty(ClientId))
+			continue;
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+		if(pPlayer->OwnsItem(EItemId::BOOSTER))
+		{
+			Multiplier += 1.5f;
+			break;
+		}
+	}
+
 	if(OwnsItem(EItemId::VIP))
 		Multiplier += 2.5f;
 	if(OwnsItem(EItemId::MVP))

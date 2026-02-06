@@ -42,6 +42,7 @@ enum class EItemId
 	InverseAim,
 	Lovely,
 	RotatingBall,
+	BOOSTER,
 	VIP,
 	MVP,
 	LootCaseCommon,
