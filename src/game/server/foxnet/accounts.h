@@ -167,7 +167,7 @@ public:
 	void Tick();
 
 	bool Register(int ClientId, const char *pUsername, const char *pPassword);
-	bool ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword, const char *pNewPassword2);
+	bool ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword);
 
 	void AutoLogin(int ClientId);
 	bool ForceLogin(int ClientId, const char *pUsername, bool Silent = false, bool Auto = false);

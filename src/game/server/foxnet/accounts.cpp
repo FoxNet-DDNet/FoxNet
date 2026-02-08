@@ -155,7 +155,7 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
 		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
 			return;
-		if(!GameServer()->m_apPlayers[ClientId])
+		if(GameServer()->m_apPlayers[ClientId])
 			GameServer()->m_apPlayers[ClientId]->m_AccLoginAttempts++;
 		if(!Res.m_Success || !Res.m_Found)
 		{
@@ -350,7 +350,7 @@ void CAccounts::LogoutAllAccountsPort(int Port)
 	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc bulk logout by port");
 }
 
-bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword, const char *pNewPassword2)
+bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword)
 {
 	if(!m_pPool)
 		return false;
@@ -359,19 +359,20 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 		GameServer()->SendChatTarget(ClientId, "[Err] You are not logged in");
 		return false;
 	}
-	if(!pOldPassword[0] || !pNewPassword[0] || !pNewPassword2[0])
+	if(!pOldPassword[0] || !pNewPassword[0])
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] Password is empty");
 		return false;
 	}
-	if(str_comp(pNewPassword, pNewPassword2) != 0)
-	{
-		GameServer()->SendChatTarget(ClientId, "[Err] New passwords do not match");
-		return false;
-	}
-	if(str_length(pNewPassword) < ACC_MIN_PASSW_LENGTH)
+	size_t NewLength = str_length(pNewPassword);
+	if(NewLength < ACC_MIN_PASSW_LENGTH)
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] New password is too short");
+		return false;
+	} 
+	else if(NewLength >= ACC_MAX_PASSW_LENGTH)
+	{
+		GameServer()->SendChatTarget(ClientId, "[Err] New password is too long");
 		return false;
 	}
 	char HashedOld[ACC_MAX_PASSW_LENGTH];

@@ -86,9 +86,8 @@ void CGameContext::ConAccPassword(IConsole::IResult *pResult, void *pUserData)
 	}
 	const char *pOldPass = pResult->GetString(0);
 	const char *pPass = pResult->GetString(1);
-	const char *pPass2 = pResult->GetString(2);
 
-	pSelf->m_AccountManager.ChangePassword(ClientId, pOldPass, pPass, pPass2);
+	pSelf->m_AccountManager.ChangePassword(ClientId, pOldPass, pPass);
 }
 
 void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
@@ -2100,7 +2099,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
 
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
-	Console()->Register("password", "s[oldpass] s[password] s[password2]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
+	Console()->Register("password", "s[oldpass] s[password]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
 	Console()->Register("login", "s[username] r[password]", CFGFLAG_CHAT, ConAccLogin, this, "Login to your account");
 	Console()->Register("logout", "", CFGFLAG_CHAT, ConAccLogout, this, "Logout of your account");
 	Console()->Register("profile", "?r[name]", CFGFLAG_CHAT, ConAccProfile, this, "Show someones profile");
