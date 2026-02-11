@@ -54,8 +54,8 @@ void CPlayer::FoxNetTick()
 	if(Server()->Tick() % (Server()->TickSpeed() * 60) == 0) // Check every minute
 		ExpireItems();
 
-	if(m_LastBet + Server()->TickSpeed() * 30 < Server()->Tick())
-		m_BetAmount = -1; // Reset bet amount every 30 seconds
+	if(m_BetAmount > Acc()->m_Money)
+		m_BetAmount = -1; // Invalid bet, reset it
 
 	if(Acc()->m_LoggedIn)
 	{
