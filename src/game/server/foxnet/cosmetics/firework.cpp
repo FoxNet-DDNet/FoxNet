@@ -13,12 +13,11 @@
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 
 #include <random>
+#include <engine/shared/protocol.h>
 
 constexpr int LaunchSpeed = -25;
 constexpr float LaunchTime = 1.5f;
@@ -30,7 +29,18 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 {
 	m_Owner = Owner;
 	m_Pos = Pos;
+	m_StartPos = m_Pos;
 	m_StartTick = Server()->Tick();
+
+	m_Team = -1;
+	m_Mask = CClientMask();
+
+	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
+	if(pOwnerChr)
+	{
+		m_Team = pOwnerChr->Team();
+		m_Mask = pOwnerChr->TeamMask();
+	}
 
 	std::random_device rd;
 	for(int i = 0; i < MAX_FIREWORKS; i++)
@@ -64,16 +74,19 @@ void CFirework::Tick()
 {
 	if(m_State == State::START)
 	{
+		m_Pos.y += (LaunchSpeed * LaunchTime) / Server()->TickSpeed() * (LaunchTime * 2 + 0.25f/*padding*/) ;
+
 		if(m_StartTick + Server()->TickSpeed() * LaunchTime < Server()->Tick())
 		{
 			for(int i = 0; i < MAX_FIREWORKS; i++)
 			{
-				m_aPos[i].y = m_Pos.y + LaunchSpeed * LaunchTime * 5;
-				m_aPos[i].x = m_Pos.x;
+				m_aPos[i].y = m_StartPos.y + LaunchSpeed * LaunchTime * 5;
+				m_aPos[i].x = m_StartPos.x;
 			}
 
 			m_State = State::EXPLOSION;
-			m_StartTick = Server()->Tick();
+			GameServer()->Explosion(m_Pos, m_Mask);
+			m_StartTick = Server()->Tick() - 2;
 		}
 	}
 	else if(m_State == State::EXPLOSION)
@@ -98,16 +111,13 @@ void CFirework::Tick()
 
 void CFirework::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient))
-		return;
-
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
 	if(!pOwnerChr || !pSnapPlayer)
 		return;
 
-	if(!pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
+	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
 	if(m_Owner != SnappingClient && !pOwnerChr->TeamMask().test(SnappingClient))
@@ -123,6 +133,8 @@ void CFirework::Snap(int SnappingClient)
 
 	if(m_State == State::START)
 	{
+		if(NetworkClipped(SnappingClient, m_Pos))
+			return;
 		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
 		if(!pProj)
 			return;
@@ -130,15 +142,18 @@ void CFirework::Snap(int SnappingClient)
 		pProj->m_X = round_to_int(m_Pos.x * 100.0f);
 		pProj->m_Y = round_to_int(m_Pos.y * 100.0f);
 		pProj->m_VelX = 0;
-		pProj->m_VelY = round_to_int(LaunchSpeed * 10000.0f);
-		pProj->m_Type = WEAPON_SHOTGUN;
-		pProj->m_StartTick = m_StartTick;
+		pProj->m_VelY = 0;
+		pProj->m_Type = WEAPON_GRENADE;
+		pProj->m_StartTick = Server()->Tick();
 		pProj->m_Owner = m_Owner;
 	}
 	else if(m_State == State::EXPLOSION)
 	{
 		for(int i = 0; i < MAX_FIREWORKS; i++)
 		{
+			if(NetworkClipped(SnappingClient, m_aPos[i]))
+				continue;
+
 			CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_aIds[i]);
 			if(!pProj || m_aLifetime[i] <= 0)
 				continue;

@@ -6,6 +6,8 @@
 
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
+#include <cstdint>
+#include <engine/shared/protocol.h>
 
 static constexpr int MAX_FIREWORKS = 25;
 
@@ -13,6 +15,8 @@ class CFirework : public CEntity
 {
 	int m_Owner;
 
+	int m_Team;
+	CClientMask m_Mask;
 
 	int64_t m_StartTick;
 
@@ -24,6 +28,8 @@ class CFirework : public CEntity
 	} m_State;
 
 	float m_aLifetime[MAX_FIREWORKS];
+	vec2 m_StartPos;
+
 	vec2 m_aPos[MAX_FIREWORKS];
 	vec2 m_aVel[MAX_FIREWORKS];
 
