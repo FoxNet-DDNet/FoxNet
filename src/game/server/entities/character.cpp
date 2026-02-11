@@ -1539,6 +1539,10 @@ void CCharacter::Snap(int SnappingClient)
 	if(!IsSnappingCharacterInView(SnappingClient) && Id != SnappingClient)
 		return;
 
+	if(GetPlayer()->m_Invisible && SnappingClient != Id && SnappingClient >= 0)
+		if(!GameServer()->m_apPlayers[SnappingClient]->m_Invisible && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
+			return;
+
 	SnapCharacter(SnappingClient, Id);
 
 	CNetObj_DDNetCharacter *pDDNetCharacter = Server()->SnapNewItem<CNetObj_DDNetCharacter>(Id);
