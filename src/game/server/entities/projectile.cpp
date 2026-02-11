@@ -153,6 +153,10 @@ void CProjectile::Tick()
 		pTargetChr = nullptr;
 
 	bool GLClipped = GameLayerClipped(CurPos);
+	if(pOwnerChar)
+	{
+		GLClipped = GameLayerClipped(CurPos) && !pOwnerChar->GetPlayer()->m_IgnoreGamelayer;
+	}
 	// FoxNet>
 
 	if(m_LifeSpan > -1)
@@ -210,7 +214,7 @@ void CProjectile::Tick()
 		else if(pTargetChr)
 			pTargetChr->TakeDamage(vec2(0, 0), 0, m_Owner, m_Type);
 
-		if(pOwnerChar && !GameLayerClipped(ColPos) &&
+		if(pOwnerChar && !GLClipped &&
 			((m_Type == WEAPON_GRENADE && pOwnerChar->HasTelegunGrenade()) || (m_Type == WEAPON_GUN && pOwnerChar->HasTelegunGun())))
 		{
 			int MapIndex = GameServer()->Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
