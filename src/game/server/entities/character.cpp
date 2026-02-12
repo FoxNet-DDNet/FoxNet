@@ -3595,7 +3595,7 @@ void CCharacter::HandleQuads()
 		case QUADTYPE_UNFREEZE:
 			if(!Core()->m_IsInFreeze)
 			{
-				UnFreeze();
+				Unfreeze();
 				m_InQuadFreeze = false;
 			}
 			break;

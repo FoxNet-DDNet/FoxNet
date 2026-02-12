@@ -494,7 +494,7 @@ void CScore::CacheMapInfo()
 	auto pResult = std::make_shared<CScorePlayerResult>();
 	auto Tmp = std::make_unique<CSqlMapCacheRequest>(pResult);
 
-	str_copy(Tmp->m_aMap, Server()->GetMapName(), sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aMap, GameServer()->Map()->BaseName(), sizeof(Tmp->m_aMap));
 	str_copy(Tmp->m_aServer, g_Config.m_SvSqlServerName, sizeof(Tmp->m_aServer));
 	Tmp->m_pGameServer = GameServer();
 

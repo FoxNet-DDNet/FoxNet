@@ -1100,7 +1100,7 @@ bool CGameContext::RandomMapVote()
 		if(!str_find(pOption->m_aCommand, "change_map "))
 			continue;
 
-		if(!str_comp(GetMapName(pOption->m_aCommand), Server()->GetMapName()))
+		if(!str_comp(GetMapName(pOption->m_aCommand), Map()->BaseName()))
 			continue;
 
 		MapVotes.push_back(pOption->m_aCommand);
