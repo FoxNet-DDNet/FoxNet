@@ -5080,6 +5080,8 @@ void CGameContext::SendSaveCode(int Team, int TeamSize, int State, const char *p
 
 bool CGameContext::ProcessSpamProtection(int ClientId, bool RespectChatInitialDelay)
 {
+	if(Server()->ClientSlotEmpty(ClientId))
+		return false;
 	if(!m_apPlayers[ClientId])
 		return false;
 	if(Server()->GetAuthedState(ClientId) >= AUTHED_MOD)

@@ -478,7 +478,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		const char *UseName = Data.m_LoggedIn ? NameCopy.c_str() : (Data.m_PlayerName[0] ? Data.m_PlayerName : Data.m_aUsername);
 		str_format(aBuf, sizeof(aBuf), "│ Name: %s", UseName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		if(Server()->GetAuthedState(ClientId) >= AUTHED_MOD)
+		if(!Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) >= AUTHED_MOD)
 		{
 			str_format(aBuf, sizeof(aBuf), "│ Username: %s", Data.m_aUsername);
 			GameServer()->SendChatTarget(ClientId, aBuf);

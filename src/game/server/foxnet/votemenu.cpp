@@ -790,6 +790,12 @@ void CVoteMenu::UpdatePages(int ClientId)
 
 bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 {
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+
+	if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
+		return false;
+
 	if(Page < 0 || Page >= NUM_PAGES)
 		return true;
 
@@ -1651,6 +1657,12 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 bool CVoteMenu::CanUseCmd(int ClientId, const char *pCmd) const
 {
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+
+	if(Server()->ClientSlotEmpty(ClientId))
+		return false;
+
 	const IConsole::ICommandInfo *pInfo = GameServer()->Console()->GetCommandInfo(pCmd, CFGFLAG_SERVER, false);
 	if(!pInfo)
 		return false;

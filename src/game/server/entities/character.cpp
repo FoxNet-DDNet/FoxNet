@@ -1539,7 +1539,7 @@ void CCharacter::Snap(int SnappingClient)
 	if(!IsSnappingCharacterInView(SnappingClient) && Id != SnappingClient)
 		return;
 
-	if(GetPlayer()->m_Invisible && SnappingClient != Id && SnappingClient >= 0)
+	if(GetPlayer()->m_Invisible && SnappingClient != Id && SnappingClient >= 0 && !Server()->ClientSlotEmpty(SnappingClient))
 		if(!GameServer()->m_apPlayers[SnappingClient]->m_Invisible && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
 			return;
 
@@ -1643,7 +1643,7 @@ void CCharacter::Snap(int SnappingClient)
 			if(GetPlayer()->Cosmetics()->m_Sparkle)
 				pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
 
-			if(GetPlayer()->Cosmetics()->m_InverseAim && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
+			if(GetPlayer()->Cosmetics()->m_InverseAim && !Server()->ClientSlotEmpty(SnappingClient) && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
 			{
 				pDDNetCharacter->m_TargetX = -m_Core.m_Input.m_TargetX;
 				pDDNetCharacter->m_TargetY = -m_Core.m_Input.m_TargetY;
@@ -3002,7 +3002,7 @@ CAccountSession *CCharacter::Acc()
 
 void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 {
-	if(Server()->GetAuthedState(GetPlayer()->GetCid()) > AUTHED_NO)
+	if(!Server()->IsRconAuthed(GetPlayer()->GetCid()))
 		GameServer()->UnsetTelekinesis(GetPlayer()->GetCid());
 
 	if(Acc()->m_LoggedIn)
@@ -3408,7 +3408,7 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 {
 	int Ability = GetPlayer()->Cosmetics()->m_Ability;
 
-	bool NoCooldown = Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
+	bool NoCooldown = !Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
 
 	bool F3 = pMsg->m_Vote == 1;
 	bool F4 = pMsg->m_Vote == -1;
