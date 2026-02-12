@@ -2032,6 +2032,8 @@ set_src(BASE GLOB_RECURSE src/base
   str.h
   system.cpp
   system.h
+  thread.cpp
+  thread.h
   time.cpp
   time.h
   tl/threading.h
@@ -2056,6 +2058,7 @@ set_src(ENGINE_INTERFACE GLOB src/engine
   editor.h
   engine.h
   favorites.h
+  font_icons.h
   friends.h
   ghost.h
   graphics.cpp

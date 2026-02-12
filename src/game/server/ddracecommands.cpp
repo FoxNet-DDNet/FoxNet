@@ -160,7 +160,7 @@ void CGameContext::ConSuper(IConsole::IResult *pResult, void *pUserData)
 	if(pChr && !pChr->IsSuper())
 	{
 		pChr->SetSuper(true);
-		pChr->UnFreeze();
+		pChr->Unfreeze();
 	}
 }
 
@@ -221,7 +221,7 @@ void CGameContext::ConFreeze(IConsole::IResult *pResult, void *pUserData)
 		pChr->Freeze();
 }
 
-void CGameContext::ConUnFreeze(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConUnfreeze(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
@@ -229,7 +229,7 @@ void CGameContext::ConUnFreeze(IConsole::IResult *pResult, void *pUserData)
 		return;
 	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
 	if(pChr)
-		pChr->UnFreeze();
+		pChr->Unfreeze();
 }
 
 void CGameContext::ConDeep(IConsole::IResult *pResult, void *pUserData)
@@ -253,7 +253,7 @@ void CGameContext::ConUnDeep(IConsole::IResult *pResult, void *pUserData)
 	if(pChr)
 	{
 		pChr->SetDeepFrozen(false);
-		pChr->UnFreeze();
+		pChr->Unfreeze();
 	}
 }
 
@@ -513,7 +513,7 @@ void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 		}
 		pSelf->Teleport(pChr, Pos);
 		pChr->ResetJumps();
-		pChr->UnFreeze();
+		pChr->Unfreeze();
 		pChr->SetVelocity(vec2(0, 0));
 	}
 }
@@ -630,7 +630,7 @@ void CGameContext::ConDrySave(IConsole::IResult *pResult, void *pUserData)
 	char aTimestamp[32];
 	str_timestamp(aTimestamp, sizeof(aTimestamp));
 	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "%s_%s_%s.save", pSelf->Server()->GetMapName(), aTimestamp, pSelf->Server()->GetAuthName(pResult->m_ClientId));
+	str_format(aBuf, sizeof(aBuf), "%s_%s_%s.save", pSelf->Map()->BaseName(), aTimestamp, pSelf->Server()->GetAuthName(pResult->m_ClientId));
 	IOHANDLE File = pSelf->Storage()->OpenFile(aBuf, IOFLAG_WRITE, IStorage::TYPE_SAVE);
 	if(!File)
 		return;

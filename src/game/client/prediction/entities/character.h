@@ -68,7 +68,7 @@ public:
 	CTeamsCore *TeamsCore();
 	bool Freeze(int Seconds);
 	bool Freeze();
-	bool UnFreeze();
+	bool Unfreeze();
 	void GiveAllWeapons();
 	int Team();
 	bool CanCollide(int ClientId) override;

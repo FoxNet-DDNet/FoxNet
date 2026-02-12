@@ -251,7 +251,7 @@ void CCharacter::SetInvincible(bool Invincible)
 
 	m_Core.m_Invincible = Invincible;
 	if(Invincible)
-		UnFreeze();
+		Unfreeze();
 
 	SetEndlessJump(Invincible);
 }
@@ -624,7 +624,7 @@ void CCharacter::FireWeapon()
 			Temp -= pTarget->m_Core.m_Vel;
 			pTarget->TakeDamage((vec2(0.f, -1.0f) + Temp) * Strength, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
 				m_pPlayer->GetCid(), m_Core.m_ActiveWeapon);
-			pTarget->UnFreeze();
+			pTarget->Unfreeze();
 
 			Antibot()->OnHammerHit(m_pPlayer->GetCid(), pTarget->GetPlayer()->GetCid());
 
@@ -1984,7 +1984,7 @@ void CCharacter::HandleTiles(int Index)
 		Freeze();
 	}
 	else if(((m_TileIndex == TILE_UNFREEZE) || (m_TileFIndex == TILE_UNFREEZE)) && !m_Core.m_DeepFrozen)
-		UnFreeze();
+		Unfreeze();
 
 	// deep freeze
 	if(((m_TileIndex == TILE_DFREEZE) || (m_TileFIndex == TILE_DFREEZE)) && !m_Core.m_Super && !m_Core.m_Invincible && !m_Core.m_DeepFrozen)
@@ -2596,7 +2596,7 @@ void CCharacter::DDRaceTick()
 		m_Input.m_Jump = 0;
 		m_Input.m_Hook = 0;
 		if(m_FreezeTime == 1)
-			UnFreeze();
+			Unfreeze();
 	}
 
 	HandleTuneLayer(); // need this before coretick
@@ -2739,7 +2739,7 @@ bool CCharacter::Freeze()
 	return Freeze(g_Config.m_SvFreezeDelay);
 }
 
-bool CCharacter::UnFreeze()
+bool CCharacter::Unfreeze()
 {
 	if(m_FreezeTime > 0)
 	{
