@@ -827,7 +827,7 @@ void CGameContext::ConHatType(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	int Type = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0;
-	pPlayer->SetHatType((HatType)Type);
+	pPlayer->SetHatType((EHatType)Type);
 	log_info("cosmetics", "Set hat type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 

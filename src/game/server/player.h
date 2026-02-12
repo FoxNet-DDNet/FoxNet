@@ -87,7 +87,7 @@ enum GunTypes
 	NUM_GUNTYPES
 };
 
-enum class HatType
+enum class EHatType
 {
 	None = 0,
 	Hammer,
@@ -127,7 +127,7 @@ public:
 
 	// Hats
 	bool m_HeartHat = false;
-	HatType m_HatType = HatType::None;
+	EHatType m_HatType = EHatType::None;
 
 	// Rainbow
 	bool m_RainbowFeet = false;
@@ -525,7 +525,7 @@ public:
 	void SetDeathEffect(int Type);
 
 	void SetHeartHat(bool Active);
-	void SetHatType(HatType Type);
+	void SetHatType(EHatType Type);
 
 	void SetStaffInd(bool Active);
 	void SetPickupPet(bool Active);

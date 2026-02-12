@@ -753,14 +753,14 @@ void CPlayer::SetHeartHat(bool Active)
 		new CHeartHat(&GameServer()->m_World, GetCid(), Pos);
 }
 
-void CPlayer::SetHatType(HatType Type)
+void CPlayer::SetHatType(EHatType Type)
 {
 	if(Cosmetics()->m_HatType == Type)
 		return;
-	HatType PrevType = Cosmetics()->m_HatType;
+	EHatType PrevType = Cosmetics()->m_HatType;
 	Cosmetics()->m_HatType = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
-	if(Cosmetics()->m_HatType != HatType::None && PrevType == HatType::None)
+	if(Cosmetics()->m_HatType != EHatType::None && PrevType == EHatType::None)
 		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
 }
 

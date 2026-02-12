@@ -70,7 +70,7 @@ void CHeadItem::Tick()
 		}
 		break;
 	case HEADITEM_COSMETIC:
-		if(pOwnerPl->Cosmetics()->m_HatType == HatType::None)
+		if(pOwnerPl->Cosmetics()->m_HatType == EHatType::None)
 		{
 			Reset();
 			return;
@@ -112,7 +112,7 @@ void CHeadItem::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	HatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
+	EHatType PlHatType = pOwnerChr->GetPlayer()->Cosmetics()->m_HatType;
 
 	if(m_Type != HEADITEM_SPAWNSOLO)
 	{
@@ -124,7 +124,7 @@ void CHeadItem::Snap(int SnappingClient)
 
 		if(m_Type == HEADITEM_COSMETIC)
 		{
-			if(PlHatType == HatType::Party)
+			if(PlHatType == EHatType::Party)
 			{
 				SnapPartyHat(SnappingClient);
 				return;
