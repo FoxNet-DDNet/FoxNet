@@ -159,14 +159,14 @@ public:
 	EItemId m_Id;
 	EItemType m_Type;
 	const char *m_pName;
-	const char *m_Shortcut;
+	const char *m_pShortcut;
 	EItemFlag m_Flags;
 	EExclusiveGroup m_Group;
 	long m_Price;
 	int m_MinLevel;
 	int m_Stars;
 	EItemRarity m_Rarity;
-	const char *m_Description;
+	const char *m_pDescription;
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Apply;
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Remove;
 	int m_DefaultDays = 30;
@@ -186,9 +186,9 @@ public:
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
 		int DefaultDays = 30) :
 		m_Id(Id), m_Type(Type),
-		m_pName(pName), m_Shortcut(pShortcut),
+		m_pName(pName), m_pShortcut(pShortcut),
 		m_Flags(Flags), m_Group(Group),
-		m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_Description(pDescription),
+		m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription),
 		m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}
 };
 

@@ -1345,7 +1345,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteText(aBuf);
 
 		char aUnescaped[1024] = "";
-		str_copy(aUnescaped, pItem->m_Description, sizeof(aUnescaped));
+		str_copy(aUnescaped, pItem->m_pDescription, sizeof(aUnescaped));
 		UnescapeNewlines(aUnescaped);
 		std::vector<const char *> Lines = StrSplit(aUnescaped, '\n');
 		for(const auto &Line : Lines)

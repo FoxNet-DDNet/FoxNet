@@ -17,7 +17,7 @@ void CItemRegistry::Init()
 		for(const auto &kv : m_Map)
 		{
 			dbg_assert(str_comp_nocase(kv.second.m_pName, cfg.m_pName) != 0, "duplicate item name '%s'", cfg.m_pName);
-			dbg_assert(str_comp_nocase(kv.second.m_Shortcut, cfg.m_Shortcut) != 0, "duplicate shortcut '%s'", cfg.m_Shortcut);
+			dbg_assert(str_comp_nocase(kv.second.m_pShortcut, cfg.m_pShortcut) != 0, "duplicate shortcut '%s'", cfg.m_pShortcut);
 		}
 		m_Map.emplace(std::string(cfg.m_pName), std::move(cfg));
 	};
