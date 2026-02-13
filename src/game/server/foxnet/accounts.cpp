@@ -27,7 +27,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <corecrt.h>
 #include <cstdint>
 #include "votemenu.h"
 
@@ -565,7 +564,7 @@ void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 			return;
 		if(Res.m_NumMessages == 0)
 		{
-			GameServer()->SendChatTarget(ClientId, "[Err] unknown error occured");
+			GameServer()->SendChatTarget(ClientId, "[Err] unknown error occurred");
 			return;
 		}
 		for(int i = 0; i < Res.m_NumMessages; i++)
