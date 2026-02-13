@@ -188,8 +188,10 @@ void CGameContext::ConAccForcePassword(IConsole::IResult *pResult, void *pUserDa
 void CGameContext::ConAccForceLogin(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
+
 	const char *pName = pResult->GetString(0);
-	pSelf->m_AccountManager.ForceLogin(pResult->m_ClientId, pName);
+	pSelf->m_AccountManager.ForceLogin(Victim, pName);
 }
 
 void CGameContext::ConAccForceLogout(IConsole::IResult *pResult, void *pUserData)
@@ -2073,7 +2075,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Remove all records a name has");
 
 	// Account
-	Console()->Register("force_login", "r[username]", CFGFLAG_SERVER, ConAccForceLogin, this, "Force Log into any account");
+	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConAccForceLogin, this, "Force Login player (id) into any account");
 	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConAccForceLogout, this, "Force logout an account thats currently active on the server");
 	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConAccDisable, this, "Disable an account");
 	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConAccForcePassword, this, "Disable an account");
