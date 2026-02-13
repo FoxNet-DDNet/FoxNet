@@ -37,6 +37,11 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
 		return;
 	}
+	if(!g_Config.m_SvAccountsAllowRegister)
+	{
+		pSelf->SendChatTarget(ClientId, "Account registration is disabled");
+		return;
+	}
 
 	if(pSelf->m_aAccounts[ClientId].m_LoggedIn)
 	{
