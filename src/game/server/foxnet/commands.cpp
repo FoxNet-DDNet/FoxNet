@@ -1119,16 +1119,16 @@ void CGameContext::ConSetPlayerAfk(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConSetAbility(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
 
 	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 
 	if(!pPlayer)
 		return;
 
-	int Ability = pResult->GetInteger(1);
+	const int Ability = pResult->GetInteger(0);
 	pPlayer->SetAbility(Ability);
-	log_info("server", "Set ability to %d for player %s", Ability, pSelf->Server()->ClientName(Victim));
+	log_info("server", "Set ability to %d for player '%s'", Ability, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConIgnoreGameLayer(IConsole::IResult *pResult, void *pUserData)
@@ -2000,7 +2000,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("set_color_feet", "v[id] i[color]", CFGFLAG_SERVER, ConSetPlayerColorFeet, this, "Set a players (id) Feet Color");
 	Console()->Register("set_afk", "v[id] ?i[afk]", CFGFLAG_SERVER, ConSetPlayerAfk, this, "Set a players (id) afk status");
 
-	Console()->Register("set_ability", "v[id] i[ability]", CFGFLAG_SERVER, ConSetAbility, this, "Set a players (id) Ability");
+	Console()->Register("set_ability", "i[ability] ?v[id]", CFGFLAG_SERVER, ConSetAbility, this, "Set a players (id) Ability");
 
 	Console()->Register("ignore_gamelayer", "?v[id]", CFGFLAG_SERVER, ConIgnoreGameLayer, this, "Turns off the kill-border for (id)");
 	Console()->Register("invisible", "?v[id]", CFGFLAG_SERVER, ConInvisible, this, "Makes a players (id) Invisible");
