@@ -570,7 +570,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				GetClientVersionStr(ClientId));
 			char aTitle[32];
 			str_format(aTitle, sizeof(aTitle), "[BAN] - Chat Detection (%d)", Server()->Port());
-			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);	
+			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 			char aCmdBuf[512];
 			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);
 			Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);

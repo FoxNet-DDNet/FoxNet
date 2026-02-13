@@ -56,18 +56,21 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 		return;
 	if(pPlayer->m_AccRegisters >= 2)
 	{
+		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
-			pSelf->Server()->ClientAddrString(ClientId, false),
+			pAddr,
 			pSelf->Server()->GetCustomClient(ClientId),
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
 		char aTitle[32];
 		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-		pSelf->Server()->Ban(ClientId, 1440 * 60, "Too many registrations.", false);
+		char aCmdBuf[512];
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many /register attempts.");
+		pSelf->Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		return;
 	}
 
@@ -117,11 +120,12 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 
 	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvRconMaxTries)
 	{
+		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[256];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
-			pSelf->Server()->ClientAddrString(ClientId, false),
+			pAddr,
 			g_Config.m_SvRconBantime,
 			pSelf->Server()->GetCustomClient(ClientId),
 			pSelf->Server()->GetClientVersion(ClientId),
@@ -129,7 +133,9 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 		char aTitle[32];
 		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-		pSelf->Server()->Ban(ClientId, g_Config.m_SvRconBantime * 60, "Too many /login attempts.", false);
+		char aCmdBuf[512];
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many /login attempts.");
+		pSelf->Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 		return;
 	}
 
