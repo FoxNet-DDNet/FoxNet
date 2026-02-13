@@ -364,47 +364,61 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 		GameServer()->SendChatTarget(ClientId, "[Err] Password is empty");
 		return false;
 	}
+	if(!str_comp(pOldPassword, pNewPassword))
+	{
+		GameServer()->SendChatTarget(ClientId, "[Err] New password must be different from old password");
+		return false;
+	}
 	size_t NewLength = str_length(pNewPassword);
 	if(NewLength < ACC_MIN_PASSW_LENGTH)
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] New password is too short");
 		return false;
-	} 
+	}
 	else if(NewLength >= ACC_MAX_PASSW_LENGTH)
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] New password is too long");
 		return false;
 	}
 	char HashedOld[ACC_MAX_PASSW_LENGTH];
-	sha256_str(HashPassword(pOldPassword), HashedOld, ACC_MAX_PASSW_LENGTH);
 	char HashedNew[ACC_MAX_PASSW_LENGTH];
+	sha256_str(HashPassword(pOldPassword), HashedOld, ACC_MAX_PASSW_LENGTH);
 	sha256_str(HashPassword(pNewPassword), HashedNew, ACC_MAX_PASSW_LENGTH);
-	struct CSqlChangePass : ISqlData
-	{
-		CSqlChangePass() :
-			ISqlData(nullptr) {}
-		char m_aUsername[ACC_MAX_USERNAME_LENGTH];
-		char m_OldHash[ACC_MAX_PASSW_LENGTH];
-		char m_NewHash[ACC_MAX_PASSW_LENGTH];
-	};
-	auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool {
-		const auto *p = dynamic_cast<const CSqlChangePass *>(pData);
-		const char *aSql = "UPDATE foxnet_accounts SET Password = ? WHERE Username = ? AND Password = ?";
-		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
-			return false;
-		pSql->BindString(1, p->m_NewHash);
-		pSql->BindString(2, p->m_aUsername);
-		pSql->BindString(3, p->m_OldHash);
-		int NumUpdated = 0;
-		return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
-	};
-	auto pReq = std::make_unique<CSqlChangePass>();
+
+	auto pRes = std::make_shared<CAccResult>();
+	auto pReq = std::make_unique<CAccChangePassword>(pRes);
 	str_copy(pReq->m_aUsername, GameServer()->m_aAccounts[ClientId].m_aUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_OldHash, HashedOld, sizeof(pReq->m_OldHash));
 	str_copy(pReq->m_NewHash, HashedNew, sizeof(pReq->m_NewHash));
-	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc change password");
-	GameServer()->SendChatTarget(ClientId, "Password change requested");
+
+	AddPending(pRes, [this, ClientId](CAccResult &Res) {
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+			return;
+		if(Res.m_NumMessages == 0)
+		{
+			GameServer()->SendChatTarget(ClientId, "[Err] Password change result unknown");
+			return;
+		}
+		for(int i = 0; i < Res.m_NumMessages; i++)
+			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
+	});
+
+	m_pPool->ExecuteWrite(CAccountsWorker::ChangePassword, std::move(pReq), "acc change password");
 	return true;
+}
+
+void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
+{
+	if(!m_pPool)
+		return;
+	if(!pUsername[0] || !pNewPassword[0])
+		return;
+	char HashedPassword[ACC_MAX_PASSW_LENGTH];
+	sha256_str(HashPassword(pNewPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
+	auto pReq = std::make_unique<CAccSetPassword>();
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aNewPasswordHash, HashedPassword, sizeof(pReq->m_aNewPasswordHash));
+	m_pPool->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
 }
 
 void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const char *pValue)
@@ -452,20 +466,6 @@ void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const 
 	str_copy(pReq->m_Column, pVariable, sizeof(pReq->m_Column));
 	pReq->m_IsInt = IsInt;
 	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc edit");
-}
-
-void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
-{
-	if(!m_pPool)
-		return;
-	if(!pUsername[0] || !pNewPassword[0])
-		return;
-	char HashedPassword[ACC_MAX_PASSW_LENGTH];
-	sha256_str(HashPassword(pNewPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
-	auto pReq = std::make_unique<CAccSetPassword>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	str_copy(pReq->m_aNewPasswordHash, HashedPassword, sizeof(pReq->m_aNewPasswordHash));
-	m_pPool->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
 }
 
 void CAccounts::ShowAccProfile(int ClientId, const char *pName)

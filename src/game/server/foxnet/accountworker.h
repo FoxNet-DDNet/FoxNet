@@ -14,6 +14,12 @@ class IGameController;
 
 struct CAccResult : ISqlResult
 {
+	enum
+	{
+		MAX_MESSAGES = 15,
+		MAX_MESSAGE_LEN = 256,
+	};
+
 	bool m_Found = false;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
@@ -35,6 +41,17 @@ struct CAccResult : ISqlResult
 	CInventory m_Inventory;
 	CMailBox m_MailBox;
 	CAccConfigs m_Configs;
+
+	int m_NumMessages = 0;
+	char m_aaMessages[MAX_MESSAGES][MAX_MESSAGE_LEN]{};
+
+	void AddMessage(const char *pMsg)
+	{
+		if(m_NumMessages >= MAX_MESSAGES || !pMsg || !pMsg[0])
+			return;
+		str_copy(m_aaMessages[m_NumMessages], pMsg, sizeof(m_aaMessages[m_NumMessages]));
+		m_NumMessages++;
+	}
 };
 
 struct CAccRegisterRequest : ISqlData
@@ -124,6 +141,15 @@ struct CAccRemoveItem : ISqlData
 		ISqlData(nullptr) {}
 	char m_aItemName[64];
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+
+struct CAccChangePassword : ISqlData
+{
+	CAccChangePassword(std::shared_ptr<CAccResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH];
+	char m_OldHash[ACC_MAX_PASSW_LENGTH];
+	char m_NewHash[ACC_MAX_PASSW_LENGTH];
 };
 
 struct CAccSetPassword : ISqlData
@@ -260,6 +286,7 @@ struct CAccountsWorker
 	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize);
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);

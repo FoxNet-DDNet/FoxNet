@@ -867,6 +867,32 @@ bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Wri
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
+bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *p = dynamic_cast<const CAccChangePassword *>(pData);
+	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+	if(!p || !pRes)
+		return false;
+	const char *aSql = "UPDATE foxnet_accounts SET Password = ? WHERE Username = ? AND Password = ?";
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, p->m_NewHash);
+	pSql->BindString(2, p->m_aUsername);
+	pSql->BindString(3, p->m_OldHash);
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	if(NumUpdated > 0)
+		pRes->AddMessage("Password changed successfully");
+	else
+		pRes->AddMessage("[Err] Old password is incorrect");
+
+	pRes->m_Success = NumUpdated > 0;
+	pRes->m_Completed.store(true);
+	return true;
+}
+
 bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *p = dynamic_cast<const CAccSetPassword *>(pData);
