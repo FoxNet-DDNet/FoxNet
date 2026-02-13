@@ -530,12 +530,25 @@ void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 {
 	if(!m_pPool)
 		return;
-	auto pReq = std::make_unique<CAccShowTop5>();
+	auto pRes = std::make_shared<CAccResult>();
+	auto pReq = std::make_unique<CAccShowTop5>(pRes);
 	pReq->m_ClientId = ClientId;
 	str_copy(pReq->m_Type, pType, sizeof(pReq->m_Type));
 	pReq->m_Offset = Offset;
-	pReq->m_pGameServer = GameServer();
-	m_pPool->Execute(CAccountsWorker::ShowTop5, std::move(pReq), "acc top5");
+
+	AddPending(pRes, [this, ClientId](CAccResult &Res) {
+		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+			return;
+		if(Res.m_NumMessages == 0)
+		{
+			GameServer()->SendChatTarget(ClientId, "[Err] unknown error occured");
+			return;
+		}
+		for(int i = 0; i < Res.m_NumMessages; i++)
+			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
+	});
+
+	m_pPool->ExecuteWrite(CAccountsWorker::ShowTop5, std::move(pReq), "show acc top5");
 }
 
 void CAccounts::SetPlayerName(int ClientId, const char *pName)

@@ -750,10 +750,11 @@ bool CAccountsWorker::SelectPortByUsername(IDbConnection *pSql, const ISqlData *
 	pRes->m_Completed.store(true);
 	return true;
 }
-bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize)
+bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccShowTop5 *>(pData);
-	if(!pReq || !pReq->m_pGameServer)
+	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
 		return false;
 
 	const char *pMetric = "Level";
@@ -791,7 +792,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 	// Header
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "------- Global Top %s -------", pMetric);
-	pReq->m_pGameServer->SendChatTarget(pReq->m_ClientId, aBuf);
+	pRes->AddMessage(aBuf);
 
 	// Iterate rows
 	bool End = true;
@@ -812,22 +813,24 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, char 
 
 		if(!str_comp(pMetric, "Playtime"))
 		{
-			str_format(aBuf, sizeof(aBuf), "%d. %s: %s", Rank, pName, FormatPlaytime(Metric));
+			str_format(aBuf, sizeof(aBuf), "%d. '%s': %s", Rank, pName, FormatPlaytime(Metric));
 		}
 		else
 		{
-			str_format(aBuf, sizeof(aBuf), "%d. %s %s: %ld", Rank, pName, pMetric, Metric);
+			str_format(aBuf, sizeof(aBuf), "%d. '%s' %s: %ld", Rank, pName, pMetric, Metric);
 		}
 
-		pReq->m_pGameServer->SendChatTarget(pReq->m_ClientId, aBuf);
+		pRes->AddMessage(aBuf);
 		Rank++;
 
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
 	}
 
+	pRes->AddMessage("---------------------------------");
+	pRes->m_Success = true;
+	pRes->m_Completed.store(true);
 	// Footer
-	pReq->m_pGameServer->SendChatTarget(pReq->m_ClientId, "---------------------------------");
 	return true;
 }
 

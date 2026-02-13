@@ -121,12 +121,11 @@ struct CAccSetNameReq : ISqlData
 };
 struct CAccShowTop5 : ISqlData
 {
-	CAccShowTop5() :
-		ISqlData(nullptr) {}
+	CAccShowTop5(std::shared_ptr<CAccResult> pRes) :
+		ISqlData(std::move(pRes)) {}
 	int m_ClientId;
 	char m_Type[16];
 	int m_Offset = 0;
-	CGameContext *m_pGameServer;
 };
 struct CAccDisable : ISqlData
 {
@@ -283,7 +282,7 @@ struct CAccountsWorker
 	static bool UpdateLogoutState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPlayerName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
-	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize);
+	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
