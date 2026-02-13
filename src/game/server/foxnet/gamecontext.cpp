@@ -439,6 +439,23 @@ void CGameContext::ClearVotes(int ClientId)
 	m_VoteMenu.PrepareVoteOptions(ClientId);
 }
 
+static bool TryingToBeFunny(const char *pMsg)
+{
+	const char *pFunsies[] = {"ddnet.org",
+		"tater", "tclient","t client", "t-client", "tclient.app", // TClient
+		"aiodob", "aidob", "a-client", "A Client", "A client", // AClient
+		"eclient", "e client", "entity client", "e-client", "entityclient", // EClient
+		"chiller", "cactus" // Chillerbot/Cactus
+	}; // Other
+
+	for(const char *pFun : pFunsies)
+	{
+		if(str_find_nocase(pMsg, pFun))
+			return true;
+	}
+	return false;
+}
+
 bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 {
 	// Thx to Pointer31 for the blueprint
@@ -517,10 +534,13 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		// anti whisper ad bot
 		if((str_find_nocase(pText, "/whisper") || str_find_nocase(pText, "/w")) && str_find_nocase(pText, "bro, check out this client"))
 		{
-			str_copy(Reason, "Bot Client Message");
-			IsBan = true;
-			count += 2;
-			BanDuration = 1000;
+			if(!TryingToBeFunny(pText))
+			{
+				str_copy(Reason, "Bot Client Message");
+				IsBan = true;
+				count += 2;
+				BanDuration = 1000;
+			}
 		}
 
 		// anti mass ping ad bot
@@ -529,10 +549,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			if(str_length(pText) > 70) // Usually it pings alot of people
 			{
 				// try to not remove their message if they are just trying to be funny
-				if(!str_find_nocase(pText, "ddnet.org") && !str_find_nocase(pText, "github.com") && !str_find_nocase(pText, "tater") && !str_find_nocase(pText, "tclient") && !str_find_nocase(pText, "t-client") && !str_find_nocase(pText, "tclient.app") // TClient
-					&& !str_find_nocase(pText, "aiodob") && !str_find_nocase(pText, "aidob") && !str_find_nocase(pText, "a-client") && !str_find(pText, "A Client") && !str_find(pText, "A client") // AClient
-					&& !str_find_nocase(pText, "eclient") && !str_find_nocase(pText, "e client") && !str_find_nocase(pText, "entity client") && !str_find_nocase(pText, "e-client") // Other
-					&& !str_find_nocase(pText, "chillerbot") && !str_find_nocase(pText, "cactus")) // Other
+				if(!TryingToBeFunny(pText))
 				{
 					IsBan = true;
 					count += 2;
