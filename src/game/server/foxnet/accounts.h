@@ -189,7 +189,6 @@ public:
 	void Top5(int ClientId, const char *pType, int Offset = 0);
 
 	void SetPlayerName(int ClientId, const char *pName);
-	void EditAccount(const char *pUsername, const char *pVariable, const char *pValue);
 	void RemoveItem(const char *pUsername, const char *pItemName);
 
 	void SetPassword(const char *pUsername, const char *pNewPassword);

@@ -421,53 +421,6 @@ void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
 	m_pPool->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
 }
 
-void CAccounts::EditAccount(const char *pUsername, const char *pVariable, const char *pValue)
-{
-	if(!m_pPool)
-		return;
-	if(!pUsername || !pUsername[0] || !pVariable || !pVariable[0] || !pValue)
-		return;
-	auto IsIntCol = [](const char *pCol) {
-		static const char *s_aIntCols[] = {
-			"Version", "RegisterDate", "LoggedIn", "LastLogin", "Port", "ClientId", "Flags", "Playtime", "Deaths", "Kills", "Level", "XP", "Money", nullptr};
-		for(const char **pp = s_aIntCols; *pp; ++pp)
-			if(!str_comp(*pp, pCol))
-				return true;
-		return false;
-	};
-	auto IsTextCol = [](const char *pCol) {
-		static const char *s_aTextCols[] = {
-			"PlayerName", "LastPlayerName", "CurrentIP", "LastIP", nullptr};
-		for(const char **pp = s_aTextCols; *pp; ++pp)
-			if(!str_comp(*pp, pCol))
-				return true;
-		return false;
-	};
-	bool IsInt = IsIntCol(pVariable);
-	bool IsText = IsTextCol(pVariable);
-	if(!(IsInt || IsText))
-	{
-		log_info("accounts", "EditAccount: column '%s' is not editable", pVariable);
-		return;
-	}
-	struct CSqlEditReq : ISqlData
-	{
-		CSqlEditReq() :
-			ISqlData(nullptr) {}
-		char m_aUsername[ACC_MAX_USERNAME_LENGTH];
-		char m_Value[1028];
-		char m_Column[64];
-		bool m_IsInt;
-	};
-	auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool { const auto *p=dynamic_cast<const CSqlEditReq*>(pData); char aSql[384]; if(p->m_IsInt) str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = CAST(? AS INTEGER) WHERE Username = ?",p->m_Column); else str_format(aSql,sizeof(aSql),"UPDATE foxnet_accounts SET %s = ? WHERE Username = ?",p->m_Column); if(!pSql->PrepareStatement(aSql,pError,ErrorSize)) return false; pSql->BindString(1,p->m_Value); pSql->BindString(2,p->m_aUsername); int NumUpdated=0; return pSql->ExecuteUpdate(&NumUpdated,pError,ErrorSize); };
-	auto pReq = std::make_unique<CSqlEditReq>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	str_copy(pReq->m_Value, pValue, sizeof(pReq->m_Value));
-	str_copy(pReq->m_Column, pVariable, sizeof(pReq->m_Column));
-	pReq->m_IsInt = IsInt;
-	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc edit");
-}
-
 void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 {
 	if(!m_pPool || !pName[0])
