@@ -158,7 +158,7 @@ class CItemConfig
 public:
 	EItemId m_Id;
 	EItemType m_Type;
-	const char *m_Name;
+	const char *m_pName;
 	const char *m_Shortcut;
 	EItemFlag m_Flags;
 	EExclusiveGroup m_Group;
@@ -186,7 +186,7 @@ public:
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
 		int DefaultDays = 30) :
 		m_Id(Id), m_Type(Type),
-		m_Name(pName), m_Shortcut(pShortcut),
+		m_pName(pName), m_Shortcut(pShortcut),
 		m_Flags(Flags), m_Group(Group),
 		m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_Description(pDescription),
 		m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}

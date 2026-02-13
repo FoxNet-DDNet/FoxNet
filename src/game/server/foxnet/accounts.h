@@ -114,7 +114,7 @@ class CAccountSession
 public:
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_RegisterDate = 0;
-	char m_Name[MAX_NAME_LENGTH] = "";
+	char m_pName[MAX_NAME_LENGTH] = "";
 	char m_LastName[MAX_NAME_LENGTH] = "";
 	char CurrentIp[128] = "";
 	char LastIp[128] = "";
@@ -208,6 +208,7 @@ public:
 	void DeleteMail(const char *pUsername, int64_t MailId);
 
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
+	void NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
 };
 

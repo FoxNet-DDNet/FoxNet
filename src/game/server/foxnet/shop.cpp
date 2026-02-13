@@ -47,7 +47,7 @@ void CShop::ListItems()
 	for(const auto &kv : m_Registry.Map())
 	{
 		const CItemConfig &item = kv.second;
-		log_info("shop", "%s | Price: %ld | MinLevel: %d", item.m_Name, item.m_Price, item.m_MinLevel);
+		log_info("shop", "%s | Price: %ld | MinLevel: %d", item.m_pName, item.m_Price, item.m_MinLevel);
 	}
 	log_info("shop", "%s", Separator);
 }
@@ -125,7 +125,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	}
 	if(Acc.m_Level < Cfg->m_MinLevel)
 	{
-		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_Name);
+		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_pName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "You are currently Level %ld", Acc.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -136,7 +136,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 
 	if(Acc.m_Money < Price)
 	{
-		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", Cfg->m_Name);
+		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", Cfg->m_pName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -146,7 +146,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	pPlayer->TakeMoney(Price, true);
 	GiveItem(ClientId, Cfg, -1, "Shop");
 
-	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_Name);
+	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_pName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 
 	if(Cfg->m_Group == EExclusiveGroup::Hat)
@@ -171,8 +171,8 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 	if(!Acc.m_LoggedIn)
 		return false;
 
-	auto &Entry = Acc.m_Inventory.Entry(pItem->m_Name);
-	const bool Owned = Acc.m_Inventory.Owns(pItem->m_Name);
+	auto &Entry = Acc.m_Inventory.Entry(pItem->m_pName);
+	const bool Owned = Acc.m_Inventory.Owns(pItem->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
@@ -214,8 +214,8 @@ bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFro
 	if(!Acc.m_LoggedIn)
 		return false;
 
-	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_Name);
-	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_Name);
+	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_pName);
+	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
@@ -253,8 +253,8 @@ bool CShop::GiveItemForever(int ClientId, const CItemConfig *pItem, const char *
 	if(!Acc.m_LoggedIn)
 		return false;
 
-	auto &Entry = Acc.m_Inventory.Entry(pItem->m_Name);
-	const bool Owned = Acc.m_Inventory.Owns(pItem->m_Name);
+	auto &Entry = Acc.m_Inventory.Entry(pItem->m_pName);
+	const bool Owned = Acc.m_Inventory.Owns(pItem->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
@@ -287,8 +287,8 @@ bool CShop::GiveItemForever(int ClientId, const char *pName, const char *pFrom)
 	if(!Acc.m_LoggedIn)
 		return false;
 
-	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_Name);
-	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_Name);
+	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_pName);
+	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
@@ -346,6 +346,6 @@ const char *CShop::GetItemName(EItemId Id) const
 {
 	const CItemConfig *pItem = FindItem(Id);
 	if(pItem)
-		return pItem->m_Name;
+		return pItem->m_pName;
 	return "Unknown";
 }

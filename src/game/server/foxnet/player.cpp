@@ -89,7 +89,7 @@ void CPlayer::LootBoxTick()
 		// Final message
 		const CItemConfig *pItem = m_LootBoxData.m_pGotItem;
 		str_format(aBuf, sizeof(aBuf), "You got '%s' [%s] for %d days!",
-			pItem->m_Name,
+			pItem->m_pName,
 			StarsString(pItem->m_Stars).c_str(),
 			m_LootBoxData.m_Days);
 
@@ -97,8 +97,8 @@ void CPlayer::LootBoxTick()
 
 		str_format(aBuf, sizeof(aBuf), "'%s' opened a %s and got %s for %d days!",
 			Server()->ClientName(m_ClientId),
-			m_LootBoxData.m_pLootBox->m_Name,
-			pItem->m_Name,
+			m_LootBoxData.m_pLootBox->m_pName,
+			pItem->m_pName,
 			m_LootBoxData.m_Days);
 
 		GameServer()->SendChat(-1, TEAM_ALL, aBuf);
@@ -120,10 +120,10 @@ void CPlayer::LootBoxTick()
 	const CItemConfig *pItem = GameServer()->m_Shop.RandomItemByRarity(Rarity, IsExotic);
 
 	str_format(aBuf, sizeof(aBuf), "Opening %s\n[%s %s] %s",
-		m_LootBoxData.m_pLootBox->m_Name,
+		m_LootBoxData.m_pLootBox->m_pName,
 		RarityToName(pItem->m_Rarity),
 		StarsString(pItem->m_Stars).c_str(),
-		pItem->m_Name);
+		pItem->m_pName);
 
 	if(GetCharacter())
 		GameServer()->CreateDeath(GetCharacter()->GetPos(), m_ClientId, GetCharacter()->TeamMask());
@@ -237,6 +237,9 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 	bool LeveledUp = false;
 	char aBuf[256];
 
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
 	// Level up as long as we have enough XP for the current level
 	while(true)
 	{
@@ -249,6 +252,63 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 
 		GiveMoney(g_Config.m_SvLevelUpMoney, false);
 		LeveledUp = true;
+
+		const int Days = 7;
+		char aCmd[256];
+		char aCmdName[128];
+		char aSubject[128];
+		if(Acc()->m_Level == 5)
+		{
+			std::vector<const CItemConfig *> CommonItems;
+			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+			{
+				const CItemConfig &Item = kv.second;
+				if(Item.m_Rarity == EItemRarity::Common && Item.m_Price > 0)
+					CommonItems.push_back(&Item);
+			}
+
+			if(!CommonItems.empty())
+			{
+				std::uniform_int_distribution<> dis(0, CommonItems.size() - 1);
+				const CItemConfig *Reward = CommonItems[dis(gen)];
+
+				std::uniform_int_distribution<> moneyDis(10, 100);
+				int MoneyReward = moneyDis(gen) * 100; // Between 1.000 and 10.000
+				// Command keeps a literal %d for the client id placeholder
+				str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_money %s %d", "%d", Days, Reward->m_pName, "%d", MoneyReward);
+				str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %d%s", Reward->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
+				str_copy(aSubject, "Congratulations on reaching level 5!");
+
+				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, "You have been given a random Common level Item and some Money!", aCmdName, aCmd);
+			}
+		}
+
+		if(Acc()->m_Level % 15 == 0)
+		{
+			std::vector<const CItemConfig *> Items;
+			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+			{
+				const CItemConfig &Item = kv.second;
+				if((Item.m_Rarity == EItemRarity::Common || Item.m_Rarity == EItemRarity::Uncommon || Item.m_Rarity == EItemRarity::Rare) && Item.m_Price > 0)
+					Items.push_back(&Item);
+			}
+
+			if(!Items.empty())
+			{
+				std::uniform_int_distribution<> dis(0, Items.size() - 1);
+				const CItemConfig *Reward = Items[dis(gen)];
+				const CItemConfig *Reward2 = Items[dis(gen)];
+
+				std::uniform_int_distribution<> moneyDis(10, 250);
+				int MoneyReward = moneyDis(gen) * 100; // Between 1.000 and 25.000
+				// Three commands with a literal %d placeholder each
+				str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_item_days %s %d %s;give_money %s %d", "%d", Days, Reward->m_pName, "%d", Days, Reward2->m_pName, "%d", MoneyReward);
+				str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %s for %d days\n %d%s", Reward->m_pName, Days, Reward2->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
+				str_format(aSubject, sizeof(aSubject), "Congratulations on reaching level %ld!", Acc()->m_Level);
+
+				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, "You have been given a random Item and some Money!", aCmdName, aCmd);
+			}
+		}
 	}
 
 	if(LeveledUp && !Silent)
@@ -336,7 +396,7 @@ bool CPlayer::OwnsItem(EItemId ItemId)
 		return false;
 
 	const CItemConfig *cfg = GameServer()->m_Shop.Registry().FindById(ItemId);
-	return cfg && Acc()->m_Inventory.Owns(cfg->m_Name);
+	return cfg && Acc()->m_Inventory.Owns(cfg->m_pName);
 }
 
 bool CPlayer::ItemEnabled(const char *pItemName)
@@ -362,7 +422,7 @@ bool CPlayer::ReachedItemLimit(const CItemConfig *Cfg)
 		if(Cfg == &Other)
 			continue;
 
-		auto mit = Inv()->m_Map.find(Other.m_Name);
+		auto mit = Inv()->m_Map.find(Other.m_pName);
 		if(mit != Inv()->m_Map.end() && mit->second.m_Value > 0)
 			Amount++;
 	}
@@ -379,7 +439,7 @@ void CPlayer::UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pE
 	GameServer()->m_Shop.Registry().ForEachInGroup(Group, [&](const CItemConfig &Other) {
 		if(pExcept && &Other == pExcept)
 			return;
-		auto it = Inv()->m_Map.find(Other.m_Name);
+		auto it = Inv()->m_Map.find(Other.m_pName);
 		if(it == Inv()->m_Map.end())
 			return;
 		CInventoryEntry &Entry = it->second;
@@ -406,7 +466,7 @@ bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 		return true;
 	}
 
-	CInventoryEntry &Entry = Inv()->Entry(cfg->m_Name);
+	CInventoryEntry &Entry = Inv()->Entry(cfg->m_pName);
 	const bool CurrentlyEquipped = Entry.m_Value;
 
 	int Equip = OverrideValue >= 0 ? OverrideValue : !CurrentlyEquipped;
@@ -533,7 +593,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 	if(!pSelectedItem)
 		return false;
 
-	auto it = Inv()->m_Map.find(CaseCfg.m_Name);
+	auto it = Inv()->m_Map.find(CaseCfg.m_pName);
 	if(it == Inv()->m_Map.end() || it->second.m_Quantity <= 0)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You don't own this loot case.");

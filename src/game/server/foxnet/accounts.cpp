@@ -24,10 +24,12 @@
 #include <ctime>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+#include <corecrt.h>
+#include <cstdint>
+#include "votemenu.h"
 
 IServer *CAccounts::Server() const { return GameServer()->Server(); }
 
@@ -263,7 +265,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 
 	str_copy(Acc.m_aUsername, Res.m_aUsername);
 	Acc.m_RegisterDate = Res.m_RegisterDate;
-	str_copy(Acc.m_Name, Res.m_PlayerName);
+	str_copy(Acc.m_pName, Res.m_PlayerName);
 	str_copy(Acc.m_LastName, Res.m_LastPlayerName);
 	str_copy(Acc.CurrentIp, Server()->ClientAddrString(ClientId, false));
 	str_copy(Acc.LastIp, Res.m_LastIP);
@@ -677,6 +679,20 @@ void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
 	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
 }
 
+void CAccounts::NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
+{
+	if(!CheckClientId(ClientId))
+		return;
+	if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+		return;
+	if(!GameServer()->m_aAccounts[ClientId].m_LoggedIn)
+		return;
+	const char *pUsername = GameServer()->m_aAccounts[ClientId].m_aUsername;
+	if(!pUsername[0])
+		return;
+	NewMail(pUsername, pSubject, pMessage, pCmdName, pCmd);
+}
+
 void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
 {
 	if(!m_pPool)
@@ -684,6 +700,12 @@ void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char 
 
 	auto pRes = std::make_shared<CAccMailAcknowledge>();
 	auto pReq = std::make_unique<CAccNewMail>(pRes);
+
+	if(str_length(pSubject) > MAX_VOTE_LENGTH - str_length("──────"))
+	{
+		log_info("mail", "subject too long");
+		return;
+	}
 
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_aSubject, pSubject, sizeof(pReq->m_aSubject));
@@ -747,6 +769,12 @@ void CAccounts::NewGlobalMail(const char *pSubject, const char *pMessage, const 
 {
 	if(!m_pPool)
 		return;
+
+	if(str_length(pSubject) > MAX_VOTE_LENGTH - str_length("──────"))
+	{
+		log_info("mail", "subject too long");
+		return;
+	}
 
 	auto pResBulk = std::make_shared<CBulkMailResult>();
 	auto pReq = std::make_unique<CAccBulkNewMail>(pResBulk);

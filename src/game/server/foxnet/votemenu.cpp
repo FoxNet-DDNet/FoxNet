@@ -451,11 +451,11 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 			{
 				const CItemConfig &Item = kv.second;
-				if(IsOption(Item.m_Name, ""))
+				if(IsOption(Item.m_pName, ""))
 					continue;
 				if(Item.m_Price == -1)
 					continue;
-				const char *pVoteName = Item.m_Name;
+				const char *pVoteName = Item.m_pName;
 
 				if(IsOption(pVote, pVoteName))
 				{
@@ -471,7 +471,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOption(pVote, FormatItemVote(Price)))
 			{
-				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_Name);
+				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_pName);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
 				return true;
 			}
@@ -505,14 +505,14 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		{
 			const CItemConfig &Item = kv.second;
 
-			if(IsOption(Item.m_Name, ""))
+			if(IsOption(Item.m_pName, ""))
 				continue;
 			if(Item.m_Price == -1)
 				continue;
 
-			if(IsOptionWithSuffix(pVote, Item.m_Name))
+			if(IsOptionWithSuffix(pVote, Item.m_pName))
 			{
-				pPlayer->UseItem(Item.m_Name, -1);
+				pPlayer->UseItem(Item.m_pName, -1);
 				return true;
 			}
 		}
@@ -1323,7 +1323,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(Item.m_Price) > pAcc->m_Money)
 				continue;
 			AmountShown++;
-			AddVoteText(Item.m_Name, EPrefix::ARROWHEAD);
+			AddVoteText(Item.m_pName, EPrefix::ARROWHEAD);
 		}
 		if(AmountShown == 0)
 		{
@@ -1341,7 +1341,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 		const CItemConfig *pItem = Data.m_pLastItemInfo;
 
 		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
-		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->m_Name);
+		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->m_pName);
 		AddVoteText(aBuf);
 
 		char aUnescaped[1024] = "";
@@ -1762,7 +1762,7 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 
 		if(Item.m_Type != ItemType)
 			continue;
-		if(pPlayer->OwnsItem(Item.m_Name))
+		if(pPlayer->OwnsItem(Item.m_pName))
 			return true;
 	}
 	return false;

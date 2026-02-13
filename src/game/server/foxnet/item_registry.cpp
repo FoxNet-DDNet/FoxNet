@@ -16,10 +16,10 @@ void CItemRegistry::Init()
 	auto add = [&](CItemConfig cfg) {
 		for(const auto &kv : m_Map)
 		{
-			dbg_assert(str_comp_nocase(kv.second.m_Name, cfg.m_Name) != 0, "duplicate item name '%s'", cfg.m_Name);
+			dbg_assert(str_comp_nocase(kv.second.m_pName, cfg.m_pName) != 0, "duplicate item name '%s'", cfg.m_pName);
 			dbg_assert(str_comp_nocase(kv.second.m_Shortcut, cfg.m_Shortcut) != 0, "duplicate shortcut '%s'", cfg.m_Shortcut);
 		}
-		m_Map.emplace(std::string(cfg.m_Name), std::move(cfg));
+		m_Map.emplace(std::string(cfg.m_pName), std::move(cfg));
 	};
 
 	// Rainbow Set
