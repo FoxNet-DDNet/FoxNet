@@ -178,6 +178,21 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	m_pPool->Execute(CAccountsWorker::Login, std::move(pReq), "acc login");
 }
 
+static bool IsAllLowercase(const char *pStr)
+{
+	for(int i = 0; pStr[i]; ++i)
+	{
+		if(pStr[i] >= 'a' && pStr[i] <= 'z')
+			continue;
+		if(pStr[i] >= '0' && pStr[i] <= '9')
+			continue;
+		if(pStr[i] == '-' || pStr[i] == '_')
+			continue;
+		return false;
+	}
+	return true;
+}
+
 bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassword)
 {
 	if(!m_pPool)
@@ -187,7 +202,14 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 		GameServer()->SendChatTarget(ClientId, "[Err] Username or password is empty");
 		return false;
 	}
-	if(str_length(pUsername) > ACC_MAX_USERNAME_LENGTH - 1)
+
+	if(!IsAllLowercase(pUsername))
+	{
+		GameServer()->SendChatTarget(ClientId, "[Err] Username must be all lowercase and only contain numbers, hyphens, and underscores");
+		return false;
+	}
+
+	if(str_length(pUsername) >= ACC_MAX_USERNAME_LENGTH)
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] Username is too long");
 		return false;
