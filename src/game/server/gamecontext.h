@@ -750,8 +750,6 @@ private:
 	void QuadDebugIds(bool Clear);
 	std::vector<int> m_vQuadDebugIds;
 
-	void RefreshWeekendFlag();
-
 	static void ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	void FormatAndRunScriptingBan(const char *pStr, int ClientId);
 
@@ -933,8 +931,6 @@ private:
 	std::vector<CFakeSnapPlayer> m_vFakeSnapPlayers;
 	bool RandomMapVote();
 
-	bool m_IsWeekend;
-
 public:
 	void SendMovingTilesInfo(int ClientId);
 
@@ -953,7 +949,7 @@ public:
 
 	void OnCollectPowerup(int ClientId, const CPowerupData *pData) const;
 
-	bool IsWeekend() const { return m_IsWeekend; }
+	bool IsWeekend() const;
 
 	struct CachedMapInfo
 	{

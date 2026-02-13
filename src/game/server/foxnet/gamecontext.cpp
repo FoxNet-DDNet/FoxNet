@@ -59,9 +59,6 @@ void CGameContext::FoxNetTick()
 	// process async db account results
 	m_AccountManager.Tick();
 
-	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 60 * 6) == 0) // every 6 hours
-		RefreshWeekendFlag();
-
 	if(g_Config.m_SvBanSyncing)
 		BanSync();
 
@@ -232,8 +229,6 @@ void CGameContext::FoxNetInit()
 	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
 	m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
 
-	RefreshWeekendFlag();
-
 	if(Score() && g_Config.m_SvAccounts)
 		Score()->CacheMapInfo();
 
@@ -247,20 +242,6 @@ void CGameContext::FoxNetInit()
 		else
 			m_InitRandomMap = true;
 	}
-}
-
-void CGameContext::RefreshWeekendFlag()
-{
-	using namespace std::chrono;
-	auto now = system_clock::now();
-	std::time_t t = system_clock::to_time_t(now);
-	std::tm lt{};
-#if defined(_WIN32)
-	localtime_s(&lt, &t);
-#else
-	localtime_r(&t, &lt);
-#endif
-	m_IsWeekend = (lt.tm_wday == 0 || lt.tm_wday == 6);
 }
 
 int CGameContext::RandGeometric(std::mt19937 &rng, int Min, int Max, double p)
@@ -1301,6 +1282,23 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) con
 	}
 	if(!HidePowerUps)
 		SendChatTarget(ClientId, aBuf);
+}
+
+bool CGameContext::IsWeekend() const
+{
+	using namespace std::chrono;
+	auto now = system_clock::now();
+	std::time_t t = system_clock::to_time_t(now);
+	std::tm lt{};
+#if defined(_WIN32)
+	const errno_t Err = localtime_s(&lt, &t);
+	if(Err != 0)
+		return false;
+#else
+	if(localtime_r(&t, &lt) == nullptr)
+		return false;
+#endif
+	return lt.tm_wday == 5 || lt.tm_wday == 6 || lt.tm_wday == 0;
 }
 
 int CGameContext::DirectionToEditorDeg(const vec2 &Dir)
