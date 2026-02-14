@@ -1617,19 +1617,6 @@ void CCharacter::Snap(int SnappingClient)
 	// pDDNetCharacter->m_TuneZoneOverride = TuneZone::OVERRIDE_NONE;
 	
 	// <FoxNet
-	if(m_InSnake || m_Ufo.Active())
-	{
-		pDDNetCharacter->m_Jumps = 0;
-		pDDNetCharacter->m_JumpedTotal = 0;
-		if(m_InSnake)
-		{
-			pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
-			pDDNetCharacter->m_Flags &= ~CHARACTERFLAG_INVINCIBLE;
-		}
-		if(m_Ufo.Active())
-			pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
-	}
-
 	pDDNetCharacter->m_TuneZoneOverride = m_TuneZoneOverride;
 
 	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < MAX_CLIENTS) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
@@ -1672,6 +1659,21 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(pSnapChar)
 	{
+		if(m_InSnake || m_Ufo.Active())
+		{
+			pDDNetCharacter->m_Jumps = 0;
+			pDDNetCharacter->m_JumpedTotal = 0;
+			if(m_InSnake)
+			{
+				if(pSnapChar->m_InSnake)
+					pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
+				pDDNetCharacter->m_Flags &= ~CHARACTERFLAG_INVINCIBLE;
+			}
+			if(m_Ufo.Active())
+				pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
+		}
+
+
 		if(pSnapChar->Core()->m_Passive)
 			pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED | CHARACTERFLAG_HAMMER_HIT_DISABLED;
 		if(!pSnapChar->Core()->m_Hittable && Id != SnappingClient)

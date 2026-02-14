@@ -54,7 +54,6 @@ bool CSnake::SetActive(bool Active)
 		Data.m_Pos = RoundPos(m_pCharacter->Core()->m_Pos);
 		m_vSnake.push_back(Data);
 
-		// m_pCharacter->GetPlayer()->m_ShowName = false;
 		m_pCharacter->m_InSnake = true;
 		m_pCharacter->GetPlayer()->SetInitialAfk(false);
 		m_pCharacter->GetPlayer()->SetAfk(false);
@@ -83,9 +82,8 @@ bool CSnake::SetActive(bool Active)
 		InvalidateTees();
 		for(unsigned int i = 0; i < m_vSnake.size(); i++)
 		{
-			Zone = m_vSnake[i].m_pChr->GetOverriddenTuneZone();
 			m_vSnake[i].m_pChr->m_InSnake = false;
-			GameServer()->ResetFakeTunes(i, Zone);
+			GameServer()->ResetFakeTunes(i, m_vSnake[i].m_pChr->GetOverriddenTuneZone());
 		}
 		GameServer()->ResetFakeTunes(m_pCharacter->GetPlayer()->GetCid(), Zone);
 
