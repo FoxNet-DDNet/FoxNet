@@ -28,7 +28,7 @@ CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CDotTrail::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("dottrail", "Reset");
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);

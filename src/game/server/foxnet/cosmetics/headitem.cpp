@@ -38,7 +38,7 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 
 void CHeadItem::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("headitem", "Reset");
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)

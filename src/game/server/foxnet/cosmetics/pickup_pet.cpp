@@ -36,7 +36,7 @@ CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CPickupPet::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("pickuppet", "Reset");
 
 	Server()->SnapFreeId(GetId());

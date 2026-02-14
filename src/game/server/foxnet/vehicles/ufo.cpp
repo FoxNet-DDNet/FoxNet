@@ -75,7 +75,7 @@ void CVUfo::Reset()
 	if(!m_Active)
 		return;
 
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("ufo", "ufo");
 
 	for(int i = 0; i < NUM_PARTS; i++)

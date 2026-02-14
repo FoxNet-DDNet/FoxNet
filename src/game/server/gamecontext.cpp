@@ -5326,7 +5326,8 @@ void CGameContext::WhisperId(int ClientId, int VictimId, const char *pMessage)
 		str_format(aBuf, sizeof(aBuf), "[← %s] %s", Server()->ClientName(ClientId), aCensoredMessage);
 		SendChatTarget(VictimId, aBuf);
 	}
-	log_info("whisper", "['%s' ← '%s'] %s", Server()->ClientName(VictimId), Server()->ClientName(ClientId), pMessage);
+	if(g_Config.m_SvLogWhispers)
+		log_info("whisper", "['%s' ← '%s'] %s", Server()->ClientName(VictimId), Server()->ClientName(ClientId), pMessage);
 }
 
 void CGameContext::Converse(int ClientId, char *pStr)

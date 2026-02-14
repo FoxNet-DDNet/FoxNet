@@ -2262,7 +2262,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			GameServer()->OnFoxNetMessage(Msg, &Unpacker, ClientId);
 		}
 		// FoxNet>
-		else if(g_Config.m_SvExtraLogging)
+		else if(g_Config.m_SvLogExtra)
 		{
 			log_info("server", "strange message ClientId=%d msg=%d data_size=%d", ClientId, Msg, pPacket->m_DataSize);
 			constexpr int MaxDumpedDataSize = 32;

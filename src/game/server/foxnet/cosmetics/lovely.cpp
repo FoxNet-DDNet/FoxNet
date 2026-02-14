@@ -28,7 +28,7 @@ CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLovely::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lovely", "Reset");
 
 	for(int i = 0; i < MAX_HEARTS; i++)

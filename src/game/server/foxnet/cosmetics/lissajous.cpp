@@ -39,7 +39,7 @@ CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLissajous::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lissajous", "Reset");
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)

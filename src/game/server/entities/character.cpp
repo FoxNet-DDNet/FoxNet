@@ -1673,7 +1673,6 @@ void CCharacter::Snap(int SnappingClient)
 				pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
 		}
 
-
 		if(pSnapChar->Core()->m_Passive)
 			pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED | CHARACTERFLAG_HAMMER_HIT_DISABLED;
 		if(!pSnapChar->Core()->m_Hittable && Id != SnappingClient)

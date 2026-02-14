@@ -31,7 +31,7 @@ CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLightSaber::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lightsaber", "Reset");
 
 	if(CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner))

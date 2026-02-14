@@ -33,7 +33,7 @@ CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, vec2 Pos, int To, int Owner, 
 
 void CFlyingPoint::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("flyingpoint", "Reset");
 
 	CCharacter *pToChar = GameServer()->GetPlayerChar(m_To);

@@ -44,7 +44,7 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 
 void CLaserDeath::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("laserdeath", "Reset");
 	for(int i = 0; i < MAX_PARTICLES; i++)
 		Server()->SnapFreeId(m_SnapData.m_aIds[i]);

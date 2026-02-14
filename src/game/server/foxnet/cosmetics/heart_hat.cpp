@@ -34,7 +34,7 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CHeartHat::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("hearthat", "Reset");
 
 	for(size_t i = 0; i < NUM_HEARTS; i++)

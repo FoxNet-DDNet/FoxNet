@@ -271,7 +271,7 @@ void CRoulette::StartSpin()
 
 void CRoulette::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("roulette", "Reset");
 
 	Server()->SnapFreeId(GetId());

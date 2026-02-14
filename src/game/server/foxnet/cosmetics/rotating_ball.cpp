@@ -37,7 +37,7 @@ CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CRotatingBall::Reset()
 {
-	if(g_Config.m_SvExtraLogging >= 2)
+	if(g_Config.m_SvLogExtra >= 2)
 		log_info("rotatingball", "Reset");
 
 	Server()->SnapFreeId(m_Id1);
