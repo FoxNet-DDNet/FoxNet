@@ -54,7 +54,7 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
-	if(pPlayer->m_AccRegisters >= 2)
+	if(pPlayer->m_AccRegisters >= g_Config.m_SvAccountsMaxRegister)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[256];
@@ -69,8 +69,8 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 		char aCmdBuf[512];
-		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many /register attempts.");
-		pSelf->Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/register's");
+		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
 		return;
 	}
 
@@ -118,7 +118,7 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
-	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvRconMaxTries)
+	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvAccountsMaxLoginAttempts)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[256];
@@ -133,9 +133,10 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 		char aTitle[32];
 		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
+
 		char aCmdBuf[512];
-		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many /login attempts.");
-		pSelf->Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/login' attempts.");
+		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
 		return;
 	}
 
