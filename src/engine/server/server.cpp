@@ -209,7 +209,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			{
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
-					"ver: %s (%d) [%s]",
+							       "ver: %s (%d) [%s]",
 					pThis->Server()->ClientName(UserId),
 					pThis->Server()->ClientAddrString(UserId, false),
 					pThis->Server()->ClientName(ClientId),
@@ -751,8 +751,8 @@ int CServer::GetAuthedState(int ClientId) const
 	if(ClientId == IConsole::CLIENT_ID_NO_GAME)
 		return AUTHED_ADMIN;
 	// <FoxNet
-	if(ClientId == IConsole::CLIENT_ID_FOXNET || 
-		ClientId == IConsole::CLIENT_ID_FIFO || 
+	if(ClientId == IConsole::CLIENT_ID_FOXNET ||
+		ClientId == IConsole::CLIENT_ID_FIFO ||
 		ClientId == IConsole::CLIENT_ID_ECON ||
 		ClientId == IConsole::CLIENT_ID_SCRIPTING)
 		return AUTHED_ADMIN;
@@ -4817,13 +4817,18 @@ void CServer::CClient::ResetContent()
 	m_HighBandwidth = true;
 }
 
+void CServer::SetCustomClient(int ClientId, const char *pCustomClient)
+{
+	if(str_comp(m_aClients[ClientId].m_CustomClient, "DDNet") != 0)
+		return; // Don't process if the client is already identified as a custom client
+	str_copy(m_aClients[ClientId].m_CustomClient, pCustomClient);
+}
+
 bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 {
 	bool ReturnValue = false;
 	if(Unpacker.Error())
 		return true;
-	if(str_comp(m_aClients[ClientId].m_CustomClient, "DDNet") != 0)
-		return false; // Don't process if the client is already identified as a custom client
 
 	switch(Msg)
 	{
@@ -4831,69 +4836,69 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_QXD:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "E-Client");
+		SetCustomClient(ClientId, "E-Client");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_TATER:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "T-Client");
+		SetCustomClient(ClientId, "T-Client");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_CACTUS:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Cactus");
+		SetCustomClient(ClientId, "Cactus");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_AIODOB:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "A-Client");
+		SetCustomClient(ClientId, "A-Client");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_FEX:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "FeX");
+		SetCustomClient(ClientId, "FeX");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_STA:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Sta");
+		SetCustomClient(ClientId, "Sta");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_PULSE:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Pulse");
+		SetCustomClient(ClientId, "Pulse");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_SCLIENT:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "S-Client");
+		SetCustomClient(ClientId, "S-Client");
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_CHILLERBOT:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "ChillerBot");
+		SetCustomClient(ClientId, "ChillerBot");
 		ReturnValue = true;
 		break;
 	}
 	break;
 	case NETMSG_IAM_KOSHKA:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Koshka");
+		SetCustomClient(ClientId, "Koshka");
 		ReturnValue = true;
 		break;
 	}
 	break;
 	case NETMSG_IAM_RUSHIE:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "R-Client");
+		SetCustomClient(ClientId, "R-Client");
 		ReturnValue = true;
 		break;
 	}
@@ -4901,7 +4906,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_NOFIS:
 	{
-		str_copy(m_aClients[ClientId].m_CustomClient, "Nofis");
+		SetCustomClient(ClientId, "Nofis");
 	}
 	break;
 	case NETMSG_IAM_JSCLIENT:
@@ -4912,7 +4917,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 			m_ServerBan.BanAddr(m_NetServer.ClientAddr(ClientId), BanTime, "Using JS-Client", "Using JS-Client");
 			return true;
 		}
-		str_copy(m_aClients[ClientId].m_CustomClient, "JS-Client");
+		SetCustomClient(ClientId, "JS-Client");
 		ReturnValue = true;
 	}
 	break;
@@ -5135,9 +5140,9 @@ void CServer::CWebhook::Run()
 }
 
 void CServer::SystemCall(const char *pCommand)
-{	
+{
 	std::string Command = pCommand;
-	
+
 // Makes the console shut up
 #if defined(_WIN32) || defined(_WIN64)
 	Command += " > NUL 2>&1";

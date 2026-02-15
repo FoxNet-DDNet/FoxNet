@@ -46,6 +46,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstdio>
+#include <engine/shared/packer.h>
 
 void CGameContext::FoxNetTick()
 {
@@ -1133,8 +1135,9 @@ void CGameContext::OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId
 	case NETMSG_FOXNET_FASTINPUTS:
 	{
 		const int Set = pUnpacker->GetInt();
-		log_info("foxnet", "Received Fast Inputs setting from ClientId=%d: %d", ClientId, Set);
+		const int Amount = pUnpacker->GetIntOrDefault(20);
 		Acc.m_Configs.m_FastInputs = Set;
+		Acc.m_Configs.m_FastInputAmount = Amount;
 		Acc.m_Configs.m_SentFastInput = true; // mark as sent to not overwrite on next login
 		break;
 	}

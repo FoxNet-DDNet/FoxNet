@@ -260,6 +260,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 
 	bool NeedsOverride = Acc.m_Configs.m_SentFastInput;
 	bool FastInput = Acc.m_Configs.m_FastInputs;
+	int FastInputAmount = Acc.m_Configs.m_FastInputAmount;
 	time_t Now = time(0);
 
 	str_copy(Acc.m_aUsername, Res.m_aUsername);
@@ -283,7 +284,10 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 
 	Acc.m_Configs = Res.m_Configs;
 	if(NeedsOverride)
+	{
 		Acc.m_Configs.m_FastInputs = FastInput;
+		Acc.m_Configs.m_FastInputAmount = FastInputAmount;
+	}
 
 	Acc.m_MailBox = Res.m_MailBox;
 	Acc.m_LastMailboxFetch = Now;

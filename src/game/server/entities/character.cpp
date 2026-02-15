@@ -3789,8 +3789,14 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	if(!g_Config.m_SvExperimentalPrediction)
 		return Pos;
 
-	float aPickup = Acc()->m_Configs.m_FastInputs ? 0.68f : 0.5f;
-	float aLaser = Acc()->m_Configs.m_FastInputs ? 0.53f : 0.32f;
+	float aPickup = 0.5f;
+	float aLaser = 0.33f;
+	if(Acc()->m_Configs.m_FastInputs)
+	{
+		float Amount = Acc()->m_Configs.m_FastInputAmount / 100.0f * g_Config.m_FoxExampleInt;
+		aPickup += Amount;
+		aLaser += Amount;
+	}
 
 	float Amp = (Pickup ? aPickup : aLaser);
 	float AmpSpec = (Pickup ? 0.0f : 0.50f); // while spectating/other players

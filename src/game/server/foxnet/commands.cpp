@@ -4,6 +4,8 @@
 #include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
+#include <base/time.h>
+#include <base/types.h>
 #include <base/vmath.h>
 
 #include <engine/console.h>
@@ -25,8 +27,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
-#include <base/time.h>
-#include <base/types.h>
 
 void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 {
@@ -2126,7 +2126,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
-	
+
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);

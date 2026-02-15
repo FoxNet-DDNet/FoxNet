@@ -91,6 +91,7 @@ public:
 
 	// From TClient
 	bool m_FastInputs = false;
+	int m_FastInputAmount = 20;
 	bool m_SentFastInput = false;
 
 	bool m_HidePowerUps = false;

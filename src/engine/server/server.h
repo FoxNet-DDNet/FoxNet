@@ -565,6 +565,7 @@ public:
 	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
 	static void ConGetClientTraffic(IConsole::IResult *pResult, void *pUser);
 	bool FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker);
+	void SetCustomClient(int ClientId, const char *pCustomClient);
 	
 	class CWebhook : public IJob
 	{
