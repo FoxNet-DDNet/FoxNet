@@ -1955,12 +1955,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		{
 			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && (m_aClients[ClientId].m_State == CClient::STATE_CONNECTING))
 			{
-				// Free per-client override data now that the client finished loading
-				if(m_aClients[ClientId].m_OverrideMapActive)
-				{
-					FreeClientOverrideMap(m_aClients[ClientId]);
-				}
-
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf), "player is ready. ClientId=%d addr=<{%s}> secure=%s", ClientId, ClientAddrString(ClientId, true), m_NetServer.HasSecurityToken(ClientId) ? "yes" : "no");
 				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
@@ -1974,8 +1968,13 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				m_aClients[ClientId].m_State = CClient::STATE_READY;
 				GameServer()->OnClientConnected(ClientId, pPersistentData);
 			}
-
 			SendConnectionReady(ClientId);
+			if(m_aClients[ClientId].m_OverrideMapActive)
+			{
+				CNetMsg_Sv_ReadyToEnter ReadyMsg;
+				SendPackMsg(&ReadyMsg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+				FreeClientOverrideMap(m_aClients[ClientId]);
+			}
 		}
 		else if(Msg == NETMSG_ENTERGAME)
 		{
@@ -4591,7 +4590,7 @@ void CServer::RegisterCommands()
 	Console()->Register("client_infos", "", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
 	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
 	Console()->Register("get_traffic", "?v[id]", CFGFLAG_SERVER, ConGetClientTraffic, this, "Prints information about what clients players are using");
-	Console()->Register("send_map", "r[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
+	Console()->Register("send_map", "s[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
 	// FoxNet>
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
@@ -5009,18 +5008,18 @@ void CServer::SetQuietBan(bool Quiet)
 void CServer::SendMapByName(int ClientId, const char *pMapName)
 {
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "invalid client id");
-	if(m_aClients[ClientId].m_State == CClient::STATE_EMPTY)
+
+	if(m_aClients[ClientId].m_State != CClient::STATE_INGAME)
 	{
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "SendMapByName: client slot empty");
+		log_info("server", "SendMapByName: client needs to be ingame");
 		return;
 	}
 	if(!pMapName || !pMapName[0])
 	{
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "SendMapByName: empty map name");
+		log_info("server", "SendMapByName: empty map name");
 		return;
 	}
 
-	// Build path based on protocol of the client
 	const bool Sixup = IsSixup(ClientId);
 	char aPath[IO_MAX_PATH_LENGTH];
 	if(Sixup)
@@ -5028,35 +5027,27 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 	else
 		str_format(aPath, sizeof(aPath), "maps/%s.map", pMapName);
 
-	// Validate filename (same policy as LoadMap)
 	if(!str_valid_filename(fs_filename(aPath)))
 	{
-		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "SendMapByName: invalid map filename '%s'", aPath);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		log_info("server", "SendMapByName: invalid map filename '%s'", aPath);
 		return;
 	}
 
-	// Load the map data into memory
 	void *pDataVoid = nullptr;
 	unsigned int Size = 0;
 	if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
 	{
-		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "SendMapByName: couldn't load '%s'", aPath);
-		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		log_info("server", "SendMapByName: couldn't load '%s'", aPath);
 		return;
 	}
 	unsigned char *pData = (unsigned char *)pDataVoid;
 
-	// Compute hashes and CRC
 	SHA256_DIGEST Sha = sha256(pData, Size);
 	unsigned Crc = crc32(0, pData, Size);
 
 	// Replace any previous override
 	FreeClientOverrideMap(m_aClients[ClientId]);
 
-	// Store per-client override
 	m_aClients[ClientId].m_pOverrideMapData = pData;
 	m_aClients[ClientId].m_OverrideMapSize = Size;
 	m_aClients[ClientId].m_OverrideMapSha256 = Sha;
@@ -5071,8 +5062,7 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 		Msg.AddRaw(&Sha.data, sizeof(Sha.data));
 		Msg.AddInt((int)Crc);
 		Msg.AddInt(Size);
-		// Force in-band transfer to avoid mismatches with external URLs.
-		Msg.AddString("", 0);
+		Msg.AddString("", 0); // force in-band transfer
 		SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
 	}
 
@@ -5093,8 +5083,38 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 
 	// Prepare client for chunk requests
 	m_aClients[ClientId].m_NextMapChunk = 0;
-	// Transition the client like on a real map change
-	m_aClients[ClientId].m_State = CClient::STATE_CONNECTING;
+
+	// Keep the player's game state (position, account, entities, etc.)
+	// but reset only networking/transient client-side structures so the client
+	// will perform the normal loading handshake (READY -> ENTERGAME) against
+	// the override map without a full drop.
+	if(m_aClients[ClientId].m_State >= CClient::STATE_READY)
+	{
+		// Reset input buffers and networking-related state only.
+		for(auto &Input : m_aClients[ClientId].m_aInputs)
+			Input.m_GameTick = -1;
+		m_aClients[ClientId].m_CurrentInput = 0;
+		mem_zero(&m_aClients[ClientId].m_LastPreInput, sizeof(m_aClients[ClientId].m_LastPreInput));
+		mem_zero(&m_aClients[ClientId].m_LatestInput, sizeof(m_aClients[ClientId].m_LatestInput));
+
+		// Purge snapshots so the client will re-request/delta against the new map.
+		m_aClients[ClientId].m_Snapshots.PurgeAll();
+		m_aClients[ClientId].m_LastAckedSnapshot = -1;
+		m_aClients[ClientId].m_LastInputTick = -1;
+		m_aClients[ClientId].m_SnapRate = CClient::SNAPRATE_INIT;
+
+		// Reset map download state and misc network flags.
+		m_aClients[ClientId].m_NextMapChunk = 0;
+		m_aClients[ClientId].m_Flags = 0;
+		m_aClients[ClientId].m_RedirectDropTime = 0;
+
+		// Ensure the client receives capabilities / map again if needed by client implementation.
+		SendRconType(ClientId, m_AuthManager.NumNonDefaultKeys() > 0);
+		SendCapabilities(ClientId);
+		// We already sent MAP_DETAILS / MAP_CHANGE above.
+	}
+
+	log_info("server", "SendMapByName: sent override map '%s' to cid=%d", pMapName, ClientId);
 }
 
 void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)

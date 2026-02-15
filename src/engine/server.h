@@ -293,6 +293,7 @@ public:
 
 	virtual bool IsSixup(int ClientId) const = 0;
 	// <FoxNet
+	virtual void SendMapByName(int ClientId, const char *pMapName) = 0;
 	virtual bool DebugDummy(int ClientId) const = 0;
 	virtual bool GotDDNetVersionPacket(int ClientId) const = 0;
 

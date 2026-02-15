@@ -549,10 +549,15 @@ public:
 	void SendConnLoggingCommand(CONN_LOGGING_CMD Cmd, const NETADDR *pAddr);
 #endif
 	// <FoxNet
-	void SendMapByName(int ClientId, const char *pMapName);
 	static void ConSendMap(IConsole::IResult *pResult, void *pUser);
-
+	static void ConHighBandwidth(IConsole::IResult *pResult, void *pUser);
+	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
+	static void ConGetClientTraffic(IConsole::IResult *pResult, void *pUser);
+	bool FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker);
+	void SetCustomClient(int ClientId, const char *pCustomClient);
 	bool IncludedInServerInfo(int ClientId);
+
+	void SendMapByName(int ClientId, const char *pMapName) override;
 	bool DebugDummy(int ClientId) const override { return m_aClients[ClientId].m_DebugDummy; }
 	bool GotDDNetVersionPacket(int ClientId) const override { return m_aClients[ClientId].m_GotDDNetVersionPacket; }
 
@@ -561,12 +566,6 @@ public:
 	const char *GetCustomClient(int ClientId) override { return m_aClients[ClientId].m_CustomClient; }
 	bool QuietJoin(int ClientId) override { return m_aClients[ClientId].m_QuietJoin; }
 
-	static void ConHighBandwidth(IConsole::IResult *pResult, void *pUser);
-	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
-	static void ConGetClientTraffic(IConsole::IResult *pResult, void *pUser);
-	bool FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker);
-	void SetCustomClient(int ClientId, const char *pCustomClient);
-	
 	class CWebhook : public IJob
 	{
 		void Run() override;
