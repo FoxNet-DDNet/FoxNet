@@ -38,22 +38,22 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex)
 	CPlayer *pPlayer = pChr->GetPlayer();
 	const int ClientId = pPlayer->GetCid();
 
-	int TileIndex = GameServer()->Collision()->GetTileIndex(MapIndex);
-	int TileFIndex = GameServer()->Collision()->GetFrontTileIndex(MapIndex);
+	int TileIndex = pChr->Collision()->GetTileIndex(MapIndex);
+	int TileFIndex = pChr->Collision()->GetFrontTileIndex(MapIndex);
 
 	//Sensitivity
-	int S1 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
-	int S2 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
-	int S3 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
-	int S4 = GameServer()->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
-	int Tile1 = GameServer()->Collision()->GetTileIndex(S1);
-	int Tile2 = GameServer()->Collision()->GetTileIndex(S2);
-	int Tile3 = GameServer()->Collision()->GetTileIndex(S3);
-	int Tile4 = GameServer()->Collision()->GetTileIndex(S4);
-	int FTile1 = GameServer()->Collision()->GetFrontTileIndex(S1);
-	int FTile2 = GameServer()->Collision()->GetFrontTileIndex(S2);
-	int FTile3 = GameServer()->Collision()->GetFrontTileIndex(S3);
-	int FTile4 = GameServer()->Collision()->GetFrontTileIndex(S4);
+	int S1 = pChr->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
+	int S2 = pChr->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
+	int S3 = pChr->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));
+	int S4 = pChr->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x - pChr->GetProximityRadius() / 3.f, pChr->GetPos().y + pChr->GetProximityRadius() / 3.f));
+	int Tile1 = pChr->Collision()->GetTileIndex(S1);
+	int Tile2 = pChr->Collision()->GetTileIndex(S2);
+	int Tile3 = pChr->Collision()->GetTileIndex(S3);
+	int Tile4 = pChr->Collision()->GetTileIndex(S4);
+	int FTile1 = pChr->Collision()->GetFrontTileIndex(S1);
+	int FTile2 = pChr->Collision()->GetFrontTileIndex(S2);
+	int FTile3 = pChr->Collision()->GetFrontTileIndex(S3);
+	int FTile4 = pChr->Collision()->GetFrontTileIndex(S4);
 
 	const ERaceState PlayerDDRaceState = pChr->m_DDRaceState;
 	bool IsOnStartTile = (TileIndex == TILE_START) || (TileFIndex == TILE_START) || FTile1 == TILE_START || FTile2 == TILE_START || FTile3 == TILE_START || FTile4 == TILE_START || Tile1 == TILE_START || Tile2 == TILE_START || Tile3 == TILE_START || Tile4 == TILE_START;

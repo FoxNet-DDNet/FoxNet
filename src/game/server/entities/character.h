@@ -10,15 +10,16 @@
 #include <game/server/foxnet/vehicles/ufo.h>
 #include <game/server/foxnet/vehicles/snake.h>
 #include <game/mapitems.h>
-#include <game/server/foxnet/entities/light_saber.h>
-#include <game/server/foxnet/entities/portal.h>
-#include <game/server/foxnet/entities/pickupdrop.h>
-#include <game/server/foxnet/cosmetics/headitem.h>
 
 class CGameTeams;
 class CGameWorld;
 class IAntibot;
 struct CAntibotCharacterData;
+
+class CLightSaber;
+class CPortal;
+class CPickupDrop;
+class CHeadItem;
 
 enum
 {
@@ -48,7 +49,7 @@ class CCharacter : public CEntity
 	friend class CSaveHotReloadTee;
 
 public:
-	CCharacter(CGameWorld *pWorld, CNetObj_PlayerInput LastInput);
+	CCharacter(CGameWorld *pWorld, CCollision *pCollision, CNetObj_PlayerInput LastInput);
 
 	void Reset() override;
 	void Destroy() override;

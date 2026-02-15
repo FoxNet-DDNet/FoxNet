@@ -55,6 +55,7 @@ public: // TODO: Maybe make protected
 
 	/* Constructor */
 	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
+	CEntity(CGameWorld *pGameWorld, CCollision *pCollision, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0); // FoxNet
 
 	/* Destructor */
 	virtual ~CEntity();

@@ -137,11 +137,11 @@ public:
 TEST_F(CTestGameWorld, ClosestCharacter)
 {
 	CNetObj_PlayerInput Input = {};
-	CCharacter *pChr1 = new(0) CCharacter(&GameServer()->m_World, Input);
+	CCharacter *pChr1 = new(0) CCharacter(&GameServer()->m_World, GameServer()->Collision(), Input);
 	pChr1->m_Pos = vec2(0, 0);
 	GameServer()->m_World.InsertEntity(pChr1);
 
-	CCharacter *pChr2 = new(1) CCharacter(&GameServer()->m_World, Input);
+	CCharacter *pChr2 = new(1) CCharacter(&GameServer()->m_World, GameServer()->Collision(), Input);
 	pChr2->m_Pos = vec2(10, 10);
 	GameServer()->m_World.InsertEntity(pChr2);
 
@@ -152,11 +152,11 @@ TEST_F(CTestGameWorld, ClosestCharacter)
 TEST_F(CTestGameWorld, IntersectEntity)
 {
 	CNetObj_PlayerInput Input = {};
-	CCharacter *pChrLeft = new(0) CCharacter(&GameServer()->m_World, Input);
+	CCharacter *pChrLeft = new(0) CCharacter(&GameServer()->m_World, GameServer()->Collision(), Input);
 	pChrLeft->m_Pos = vec2(15, 10);
 	GameServer()->m_World.InsertEntity(pChrLeft);
 
-	CCharacter *pChrRight = new(1) CCharacter(&GameServer()->m_World, Input);
+	CCharacter *pChrRight = new(1) CCharacter(&GameServer()->m_World, GameServer()->Collision(), Input);
 	pChrRight->m_Pos = vec2(16, 10);
 	GameServer()->m_World.InsertEntity(pChrRight);
 

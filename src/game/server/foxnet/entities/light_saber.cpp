@@ -1,25 +1,29 @@
 // Made by qxdFox
 #include "light_saber.h"
 
+#include "foxnet_entity.h"
+
 #include <base/log.h>
 #include <base/vmath.h>
 
+#include <engine/server.h>
 #include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamemodes/ddnet.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 #include <game/teamscore.h>
 
-CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LIGHTSABER, Pos)
+#include <vector>
+
+CLightSaber::CLightSaber(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LIGHTSABER, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;
@@ -104,7 +108,7 @@ void CLightSaber::Tick()
 	m_From = vec2(0, 0);
 	m_To = vec2(0, 0);
 	vec2 WantedFrom = m_To + normalize(vec2(pChr->Input()->m_TargetX, pChr->Input()->m_TargetY)) * m_Length;
-	GameServer()->Collision()->IntersectLine(m_To, WantedFrom, &m_From, 0);
+	Collision()->IntersectLine(m_To, WantedFrom, &m_From, 0);
 
 	if(pChr->Core()->m_Solo)
 		return;
@@ -129,8 +133,7 @@ void CLightSaber::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwnerChr)
+	if(!GetCharacter())
 		return;
 
 	if(SnappingClient != SERVER_DEMO_CLIENT)
@@ -139,14 +142,14 @@ void CLightSaber::Snap(int SnappingClient)
 		if(!pSnapPlayer)
 			return;
 
-		if(!pOwnerChr->TeamMask().test(SnappingClient))
+		if(!TeamMask().test(SnappingClient))
 			return;
 
-		if(pSnapPlayer->GetCharacter() && pOwnerChr)
-			if(!pOwnerChr->CanSnapCharacter(SnappingClient))
+		if(pSnapPlayer->GetCharacter() && GetCharacter())
+			if(!GetCharacter()->CanSnapCharacter(SnappingClient))
 				return;
 
-		if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
+		if(GetPlayer()->m_Vanish && SnappingClient != GetPlayer()->GetCid() && SnappingClient != -1)
 			if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 				return;
 	}
@@ -154,11 +157,11 @@ void CLightSaber::Snap(int SnappingClient)
 	if(m_Length <= 0)
 		return;
 
-	vec2 From = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_From;
-	vec2 To = pOwnerChr->GetPredictedPos(SnappingClient, false) + m_To;
+	vec2 From = GetCharacter()->GetPredictedPos(SnappingClient, false) + m_From;
+	vec2 To = GetCharacter()->GetPredictedPos(SnappingClient, false) + m_To;
 
-	const vec2 WantedFrom = To + normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)) * m_Length;
-	GameServer()->Collision()->IntersectLine(To, WantedFrom, &From, 0);
+	const vec2 WantedFrom = To + normalize(vec2(GetCharacter()->Input()->m_TargetX, GetCharacter()->Input()->m_TargetY)) * m_Length;
+	Collision()->IntersectLine(To, WantedFrom, &From, 0);
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

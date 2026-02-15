@@ -2,24 +2,25 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
-#include <base/log.h>
 
-CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE, Pos)
+#include <cmath>
+
+CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PROJECTILE, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -43,18 +44,15 @@ void CEpicCircle::Reset()
 
 void CEpicCircle::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_EpicCircle)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_EpicCircle)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_Pos = pOwner->GetPos();
-	m_TeamMask = pOwner->TeamMask();
+	m_Pos = GetCharacter()->GetPos();
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -70,24 +68,12 @@ void CEpicCircle::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
-
-	if(pOwnerChr->IsPaused())
-		return;
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -95,7 +81,7 @@ void CEpicCircle::Snap(int SnappingClient)
 		if(!pProj)
 			return;
 
-		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
+		vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
 		Pos += m_RotatePos[i];
 
 		pProj->m_X = round_to_int(Pos.x * 100.0f);

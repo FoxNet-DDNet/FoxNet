@@ -557,7 +557,7 @@ public:
 	void SetCustomClient(int ClientId, const char *pCustomClient);
 	bool IncludedInServerInfo(int ClientId);
 
-	void SendMapByName(int ClientId, const char *pMapName) override;
+	bool SendMapByName(int ClientId, const char *pMapName) override;
 	bool DebugDummy(int ClientId) const override { return m_aClients[ClientId].m_DebugDummy; }
 	bool GotDDNetVersionPacket(int ClientId) const override { return m_aClients[ClientId].m_GotDDNetVersionPacket; }
 

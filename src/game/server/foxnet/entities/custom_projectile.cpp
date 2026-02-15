@@ -16,9 +16,9 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
-CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
+CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, vec2 Dir,
 	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
+	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;
@@ -34,7 +34,7 @@ CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos
 
 	m_PrevPos = m_Pos;
 
-	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
 
 	GameWorld()->InsertEntity(this);
 }
@@ -73,7 +73,7 @@ void CCustomProjectile::Tick()
 	Move();
 	HitCharacter();
 
-	if(GameServer()->Collision()->IsSolid(m_Pos.x, m_Pos.y))
+	if(Collision()->IsSolid(m_Pos.x, m_Pos.y))
 	{
 		if(m_Explosive)
 		{
@@ -88,12 +88,12 @@ void CCustomProjectile::Tick()
 		m_CollisionState = COLLIDED_TWICE;
 
 	// weapon teleport
-	// int x = GameServer()->Collision()->GetIndex(m_PrevPos, m_Pos);
+	// int x = Collision()->GetIndex(m_PrevPos, m_Pos);
 	// int z;
 	// if(Config()->m_SvOldTeleportWeapons)
-	//	z = GameServer()->Collision()->IsTeleport(x);
+	//	z = Collision()->IsTeleport(x);
 	// else
-	//	z = GameServer()->Collision()->IsTeleportWeapon(x);
+	//	z = Collision()->IsTeleportWeapon(x);
 	// if(z && ((CGameControllerDDRace *)GameServer()->m_pController)->m_TeleOuts[z - 1].size())
 	//{
 	//	int Num = ((CGameControllerDDRace *)GameServer()->m_pController)->m_TeleOuts[z - 1].size();

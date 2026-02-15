@@ -1265,7 +1265,7 @@ CTeamsCore *CCharacter::TeamsCore()
 }
 
 CCharacter::CCharacter(CGameWorld *pGameWorld, int Id, CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtended) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_CHARACTER,  vec2(0, 0), CCharacterCore::PhysicalSize())
 {
 	m_Id = Id;
 	m_IsLocal = false;

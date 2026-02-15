@@ -189,7 +189,7 @@ void CPickup::Snap(int SnappingClient)
 
 void CPickup::Move()
 {
-	if(Server()->Tick() % (int)(Server()->TickSpeed() * 0.15f) == 0)
+	if(Server()->Tick() % (int)(Server()->TickSpeed() * 0.15f) == 0 && Collision())
 	{
 		GameServer()->Collision()->MoverSpeed(m_Pos.x, m_Pos.y, &m_Core);
 		m_Pos += m_Core;

@@ -48,6 +48,40 @@
 #include <vector>
 #include <cstdio>
 #include <engine/shared/packer.h>
+#include <engine/map.h>
+#include <base/fs.h>
+#include <base/types.h>
+
+CCollision *CGameContext::Collision(int ClientId)
+{
+	if(!CheckClientId(ClientId))
+		return &m_Collision;
+	if(Server()->ClientSlotEmpty(ClientId))
+		return &m_Collision;
+
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
+		return &m_Collision;
+	if(pPlayer->m_MapOverridden)
+		return &m_MapOverride.m_Collision;
+	return &m_Collision;
+}
+
+void CGameContext::CMapOverride::Init()
+{
+	m_Layers.Init(m_pMap.get(), false);
+	m_Collision.Init(&m_Layers);
+	m_MapLoaded = true;
+}
+
+void CGameContext::CMapOverride::Reset()
+{
+	m_pMap.get()->Unload();
+	m_pMap.reset();
+	m_Layers.Unload();
+	m_Collision.Unload();
+	m_MapLoaded = false;
+}
 
 void CGameContext::FoxNetTick()
 {
@@ -218,6 +252,24 @@ void CGameContext::OnFoxNetConsoleInit()
 {
 	m_Scripting.OnConsoleInit(this);
 	RegisterFoxNetCommands();
+	m_MapOverride.m_MapLoaded = false;
+	m_MapOverride.m_pMap = CreateMap();
+
+	const char *pMapName = g_Config.m_SvCasinoMapName;
+	char aBuf[IO_MAX_PATH_LENGTH];
+	str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
+	if(!str_valid_filename(fs_filename(aBuf)))
+	{
+		log_error("server", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
+		return;
+	}
+	if(!m_MapOverride.m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
+	{
+		log_error("server", "Failed to load casino map '%s'", aBuf);
+		return;
+	}
+	log_info("server", "Casino map loaded: %s", aBuf);
+	m_MapOverride.Init();
 }
 
 void CGameContext::FoxNetInit()
@@ -280,7 +332,7 @@ void CGameContext::PowerUpSpawner()
 	std::mt19937 rng{std::random_device{}()};
 	std::uniform_int_distribution<int> dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
 	EPowerUp Type = (EPowerUp)dist(rng);
-	CPowerUp *NewPowerUp = new CPowerUp(&m_World, *RandomPos, Type);
+	CPowerUp *NewPowerUp = new CPowerUp(&m_World, Collision(), *RandomPos, Type);
 
 	m_vPowerups.push_back(NewPowerUp);
 	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;

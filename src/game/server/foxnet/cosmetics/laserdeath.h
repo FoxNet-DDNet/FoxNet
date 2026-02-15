@@ -4,7 +4,10 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <engine/shared/protocol.h>
+
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
 constexpr int MAX_PARTICLES = 28;
@@ -19,9 +22,8 @@ public:
 	int m_TeamMask;
 };
 
-class CLaserDeath : public CEntity
+class CLaserDeath : public CFoxNetEntity
 {
-	int m_Owner;
 	int m_EndTick;
 
 	CSnapData m_SnapData;
@@ -30,11 +32,10 @@ class CLaserDeath : public CEntity
 	bool m_Vanish = false;
 
 public:
-	CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask);
-
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	CLaserDeath(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, CClientMask Mask);
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_LASER_DEATH_H

@@ -51,10 +51,71 @@ CProjectile::CProjectile(
 	m_Freeze = Freeze;
 
 	m_InitDir = InitDir;
-	// m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	// m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
 
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
+	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
+	m_DDRaceTeam = m_Owner == -1 ? 0 : GameServer()->GetDDRaceTeam(m_Owner);
+	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
+
+	// <FoxNet
+	m_CosmeticMask = CClientMask().set();
+	m_OppCosmeticMask = CClientMask().set().reset();
+	if(pOwnerChar)
+	{
+		m_CosmeticMask = pOwnerChar->CosmeticMask(EItemType::Gun);
+		m_OppCosmeticMask = pOwnerChar->OppositeCosmeticMask(EItemType::Gun);
+
+		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
+		m_GunType = pCosmetics->m_GunType;
+		if(pCosmetics->m_GunType > GUNTYPE_NONE && pCosmetics->m_GunType < NUM_GUNTYPES)
+			m_LifeSpan *= 1.25;
+		if(m_GunType == GUNTYPE_LASER)
+			m_ExtraId = Server()->SnapNewId();
+
+		m_MixedShield = pOwnerChar->m_MixedShield;
+		pOwnerChar->m_MixedShield = !pOwnerChar->m_MixedShield;
+	}
+	// FoxNet>
+
+	GameWorld()->InsertEntity(this);
+}
+
+CProjectile::CProjectile(
+	CGameWorld *pGameWorld,
+	CCollision *pCollision,
+	int Type,
+	int Owner,
+	vec2 Pos,
+	vec2 Dir,
+	int Span,
+	bool Freeze,
+	bool Explosive,
+	int SoundImpact,
+	vec2 InitDir,
+	int Layer,
+	int Number) :
+	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PROJECTILE)
+{
+	m_Type = Type;
+	m_Pos = Pos;
+	m_Direction = Dir;
+	m_LifeSpan = Span;
+	m_Owner = Owner;
+	m_SoundImpact = SoundImpact;
+	m_StartTick = Server()->Tick();
+	m_Explosive = Explosive;
+
+	m_Layer = Layer;
+	m_Number = Number;
+	m_Freeze = Freeze;
+
+	m_InitDir = InitDir;
+	// m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
+
+	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
 	m_DDRaceTeam = m_Owner == -1 ? 0 : GameServer()->GetDDRaceTeam(m_Owner);
 	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
@@ -134,7 +195,7 @@ void CProjectile::Tick()
 	vec2 CurPos = GetPos(Ct);
 	vec2 ColPos;
 	vec2 NewPos;
-	int Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, &ColPos, &NewPos);
+	int Collide = Collision()->IntersectLine(PrevPos, CurPos, &ColPos, &NewPos);
 	CCharacter *pOwnerChar = nullptr;
 
 	if(m_Owner >= 0)
@@ -217,16 +278,16 @@ void CProjectile::Tick()
 		if(pOwnerChar && !GLClipped &&
 			((m_Type == WEAPON_GRENADE && pOwnerChar->HasTelegunGrenade()) || (m_Type == WEAPON_GUN && pOwnerChar->HasTelegunGun())))
 		{
-			int MapIndex = GameServer()->Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
-			int TileFIndex = GameServer()->Collision()->GetFrontTileIndex(MapIndex);
-			bool IsSwitchTeleGun = GameServer()->Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
-			bool IsBlueSwitchTeleGun = GameServer()->Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
+			int MapIndex = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
+			int TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
+			bool IsSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
+			bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
 
 			if(IsSwitchTeleGun || IsBlueSwitchTeleGun)
 			{
 				// Delay specifies which weapon the tile should work for.
 				// Delay = 0 means all.
-				int Delay = GameServer()->Collision()->GetSwitchDelay(MapIndex);
+				int Delay = Collision()->GetSwitchDelay(MapIndex);
 
 				if(Delay == 1 && m_Type != WEAPON_GUN)
 					IsSwitchTeleGun = IsBlueSwitchTeleGun = false;
@@ -305,16 +366,16 @@ void CProjectile::Tick()
 		return;
 	}
 
-	int x = GameServer()->Collision()->GetIndex(PrevPos, CurPos);
+	int x = Collision()->GetIndex(PrevPos, CurPos);
 	int z;
 	if(g_Config.m_SvOldTeleportWeapons)
-		z = GameServer()->Collision()->IsTeleport(x);
+		z = Collision()->IsTeleport(x);
 	else
-		z = GameServer()->Collision()->IsTeleportWeapon(x);
-	if(z && !GameServer()->Collision()->TeleOuts(z - 1).empty())
+		z = Collision()->IsTeleportWeapon(x);
+	if(z && !Collision()->TeleOuts(z - 1).empty())
 	{
-		int TeleOut = GameServer()->m_World.m_Core.RandomOr0(GameServer()->Collision()->TeleOuts(z - 1).size());
-		m_Pos = GameServer()->Collision()->TeleOuts(z - 1)[TeleOut];
+		int TeleOut = GameServer()->m_World.m_Core.RandomOr0(Collision()->TeleOuts(z - 1).size());
+		m_Pos = Collision()->TeleOuts(z - 1)[TeleOut];
 		m_StartTick = Server()->Tick();
 	}
 }

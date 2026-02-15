@@ -702,6 +702,21 @@ public:
 
 	void ResetTuning();
 	// <FoxNet
+	CCollision *Collision(int ClientId);
+
+	class CMapOverride
+	{
+	public:
+		std::unique_ptr<IMap> m_pMap;
+		CLayers m_Layers;
+		CCollision m_Collision;
+		bool m_MapLoaded;
+
+		void Init();
+
+		void Reset();
+	} m_MapOverride;
+
 private:
 	class CDamageIndEffects
 	{
@@ -908,6 +923,8 @@ private:
 	static void ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 
 	struct CFakeSnapPlayer
 	{

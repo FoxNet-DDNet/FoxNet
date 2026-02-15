@@ -4,10 +4,11 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CLissajous : public CEntity
+class CLissajous : public CFoxNetEntity
 {
 	enum
 	{
@@ -23,19 +24,17 @@ class CLissajous : public CEntity
 		vec2 m_To;
 	} m_Snap[NUM_IDS];
 
-	int m_Owner;
-
 	int m_StartTick;
 
 	float Flow();
 	vec2 LissajousPos(int Point);
 
 public:
-	CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CLissajous(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_LISSAJOUS_H

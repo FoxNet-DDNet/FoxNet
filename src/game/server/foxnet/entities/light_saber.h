@@ -4,20 +4,19 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
 constexpr float LIGHT_SABER_SPEED = 10.0f;
 constexpr float LIGHT_SABER_MAX_LENGTH = 220.0f;
 
-class CLightSaber : public CEntity
+class CLightSaber : public CFoxNetEntity
 {
 	vec2 m_From;
 	vec2 m_To;
 
 	float m_Length = 0;
-
-	int m_Owner;
 
 	enum States
 	{
@@ -30,13 +29,13 @@ class CLightSaber : public CEntity
 	int m_State = 0;
 
 public:
-	CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CLightSaber(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
 	void OnFire();
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_ENTITIES_LIGHT_SABER_H

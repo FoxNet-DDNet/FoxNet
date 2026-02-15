@@ -3,29 +3,26 @@
 
 #include <base/vmath.h>
 
-#include <engine/shared/protocol.h>
-
-#include <game/server/entity.h>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CEpicCircle : public CEntity
+class CEpicCircle : public CFoxNetEntity
 {
 	enum
 	{
 		MAX_PARTICLES = 9
 	};
 
-	CClientMask m_TeamMask;
-	int m_Owner;
 	int m_aIds[MAX_PARTICLES];
 	vec2 m_RotatePos[MAX_PARTICLES];
 
 public:
-	CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CEpicCircle(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_EPIC_CIRCLE_H

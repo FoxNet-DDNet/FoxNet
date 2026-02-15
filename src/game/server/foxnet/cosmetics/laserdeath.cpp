@@ -15,15 +15,17 @@
 #include <game/server/player.h>
 
 #include <random>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 
-CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASERDEATH, Pos)
+CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, CClientMask Mask) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LASERDEATH, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
 	m_Mask = Mask;
 
-	m_Vanish = GameServer()->m_apPlayers[m_Owner] && GameServer()->m_apPlayers[m_Owner]->m_Vanish;
+	m_Vanish = GetPlayer() && GetPlayer()->m_Vanish;
 
 	std::random_device rd;
 	std::uniform_int_distribution<long> dist(5.0, 50.0);
@@ -74,17 +76,12 @@ void CLaserDeath::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(!m_Mask.test(SnappingClient))
 		return;
-
-	if(m_Vanish && SnappingClient != m_Owner && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

@@ -94,7 +94,7 @@ class CRoulette : public CEntity
 	void StartSpin();
 
 public:
-	CRoulette(CGameWorld *pGameWorld, vec2 Pos);
+	CRoulette(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos);
 
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
 

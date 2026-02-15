@@ -5,18 +5,17 @@
 
 #include <engine/shared/protocol.h>
 
-#include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
+#include <game/collision.h>
 
-class CLovely : public CEntity
+class CLovely : public CFoxNetEntity
 {
 	enum
 	{
 		MAX_HEARTS = 4
 	};
 
-	CClientMask m_TeamMask;
-	int m_Owner;
 	float m_SpawnDelay;
 
 	struct SLovelyData
@@ -29,11 +28,11 @@ class CLovely : public CEntity
 	void SpawnNewHeart();
 
 public:
-	CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CLovely(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_LOVELY_H

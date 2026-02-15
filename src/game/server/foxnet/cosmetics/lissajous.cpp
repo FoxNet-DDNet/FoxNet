@@ -21,8 +21,8 @@
 
 constexpr float Speed = 100.0f;
 
-CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LISSAJOUS, Pos)
+CLissajous::CLissajous(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LISSAJOUS, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -51,17 +51,15 @@ void CLissajous::Reset()
 
 void CLissajous::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_Lissajous)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_Lissajous)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_Pos = pOwner->GetPos();
+	m_Pos = GetCharacter()->GetPos();
 
 	for(int Idx = 0; Idx < NUM_POINTS; ++Idx)
 	{
@@ -106,27 +104,14 @@ void CLissajous::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
-
-	vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
+	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{

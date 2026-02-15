@@ -35,7 +35,7 @@ void CGun::Tick()
 	if(Server()->Tick() % (int)(Server()->TickSpeed() * 0.15f) == 0)
 	{
 		m_EvalTick = Server()->Tick();
-		GameServer()->Collision()->MoverSpeed(m_Pos.x, m_Pos.y, &m_Core);
+		Collision()->MoverSpeed(m_Pos.x, m_Pos.y, &m_Core);
 		m_Pos += m_Core;
 	}
 	if(g_Config.m_SvPlasmaPerSec > 0)
@@ -89,7 +89,7 @@ void CGun::Fire()
 		}
 
 		// Turrets can shoot only at reachable, alive players
-		int IsReachable = !GameServer()->Collision()->IntersectLine(m_Pos, pTarget->m_Pos, nullptr, nullptr);
+		int IsReachable = !Collision()->IntersectLine(m_Pos, pTarget->m_Pos, nullptr, nullptr);
 		if(IsReachable && pTarget->IsAlive())
 		{
 			// Turrets fire on solo players regardless of the rest of the team

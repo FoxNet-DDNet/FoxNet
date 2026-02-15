@@ -4,9 +4,8 @@
 
 #include <base/vmath.h>
 
-#include <engine/shared/protocol.h>
-
-#include <game/server/entity.h>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
 enum HeadItemType
@@ -15,10 +14,8 @@ enum HeadItemType
 	HEADITEM_COSMETIC = 1,
 };
 
-
-class CHeadItem : public CEntity
+class CHeadItem : public CFoxNetEntity
 {
-	int m_Owner;
 	int m_Type;
 	vec2 m_Offset;
 
@@ -27,11 +24,10 @@ class CHeadItem : public CEntity
 	int m_aIds[2];
 
 public:
-	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
-
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	CHeadItem(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, int Type, vec2 Offset);
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_HEADITEM_H

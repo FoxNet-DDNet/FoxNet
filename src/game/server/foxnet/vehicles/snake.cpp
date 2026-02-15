@@ -161,7 +161,7 @@ bool CSnake::HandleInput()
 			m_vSnake[i].m_Pos = m_vSnake[i - 1].m_Pos;
 
 	m_vSnake[0].m_Pos = RoundPos(m_vSnake[0].m_Pos + m_Dir * 32.f);
-	if(g_Config.m_SvSnakeCollision && GameServer()->Collision()->TestBox(m_vSnake[0].m_Pos, CCharacterCore::PhysicalSizeVec2()))
+	if(g_Config.m_SvSnakeCollision && m_pCharacter->Collision()->TestBox(m_vSnake[0].m_Pos, CCharacterCore::PhysicalSizeVec2()))
 	{
 		GameServer()->CreateExplosion(m_vSnake[0].m_Pos, m_pCharacter->GetPlayer()->GetCid(), WEAPON_GRENADE, true, m_pCharacter->Team(), m_pCharacter->TeamMask());
 		SetActive(false);

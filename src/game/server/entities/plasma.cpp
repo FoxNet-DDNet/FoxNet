@@ -86,7 +86,7 @@ bool CPlasma::HitCharacter(CCharacter *pTarget)
 bool CPlasma::HitObstacle(CCharacter *pTarget)
 {
 	// Check if the plasma bullet is stopped by a solid block or a laser stopper
-	int HasIntersection = GameServer()->Collision()->IntersectNoLaser(m_Pos, m_Pos + m_Core, nullptr, nullptr);
+	int HasIntersection = Collision()->IntersectNoLaser(m_Pos, m_Pos + m_Core, nullptr, nullptr);
 	if(HasIntersection)
 	{
 		if(m_Explosive)

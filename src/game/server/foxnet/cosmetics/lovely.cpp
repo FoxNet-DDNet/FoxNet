@@ -9,15 +9,15 @@
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
-#include <cstdlib>
-
-CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LOVELY, Pos)
+CLovely::CLovely(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LOVELY, Pos)
 {
 	m_Owner = Owner;
 	m_SpawnDelay = 0;
@@ -40,18 +40,15 @@ void CLovely::Reset()
 
 void CLovely::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_Lovely)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_Lovely)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_Pos = pOwner->GetPos();
-	m_TeamMask = pOwner->TeamMask();
+	m_Pos = GetCharacter()->GetPos();
 
 	m_SpawnDelay--;
 	if(m_SpawnDelay <= 0)
@@ -69,7 +66,7 @@ void CLovely::Tick()
 		m_aData[i].m_Lifespan--;
 		m_aData[i].m_Pos.y -= 5.f;
 
-		if(m_aData[i].m_Lifespan == 0 || GameServer()->Collision()->TestBox(m_aData[i].m_Pos, vec2(14.f, 14.f)))
+		if(m_aData[i].m_Lifespan == 0 || Collision()->TestBox(m_aData[i].m_Pos, vec2(14.f, 14.f)))
 			m_aData[i].m_Lifespan = -1;
 	}
 }
@@ -81,7 +78,7 @@ void CLovely::SpawnNewHeart()
 		if(m_aData[i].m_Lifespan > 0)
 			continue;
 
-		CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
+		CCharacter *pOwner = GetCharacter();
 		m_aData[i].m_Lifespan = Server()->TickSpeed() / 2;
 		m_aData[i].m_Pos = vec2(pOwner->GetPos().x + (rand() % 50 - 25), pOwner->GetPos().y - 30);
 		pOwner->SetEmote(EMOTE_HAPPY, Server()->Tick() + Server()->TickSpeed());
@@ -94,28 +91,12 @@ void CLovely::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
-		return;
-
-	if(pOwnerChr->IsPaused())
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

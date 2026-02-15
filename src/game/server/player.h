@@ -421,7 +421,7 @@ public:
 	// <FoxNet
 private:
 	void FoxNetReset();
-	void OverrideName(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
+	void Overriddename(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
 
 	int m_RainbowColor = 0;
 	void OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
@@ -579,6 +579,7 @@ public:
 
 	float StatMultiplier();
 
+	bool m_MapOverridden = false;
 	// FoxNet>
 };
 #endif

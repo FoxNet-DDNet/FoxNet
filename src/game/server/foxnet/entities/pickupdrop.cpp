@@ -31,8 +31,8 @@
 #include <limits>
 #include <vector>
 
-CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
+CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, CCollision *pCollision, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
+	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
 {
 	m_StartTick = Server()->Tick();
 
@@ -122,8 +122,8 @@ void CPickupDrop::Tick()
 		}
 	}
 
-	int CurrentIndex = GameServer()->Collision()->GetMapIndex(m_Pos);
-	m_TuneZone = GameServer()->Collision()->IsTune(CurrentIndex);
+	int CurrentIndex = Collision()->GetMapIndex(m_Pos);
+	m_TuneZone = Collision()->IsTune(CurrentIndex);
 
 	m_MoveRestrictions = Collision()->GetMoveRestrictions(IsSwitchActiveCb, this, m_Pos, 18.0f, CurrentIndex);
 

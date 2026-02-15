@@ -11,21 +11,22 @@
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
 #include <random>
-#include <engine/shared/protocol.h>
 
 constexpr int LaunchSpeed = -25;
 constexpr float LaunchTime = 1.5f;
 constexpr float FireworkTime = 3.5f;
 constexpr float MaxSpeed = 20.0f;
 
-CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_FIREWORK, Pos)
+CFirework::CFirework(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_FIREWORK, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;
@@ -35,11 +36,10 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_Team = -1;
 	m_Mask = CClientMask();
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	if(pOwnerChr)
+	if(GetCharacter())
 	{
-		m_Team = pOwnerChr->Team();
-		m_Mask = pOwnerChr->TeamMask();
+		m_Team = GetCharacter()->Team();
+		m_Mask = GetCharacter()->TeamMask();
 	}
 
 	std::random_device rd;
@@ -74,7 +74,7 @@ void CFirework::Tick()
 {
 	if(m_State == State::START)
 	{
-		m_Pos.y += (LaunchSpeed * LaunchTime) / Server()->TickSpeed() * (LaunchTime * 2 + 0.25f/*padding*/) ;
+		m_Pos.y += (LaunchSpeed * LaunchTime) / Server()->TickSpeed() * (LaunchTime * 2 + 0.25f /*padding*/);
 
 		if(m_StartTick + Server()->TickSpeed() * LaunchTime < Server()->Tick())
 		{
@@ -111,25 +111,12 @@ void CFirework::Tick()
 
 void CFirework::Snap(int SnappingClient)
 {
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
-
-	if(m_Owner != SnappingClient && !pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	if(m_State == State::START)
 	{

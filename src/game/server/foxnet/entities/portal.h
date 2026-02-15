@@ -61,7 +61,7 @@ class CPortal : public CEntity
 	void HandleTele();
 
 public:
-	CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CPortal(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
 	void OnFire();
 

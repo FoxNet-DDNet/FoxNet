@@ -3,22 +3,23 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
+#include <base/math.h>
 #include <base/vmath.h>
+
+#include <engine/shared/config.h>
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
-#include <game/server/foxnet/shop.h>
-#include <base/math.h>
-#include <base/log.h>
 
-CDotTrail::CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
+CDotTrail::CDotTrail(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_DOT_TRAIL, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -36,17 +37,15 @@ void CDotTrail::Reset()
 
 void CDotTrail::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || pOwnerPl->Cosmetics()->m_Trail != TRAILTYPE_DOT)
+	if(!GetPlayer() || GetPlayer()->Cosmetics()->m_Trail != TRAILTYPE_DOT)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_Pos = pOwner->GetPos();
+	m_Pos = GetCharacter()->GetPos();
 }
 
 void CDotTrail::Snap(int SnappingClient)
@@ -54,34 +53,18 @@ void CDotTrail::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowTrails)
 		return;
 
-	if(pOwnerChr->IsPaused())
-		return;
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
-
 	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
 	if(!pProj)
 		return;
 
-	vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
+	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
 
 	pProj->m_X = round_to_int(Pos.x * 100.0f);
 	pProj->m_Y = round_to_int(Pos.y * 100.0f);

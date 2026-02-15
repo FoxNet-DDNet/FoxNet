@@ -3,28 +3,26 @@
 
 #include "game/server/entities/character.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/gamecore.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 
 #include <cmath>
-#include <cstdlib>
-#include <base/log.h>
 
-CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos)
+CPickupPet::CPickupPet(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PICKUP, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -42,34 +40,31 @@ void CPickupPet::Reset()
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	if(pOwner->Core()->m_FakeTuned)
+	if(GetCharacter()->Core()->m_FakeTuned)
 	{
-		GameServer()->ResetFakeTunes(pOwner->GetPlayer()->GetCid(), pOwner->GetOverriddenTuneZone());
+		GameServer()->ResetFakeTunes(GetPlayer()->GetCid(), GetCharacter()->GetOverriddenTuneZone());
 	}
 }
 
 void CPickupPet::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_PickupPet)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_PickupPet)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
 	if(m_PetMode == PET_MODE_AFK)
-		PlayerAfkMode(pOwner);
+		PlayerAfkMode();
 	else if(m_PetMode == PET_MODE_FOLLOW)
-		FollowMode(pOwner);
+		FollowMode();
 	else
-		StaticMode(pOwner);
+		StaticMode();
 }
 
 void CPickupPet::Snap(int SnappingClient)
@@ -77,25 +72,12 @@ void CPickupPet::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	if(Server()->Tick() > m_SwitchDelay)
 	{
@@ -104,7 +86,7 @@ void CPickupPet::Snap(int SnappingClient)
 		else
 			m_CurType = POWERUP_ARMOR;
 
-		m_SwitchDelay = Server()->Tick() + Server()->TickSpeed();
+		m_SwitchDelay = static_cast<int64_t>(Server()->Tick()) + Server()->TickSpeed();
 	}
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
@@ -116,23 +98,23 @@ void CPickupPet::Snap(int SnappingClient)
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, m_CurType, 0, -1, PICKUPFLAG_NO_PREDICT);
 }
 
-void CPickupPet::PlayerAfkMode(CCharacter *pOwner)
+void CPickupPet::PlayerAfkMode()
 {
 	// ToDo: add some afk animations to the pet
 }
 
-void CPickupPet::FollowMode(CCharacter *pOwner)
+void CPickupPet::FollowMode()
 {
-	vec2 TargetPos = pOwner->GetPos();
+	vec2 TargetPos = GetCharacter()->GetPos();
 	vec2 Offset = vec2(0.0f, 0.0f);
 	Offset.y = -72;
 
 	m_aSpeed = 0.1f;
-	bool LookingLeft = pOwner->Core()->m_Angle > 402;
+	bool LookingLeft = GetCharacter()->Core()->m_Angle > 402;
 
-	if(abs(pOwner->Core()->m_Vel.x) < 2.5f)
+	if(abs(GetCharacter()->Core()->m_Vel.x) < 2.5f)
 	{
-		if(pOwner->IsGrounded())
+		if(GetCharacter()->IsGrounded())
 			Offset.y += 10.0f * sin(Server()->Tick() * 1.0f * pi / Server()->TickSpeed());
 		Offset.x = 45;
 	}
@@ -141,47 +123,22 @@ void CPickupPet::FollowMode(CCharacter *pOwner)
 		Offset.x = 35;
 	}
 
-	bool FollowMouse = pOwner->GetPlayer()->m_PlayerFlags & PLAYERFLAG_AIM && pOwner->IsGrounded();
-
-	int Zone = pOwner->GetOverriddenTuneZone();
+	bool FollowMouse = GetPlayer()->m_PlayerFlags & PLAYERFLAG_AIM && GetCharacter()->IsGrounded();
 
 	if(FollowMouse)
 	{
 		Offset = vec2(0.0f, 0.0f);
 		m_aSpeed = 0.08f;
-		TargetPos = pOwner->GetCursorPos();
-
-		const float MaxDistance = 300.0f;
-		vec2 PlayerPos = pOwner->GetPos();
-		vec2 Direction = TargetPos - PlayerPos;
-		float Distance = length(Direction);
-
-		CTuningParams FakeTuning = GameServer()->TuningList()[Zone];
-
-		if(Distance > MaxDistance)
-		{
-			Direction = normalize(Direction);
-			TargetPos = PlayerPos + Direction * MaxDistance;
-
-			FakeTuning.m_HookLength = MaxDistance;
-		}
-		else
-			FakeTuning.m_HookLength = Distance;
-
-		GameServer()->SendFakeTuningParams(pOwner->GetPlayer()->GetCid(), FakeTuning);
-	}
-	else if(pOwner->Core()->m_FakeTuned)
-	{
-		GameServer()->ResetFakeTunes(pOwner->GetPlayer()->GetCid(), Zone);
+		TargetPos = GetCharacter()->GetCursorPos();
 	}
 
-	bool ThreeBlocksUp = GameServer()->Collision()->CheckPoint(pOwner->GetPos() + vec2(0, -3.0f * 32.0f));
+	bool ThreeBlocksUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -3.0f * 32.0f));
 
-	bool OneHalfBlocksUp = GameServer()->Collision()->CheckPoint(pOwner->GetPos() + vec2(0, -1.5f * 32.0f));
-	bool OneHalfBlocksDown = GameServer()->Collision()->CheckPoint(pOwner->GetPos() + vec2(0, 1.5f * 32.0f));
+	bool OneHalfBlocksUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -1.5f * 32.0f));
+	bool OneHalfBlocksDown = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 1.5f * 32.0f));
 
-	bool OneBlockUp = GameServer()->Collision()->CheckPoint(pOwner->GetPos() + vec2(0, -32.0f));
-	bool OneBlockDown = GameServer()->Collision()->CheckPoint(pOwner->GetPos() + vec2(0, 32.0f));
+	bool OneBlockUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -32.0f));
+	bool OneBlockDown = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 32.0f));
 
 	if(OneBlockUp)
 	{
@@ -209,13 +166,13 @@ void CPickupPet::FollowMode(CCharacter *pOwner)
 	{
 		float ExtraOffset = abs(i);
 
-		if(TargetPos.x < m_aPos.x && GameServer()->Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * 32.0f, 0.0f)))
+		if(TargetPos.x < m_aPos.x && Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * 32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * 32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)
 				Offset.y += 48.0f;
 		}
-		else if(TargetPos.x > m_aPos.x && GameServer()->Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * -32.0f, 0.0f)))
+		else if(TargetPos.x > m_aPos.x && Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * -32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * -32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)
@@ -231,13 +188,15 @@ void CPickupPet::FollowMode(CCharacter *pOwner)
 	NewPos.y = m_Pos.y + m_aSpeed * (TargetPos.y - m_Pos.y);
 
 	// Check for collision with blocks
-	bool CollidesLeft = NewPos.x < m_Pos.x && GameServer()->Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
-	bool CollidesRight = NewPos.x > m_Pos.x && GameServer()->Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
-	bool CollidesFloor = NewPos.y > m_Pos.y && GameServer()->Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
-	bool CollidesCeiling = NewPos.y < m_Pos.y && GameServer()->Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
+	bool CollidesLeft = NewPos.x < m_Pos.x && Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
+	bool CollidesRight = NewPos.x > m_Pos.x && Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
+	bool CollidesFloor = NewPos.y > m_Pos.y && Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
+	bool CollidesCeiling = NewPos.y < m_Pos.y && Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
 
 	if((!CollidesLeft && !CollidesRight && !CollidesFloor && !CollidesCeiling) || !FollowMouse)
+	{
 		m_Pos = NewPos;
+	}
 	else
 	{
 		if(!CollidesLeft && !CollidesRight)
@@ -260,12 +219,6 @@ void CPickupPet::FollowMode(CCharacter *pOwner)
 	}
 }
 
-void CPickupPet::StaticMode(CCharacter *pOwner)
+void CPickupPet::StaticMode()
 {
-	int Zone = pOwner->GetOverriddenTuneZone();
-
-	if(pOwner->Core()->m_FakeTuned)
-	{
-		GameServer()->ResetFakeTunes(pOwner->GetPlayer()->GetCid(), Zone);
-	}
 }

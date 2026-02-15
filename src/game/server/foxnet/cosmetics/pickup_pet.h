@@ -4,10 +4,10 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CPickupPet : public CEntity
+class CPickupPet : public CFoxNetEntity
 {
 	enum PetMode
 	{
@@ -19,7 +19,6 @@ class CPickupPet : public CEntity
 	vec2 m_aPos;
 
 	float m_aSpeed;
-	int m_Owner;
 
 	int m_CurType;
 	int64_t m_SwitchDelay;
@@ -27,18 +26,18 @@ class CPickupPet : public CEntity
 	int m_PetMode;
 
 public:
-	CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CPickupPet(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 
 	void SetPetMode(int Mode) { m_PetMode = Mode; }
-	int GetPetMode() { return m_PetMode; }
+	int GetPetMode() const { return m_PetMode; }
 
-	void PlayerAfkMode(CCharacter *pOwner);
-	void StaticMode(CCharacter *pOwner);
-	void FollowMode(CCharacter *pOwner);
+	void PlayerAfkMode();
+	void StaticMode();
+	void FollowMode();
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_PICKUPPET_H

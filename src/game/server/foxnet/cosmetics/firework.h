@@ -4,17 +4,18 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
-#include <game/server/gameworld.h>
-#include <cstdint>
 #include <engine/shared/protocol.h>
+
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
+#include <game/server/gameworld.h>
+
+#include <cstdint>
 
 static constexpr int MAX_FIREWORKS = 25;
 
-class CFirework : public CEntity
+class CFirework : public CFoxNetEntity
 {
-	int m_Owner;
-
 	int m_Team;
 	CClientMask m_Mask;
 
@@ -36,11 +37,11 @@ class CFirework : public CEntity
 	int m_aIds[MAX_FIREWORKS];
 
 public:
-	CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CFirework(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_FIREWORK_H

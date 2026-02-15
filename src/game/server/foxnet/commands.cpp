@@ -1611,7 +1611,7 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 
 	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
 
-	new CPickupDrop(&pSelf->m_World, -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
+	new CPickupDrop(&pSelf->m_World, pChr->Collision(), -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
 }
 
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
@@ -1783,7 +1783,7 @@ void CGameContext::ConLaserText(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pText = pResult->NumArguments() ? pResult->GetString(0) : "noob";
 
-	new CLaserText(&pSelf->m_World, Pos, ClientId, 250, pText);
+	new CLaserText(&pSelf->m_World, pChr->Collision(), Pos, ClientId, 250, pText);
 }
 
 void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData)
@@ -1800,7 +1800,7 @@ void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData
 
 	const vec2 Pos = pChr->m_Pos + vec2(0, -60);
 	const char *pText = pResult->GetString(0);
-	new CProjectileText(&pSelf->m_World, Pos, ClientId, 250, pText, WEAPON_HAMMER);
+	new CProjectileText(&pSelf->m_World, pChr->Collision(), Pos, ClientId, 250, pText, WEAPON_HAMMER);
 }
 
 void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
@@ -1977,8 +1977,49 @@ void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserDat
 	pSelf->CreateSoundGlobal(Sound);
 }
 
+void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	if(!pSelf->m_MapOverride.m_MapLoaded)
+	{
+		pSelf->SendChatTarget(Victim, "This server doesn't have a Casino Map loaded");
+		return;
+	}
+	if(!CheckClientId(Victim))
+		return;
+	if(pSelf->Server()->ClientSlotEmpty(Victim))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->m_MapOverridden)
+	{
+		if(!pSelf->Server()->SendMapByName(Victim, g_Config.m_SvCasinoMapName))
+			return;
+		pPlayer->m_MapOverridden = true;
+
+	}	
+	else
+	{
+		if(pSelf->Server()->SendMapByName(Victim, pSelf->Map()->BaseName()))
+			return;
+		pPlayer->m_MapOverridden = false;
+	}
+
+	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	if(pChr)
+	{
+		pPlayer->m_PreviousDieTick = pPlayer->m_DieTick = pSelf->Server()->Tick();
+		pChr->Die(-1, WEAPON_GAME);
+	}
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
+	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Play a sound globally for everyone");
+
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 
 	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");

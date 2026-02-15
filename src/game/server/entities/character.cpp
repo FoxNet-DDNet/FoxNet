@@ -63,8 +63,8 @@
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
-CCharacter::CCharacter(CGameWorld *pWorld, CNetObj_PlayerInput LastInput) :
-	CEntity(pWorld, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
+CCharacter::CCharacter(CGameWorld *pWorld, CCollision *pCollision, CNetObj_PlayerInput LastInput) :
+	CEntity(pWorld, pCollision, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
 {
 	m_Health = 0;
 	m_Armor = 0;
@@ -703,6 +703,7 @@ void CCharacter::FireWeapon()
 
 		new CProjectile(
 			GameWorld(),
+			Collision(),
 			WEAPON_GRENADE, // Type
 			m_pPlayer->GetCid(), // Owner
 			ProjStartPos, // Pos
@@ -752,6 +753,7 @@ void CCharacter::FireWeapon()
 	{
 		new CCustomProjectile(
 			GameWorld(),
+			Collision(),
 			m_pPlayer->GetCid(), // owner
 			ProjStartPos, // pos
 			Direction, // dir
@@ -767,7 +769,7 @@ void CCharacter::FireWeapon()
 	case WEAPON_LIGHTSABER:
 	{
 		if(!m_pLightSaber)
-			m_pLightSaber = new CLightSaber(GameWorld(), m_pPlayer->GetCid(), m_Pos);
+			m_pLightSaber = new CLightSaber(GameWorld(), Collision(), m_pPlayer->GetCid(), m_Pos);
 		if(m_pLightSaber)
 			m_pLightSaber->OnFire();
 	}
@@ -776,7 +778,7 @@ void CCharacter::FireWeapon()
 	case WEAPON_PORTALGUN:
 	{
 		if(!m_pPortal)
-			m_pPortal = new CPortal(GameWorld(), m_pPlayer->GetCid(), m_Pos);
+			m_pPortal = new CPortal(GameWorld(), Collision(), m_pPlayer->GetCid(), m_Pos);
 		if(m_pPortal)
 			m_pPortal->OnFire();
 	}
@@ -1219,7 +1221,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	}
 	case DEATHTYPE_LASER:
 	{
-		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask(EItemType::Death));
+		new CLaserDeath(GameWorld(), Collision(), GetPlayer()->GetCid(), m_Pos, CosmeticMask(EItemType::Death));
 		break;
 	}
 	case DEATHTYPE_DAMAGEIND:
@@ -3125,7 +3127,7 @@ void CCharacter::FoxNetSpawn()
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
-		new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
+		new CHeadItem(GameWorld(), Collision(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
 	}
 	if(!m_ShouldSolo)
 		m_ShouldSolo = true; // Next spawn will be solo
@@ -3265,6 +3267,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 
 		new CProjectile(
 			GameWorld(),
+			Collision(),
 			WEAPON_GUN, // Type
 			m_pPlayer->GetCid(), // Owner
 			ProjStartPos, // Pos
@@ -3418,7 +3421,7 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	{
 		if(Ability == ABILITY_FIREWORK)
 		{
-			new CFirework(GameWorld(), m_pPlayer->GetCid(), m_Pos);
+			new CFirework(GameWorld(), Collision(), m_pPlayer->GetCid(), m_Pos);
 			m_VoteActionDelay = Server()->TickSpeed() * 3;
 		}
 		else if(Ability == ABILITY_TELEKINESIS)
@@ -3540,7 +3543,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 	if(Type <= WEAPON_GUN)
 		Lifetime = 120;
 
-	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
+	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), Collision(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
 
 	if(!Death)
@@ -3566,7 +3569,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 bool CCharacter::HasLineOfSight(vec2 Pos)
 {
 	vec2 tmp;
-	return GameServer()->Collision()->IntersectLine(m_Pos, Pos, &tmp, &tmp) == 0;
+	return Collision()->IntersectLine(m_Pos, Pos, &tmp, &tmp) == 0;
 }
 
 void CCharacter::SetActiveWeapon(int ActiveWeap)

@@ -6,6 +6,10 @@
 
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
+#include <generated/protocol.h>
+#include <base/vmath.h>
+#include <game/collision.h>
+#include <game/server/gameworld.h>
 
 enum
 {
@@ -17,7 +21,7 @@ enum
 class CCustomProjectile : public CEntity
 {
 public:
-	CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
+	CCustomProjectile(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, vec2 Dir,
 		bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime = 6.0f, float Accel = 1.0f, float Speed = 10.0f);
 
 	virtual void Reset() override;

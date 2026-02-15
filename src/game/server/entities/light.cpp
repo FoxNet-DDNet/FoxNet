@@ -75,7 +75,7 @@ void CLight::Step()
 	Move();
 	const vec2 Direction = vec2(std::sin(m_Rotation), std::cos(m_Rotation));
 	const vec2 NextPosition = m_Pos + normalize(Direction) * m_CurveLength;
-	GameServer()->Collision()->IntersectNoLaser(m_Pos, NextPosition, &m_To, nullptr);
+	Collision()->IntersectNoLaser(m_Pos, NextPosition, &m_To, nullptr);
 }
 
 void CLight::Reset()
@@ -88,7 +88,7 @@ void CLight::Tick()
 	if(Server()->Tick() % (int)(Server()->TickSpeed() * 0.15f) == 0)
 	{
 		m_EvalTick = Server()->Tick();
-		GameServer()->Collision()->MoverSpeed(m_Pos.x, m_Pos.y, &m_Core);
+		Collision()->MoverSpeed(m_Pos.x, m_Pos.y, &m_Core);
 		m_Pos += m_Core;
 		Step();
 	}

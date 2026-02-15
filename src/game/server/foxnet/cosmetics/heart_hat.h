@@ -4,27 +4,26 @@
 
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CHeartHat : public CEntity
+class CHeartHat : public CFoxNetEntity
 {
 	enum
 	{
 		NUM_HEARTS = 2
 	};
 
-	int m_Owner;
 	int m_aIds[NUM_HEARTS];
 	float m_Dist;
 	bool m_switch;
 
 public:
-	CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	CHeartHat(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COSMETICS_HEARTHAT_H

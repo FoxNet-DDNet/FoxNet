@@ -28,6 +28,7 @@ public:
 	int GetId() const { return m_Id; }
 
 	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
+	CEntity(CGameWorld *pGameWorld, int Objtype, CCollision *pCollision, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 	virtual ~CEntity();
 
 	std::vector<SSwitchers> &Switchers() { return m_pGameWorld->Switchers(); }

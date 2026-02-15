@@ -2872,6 +2872,8 @@ if(SERVER)
     foxnet/cosmetics/staff_ind.h
     foxnet/entities/custom_projectile.cpp
     foxnet/entities/custom_projectile.h
+    foxnet/entities/foxnet_entity.cpp
+    foxnet/entities/foxnet_entity.h
     foxnet/entities/light_saber.cpp
     foxnet/entities/light_saber.h
     foxnet/entities/pickupdrop.cpp

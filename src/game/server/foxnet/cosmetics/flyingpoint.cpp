@@ -10,15 +10,17 @@
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
-#include <game/server/player.h>
 
 #include <algorithm>
 
-CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, vec2 Pos, int To, int Owner, vec2 InitialVel, vec2 ToPos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_FLYINGPOINT, Pos)
+// Made by qxdFox
+CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int To, int Owner, vec2 InitialVel, vec2 ToPos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_FLYINGPOINT, Pos)
 {
 	m_Pos = Pos;
 	m_PrevPos = Pos;
@@ -82,24 +84,8 @@ void CFlyingPoint::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChar || !pSnapPlayer)
+	if(!CanSnapEntity(SnappingClient))
 		return;
-
-	// if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
-	//	return;
-
-	if(!pOwnerChar->TeamMask().test(SnappingClient))
-		return;
-
-	if(pOwnerChar->IsPaused())
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChar)
-		if(!pOwnerChar->CanSnapCharacter(SnappingClient))
-			return;
 
 	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
 	if(!pProj)

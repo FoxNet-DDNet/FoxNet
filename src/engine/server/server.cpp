@@ -5005,19 +5005,19 @@ void CServer::SetQuietBan(bool Quiet)
 	m_NetServer.NetBan()->m_QuietBan = Quiet;
 }
 
-void CServer::SendMapByName(int ClientId, const char *pMapName)
+bool CServer::SendMapByName(int ClientId, const char *pMapName)
 {
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "invalid client id");
 
 	if(m_aClients[ClientId].m_State != CClient::STATE_INGAME)
 	{
 		log_info("server", "SendMapByName: client needs to be ingame");
-		return;
+		return false;
 	}
 	if(!pMapName || !pMapName[0])
 	{
 		log_info("server", "SendMapByName: empty map name");
-		return;
+		return false;
 	}
 
 	const bool Sixup = IsSixup(ClientId);
@@ -5030,7 +5030,7 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 	if(!str_valid_filename(fs_filename(aPath)))
 	{
 		log_info("server", "SendMapByName: invalid map filename '%s'", aPath);
-		return;
+		return false;
 	}
 
 	void *pDataVoid = nullptr;
@@ -5038,7 +5038,7 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 	if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
 	{
 		log_info("server", "SendMapByName: couldn't load '%s'", aPath);
-		return;
+		return false;
 	}
 	unsigned char *pData = (unsigned char *)pDataVoid;
 
@@ -5115,6 +5115,7 @@ void CServer::SendMapByName(int ClientId, const char *pMapName)
 	}
 
 	log_info("server", "SendMapByName: sent override map '%s' to cid=%d", pMapName, ClientId);
+	return true;
 }
 
 void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)

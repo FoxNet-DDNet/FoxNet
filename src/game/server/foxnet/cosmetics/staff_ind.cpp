@@ -3,34 +3,30 @@
 #include "game/server/entities/character.h"
 
 #include <base/log.h>
-#include <base/math.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
-#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 
 #include <algorithm>
 #include <iterator>
+#include <game/collision.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 
-CStaffInd::CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_STAFF_IND, Pos)
+CStaffInd::CStaffInd(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_STAFF_IND, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
 
 	m_Dist = 0.f;
 	m_BallFirst = true;
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 
 	for(int i = 0; i < NUM_IDS; i++)
 		m_aIds[i] = Server()->SnapNewId();
@@ -52,18 +48,15 @@ void CStaffInd::Reset()
 
 void CStaffInd::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_StaffInd)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_StaffInd)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_TeamMask = pOwner->TeamMask();
-	m_Pos = pOwner->GetPos();
+	m_Pos = GetCharacter()->GetPos();
 	m_aPos[ARMOR] = vec2(0, -70.f);
 
 	if(m_BallFirst)
@@ -88,24 +81,9 @@ void CStaffInd::Snap(int SnappingClient)
 		return;
 
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
-
-	//if(pSnapPlayer->Acc()->m_Configs.m_HideCosmetics)
-	//	return;
-
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

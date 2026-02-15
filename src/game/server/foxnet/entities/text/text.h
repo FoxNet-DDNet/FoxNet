@@ -283,8 +283,9 @@ static const bool asciiTable[256][GlyphH][GlyphW] = {
 	EMPTY_GLYPH,
 };
 
-struct FTextData
+class CTextData
 {
+public:
 	int m_Id;
 	vec2 m_Pos;
 };
@@ -300,7 +301,7 @@ public:
 
 	CClientMask m_Mask;
 
-	std::vector<FTextData *> m_pData;
+	std::vector<CTextData *> m_pData;
 
 	float m_CenterX;
 
@@ -308,7 +309,7 @@ public:
 
 	void SetData(float Cell);
 
-	CText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTicks, const char *pText, int EntType);
+	CText(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int Owner, int AliveTicks, const char *pText, int EntType);
 
 	void Reset() override;
 	void Tick() override;
@@ -422,7 +423,7 @@ inline void CText::SetData(float Cell)
 
 					int Id = Server()->SnapNewId();
 
-					FTextData *pD = new FTextData();
+					CTextData *pD = new CTextData();
 					pD->m_Id = Id;
 					pD->m_Pos = P;
 					m_pData.push_back(pD);
@@ -436,8 +437,8 @@ inline void CText::SetData(float Cell)
 	m_CenterX = (xCursorCols * Cell * 0.70f) / 2.0f;
 }
 
-inline CText::CText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTicks, const char *pText, int EntType) :
-	CEntity(pGameWorld, EntType, Pos)
+inline CText::CText(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int Owner, int AliveTicks, const char *pText, int EntType) :
+	CEntity(pGameWorld, pCollision, EntType, Pos)
 {
 	m_AliveTicks = AliveTicks;
 	m_CurTicks = 0;
@@ -451,7 +452,7 @@ class CProjectileText : public CText
 	int m_Type;
 
 public:
-	CProjectileText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTicks, const char *pText, int Type = WEAPON_HAMMER);
+	CProjectileText(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int Owner, int AliveTicks, const char *pText, int Type = WEAPON_HAMMER);
 
 	void Snap(int SnappingClient) override;
 };
@@ -459,7 +460,7 @@ public:
 class CLaserText : public CText
 {
 public:
-	CLaserText(CGameWorld *pGameWorld, vec2 Pos, int Owner, int AliveTicks, const char *pText);
+	CLaserText(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int Owner, int AliveTicks, const char *pText);
 
 	void Snap(int SnappingClient) override;
 };

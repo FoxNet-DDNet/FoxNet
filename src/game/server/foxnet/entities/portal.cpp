@@ -30,8 +30,8 @@ constexpr int GrowTicks = SERVER_TICK_SPEED / 4;
 constexpr float MaxDistanceFromPlayer = 1500.0f;
 constexpr int Lifetime = 12.5 * (float)SERVER_TICK_SPEED;
 
-CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PORTALS, Pos)
+CPortal::CPortal(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PORTALS, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;

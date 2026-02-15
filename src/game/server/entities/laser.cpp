@@ -27,7 +27,7 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_TeleportCancelled = false;
 	m_IsBlueTeleport = false;
 	m_ZeroEnergyBounceInLastTick = false;
-	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
+	m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
@@ -126,7 +126,7 @@ void CLaser::DoBounce()
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
 
-	Res = GameServer()->Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z);
+	Res = Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z);
 
 	if(Res)
 	{
@@ -142,13 +142,13 @@ void CLaser::DoBounce()
 			int f = 0;
 			if(Res == -1)
 			{
-				f = GameServer()->Collision()->GetTile(round_to_int(Coltile.x), round_to_int(Coltile.y));
-				GameServer()->Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), TILE_SOLID);
+				f = Collision()->GetTile(round_to_int(Coltile.x), round_to_int(Coltile.y));
+				Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), TILE_SOLID);
 			}
-			GameServer()->Collision()->MovePoint(&TempPos, &TempDir, 1.0f, nullptr);
+			Collision()->MovePoint(&TempPos, &TempDir, 1.0f, nullptr);
 			if(Res == -1)
 			{
-				GameServer()->Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), f);
+				Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), f);
 			}
 			m_Pos = TempPos;
 			m_Dir = normalize(TempDir);
@@ -165,10 +165,10 @@ void CLaser::DoBounce()
 			}
 			m_ZeroEnergyBounceInLastTick = Distance == 0.0f;
 
-			if(Res == TILE_TELEINWEAPON && !GameServer()->Collision()->TeleOuts(z - 1).empty())
+			if(Res == TILE_TELEINWEAPON && !Collision()->TeleOuts(z - 1).empty())
 			{
-				int TeleOut = GameServer()->m_World.m_Core.RandomOr0(GameServer()->Collision()->TeleOuts(z - 1).size());
-				m_TelePos = GameServer()->Collision()->TeleOuts(z - 1)[TeleOut];
+				int TeleOut = GameServer()->m_World.m_Core.RandomOr0(Collision()->TeleOuts(z - 1).size());
+				m_TelePos = Collision()->TeleOuts(z - 1)[TeleOut];
 				m_WasTele = true;
 			}
 			else
@@ -225,11 +225,11 @@ void CLaser::DoBounce()
 	}
 	else if(m_Owner >= 0)
 	{
-		int MapIndex = GameServer()->Collision()->GetPureMapIndex(Coltile);
-		int TileFIndex = GameServer()->Collision()->GetFrontTileIndex(MapIndex);
-		bool IsSwitchTeleGun = GameServer()->Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
-		bool IsBlueSwitchTeleGun = GameServer()->Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
-		int IsTeleInWeapon = GameServer()->Collision()->IsTeleportWeapon(MapIndex);
+		int MapIndex = Collision()->GetPureMapIndex(Coltile);
+		int TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
+		bool IsSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
+		bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
+		int IsTeleInWeapon = Collision()->IsTeleportWeapon(MapIndex);
 
 		if(!IsTeleInWeapon)
 		{
@@ -237,7 +237,7 @@ void CLaser::DoBounce()
 			{
 				// Delay specifies which weapon the tile should work for.
 				// Delay = 0 means all.
-				const int Delay = GameServer()->Collision()->GetSwitchDelay(MapIndex);
+				const int Delay = Collision()->GetSwitchDelay(MapIndex);
 
 				if((Delay != 3 && Delay != 0) && m_Type == WEAPON_LASER)
 				{

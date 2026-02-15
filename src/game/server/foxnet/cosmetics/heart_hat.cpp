@@ -10,18 +10,18 @@
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include <game/server/teams.h>
 
 static constexpr float HeartOffset = -42.0f;
 static constexpr float MaxHeartDist = 24.0f;
 
-CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_HEART_HAT, Pos)
+CHeartHat::CHeartHat(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
+	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_HEART_HAT, Pos)
 {
 	m_Pos = Pos;
 
@@ -45,17 +45,15 @@ void CHeartHat::Reset()
 
 void CHeartHat::Tick()
 {
-	CPlayer *pOwnerPl = GameServer()->m_apPlayers[m_Owner];
-	if(!pOwnerPl || !pOwnerPl->Cosmetics()->m_HeartHat)
+	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_HeartHat)
 	{
 		Reset();
 		return;
 	}
-	CCharacter *pOwner = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwner)
+	if(!GetCharacter())
 		return;
 
-	m_Pos = pOwner->GetPos();
+	m_Pos = GetCharacter()->GetPos();
 
 	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
@@ -73,34 +71,18 @@ void CHeartHat::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChr || !pSnapPlayer)
-		return;
-
-	if(pOwnerChr->IsPaused())
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
 		return;
 
-	if(!pOwnerChr->TeamMask().test(SnappingClient))
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChr)
-		if(!pOwnerChr->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChr->GetPlayer()->m_Vanish && SnappingClient != pOwnerChr->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
-
 	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
 		const int Id = m_aIds[Heart];
 
-		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient);
+		vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient);
 
 		float Dist = m_Dist * (Heart == 0 ? -1.0f : 1.0f);
 
