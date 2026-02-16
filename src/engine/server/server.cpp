@@ -1796,7 +1796,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		return;
 	}
 
-	if(Config()->m_SvNetlimit && Msg != NETMSG_REQUEST_MAP_DATA && !IsRconAuthed(ClientId))
+	if(Config()->m_SvNetlimit && Msg != NETMSG_REQUEST_MAP_DATA && (!ClientSlotEmpty(ClientId) && !IsRconAuthed(ClientId)))
 	{
 		int64_t Now = time_get();
 		int64_t Diff = Now - m_aClients[ClientId].m_TrafficSince;
