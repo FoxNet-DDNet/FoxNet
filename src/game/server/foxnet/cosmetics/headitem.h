@@ -14,7 +14,7 @@ enum HeadItemType
 	HEADITEM_COSMETIC = 1,
 };
 
-class CHeadItem : public CFoxNetEntity
+class CHeadItem : public CEntityOwned
 {
 	int m_Type;
 	vec2 m_Offset;
@@ -24,7 +24,7 @@ class CHeadItem : public CFoxNetEntity
 	int m_aIds[2];
 
 public:
-	CHeadItem(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, int Type, vec2 Offset);
+	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
 	void Reset() override;
 	void Tick() override;
 	void Snap(int SnappingClient) override;

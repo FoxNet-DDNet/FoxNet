@@ -18,11 +18,10 @@
 #include <game/collision.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 
-CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, CClientMask Mask) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LASERDEATH, Pos)
+CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LASERDEATH, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 	m_Mask = Mask;
 
 	m_Vanish = GetPlayer() && GetPlayer()->m_Vanish;

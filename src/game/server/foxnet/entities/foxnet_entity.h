@@ -12,21 +12,22 @@ class CGameWorld;
 class CPlayer;
 class CCharacter;
 
-class CFoxNetEntity : public CEntity
+class CEntityOwned : public CEntity
 {
 public:
 	int m_Owner;
+	CClientMask m_StartTeamMask = CClientMask().set();
 
-	CFoxNetEntity(CGameWorld *pGameWorld, CCollision *pCollision, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
+	CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
 	bool CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer = nullptr);
 
 	CPlayer *GetPlayer();
-	CCharacter *GetCharacter();	
+	CCharacter *GetCharacter();
+
 
 	CClientMask CosmeticMask(const EItemType ItemType);
 	CClientMask TeamMask();
-
 
 	void Reset() override {}
 	void Tick() override {}

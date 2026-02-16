@@ -22,11 +22,10 @@
 #include <cstdlib>
 #include <iterator>
 
-CHeadItem::CHeadItem(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, int Type, vec2 Offset) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
+CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 
 	// Type of Entity
 	m_Type = Type;

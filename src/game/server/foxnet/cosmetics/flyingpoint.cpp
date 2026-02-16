@@ -19,13 +19,12 @@
 #include <algorithm>
 
 // Made by qxdFox
-CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int To, int Owner, vec2 InitialVel, vec2 ToPos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_FLYINGPOINT, Pos)
+CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, int Owner, vec2 Pos, int To, vec2 InitialVel, vec2 ToPos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_FLYINGPOINT, Pos)
 {
 	m_Pos = Pos;
 	m_PrevPos = Pos;
 	m_InitialVel = InitialVel;
-	m_Owner = Owner;
 	m_To = To;
 	m_ToPos = ToPos;
 	m_InitialAmount = 1.0f;

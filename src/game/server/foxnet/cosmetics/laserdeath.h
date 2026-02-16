@@ -22,7 +22,7 @@ public:
 	int m_TeamMask;
 };
 
-class CLaserDeath : public CFoxNetEntity
+class CLaserDeath : public CEntityOwned
 {
 	int m_EndTick;
 
@@ -32,7 +32,7 @@ class CLaserDeath : public CFoxNetEntity
 	bool m_Vanish = false;
 
 public:
-	CLaserDeath(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, CClientMask Mask);
+	CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask);
 	void Reset() override;
 	void Tick() override;
 	void Snap(int SnappingClient) override;

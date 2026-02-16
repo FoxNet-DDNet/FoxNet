@@ -63,7 +63,7 @@ class CPowerUp : public CEntity
 	void HandleClient(int ClientId);
 
 public:
-	CPowerUp(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, EPowerUp Type);
+	CPowerUp(CGameWorld *pGameWorld, vec2 Pos, EPowerUp Type);
 
 	void OnFire();
 

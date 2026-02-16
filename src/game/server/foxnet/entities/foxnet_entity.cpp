@@ -16,10 +16,18 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
-CFoxNetEntity::CFoxNetEntity(CGameWorld *pGameWorld, CCollision *pCollision, int Objtype, vec2 Pos, int ProximityRadius) :
-	CEntity(pGameWorld, pCollision, Objtype, Pos, ProximityRadius) {}
+CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos, int ProximityRadius) :
+	CEntity(pGameWorld, Objtype, Pos, ProximityRadius)
+{
+	m_Owner = Owner;
+	if(GetCharacter())
+	{
+		SetCollision(GetCharacter()->Collision());
+		m_StartTeamMask = GetCharacter()->TeamMask();
+	}
+}
 
-bool CFoxNetEntity::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
+bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
@@ -49,7 +57,7 @@ bool CFoxNetEntity::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 	return true;
 }
 
-CPlayer *CFoxNetEntity::GetPlayer()
+CPlayer *CEntityOwned::GetPlayer()
 {
 	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id");
 	// Should be dbg_assert but idk
@@ -57,7 +65,7 @@ CPlayer *CFoxNetEntity::GetPlayer()
 		return nullptr;
 	return GameServer()->m_apPlayers[m_Owner];
 }
-CCharacter *CFoxNetEntity::GetCharacter()
+CCharacter *CEntityOwned::GetCharacter()
 {
 	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id");
 	// same
@@ -69,20 +77,20 @@ CCharacter *CFoxNetEntity::GetCharacter()
 	return pPlayer->GetCharacter();
 }
 
-CClientMask CFoxNetEntity::CosmeticMask(const EItemType ItemType)
+CClientMask CEntityOwned::CosmeticMask(const EItemType ItemType)
 {
 	CCharacter *pCharacter = GetCharacter();
 	if(!pCharacter)
-		return CClientMask();
+		return CClientMask().set();
 
 	return pCharacter->CosmeticMask(ItemType);
 }
 
-CClientMask CFoxNetEntity::TeamMask()
+CClientMask CEntityOwned::TeamMask()
 {
 	CCharacter *pCharacter = GetCharacter();
 	if(!pCharacter)
-		return CClientMask();
+		return CClientMask().set();
 
 	return pCharacter->TeamMask();
 }

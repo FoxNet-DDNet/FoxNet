@@ -16,11 +16,10 @@
 #include <game/collision.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 
-CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_ROTATING_BALL, Pos)
+CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_ROTATING_BALL, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 
 	m_IsRotating = true;
 

@@ -7,7 +7,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CPickupPet : public CFoxNetEntity
+class CPickupPet : public CEntityOwned
 {
 	enum PetMode
 	{
@@ -26,7 +26,7 @@ class CPickupPet : public CFoxNetEntity
 	int m_PetMode;
 
 public:
-	CPickupPet(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

@@ -2,9 +2,12 @@
 #ifndef GAME_SERVER_FOXNET_ENTITIES_PORTAL_H
 #define GAME_SERVER_FOXNET_ENTITIES_PORTAL_H
 
+#include "foxnet_entity.h"
+
 #include <base/vmath.h>
 
-#include <game/server/entity.h>
+#include <engine/shared/protocol.h>
+
 #include <game/server/gameworld.h>
 
 struct CPortalData
@@ -15,7 +18,7 @@ struct CPortalData
 	int m_Team;
 };
 
-class CPortal : public CEntity
+class CPortal : public CEntityOwned
 {
 	enum
 	{
@@ -38,16 +41,12 @@ class CPortal : public CEntity
 	vec2 CirclePos(int Portal, int Part) const;
 	void SetPortalVisual();
 
-	int m_Owner;
-
 	CPortalData m_aData[NUM_PORTALS];
 
 	int m_State;
 	int m_Lifetime; // In ticks
 
 	bool m_aCanTeleport[MAX_CLIENTS];
-
-	CClientMask m_TeamMask;
 
 	enum States
 	{
@@ -61,7 +60,7 @@ class CPortal : public CEntity
 	void HandleTele();
 
 public:
-	CPortal(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void OnFire();
 

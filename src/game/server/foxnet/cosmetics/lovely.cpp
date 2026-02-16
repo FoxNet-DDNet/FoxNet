@@ -16,10 +16,9 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
-CLovely::CLovely(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LOVELY, Pos)
+CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LOVELY, Pos)
 {
-	m_Owner = Owner;
 	m_SpawnDelay = 0;
 	for(int i = 0; i < MAX_HEARTS; i++)
 		m_aData[i].m_Id = Server()->SnapNewId();

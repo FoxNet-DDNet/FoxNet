@@ -353,7 +353,7 @@ void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
 		str_format(aText, sizeof(aText), "%c%ld", PlusMinus, std::abs(Amount));
-		new CProjectileText(pChr->GameWorld(), GameServer()->Collision(m_ClientId), Pos, GetCid(), 100, aText, WEAPON_HAMMER);
+		new CProjectileText(pChr->GameWorld(), GetCid(), Pos, 100, aText, WEAPON_HAMMER);
 		if(Amount >= 0)
 			pChr->SetEmote(Amount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
@@ -741,7 +741,7 @@ void CPlayer::SetRotatingBall(bool Active)
 	Cosmetics()->m_RotatingBall = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_RotatingBall)
-		new CRotatingBall(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CRotatingBall(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetEpicCircle(bool Active)
@@ -751,7 +751,7 @@ void CPlayer::SetEpicCircle(bool Active)
 	Cosmetics()->m_EpicCircle = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_EpicCircle)
-		new CEpicCircle(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CEpicCircle(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetLovely(bool Active)
@@ -761,7 +761,7 @@ void CPlayer::SetLovely(bool Active)
 	Cosmetics()->m_Lovely = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_Lovely)
-		new CLovely(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CLovely(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetTrail(int Type)
@@ -771,7 +771,7 @@ void CPlayer::SetTrail(int Type)
 	Cosmetics()->m_Trail = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_Trail == TRAILTYPE_DOT)
-		new CDotTrail(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CDotTrail(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetStaffInd(bool Active)
@@ -781,7 +781,7 @@ void CPlayer::SetStaffInd(bool Active)
 	Cosmetics()->m_StaffInd = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_StaffInd)
-		new CStaffInd(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CStaffInd(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetPickupPet(bool Active)
@@ -791,7 +791,7 @@ void CPlayer::SetPickupPet(bool Active)
 	Cosmetics()->m_PickupPet = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_PickupPet)
-		m_pPickupPet = new CPickupPet(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		m_pPickupPet = new CPickupPet(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetLissajous(bool Active)
@@ -801,7 +801,7 @@ void CPlayer::SetLissajous(bool Active)
 	Cosmetics()->m_Lissajous = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_Lissajous)
-		new CLissajous(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CLissajous(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetHeartHat(bool Active)
@@ -811,7 +811,7 @@ void CPlayer::SetHeartHat(bool Active)
 	Cosmetics()->m_HeartHat = Active;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_HeartHat)
-		new CHeartHat(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos);
+		new CHeartHat(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetHatType(EHatType Type)
@@ -822,7 +822,7 @@ void CPlayer::SetHatType(EHatType Type)
 	Cosmetics()->m_HatType = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_HatType != EHatType::None && PrevType == EHatType::None)
-		new CHeadItem(&GameServer()->m_World, GameServer()->Collision(GetCid()), GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
+		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
 }
 
 void CPlayer::SetDeathEffect(int Type)

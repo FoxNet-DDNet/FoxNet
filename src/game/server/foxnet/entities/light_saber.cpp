@@ -22,10 +22,9 @@
 
 #include <vector>
 
-CLightSaber::CLightSaber(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LIGHTSABER, Pos)
+CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LIGHTSABER, Pos)
 {
-	m_Owner = Owner;
 	m_Pos = Pos;
 	m_From = Pos;
 	m_To = Pos;
@@ -38,8 +37,8 @@ void CLightSaber::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lightsaber", "Reset");
 
-	if(CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner))
-		pChr->m_pLightSaber = nullptr;
+	if(GetCharacter())
+		GetCharacter()->m_pLightSaber = nullptr;
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
 }

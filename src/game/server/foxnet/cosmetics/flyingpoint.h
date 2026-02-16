@@ -7,7 +7,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CFlyingPoint : public CFoxNetEntity
+class CFlyingPoint : public CEntityOwned
 {
 private:
 	vec2 m_InitialVel;
@@ -19,7 +19,7 @@ private:
 	vec2 m_PrevPos;
 
 public:
-	CFlyingPoint(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos, int To, int Owner, vec2 InitialVel, vec2 ToPos = vec2(-1, -1));
+	CFlyingPoint(CGameWorld *pGameWorld, int Owner, vec2 Pos, int To, vec2 InitialVel, vec2 ToPos = vec2(-1, -1));
 
 	void Reset() override;
 	void Tick() override;

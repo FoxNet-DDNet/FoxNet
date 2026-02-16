@@ -7,7 +7,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CEpicCircle : public CFoxNetEntity
+class CEpicCircle : public CEntityOwned
 {
 	enum
 	{
@@ -18,7 +18,7 @@ class CEpicCircle : public CFoxNetEntity
 	vec2 m_RotatePos[MAX_PARTICLES];
 
 public:
-	CEpicCircle(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

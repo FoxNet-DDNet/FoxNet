@@ -7,7 +7,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CHeartHat : public CFoxNetEntity
+class CHeartHat : public CEntityOwned
 {
 	enum
 	{
@@ -19,7 +19,7 @@ class CHeartHat : public CFoxNetEntity
 	bool m_switch;
 
 public:
-	CHeartHat(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

@@ -8,7 +8,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CLissajous : public CFoxNetEntity
+class CLissajous : public CEntityOwned
 {
 	enum
 	{
@@ -30,7 +30,7 @@ class CLissajous : public CFoxNetEntity
 	vec2 LissajousPos(int Point);
 
 public:
-	CLissajous(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

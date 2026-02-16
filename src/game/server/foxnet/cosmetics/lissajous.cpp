@@ -21,11 +21,10 @@
 
 constexpr float Speed = 100.0f;
 
-CLissajous::CLissajous(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_LISSAJOUS, Pos)
+CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LISSAJOUS, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 
 	m_StartTick = Server()->Tick();
 

@@ -7,7 +7,7 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CRotatingBall : public CFoxNetEntity
+class CRotatingBall : public CEntityOwned
 {
 	int m_Id1;
 
@@ -22,7 +22,7 @@ class CRotatingBall : public CFoxNetEntity
 	int m_TableDirV[2][2];
 
 public:
-	CRotatingBall(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

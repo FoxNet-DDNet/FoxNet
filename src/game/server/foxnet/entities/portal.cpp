@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include "foxnet_entity.h"
 
 constexpr float MaxPortalRad = 56.0f;
 constexpr float MinPortalRad = 15.0f;
@@ -30,17 +31,11 @@ constexpr int GrowTicks = SERVER_TICK_SPEED / 4;
 constexpr float MaxDistanceFromPlayer = 1500.0f;
 constexpr int Lifetime = 12.5 * (float)SERVER_TICK_SPEED;
 
-CPortal::CPortal(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PORTALS, Pos)
+CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PORTALS, Pos)
 {
-	m_Owner = Owner;
 	m_Pos = Pos;
 	m_State = STATE_NONE;
-
-	if(CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner))
-		m_TeamMask = pChr->TeamMask();
-	else
-		m_TeamMask = CClientMask().set();
 
 	for(int p = 0; p < NUM_PORTALS; p++)
 	{
@@ -77,7 +72,7 @@ void CPortal::Reset()
 	GameWorld()->RemoveEntity(this);
 }
 
-inline bool PointInCircle(vec2 pos, vec2 center, float radius)
+inline static bool PointInCircle(vec2 pos, vec2 center, float radius)
 {
 	return length_squared(pos - center) <= radius * radius;
 }
@@ -243,11 +238,11 @@ void CPortal::OnFire()
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	if(TrySetPortal())
 	{
-		GameServer()->CreateSound(pOwnerChar->m_Pos, SOUND_PICKUP_HEALTH, m_TeamMask);
+		GameServer()->CreateSound(pOwnerChar->m_Pos, SOUND_PICKUP_HEALTH, m_StartTeamMask);
 	}
 	else
 	{
-		GameServer()->CreateSound(pOwnerChar->m_Pos, SOUND_WEAPON_NOAMMO, m_TeamMask);
+		GameServer()->CreateSound(pOwnerChar->m_Pos, SOUND_WEAPON_NOAMMO, m_StartTeamMask);
 		pOwnerChar->SetReloadTimer(250 * Server()->TickSpeed() / 1000);
 	}
 }
@@ -302,7 +297,7 @@ void CPortal::RemovePortals()
 	{
 		if(m_aData[i].m_Active)
 		{
-			GameServer()->CreateDeath(m_aData[i].m_Pos, m_Owner, m_TeamMask);
+			GameServer()->CreateDeath(m_aData[i].m_Pos, m_Owner, m_StartTeamMask);
 			m_aData[i].m_Active = false;
 			m_aData[i].m_Pos = vec2(0, 0);
 			m_State = STATE_NONE;

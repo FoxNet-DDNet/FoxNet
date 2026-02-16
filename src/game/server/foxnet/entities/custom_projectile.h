@@ -21,7 +21,7 @@ enum
 class CCustomProjectile : public CEntity
 {
 public:
-	CCustomProjectile(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, vec2 Dir,
+	CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 		bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime = 6.0f, float Accel = 1.0f, float Speed = 10.0f);
 
 	virtual void Reset() override;

@@ -702,20 +702,18 @@ public:
 
 	void ResetTuning();
 	// <FoxNet
-	CCollision *Collision(int ClientId);
+	//class CMapOverride
+	//{
+	//public:
+	//	std::unique_ptr<IMap> m_pMap;
+	//	CLayers m_Layers;
+	//	CCollision m_Collision;
+	//	bool m_MapLoaded;
 
-	class CMapOverride
-	{
-	public:
-		std::unique_ptr<IMap> m_pMap;
-		CLayers m_Layers;
-		CCollision m_Collision;
-		bool m_MapLoaded;
+	//	void Init();
 
-		void Init();
-
-		void Reset();
-	} m_MapOverride;
+	//	void Reset();
+	//} m_MapOverride;
 
 private:
 	class CDamageIndEffects

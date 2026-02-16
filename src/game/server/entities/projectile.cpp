@@ -82,67 +82,6 @@ CProjectile::CProjectile(
 	GameWorld()->InsertEntity(this);
 }
 
-CProjectile::CProjectile(
-	CGameWorld *pGameWorld,
-	CCollision *pCollision,
-	int Type,
-	int Owner,
-	vec2 Pos,
-	vec2 Dir,
-	int Span,
-	bool Freeze,
-	bool Explosive,
-	int SoundImpact,
-	vec2 InitDir,
-	int Layer,
-	int Number) :
-	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PROJECTILE)
-{
-	m_Type = Type;
-	m_Pos = Pos;
-	m_Direction = Dir;
-	m_LifeSpan = Span;
-	m_Owner = Owner;
-	m_SoundImpact = SoundImpact;
-	m_StartTick = Server()->Tick();
-	m_Explosive = Explosive;
-
-	m_Layer = Layer;
-	m_Number = Number;
-	m_Freeze = Freeze;
-
-	m_InitDir = InitDir;
-	// m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
-
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
-	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
-	m_DDRaceTeam = m_Owner == -1 ? 0 : GameServer()->GetDDRaceTeam(m_Owner);
-	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
-
-	// <FoxNet
-	m_CosmeticMask = CClientMask().set();
-	m_OppCosmeticMask = CClientMask().set().reset();
-	if(pOwnerChar)
-	{
-		m_CosmeticMask = pOwnerChar->CosmeticMask(EItemType::Gun);
-		m_OppCosmeticMask = pOwnerChar->OppositeCosmeticMask(EItemType::Gun);
-
-		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
-		m_GunType = pCosmetics->m_GunType;
-		if(pCosmetics->m_GunType > GUNTYPE_NONE && pCosmetics->m_GunType < NUM_GUNTYPES)
-			m_LifeSpan *= 1.25;
-		if(m_GunType == GUNTYPE_LASER)
-			m_ExtraId = Server()->SnapNewId();
-
-		m_MixedShield = pOwnerChar->m_MixedShield;
-		pOwnerChar->m_MixedShield = !pOwnerChar->m_MixedShield;
-	}
-	// FoxNet>
-
-	GameWorld()->InsertEntity(this);
-}
-
 void CProjectile::Reset()
 {
 	m_MarkedForDestroy = true;

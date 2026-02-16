@@ -14,11 +14,8 @@
 
 static constexpr int MAX_FIREWORKS = 25;
 
-class CFirework : public CFoxNetEntity
+class CFirework : public CEntityOwned
 {
-	int m_Team;
-	CClientMask m_Mask;
-
 	int64_t m_StartTick;
 
 	enum class State
@@ -37,7 +34,7 @@ class CFirework : public CFoxNetEntity
 	int m_aIds[MAX_FIREWORKS];
 
 public:
-	CFirework(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

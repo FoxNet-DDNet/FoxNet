@@ -19,11 +19,10 @@
 
 #include <cmath>
 
-CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PROJECTILE, Pos)
+CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PROJECTILE, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 		m_aIds[i] = Server()->SnapNewId();

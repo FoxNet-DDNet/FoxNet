@@ -25,22 +25,13 @@ constexpr float LaunchTime = 1.5f;
 constexpr float FireworkTime = 3.5f;
 constexpr float MaxSpeed = 20.0f;
 
-CFirework::CFirework(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_FIREWORK, Pos)
+CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_FIREWORK, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;
 	m_StartPos = m_Pos;
 	m_StartTick = Server()->Tick();
-
-	m_Team = -1;
-	m_Mask = CClientMask();
-
-	if(GetCharacter())
-	{
-		m_Team = GetCharacter()->Team();
-		m_Mask = GetCharacter()->TeamMask();
-	}
 
 	std::random_device rd;
 	for(int i = 0; i < MAX_FIREWORKS; i++)
@@ -85,7 +76,7 @@ void CFirework::Tick()
 			}
 
 			m_State = State::EXPLOSION;
-			GameServer()->Explosion(m_Pos, m_Mask);
+			GameServer()->Explosion(m_Pos, m_StartTeamMask);
 			m_StartTick = Server()->Tick() - 2;
 		}
 	}

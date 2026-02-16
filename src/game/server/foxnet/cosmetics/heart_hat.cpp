@@ -20,12 +20,11 @@
 static constexpr float HeartOffset = -42.0f;
 static constexpr float MaxHeartDist = 24.0f;
 
-CHeartHat::CHeartHat(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_HEART_HAT, Pos)
+CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_HEART_HAT, Pos)
 {
 	m_Pos = Pos;
 
-	m_Owner = Owner;
 	for(size_t i = 0; i < NUM_HEARTS; i++)
 		m_aIds[i] = Server()->SnapNewId();
 

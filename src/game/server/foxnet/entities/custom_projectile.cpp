@@ -16,9 +16,9 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
-CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos, vec2 Dir,
+CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :
-	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
 {
 	m_Owner = Owner;
 	m_Pos = Pos;

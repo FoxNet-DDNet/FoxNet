@@ -25,10 +25,8 @@
 #include <vector>
 #include <base/log.h>
 
-// Its called powerup because i want to add more functionality later to it like giving custom weapons or abilities
-// For now it just acts like the 0xf one
-CRoulette::CRoulette(CGameWorld *pGameWorld, CCollision *pCollision, vec2 Pos) :
-	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PORTALS, Pos, 54)
+CRoulette::CRoulette(CGameWorld *pGameWorld, vec2 Pos) :
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_ROULETTE, Pos, 54)
 {
 	m_Pos = Pos;
 	m_StartDelay = -1;

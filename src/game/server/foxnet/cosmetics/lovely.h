@@ -9,7 +9,7 @@
 #include <game/server/gameworld.h>
 #include <game/collision.h>
 
-class CLovely : public CFoxNetEntity
+class CLovely : public CEntityOwned
 {
 	enum
 	{
@@ -28,7 +28,7 @@ class CLovely : public CFoxNetEntity
 	void SpawnNewHeart();
 
 public:
-	CLovely(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

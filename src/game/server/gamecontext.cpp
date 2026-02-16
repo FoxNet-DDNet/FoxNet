@@ -195,8 +195,8 @@ void CGameContext::Clear()
 	std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	std::unique_ptr<IMap> pOverrideMap;
-	std::swap(pOverrideMap, m_MapOverride.m_pMap);
+	// std::unique_ptr<IMap> pOverrideMap;
+	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<CBotClientDetection> vBotDetection = m_vBotClientDetections;
@@ -219,7 +219,7 @@ void CGameContext::Clear()
 	std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	std::swap(pOverrideMap, m_MapOverride.m_pMap);
+	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
 	m_vChatDetection = vChatDetection;
 	m_vNameDetection = vNameDetection;
 	m_vBotClientDetections = vBotDetection;
@@ -4684,10 +4684,10 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	Clear();
 
 	// <FoxNet
-	if(pPersistentData == nullptr)
-	{
-		m_MapOverride.Reset();
-	}
+	//if(pPersistentData == nullptr)
+	//{
+	//	m_MapOverride.Reset();
+	//}
 	// FoxNet>
 }
 

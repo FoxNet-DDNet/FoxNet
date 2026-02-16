@@ -21,11 +21,10 @@
 
 #include <cmath>
 
-CPickupPet::CPickupPet(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos) :
-	CFoxNetEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PICKUP, Pos)
+CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PICKUP, Pos)
 {
 	m_Pos = Pos;
-	m_Owner = Owner;
 	m_PetMode = 1;
 	m_CurType = POWERUP_ARMOR;
 	m_SwitchDelay = Server()->Tick() + Server()->TickSpeed();

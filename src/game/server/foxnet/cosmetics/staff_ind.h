@@ -7,7 +7,7 @@
 #include <game/collision.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 
-class CStaffInd : public CFoxNetEntity
+class CStaffInd : public CEntityOwned
 {
 	enum
 	{
@@ -24,7 +24,7 @@ class CStaffInd : public CFoxNetEntity
 	bool m_BallFirst;
 
 public:
-	CStaffInd(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

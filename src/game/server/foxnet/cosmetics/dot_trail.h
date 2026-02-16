@@ -8,10 +8,10 @@
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CDotTrail : public CFoxNetEntity
+class CDotTrail : public CEntityOwned
 {
 public:
-	CDotTrail(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void Reset() override;
 	void Tick() override;

@@ -31,8 +31,8 @@
 #include <limits>
 #include <vector>
 
-CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, CCollision *pCollision, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
-	CEntity(pGameWorld, pCollision, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
+CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
+	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
 {
 	m_StartTick = Server()->Tick();
 

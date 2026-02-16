@@ -55,7 +55,6 @@ public: // TODO: Maybe make protected
 
 	/* Constructor */
 	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
-	CEntity(CGameWorld *pGameWorld, CCollision *pCollision, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0); // FoxNet
 
 	/* Destructor */
 	virtual ~CEntity();
@@ -70,6 +69,9 @@ public: // TODO: Maybe make protected
 	class CGameContext *GameServer() { return m_pGameWorld->GameServer(); }
 	class IServer *Server() { return m_pGameWorld->Server(); }
 	CCollision *Collision() { return m_pCCollision; }
+	// <FoxNet
+	void SetCollision(CCollision *pCollision) { m_pCCollision = pCollision; }
+	// FoxNet>
 
 	/* Getters */
 	CEntity *TypeNext() { return m_pNextTypeEntity; }

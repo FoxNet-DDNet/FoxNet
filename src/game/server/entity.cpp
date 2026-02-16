@@ -34,22 +34,6 @@ CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRad
 	m_pNextTypeEntity = nullptr;
 }
 
-CEntity::CEntity(CGameWorld *pGameWorld, CCollision *pCollision, int ObjType, vec2 Pos, int ProximityRadius)
-{
-	m_pGameWorld = pGameWorld;
-	m_pCCollision = pCollision;
-
-	m_ObjType = ObjType;
-	m_Pos = Pos;
-	m_ProximityRadius = ProximityRadius;
-
-	m_MarkedForDestroy = false;
-	m_Id = Server()->SnapNewId();
-
-	m_pPrevTypeEntity = nullptr;
-	m_pNextTypeEntity = nullptr;
-}
-
 CEntity::~CEntity()
 {
 	GameWorld()->RemoveEntity(this);

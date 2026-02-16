@@ -11,7 +11,7 @@
 constexpr float LIGHT_SABER_SPEED = 10.0f;
 constexpr float LIGHT_SABER_MAX_LENGTH = 220.0f;
 
-class CLightSaber : public CFoxNetEntity
+class CLightSaber : public CEntityOwned
 {
 	vec2 m_From;
 	vec2 m_To;
@@ -29,7 +29,7 @@ class CLightSaber : public CFoxNetEntity
 	int m_State = 0;
 
 public:
-	CLightSaber(CGameWorld *pGameWorld, CCollision *pCollision, int Owner, vec2 Pos);
+	CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
 	void OnFire();
 
