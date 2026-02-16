@@ -121,11 +121,16 @@ class CConsole : public IConsole
 
 		enum
 		{
-			VICTIM_NONE = -4,
-			VICTIM_ME = -3,
-			VICTIM_ALL = -2,
-			VICTIM_OTHERS = -1,
+			VICTIM_NONE = -5,
+			VICTIM_ME = -4,
+			VICTIM_ALL = -3,
+			// <FoxNet
+			VICTIM_OTHERS = -2,
+			VICTIM_RANGE = -1,
+			// FoxNet>
 		};
+		
+		int m_VictimLowest, m_VictimHighest;
 
 		int m_Victim;
 		void ResetVictim();

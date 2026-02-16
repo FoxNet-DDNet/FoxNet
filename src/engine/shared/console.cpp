@@ -7,9 +7,12 @@
 #include "linereader.h"
 
 #include <base/color.h>
+#include <base/dbg.h>
 #include <base/log.h>
-#include <base/math.h>
+#include <base/mem.h>
+#include <base/str.h>
 #include <base/system.h>
+#include <base/types.h>
 
 #include <engine/client/checksum.h>
 #include <engine/console.h>
@@ -18,7 +21,11 @@
 
 #include <algorithm>
 #include <iterator> // std::size
+#include <limits>
+#include <memory>
 #include <new>
+#include <optional>
+#include <utility>
 
 // todo: rework this
 
@@ -606,6 +613,7 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 							}
 						}
+						// <FoxNet
 						else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_OTHERS)
 						{
 							for(int i = 0; i < MAX_CLIENTS; i++)
@@ -617,6 +625,21 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 							}
 						}
+						else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_RANGE)
+						{
+							for(int i = 0; i < MAX_CLIENTS; i++)
+							{
+								if(i == ClientId)
+									continue;
+
+								if(i < Result.m_VictimLowest || i > Result.m_VictimHighest)
+									continue;
+
+								Result.SetVictim(i);
+								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+							}
+						}
+						// FoxNet>
 						else
 						{
 							pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
@@ -753,7 +776,6 @@ bool CConsole::ExecuteFile(const char *pFilename, int ClientId, bool LogFailure,
 	return Success;
 }
 
-
 bool CConsole::ExecuteBansFile()
 {
 	const char *pFilename = "Bans.cfg";
@@ -834,7 +856,7 @@ void CConsole::ConCommandAccess(IResult *pResult, void *pUser)
 			log_info("console", "moderator access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::MODERATOR ? "enabled" : "disabled");
 			log_info("console", "helper access for '%s' is %s", pResult->GetString(0), pCommand->GetAccessLevel() >= EAccessLevel::HELPER ? "enabled" : "disabled");
 		}
-	} 
+	}
 	else
 		log_info("console", "No such command: '%s'.", pResult->GetString(0));
 }
@@ -1190,6 +1212,11 @@ int CConsole::CResult::GetVictim() const
 void CConsole::CResult::ResetVictim()
 {
 	m_Victim = VICTIM_NONE;
+
+	// <FoxNet
+	m_VictimLowest = -1;
+	m_VictimHighest = -1;
+	// FoxNet>
 }
 
 bool CConsole::CResult::HasVictim() const
@@ -1204,12 +1231,27 @@ void CConsole::CResult::SetVictim(int Victim)
 
 void CConsole::CResult::SetVictim(const char *pVictim)
 {
+	// <FoxNet
+	m_VictimLowest = -1;
+	m_VictimHighest = -1;
+	// FoxNet>
+
 	if(!str_comp(pVictim, "me"))
 		m_Victim = VICTIM_ME;
-	else if(!str_comp(pVictim, "other") || !str_comp(pVictim, "others"))
-		m_Victim = VICTIM_OTHERS;
 	else if(!str_comp(pVictim, "all"))
 		m_Victim = VICTIM_ALL;
+	// <FoxNet
+	else if(!str_comp(pVictim, "other") || !str_comp(pVictim, "others"))
+		m_Victim = VICTIM_OTHERS;
+	else if(sscanf(pVictim, "%d-%d", &m_VictimLowest, &m_VictimHighest) == 2)
+	{
+		if(m_VictimLowest > m_VictimHighest)
+			std::swap(m_VictimLowest, m_VictimHighest);
+
+		m_VictimLowest = std::clamp<int>(m_VictimLowest, 0, MAX_CLIENTS - 1);
+		m_VictimHighest = std::clamp<int>(m_VictimHighest, 0, MAX_CLIENTS - 1);
+		m_Victim = VICTIM_RANGE;
+	} // FoxNet>
 	else
 		m_Victim = std::clamp<int>(str_toint(pVictim), 0, MAX_CLIENTS - 1);
 }
