@@ -3794,7 +3794,7 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	float aLaser = 0.33f;
 	if(Acc()->m_Configs.m_FastInputs)
 	{
-		float Amount = Acc()->m_Configs.m_FastInputAmount / 100.0f * g_Config.m_FoxExampleInt;
+		float Amount = Acc()->m_Configs.m_FastInputAmount / 100.0f;
 		aPickup += Amount;
 		aLaser += Amount;
 	}
