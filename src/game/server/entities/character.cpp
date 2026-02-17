@@ -3657,7 +3657,7 @@ void CCharacter::HandleQuads()
 // Should probably not be duplicated in CPickupDrop
 void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj)
 {
-	const float R = GetProximityRadius() * 0.55f;
+	const float Radius = GetProximityRadius() * 0.55f;
 	const vec2 P = m_Pos;
 
 	const vec2 aA[4] = {TL, TR, BR, BL};
@@ -3677,7 +3677,7 @@ void CCharacter::HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, co
 
 		const vec2 N_in = normalize(vec2(-E.y, E.x));
 		const float d = dot(P - aA[i], N_in);
-		float Penetration = d + R;
+		float Penetration = d + Radius;
 
 		if(Penetration < MinPenetration)
 		{

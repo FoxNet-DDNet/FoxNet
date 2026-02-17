@@ -625,7 +625,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
 			return Delta;
 
-		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y / 2);
+		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.5f);
 
 		const CQuadData *pQuad = GetSolidQuad(FeetPos, Size);
 		if(!pQuad)
@@ -635,20 +635,17 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		const CQuadData *pBase = m_vQuads.data();
 
-		ptrdiff_t Idx = pQuad - pBase;
-		if(Idx < 0 || (size_t)Idx >= m_vNextQuads.size())
+		if(pQuad - pBase < 0 || size_t(pQuad - pBase) >= m_vNextQuads.size())
 			return Delta;
+		size_t Idx = pQuad - pBase;
 
-		const vec2 CurCenter = vec2(round_to_int(m_vQuads[(size_t)Idx].m_Pos[4].x * 100) / 100, round_to_int(m_vQuads[(size_t)Idx].m_Pos[4].y * 100) / 100);
-		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[(size_t)Idx].m_Pos[4].x * 100) / 100, round_to_int(m_vNextQuads[(size_t)Idx].m_Pos[4].y * 100) / 100);
-
-		if(CurCenter.y > NextCenter.y) // causes entities to float a bit above the platform? dunno dont care - it works
-			return Delta;
+		const vec2 CurCenter = vec2(round_to_int(m_vQuads[Idx].m_Pos[4].x), round_to_int(m_vQuads[Idx].m_Pos[4].y));
+		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[Idx].m_Pos[4].x), round_to_int(m_vNextQuads[Idx].m_Pos[4].y));
 
 		if(distance(NextCenter, CurCenter) > 32 /*1 tile*/)
 			return Delta;
 
-		Delta += (NextCenter - CurCenter) * StepFraction;
+		Delta.x += (NextCenter.x - CurCenter.x) * StepFraction;
 
 		return Delta;
 	};
