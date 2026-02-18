@@ -3810,6 +3810,7 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	double Pred = GetPlayer()->GetClientPred();
 	float dist = distance(Pos, m_PrevPos) * Amp;
 	vec2 Dir = normalize(Pos - m_PrevPos);
-	vec2 nVel = Dir * Pred * dist;
-	return Pos + nVel;
+	vec2 Offset = Dir * Pred * dist;
+
+	return Pos + Offset;
 }

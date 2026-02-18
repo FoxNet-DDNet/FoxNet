@@ -209,6 +209,8 @@ void CCollision::InitSpawnCandidates()
 {
 	dbg_assert(m_pLayers, "m_pLayers must be valid");
 	BuildSpawnCandidates();
+	if(m_SpawnCandidates.size() < 200)
+		m_SpawnCandidates.clear(); // Too few spawn points
 	log_info("spawn-candidates", "found %d spawn point%s", (int)m_SpawnCandidates.size(), m_SpawnCandidates.size() == 1 ? "" : "s");
 }
 
