@@ -24,7 +24,7 @@ private:
 	bool m_Vanish;
 	bool m_IgnoreGamelayer;
 	bool m_TelekinesisImmunity;
-	int m_IncludeServerInfo;
+	bool m_IncludeServerInfo;
 
 	bool m_Obfuscated;
 	bool m_SpiderHook;

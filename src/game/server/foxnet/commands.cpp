@@ -1211,17 +1211,13 @@ void CGameContext::ConIncludeInServerInfo(IConsole::IResult *pResult, void *pUse
 	if(!pPlayer)
 		return;
 
-	int Include = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : -2;
+	int Include = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : -1;
 
-	if(Include == -2)
-	{
-		pPlayer->m_IncludeServerInfo = pPlayer->m_IncludeServerInfo == 0 ? 1 : 0;
-	}
+	if(Include == -1)
+		pPlayer->m_IncludeServerInfo = !pPlayer->m_IncludeServerInfo;
 	else
-	{
-		Include = std::clamp(Include, 0, 1);
 		pPlayer->m_IncludeServerInfo = Include;
-	}
+	log_info("server", "Set include in server info to %d for player '%s'", pPlayer->m_IncludeServerInfo, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConRedirectClient(IConsole::IResult *pResult, void *pUserData)
@@ -2062,7 +2058,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("invisible", "?v[id]", CFGFLAG_SERVER, ConInvisible, this, "Makes a players (id) Invisible");
 	Console()->Register("vanish", "?v[id]", CFGFLAG_SERVER, ConSetVanish, this, "Completely hide player (id) from everyone on the server");
 	Console()->Register("vanish_quiet", "?v[id]", CFGFLAG_SERVER, ConSetVanishQuiet, this, "Completely hide player (id) from everyone on the server without the chat join/leave message");
-	Console()->Register("include_serverinfo", "v[id] ?i[include]", CFGFLAG_SERVER, ConIncludeInServerInfo, this, "whether a player should be in the serverinfo (true by default for everyone)");
+	Console()->Register("include_serverinfo", "?v[id] ?i[include]", CFGFLAG_SERVER, ConIncludeInServerInfo, this, "whether a player should be in the serverinfo (true by default for everyone)");
 	Console()->Register("redirect", "v[id] i[port]", CFGFLAG_SERVER, ConRedirectClient, this, "Redirect player (id) to a different Server (port)");
 
 	Console()->Register("passive", "?v[id]", CFGFLAG_SERVER, ConSetPassive, this, "Put player (id) into passive");

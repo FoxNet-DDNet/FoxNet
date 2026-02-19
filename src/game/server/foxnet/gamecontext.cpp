@@ -1179,7 +1179,7 @@ bool CGameContext::IncludedInServerInfo(int ClientId)
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(pPlayer)
 	{
-		if(pPlayer->m_IncludeServerInfo != -1)
+		if(pPlayer->m_IncludeServerInfo)
 			Included = pPlayer->m_IncludeServerInfo;
 		if(pPlayer->m_Vanish)
 			Included = false;

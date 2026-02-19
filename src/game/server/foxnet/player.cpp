@@ -171,7 +171,7 @@ void CPlayer::FoxNetReset()
 	m_AccLoginAttempts = 0;
 	m_AccRegisters = 0;
 
-	m_IncludeServerInfo = -1;
+	m_IncludeServerInfo = true;
 
 	m_ExtraPing = false;
 	m_Vanish = false;

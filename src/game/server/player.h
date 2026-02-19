@@ -482,7 +482,7 @@ public:
 	int m_ExtraPing = 0;
 	bool m_IgnoreGamelayer = false;
 	bool m_TelekinesisImmunity = false;
-	int m_IncludeServerInfo;
+	bool m_IncludeServerInfo;
 
 	bool m_Obfuscated = false;
 	bool m_SpiderHook = false;
