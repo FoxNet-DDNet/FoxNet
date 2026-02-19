@@ -86,8 +86,9 @@ void CServerBan::InitServerBan(IConsole *pConsole, IStorage *pStorage, CServer *
 
 	// overwrites base command, todo: improve this
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanTimestampExt, this, "Ban ip/client id until an absolute UNIX timestamp");
-
-	Console()->Register("ban", "s[ip|id] i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanExt, this, "Ban player with ip/client id for x minutes for any reason");
+	Console()->Register("banid", "v[id] i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanClientId, this, "Ban player with ip/client id for x minutes for any reason");
+	
+	Console()->Register("ban", "s[ip|id] ?i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanExt, this, "Ban player with ip/client id for x minutes for any reason");
 	Console()->Register("ban_region", "s[region] s[ip|id] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegion, this, "Ban player in a region");
 	Console()->Register("ban_region_range", "s[region] s[first ip] s[last ip] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegionRange, this, "Ban range in a region");
 }
@@ -110,6 +111,57 @@ void CServerBan::ConBanTimestampExt(IConsole::IResult *pResult, void *pUser)
 	}
 	else
 		ConBanTimestamp(pResult, pUser);
+}
+
+void CServerBan::ConBanClientId(IConsole::IResult *pResult, void *pUser)
+{
+	CServerBan *pThis = static_cast<CServerBan *>(pUser);
+
+	const int UserId = pResult->m_ClientId;
+	const int Victim = pResult->GetVictim();
+	const int Minutes = std::clamp(pResult->GetInteger(1), 0, 525600);
+	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "Follow the server rules. Type /rules into the chat.";
+
+	if(Victim == UserId)
+	{
+		log_info("net_ban", "ban error (you can't ban yourself)");
+		return;
+	}
+
+	if(Victim < 0 || Victim >= MAX_CLIENTS || pThis->Server()->m_aClients[Victim].m_State == CServer::CClient::STATE_EMPTY)
+	{
+		log_info("net_ban", "ban error (invalid client id)");
+		return;
+	}
+
+	const char *pVictimAddr = pThis->Server()->ClientAddrString(Victim, false);
+	if(!pVictimAddr[0])
+	{
+		log_info("net_ban", "ban error (client has no ip)");
+		return;
+	}
+
+	if(UserId >= 0)
+	{
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
+					       "ver: %s (%d) [%s]",
+			pThis->Server()->ClientName(UserId),
+			pThis->Server()->ClientAddrString(UserId, false),
+			pThis->Server()->ClientName(Victim),
+			pVictimAddr,
+			Minutes,
+			pReason,
+			pThis->Server()->GetCustomClient(Victim),
+			pThis->Server()->GetClientVersion(Victim),
+			pThis->Server()->GetClientVersionStr(Victim));
+		char aTitle[32];
+		str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d)", pThis->Server()->Port());
+		pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
+	}
+
+	pResult->SetVictimAddrStr(pVictimAddr);
+	pThis->BanAddr(pThis->Server()->ClientAddr(Victim), Minutes * 60, pReason, false);
 }
 
 template<class T>

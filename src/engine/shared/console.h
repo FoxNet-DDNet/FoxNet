@@ -117,6 +117,15 @@ class CConsole : public IConsole
 		// <FoxNet
 		int64_t GetInteger64(unsigned Index) const override;
 		const char *GetCommand() const override { return m_pCommand; }
+		int m_VictimLowest;
+		int m_VictimHighest;
+
+		// This is really fucking ugly but its the easiest solution I came up with ngl
+		const char *m_pVictimAddrStr;
+		void SetVictimAddrStr(const char *pAddrStr) override;
+		const char *GetVictimAddrStr() const override;
+		// FoxNet>
+		
 		// DDRace
 
 		enum
@@ -129,8 +138,6 @@ class CConsole : public IConsole
 			VICTIM_RANGE = -1,
 			// FoxNet>
 		};
-		
-		int m_VictimLowest, m_VictimHighest;
 
 		int m_Victim;
 		void ResetVictim();

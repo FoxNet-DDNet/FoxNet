@@ -2181,6 +2181,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Chain("unban", ConchainScriptingBan, this);
 	Console()->Chain("ban", ConchainScriptingBan, this);
+	Console()->Chain("banid", ConchainScriptingBan, this);
 	Console()->Chain("ban_timestamp", ConchainScriptingBan, this);
 }
 
@@ -2199,11 +2200,29 @@ void CGameContext::ConchainScriptingBan(IConsole::IResult *pResult, void *pUserD
 	char aArgBuf[256] = "";
 	for(int i = 0; i < NumArgs; i++)
 	{
+		char aTempBuf[128];
+		str_copy(aTempBuf, pResult->GetString(i), sizeof(aTempBuf));
+		if(i == 0 && pResult->GetVictim() >= 0 && pResult->GetVictimAddrStr())
+		{
+			char aIdBuf[32];
+			str_format(aIdBuf, sizeof(aIdBuf), "%s", pResult->GetVictimAddrStr());
+			str_copy(aTempBuf, aIdBuf, sizeof(aTempBuf));
+
+			if(pResult->GetVictim() == UserId)
+				return; // prevent self ban
+		}
+
 		if(i > 0)
 			str_append(aArgBuf, " ", sizeof(aArgBuf));
-		str_append(aArgBuf, pResult->GetString(i), sizeof(aArgBuf));
+		str_append(aArgBuf, aTempBuf, sizeof(aArgBuf));
 	}
-	str_format(aCmdBuf, sizeof(aCmdBuf), "%s %s", pResult->GetCommand(), aArgBuf);
+
+	char aCmdName[64];
+	str_copy(aCmdName, pResult->GetCommand(), sizeof(aCmdName));
+	if(!str_comp(aCmdName, "banid"))
+		str_copy(aCmdName, "ban", sizeof(aCmdName));
+
+	str_format(aCmdBuf, sizeof(aCmdBuf), "%s %s", aCmdName, aArgBuf);
 	pSelf->FormatAndRunScriptingBan(aCmdBuf, UserId);
 }
 
@@ -2253,6 +2272,13 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 			}
 			else if(!net_addr_from_str(&Addr, pArg))
 				str_copy(aAddrStr, pArg, sizeof(aAddrStr));
+
+			if(UserId >= 0)
+			{
+				const char *pUserAddrStr = Server()->ClientAddrString(UserId, false);
+				if(!str_comp(aAddrStr, pUserAddrStr))
+					return; // prevent banning the user themselves
+			}
 
 			if(aAddrStr[0])
 			{

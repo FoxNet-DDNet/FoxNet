@@ -58,6 +58,7 @@ public:
 	static void ConBanRegionRange(class IConsole::IResult *pResult, void *pUser);
 	// <FoxNet
 	static void ConBanTimestampExt(class IConsole::IResult *pResult, void *pUser);
+	static void ConBanClientId(class IConsole::IResult *pResult, void *pUser);
 	// FoxNet>
 };
 

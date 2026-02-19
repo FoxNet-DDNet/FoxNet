@@ -80,8 +80,12 @@ public:
 		virtual const char *GetString(unsigned Index) const = 0;
 		virtual ColorHSLA GetColor(unsigned Index, float DarkestLighting) const = 0;
 
+		// <FoxNet
 		virtual int64_t GetInteger64(unsigned Index) const = 0;
 		virtual const char *GetCommand() const = 0;
+		virtual void SetVictimAddrStr(const char *pAddrStr) = 0;
+		virtual const char *GetVictimAddrStr() const = 0;
+		// FoxNet>
 
 		virtual void RemoveArgument(unsigned Index) = 0;
 

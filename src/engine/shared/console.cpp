@@ -1216,6 +1216,7 @@ void CConsole::CResult::ResetVictim()
 	// <FoxNet
 	m_VictimLowest = -1;
 	m_VictimHighest = -1;
+	m_pVictimAddrStr = nullptr;
 	// FoxNet>
 }
 
@@ -1255,6 +1256,18 @@ void CConsole::CResult::SetVictim(const char *pVictim)
 	else
 		m_Victim = std::clamp<int>(str_toint(pVictim), 0, MAX_CLIENTS - 1);
 }
+
+// <FoxNet
+void CConsole::CResult::SetVictimAddrStr(const char *pAddrStr)
+{
+	m_pVictimAddrStr = pAddrStr;
+}
+
+const char *CConsole::CResult::GetVictimAddrStr() const
+{
+	return m_pVictimAddrStr ? m_pVictimAddrStr : "";
+}
+// FoxNet>
 
 std::optional<ColorHSLA> CConsole::ColorParse(const char *pStr, float DarkestLighting)
 {
