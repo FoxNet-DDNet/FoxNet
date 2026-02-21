@@ -203,7 +203,7 @@ void CGameContext::BotClientTick()
 				Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 				char aCmdBuf[512];
-				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime, "Download a suitable client form ddnet.org or entityclient.net");
+				str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, g_Config.m_SvAntiBotBantime, "Download a suitable client from ddnet.org or entityclient.net");
 				Console()->ExecuteLine(aCmdBuf, IConsole::CLIENT_ID_FOXNET);
 				continue;
 			}

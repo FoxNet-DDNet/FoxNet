@@ -4715,9 +4715,9 @@ void CGameContext::LoadMapSettings()
 
 		while(pNext < pSettings + Size)
 		{
-			if(str_find(pNext, "sv_kog_qquads_enable 1"))
+			if(str_find_nocase(pNext, "sv_kog_qquads_enable 1"))
 				g_Config.m_SvMovingTiles = true;
-			if(str_find(pNext, "sv_kog_grenade_tele 1"))
+			if(str_find_nocase(pNext, "sv_kog_grenade_tele 1"))
 				g_Config.m_SvTeleGrenade = true;
 
 			int StrSize = str_length(pNext) + 1;
