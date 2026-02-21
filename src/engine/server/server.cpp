@@ -4954,10 +4954,18 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		break;
 	}
 	break;
+	case NETMSG_IAM_DUCKCLIENT:
+	{
+		SetCustomClient(ClientId, "Duck/Infclass");
+		ReturnValue = true;
+		break;
+	}
+	break;
 
 	case NETMSG_IAM_NOFIS:
 	{
 		SetCustomClient(ClientId, "Nofis");
+		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_JSCLIENT:
@@ -4965,7 +4973,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		if(g_Config.m_SvAutoBanJSClient)
 		{
 			const int BanTime = 60 * 60 * 24; // 24 hours
-			m_ServerBan.BanAddr(m_NetServer.ClientAddr(ClientId), BanTime, "Using JS-Client", "Using JS-Client");
+			m_ServerBan.BanAddr(m_NetServer.ClientAddr(ClientId), BanTime, "Using JS-Client", false);
 			return true;
 		}
 		SetCustomClient(ClientId, "JS-Client");

@@ -62,6 +62,7 @@ UUID(NETMSG_IAM_SCLIENT, "i-am-sclient@sclient.site")
 UUID(NETMSG_IAM_CHILLERBOT, "i-am-chillerbot@chillerbot.github.io")
 UUID(NETMSG_IAM_KOSHKA, "i-am-koshka@koshkaclient.fun")
 UUID(NETMSG_IAM_RUSHIE, "i-am-rushie@RushieClient.github.io")
+UUID(NETMSG_IAM_DUCKCLIENT, "i-am-duckclient@pointer31.github.io")
 
 UUID(NETMSG_IAM_JSCLIENT, "i-am-npm-package@swarfey.gitlab.io")
 UUID(NETMSG_IAM_NOFIS, "i-am-TNC@thenofis.github.io/thenofis.github.io")
