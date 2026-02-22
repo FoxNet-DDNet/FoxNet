@@ -4639,7 +4639,7 @@ void CServer::RegisterCommands()
 	Console()->Chain("sv_conn_logging_server", ConchainConnLoggingServerChange, this);
 #endif
 	// <FoxNet
-	Console()->Register("client_infos", "", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
+	Console()->Register("client_infos", "?i[type]", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
 	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
 	Console()->Register("get_traffic", "?v[id]", CFGFLAG_SERVER, ConGetClientTraffic, this, "Prints information about what clients players are using");
 	Console()->Register("send_map", "s[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
@@ -4863,16 +4863,20 @@ void CServer::OverrideClientName(int ClientId, const char *pName)
 void CServer::CClient::ResetContent()
 {
 	FreeClientOverrideMap(*this);
-	str_copy(m_CustomClient, "DDNet");
+	str_copy(m_aCustomClient, "DDNet");
 	m_QuietJoin = false;
 	m_HighBandwidth = true;
 }
 
-void CServer::SetCustomClient(int ClientId, const char *pCustomClient)
+void CServer::SetCustomClient(int ClientId, const char *pCustomClient, CUnpacker Unpacker)
 {
-	if(str_comp(m_aClients[ClientId].m_CustomClient, "DDNet") != 0)
+	if(str_comp(m_aClients[ClientId].m_aCustomClient, "DDNet") != 0)
 		return; // Don't process if the client is already identified as a custom client
-	str_copy(m_aClients[ClientId].m_CustomClient, pCustomClient);
+	str_copy(m_aClients[ClientId].m_aCustomClient, pCustomClient);
+
+	const char *pMessage = Unpacker.GetString();
+	if(pMessage && pMessage[0])
+		str_copy(m_aClients[ClientId].m_aClientMessage, pMessage);
 }
 
 bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
@@ -4887,76 +4891,76 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_QXD:
 	{
-		SetCustomClient(ClientId, "E-Client");
+		SetCustomClient(ClientId, "E-Client", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_TATER:
 	{
-		SetCustomClient(ClientId, "T-Client");
+		SetCustomClient(ClientId, "T-Client", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_CACTUS:
 	{
-		SetCustomClient(ClientId, "Cactus");
+		SetCustomClient(ClientId, "Cactus", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_AIODOB:
 	{
-		SetCustomClient(ClientId, "A-Client");
+		SetCustomClient(ClientId, "A-Client", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_FEX:
 	{
-		SetCustomClient(ClientId, "FeX");
+		SetCustomClient(ClientId, "FeX", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_STA:
 	{
-		SetCustomClient(ClientId, "Sta");
+		SetCustomClient(ClientId, "Sta", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_PULSE:
 	{
-		SetCustomClient(ClientId, "Pulse");
+		SetCustomClient(ClientId, "Pulse", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_SCLIENT:
 	{
-		SetCustomClient(ClientId, "S-Client");
+		SetCustomClient(ClientId, "S-Client", Unpacker);
 		ReturnValue = true;
 	}
 	break;
 	case NETMSG_IAM_CHILLERBOT:
 	{
-		SetCustomClient(ClientId, "ChillerBot");
+		SetCustomClient(ClientId, "ChillerBot", Unpacker);
 		ReturnValue = true;
 		break;
 	}
 	break;
 	case NETMSG_IAM_KOSHKA:
 	{
-		SetCustomClient(ClientId, "Koshka");
+		SetCustomClient(ClientId, "Koshka", Unpacker);
 		ReturnValue = true;
 		break;
 	}
 	break;
 	case NETMSG_IAM_RUSHIE:
 	{
-		SetCustomClient(ClientId, "R-Client");
+		SetCustomClient(ClientId, "R-Client", Unpacker);
 		ReturnValue = true;
 		break;
 	}
 	break;
 	case NETMSG_IAM_DUCKCLIENT:
 	{
-		SetCustomClient(ClientId, "Duck/Infclass");
+		SetCustomClient(ClientId, "Duck/Infclass", Unpacker);
 		ReturnValue = true;
 		break;
 	}
@@ -4964,7 +4968,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_NOFIS:
 	{
-		SetCustomClient(ClientId, "Nofis");
+		SetCustomClient(ClientId, "Nofis", Unpacker);
 		ReturnValue = true;
 	}
 	break;
@@ -4976,7 +4980,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 			m_ServerBan.BanAddr(m_NetServer.ClientAddr(ClientId), BanTime, "Using JS-Client", false);
 			return true;
 		}
-		SetCustomClient(ClientId, "JS-Client");
+		SetCustomClient(ClientId, "JS-Client", Unpacker);
 		ReturnValue = true;
 	}
 	break;
@@ -5008,6 +5012,8 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pThis = static_cast<CServer *>(pUser);
 
+	const int Type = pResult->NumArguments() ? pResult->GetInteger(0) : 0;
+
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		if(pThis->m_aClients[ClientId].m_State == CClient::STATE_EMPTY)
@@ -5015,11 +5021,23 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 
 		if(pThis->m_aClients[ClientId].m_State == CClient::STATE_INGAME)
 		{
-			int DDnetVersion = pThis->GetClientVersion(ClientId);
-			if(pThis->m_aClients[ClientId].m_GotDDNetVersionPacket)
-				log_info("foxnet", "Name: %s (%d) | Client: %s (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+			const char *pCustomClient = pThis->GetCustomClient(ClientId);
+
+			if(Type == 0)
+			{
+				int DDnetVersion = pThis->GetClientVersion(ClientId);
+				if(pThis->m_aClients[ClientId].m_GotDDNetVersionPacket)
+					log_info("foxnet", "Name: '%s' (%d) | Client: \"%s\" (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pCustomClient, DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+				else
+					log_info("foxnet", "Name: '%s' (%d) | Client: \"%s\" (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, pCustomClient, DDnetVersion);
+			}
 			else
-				log_info("foxnet", "Name: %s (%d) | Client: %s (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->GetCustomClient(ClientId), DDnetVersion);
+			{
+				if(str_comp(pCustomClient, "DDNet") != 0)
+					log_info("foxnet", "Name: '%s' (%d) | Message: \"%s\"", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->m_aClients[ClientId].m_aClientMessage);
+				else
+					log_info("foxnet", "Name: '%s' (%d) | No custom client message", pThis->m_aClients[ClientId].m_aName, ClientId);
+			}
 		}
 	}
 }

@@ -218,7 +218,8 @@ public:
 		char m_aOverrideMapName[64];
 
 		void ResetContent();
-		char m_CustomClient[24];
+		char m_aClientMessage[256];
+		char m_aCustomClient[24];
 		bool m_QuietJoin;
 		bool m_HighBandwidth;
 		// FoxNet>	
@@ -555,7 +556,7 @@ public:
 	static void ConClientInfo(IConsole::IResult *pResult, void *pUser);
 	static void ConGetClientTraffic(IConsole::IResult *pResult, void *pUser);
 	bool FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker);
-	void SetCustomClient(int ClientId, const char *pCustomClient);
+	void SetCustomClient(int ClientId, const char *pCustomClient, CUnpacker Unpacker);
 	bool IncludedInServerInfo(int ClientId);
 
 	bool SendMapByName(int ClientId, const char *pMapName) override;
@@ -564,7 +565,7 @@ public:
 
 	void SetQuietBan(bool Quiet) override;
 	void OverrideClientName(int ClientId, const char *pName) override;
-	const char *GetCustomClient(int ClientId) override { return m_aClients[ClientId].m_CustomClient; }
+	const char *GetCustomClient(int ClientId) override { return m_aClients[ClientId].m_aCustomClient; }
 	bool QuietJoin(int ClientId) override { return m_aClients[ClientId].m_QuietJoin; }
 
 	class CWebhook : public IJob
