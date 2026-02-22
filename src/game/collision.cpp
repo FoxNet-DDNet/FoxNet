@@ -1906,8 +1906,7 @@ void CCollision::BuildSpawnCandidates()
 	CollectMapSpawnPoints(seeds);
 	if(seeds.empty())
 		return;
-	if(g_Config.m_SvTeleGrenade)
-		return; // nah
+
 
 	const int W = GetWidth();
 	const int H = GetHeight();

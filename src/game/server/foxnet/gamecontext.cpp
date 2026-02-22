@@ -286,6 +286,8 @@ void CGameContext::PowerUpSpawner()
 {
 	if(!g_Config.m_SvSpawnPowerUps)
 		return;
+	if(g_Config.m_SvTeleGrenade)
+		return; // nah
 	if(!g_Config.m_SvAccounts)
 		return; // Powerups require accounts to store the data
 	if(m_vPowerups.size() >= 6)
