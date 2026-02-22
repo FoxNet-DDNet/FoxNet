@@ -1142,12 +1142,33 @@ bool CGameContext::RandomMapVote()
 	return true;
 }
 
+bool CGameContext::SendServerAlert(const char *pMessage, int ClientId) const
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+	if(Server()->ClientSlotEmpty(ClientId))
+		return false;
+	if(!m_apPlayers[ClientId])
+		return false;
+
+	if(m_apPlayers[ClientId]->GetClientVersion() >= VERSION_DDNET_IMPORTANT_ALERT)
+	{
+		CNetMsg_Sv_ServerAlert Msg;
+		Msg.m_pMessage = pMessage;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		return true;
+	}
+	return false;
+}
+
 void CGameContext::SendMovingTilesInfo(int ClientId)
 {
 	if(Collision()->HasMovingQuads())
 	{
 		const char *pWarn = "Turn off entities, this map uses Moving Tiles";
-		SendBroadcast(pWarn, ClientId);
+
+		if(!SendServerAlert(pWarn, ClientId))
+			SendBroadcast(pWarn, ClientId);
 		SendChatTarget(ClientId, pWarn);
 	}
 }

@@ -43,7 +43,7 @@ void CPlayer::FoxNetTick()
 {
 	if(m_HasBotClient)
 	{
-		SendBroadcast("\n\nDownload the official client from ddnet.org/downloads/");
+		SendBroadcast("\n\nDownload a suitable client from ddnet.org or entityclient.net");
 		return;
 	}
 

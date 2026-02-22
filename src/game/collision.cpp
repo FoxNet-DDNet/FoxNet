@@ -1907,7 +1907,6 @@ void CCollision::BuildSpawnCandidates()
 	if(seeds.empty())
 		return;
 
-
 	const int W = GetWidth();
 	const int H = GetHeight();
 

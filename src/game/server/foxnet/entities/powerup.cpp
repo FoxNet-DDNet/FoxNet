@@ -151,8 +151,6 @@ void CPowerUp::HandleClient(int ClientId)
 		}
 	}
 
-
-	
 	if(!m_aClients[ClientId].m_Collected)
 	{
 		if(PointInSquare(m_Pos, pChr->GetPos(), 54.0f))

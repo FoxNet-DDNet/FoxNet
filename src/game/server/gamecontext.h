@@ -946,6 +946,7 @@ private:
 	bool RandomMapVote();
 
 public:
+	bool SendServerAlert(const char *pMessage, int ClientId = -1) const;
 	void SendMovingTilesInfo(int ClientId);
 
 	void OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId) override;
