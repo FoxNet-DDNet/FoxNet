@@ -209,7 +209,7 @@ void CCollision::InitSpawnCandidates()
 {
 	dbg_assert(m_pLayers, "m_pLayers must be valid");
 	BuildSpawnCandidates();
-	if(m_SpawnCandidates.size() < 200)
+	if(m_SpawnCandidates.size() < 500)
 		m_SpawnCandidates.clear(); // Too few spawn points
 	log_info("spawn-candidates", "found %d spawn point%s", (int)m_SpawnCandidates.size(), m_SpawnCandidates.size() == 1 ? "" : "s");
 }
@@ -1906,6 +1906,8 @@ void CCollision::BuildSpawnCandidates()
 	CollectMapSpawnPoints(seeds);
 	if(seeds.empty())
 		return;
+	if(g_Config.m_SvTeleGrenade)
+		return; // nah
 
 	const int W = GetWidth();
 	const int H = GetHeight();
