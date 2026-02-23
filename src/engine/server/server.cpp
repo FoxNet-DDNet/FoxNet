@@ -5022,21 +5022,20 @@ void CServer::ConClientInfo(IConsole::IResult *pResult, void *pUser)
 		if(pThis->m_aClients[ClientId].m_State == CClient::STATE_INGAME)
 		{
 			const char *pCustomClient = pThis->GetCustomClient(ClientId);
+			const char *pName = pThis->m_aClients[ClientId].m_aName;
+			const int DDNetVersion = pThis->GetClientVersion(ClientId);
 
 			if(Type == 0)
 			{
-				int DDnetVersion = pThis->GetClientVersion(ClientId);
 				if(pThis->m_aClients[ClientId].m_GotDDNetVersionPacket)
-					log_info("foxnet", "Name: '%s' (%d) | Client: \"%s\" (%d) [%s]", pThis->m_aClients[ClientId].m_aName, ClientId, pCustomClient, DDnetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
+					log_info("foxnet", "Name: '%s' (%d) | Client: %s (%d) [%s]", pName, ClientId, pCustomClient, DDNetVersion, pThis->m_aClients[ClientId].m_aDDNetVersionStr);
 				else
-					log_info("foxnet", "Name: '%s' (%d) | Client: \"%s\" (%d) [Client too old]", pThis->m_aClients[ClientId].m_aName, pCustomClient, DDnetVersion);
+					log_info("foxnet", "Name: '%s' (%d) | Client: %s (%d) [Client too old]", pName, ClientId, pCustomClient, DDNetVersion);
 			}
 			else
 			{
 				if(str_comp(pCustomClient, "DDNet") != 0)
-					log_info("foxnet", "Name: '%s' (%d) | Message: \"%s\"", pThis->m_aClients[ClientId].m_aName, ClientId, pThis->m_aClients[ClientId].m_aClientMessage);
-				else
-					log_info("foxnet", "Name: '%s' (%d) | No custom client message", pThis->m_aClients[ClientId].m_aName, ClientId);
+					log_info("foxnet", "Name: '%s' (%d) | Client: %s (%d) [%s]", pName, ClientId, pCustomClient, DDNetVersion, pThis->m_aClients[ClientId].m_aClientMessage);
 			}
 		}
 	}
