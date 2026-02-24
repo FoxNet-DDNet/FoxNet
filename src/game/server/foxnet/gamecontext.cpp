@@ -552,7 +552,9 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		}
 
 		// anti mass ping ad bot
-		if((str_find_nocase(pText, "stop being a noob") && str_find_nocase(pText, "get good with")) || (str_find_nocase(pText, "Think you could do better") && str_find_nocase(pText, "Not without"))) // mass ping advertising
+		if((str_find_nocase(pText, "stop being a noob") && str_find_nocase(pText, "get good with")) || 
+			(str_find_nocase(pText, "Think you could do better") && str_find_nocase(pText, "Not without")) ||
+			str_find_nocase(pText, "if I was cheating")) // mass ping advertising
 		{
 			if(str_length(pText) > 70) // Usually it pings alot of people
 			{
