@@ -5204,37 +5204,61 @@ void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
 	pThis->SendMapByName(ClientId, pMapName);
 }
 
-void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
+static std::string EscapeJsonString(const char *pStr)
 {
-	if(pUrl[0] == '\0' || pMessage[0] == '\0')
-		return;
+	if(pStr == nullptr)
+		return "";
 
-	std::string Message = EscapeMessage(pMessage);
-	std::string Username = EscapeMessage(pUsername);
-	const std::string Base = "curl -i -H \"Accept: application/json\" -H \"Content-Type: application/json; charset=UTF-8\" -X POST --data ";
-
-	// Things like "äöü" or any special characters wont get sent properly on windows, Linux on top
-	std::string Data = "\"{\\\"username\\\": \\\"" + Username + "\\\", \\\"content\\\": \\\"" + Message + "\\\", \\\"avatar_url\\\": \\\"" + pAvatarURL + "\\\"}\" ";
-
-	// Makes the console shut up
-#if defined(_WIN32) || defined(_WIN64)
-	std::string command = Base + Data + pUrl + " > NUL 2>&1";
-#else
-	std::string command = Base + Data + pUrl + " > /dev/null 2>&1";
-#endif
-
-	IEngine *pEngine = Kernel()->RequestInterface<IEngine>();
-	pEngine->AddJob(std::make_shared<CWebhook>(command.c_str()));
+	std::string Out;
+	for(const unsigned char *p = (const unsigned char *)pStr; *p; ++p)
+	{
+		switch(*p)
+		{
+		case '\"': Out += "\\\""; break;
+		case '\\': Out += "\\\\"; break;
+		case '\b': Out += "\\b"; break;
+		case '\f': Out += "\\f"; break;
+		case '\n': Out += "\\n"; break;
+		case '\r': Out += "\\r"; break;
+		case '\t': Out += "\\t"; break;
+		default:
+			if(*p < 0x20)
+			{
+				char aBuf[7];
+				str_format(aBuf, sizeof(aBuf), "\\u%04x", (unsigned)*p);
+				Out += aBuf;
+			}
+			else
+			{
+				Out.push_back((char)*p);
+			}
+			break;
+		}
+	}
+	return Out;
 }
 
-void CServer::CWebhook::Run()
+void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
 {
-	int ret = system(m_aCommand);
-	if(ret)
-	{
-		log_info("webhook", "Sending webhook message failed, returned %d", ret);
-		log_info("webhook", "%s", m_aCommand);
-	}
+	if(pUrl == nullptr || pUrl[0] == '\0' || pMessage == nullptr || pMessage[0] == '\0')
+		return;
+
+	const std::string Username = EscapeJsonString(pUsername ? pUsername : "");
+	const std::string Content = EscapeJsonString(pMessage);
+	const std::string AvatarUrl = EscapeJsonString(pAvatarURL ? pAvatarURL : "");
+
+	std::string Json =
+		"{"
+		"\"username\":\"" +
+		Username + "\","
+			   "\"content\":\"" +
+		Content + "\","
+			  "\"avatar_url\":\"" +
+		AvatarUrl + "\""
+			    "}";
+
+	auto pReq = HttpPostJson(pUrl, Json.c_str());
+	m_Http.Run(std::move(pReq));
 }
 
 void CServer::SystemCall(const char *pCommand)

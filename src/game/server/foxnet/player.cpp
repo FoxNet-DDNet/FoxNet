@@ -41,12 +41,6 @@ CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 
 void CPlayer::FoxNetTick()
 {
-	if(m_HasBotClient)
-	{
-		SendBroadcast("\n\nDownload a suitable client from ddnet.org or entityclient.net");
-		return;
-	}
-
 	if(m_LootBoxData.m_Opening)
 		LootBoxTick();
 
@@ -164,9 +158,6 @@ void CPlayer::FoxNetReset()
 {
 	m_MapOverridden = false;
 	m_LastReport = 0;
-
-	m_HasBotClient = false;
-	m_BotChecked = false;
 
 	m_AccLoginAttempts = 0;
 	m_AccRegisters = 0;
@@ -961,7 +952,7 @@ int CPlayer::NumDDraceHudRows()
 // Broadcasts like opening a lootcase or having a bot client are more important than area broadcasts or stuff like that
 bool CPlayer::HasImportantBroadcast() const
 {
-	return m_LootBoxData.m_Opening || m_HasBotClient;
+	return m_LootBoxData.m_Opening;
 }
 
 void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)

@@ -3040,12 +3040,6 @@ CClientMask CCharacter::OppositeCosmeticMask(EItemType Type)
 void CCharacter::FoxNetTick()
 {
 	HandleSpawnSolo();
-	if(m_pPlayer->m_HasBotClient)
-	{
-		if(!m_Core.m_DeepFrozen)
-			SetDeepFrozen(true);
-		return;
-	}
 
 	m_Snake.Tick();
 	m_Ufo.Tick();

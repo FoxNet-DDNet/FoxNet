@@ -459,9 +459,6 @@ public:
 
 	int64_t m_LastReport = 0;
 
-	bool m_HasBotClient;
-	bool m_BotChecked;
-
 	int m_BetAmount = -1;
 	int64_t m_LastBet = 0;
 

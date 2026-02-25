@@ -739,18 +739,6 @@ private:
 
 	void HandleEffects();
 
-	class CBotClientDetection
-	{
-	public:
-		char m_pClientName[32] = "";
-		char m_pDDNetVersionStr[128] = "";
-		int m_DDNetVersion = -1;
-		bool m_Ban = false;
-	};
-
-	std::vector<CBotClientDetection> m_vBotClientDetections;
-	void BotClientTick();
-
 	void FoxNetTick();
 	void FoxNetInit();
 	void FoxNetSnap(int ClientId, bool GlobalSnap);
@@ -915,10 +903,6 @@ private:
 	static void ConProjectileText(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pUserData);
-	static void ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData);
-	static void ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
 

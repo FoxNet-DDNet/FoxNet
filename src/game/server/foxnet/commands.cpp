@@ -1861,63 +1861,6 @@ void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
-void CGameContext::ConBotClientDetectionAdd(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	const char *pClientName = pResult->GetString(0);
-	const char *pDDNetVersionStr = pResult->GetString(1);
-	int ClientVersion = pResult->GetInteger(2);
-	int Ban = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
-
-	CBotClientDetection NewEntry;
-	str_copy(NewEntry.m_pClientName, pClientName);
-	str_copy(NewEntry.m_pDDNetVersionStr, pDDNetVersionStr);
-	NewEntry.m_DDNetVersion = ClientVersion;
-	NewEntry.m_Ban = Ban;
-
-	for(const auto &Entry : pSelf->m_vBotClientDetections)
-	{
-		if(str_comp(Entry.m_pClientName, pClientName) == 0 &&
-			str_comp(Entry.m_pDDNetVersionStr, pDDNetVersionStr) == 0 &&
-			Entry.m_DDNetVersion == ClientVersion)
-		{
-			log_info("bot-detection", "Entry already exists");
-			return;
-		}
-	}
-
-	pSelf->m_vBotClientDetections.emplace_back(NewEntry);
-
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(!pSelf->Server()->ClientIngame(i))
-			continue;
-		CPlayer *pPlayer = pSelf->m_apPlayers[i];
-		if(pPlayer)
-			pPlayer->m_BotChecked = false; // force recheck
-	}
-}
-
-void CGameContext::ConBotClientDetectionClear(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_vBotClientDetections.clear();
-}
-
-void CGameContext::ConBotClientDetectionList(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	for(const auto &Entry : pSelf->m_vBotClientDetections)
-	{
-		const char *pClientName = Entry.m_pClientName[0] ? Entry.m_pClientName : "<any>";
-		const char *pDDNetVersionStr = Entry.m_pDDNetVersionStr[0] ? Entry.m_pDDNetVersionStr : "<any>";
-		int DDNetVersion = Entry.m_DDNetVersion;
-
-		log_info("bot-detection", "Client: %s (%d) [%s]", pClientName, DDNetVersion, pDDNetVersionStr);
-	}
-}
-
 void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2021,10 +1964,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Play a sound globally for everyone");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
-
-	Console()->Register("bot_client_string_add", "s[client-name] s[version-str] i[client-ver] ?i[ban]", CFGFLAG_SERVER, ConBotClientDetectionAdd, this, "Add a string to bot client detection");
-	Console()->Register("bot_client_strings_clear", "", CFGFLAG_SERVER, ConBotClientDetectionClear, this, "clear bot client detection strings");
-	Console()->Register("bot_client_strings_list", "", CFGFLAG_SERVER, ConBotClientDetectionList, this, "List bot client detection strings");
 
 	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
 

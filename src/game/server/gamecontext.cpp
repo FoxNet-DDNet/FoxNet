@@ -199,7 +199,6 @@ void CGameContext::Clear()
 	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
-	std::vector<CBotClientDetection> vBotDetection = m_vBotClientDetections;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
@@ -222,7 +221,6 @@ void CGameContext::Clear()
 	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
 	m_vChatDetection = vChatDetection;
 	m_vNameDetection = vNameDetection;
-	m_vBotClientDetections = vBotDetection;
 	m_vQuadDebugIds = vQuadDebugIds;
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;
@@ -2214,7 +2212,7 @@ void CGameContext::OnMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)
 	if(!pRawMsg)
 		return;
 
-	if(Server()->ClientIngame(ClientId) && !m_apPlayers[ClientId]->m_HasBotClient)
+	if(Server()->ClientIngame(ClientId))
 	{
 		switch(MsgId)
 		{

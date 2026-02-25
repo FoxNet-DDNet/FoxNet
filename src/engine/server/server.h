@@ -568,14 +568,6 @@ public:
 	const char *GetCustomClient(int ClientId) override { return m_aClients[ClientId].m_aCustomClient; }
 	bool QuietJoin(int ClientId) override { return m_aClients[ClientId].m_QuietJoin; }
 
-	class CWebhook : public IJob
-	{
-		void Run() override;
-
-	public:
-		CWebhook(const char *pCommand) { str_copy(m_aCommand, pCommand, sizeof(m_aCommand)); }
-		char m_aCommand[1024];
-	};
 	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
 
 	class CSystemCall : public IJob // For ChaiScript system calls
