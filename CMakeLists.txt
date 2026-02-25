@@ -2890,6 +2890,8 @@ if(SERVER)
     foxnet/fontconvert.cpp
     foxnet/fontconvert.h
     foxnet/gamecontext.cpp
+    foxnet/integration/antibob.cpp
+    foxnet/integration/antibob.h
     foxnet/item_registry.cpp
     foxnet/item_registry.h
     foxnet/persistent_data.cpp

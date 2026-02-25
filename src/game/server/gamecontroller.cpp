@@ -23,6 +23,7 @@
 
 // <FoxNet
 #include <game/server/foxnet/entities/roulette.h>
+#include <game/server/foxnet/integration/antibob.h>
 
 IGameController::IGameController(class CGameContext *pGameServer) :
 	m_Teams(pGameServer), m_pLoadBestTimeResult(nullptr)
@@ -31,6 +32,7 @@ IGameController::IGameController(class CGameContext *pGameServer) :
 	m_pConfig = m_pGameServer->Config();
 	m_pServer = m_pGameServer->Server();
 	m_pGameType = "FoxNetwork";
+	g_AntibobContext.m_pConsole = GameServer()->Console();
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
