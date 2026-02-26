@@ -100,6 +100,7 @@ MACRO_CONFIG_INT(SvSoloOnSpawn, sv_solo_on_spawn, 0, 0, 15, CFGFLAG_SERVER | CFG
 MACRO_CONFIG_INT(SvAllowZoom, sv_allow_zoom, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow zoom or not")
 MACRO_CONFIG_INT(SvAllowHookColl, sv_allow_hook_coll, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow hook coll or not")
 MACRO_CONFIG_INT(SvAllowEyeWheel, sv_allow_eye_wheel, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow eye wheel or not")
+MACRO_CONFIG_INT(SvAllowDummy, sv_allow_dummy, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow dummy or not (only applies for new players)")
 
 // Cosmetics
 MACRO_CONFIG_INT(SvCosmetics, sv_cosmetics, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to allow cosmetics")
