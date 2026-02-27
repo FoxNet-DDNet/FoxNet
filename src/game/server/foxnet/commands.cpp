@@ -57,7 +57,7 @@ void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_AccRegisters >= g_Config.m_SvAccountsMaxRegister)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[256];
+		char aBanBuf[1024];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
@@ -121,7 +121,7 @@ void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvAccountsMaxLoginAttempts)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[256];
+		char aBanBuf[1024];
 		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
@@ -1741,7 +1741,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	char aBuf[256];
+	char aBuf[1024];
 
 	str_format(aBuf, sizeof(aBuf), "From: `%s` (Acc: `%s`)\n"
 				       "against: `%s` (Acc: `%s`)\n"

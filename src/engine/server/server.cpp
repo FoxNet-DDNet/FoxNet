@@ -143,7 +143,7 @@ void CServerBan::ConBanClientId(IConsole::IResult *pResult, void *pUser)
 
 	if(UserId >= 0)
 	{
-		char aBuf[256];
+		char aBuf[1024];
 		str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
 					       "ver: %s (%d) [%s]",
 			pThis->Server()->ClientName(UserId),
@@ -259,7 +259,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			const int UserId = pResult->m_ClientId;
 			if(UserId >= 0)
 			{
-				char aBuf[256];
+				char aBuf[1024];
 				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
 							       "ver: %s (%d) [%s]",
 					pThis->Server()->ClientName(UserId),
@@ -1862,7 +1862,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 		if(m_aClients[ClientId].m_Traffic > Limit)
 		{
-			char aBanBuf[256];
+			char aBanBuf[1024];
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
 				"ver: %s (%d) [%s]",

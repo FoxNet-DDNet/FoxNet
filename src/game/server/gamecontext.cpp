@@ -2449,8 +2449,7 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 						break;
 					}
 				}
-				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientId),
-					aDesc, aReason);
+				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientId), aDesc, aReason);
 				// FoxNet>
 				m_LastMapVote = time_get();
 				break;
