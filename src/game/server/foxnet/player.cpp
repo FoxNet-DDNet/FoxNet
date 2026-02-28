@@ -1,6 +1,7 @@
 ﻿#include "accounts.h"
 #include "cosmetics/dot_trail.h"
 #include "cosmetics/epic_circle.h"
+#include "cosmetics/halo.h"
 #include "cosmetics/headitem.h"
 #include "cosmetics/heart_hat.h"
 #include "cosmetics/lissajous.h"
@@ -793,6 +794,16 @@ void CPlayer::SetLissajous(bool Active)
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_Lissajous)
 		new CLissajous(&GameServer()->m_World, GetCid(), Pos);
+}
+
+void CPlayer::SetHalo(bool Active)
+{
+	if(Cosmetics()->m_Halo == Active)
+		return;
+	Cosmetics()->m_Halo = Active;
+	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
+	if(Cosmetics()->m_Halo)
+		new CHalo(&GameServer()->m_World, GetCid(), Pos);
 }
 
 void CPlayer::SetHeartHat(bool Active)

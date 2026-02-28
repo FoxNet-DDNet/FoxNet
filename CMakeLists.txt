@@ -2854,6 +2854,8 @@ if(SERVER)
     foxnet/cosmetics/firework.h
     foxnet/cosmetics/flyingpoint.cpp
     foxnet/cosmetics/flyingpoint.h
+    foxnet/cosmetics/halo.cpp
+    foxnet/cosmetics/halo.h
     foxnet/cosmetics/headitem.cpp
     foxnet/cosmetics/headitem.h
     foxnet/cosmetics/heart_hat.cpp

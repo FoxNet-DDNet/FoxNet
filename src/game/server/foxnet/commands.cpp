@@ -879,6 +879,21 @@ void CGameContext::ConLissajous(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set lissajous to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
 }
 
+void CGameContext::ConHalo(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+
+	if(!pPlayer)
+		return;
+
+	bool Set = !pPlayer->Cosmetics()->m_Halo;
+	pPlayer->SetHalo(Set);
+	log_info("cosmetics", "Set halo to %d for player %s", Set, pSelf->Server()->ClientName(Victim));
+}
+
 void CGameContext::ConHookPower(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1742,7 +1757,6 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	char aBuf[1024];
-
 	str_format(aBuf, sizeof(aBuf), "From: `%s` (Acc: `%s`)\n"
 				       "against: `%s` (Acc: `%s`)\n"
 				       "\n"
@@ -2036,6 +2050,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_staff_ind", "?v[id]", CFGFLAG_SERVER, ConStaffInd, this, "Gives a player (id) a Staff Indicator");
 	Console()->Register("c_pickuppet", "?v[id]", CFGFLAG_SERVER, ConSetPickupPet, this, "Gives player (id) a pet");
 	Console()->Register("c_lissajous", "?v[id]", CFGFLAG_SERVER, ConLissajous, this, "Gives player (id) a lissajous figure");
+	Console()->Register("c_halo", "?v[id]", CFGFLAG_SERVER, ConHalo, this, "Gives player (id) a halo");
 
 	Console()->Register("c_star_trail", "?v[id]", CFGFLAG_SERVER, ConStarTrail, this, "Gives a player (id) a Star Trail");
 	Console()->Register("c_dot_trail", "?v[id]", CFGFLAG_SERVER, ConDotTrail, this, "Gives a player (id) a Dot Trail");

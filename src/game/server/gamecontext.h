@@ -808,6 +808,7 @@ private:
 	static void ConStaffInd(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPickupPet(IConsole::IResult *pResult, void *pUserData);
 	static void ConLissajous(IConsole::IResult *pResult, void *pUserData);
+	static void ConHalo(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetPlayerName(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPlayerClan(IConsole::IResult *pResult, void *pUserData);

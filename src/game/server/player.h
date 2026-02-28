@@ -137,7 +137,8 @@ public:
 	bool m_StrongBloody = false;
 	bool m_StaffInd = false;
 	bool m_PickupPet = false;
-	bool m_Lissajous = false; // Dummy true
+	bool m_Lissajous = false;
+	bool m_Halo = false;
 
 	void Reset() { *this = CCosmetics(); }
 };
@@ -528,6 +529,7 @@ public:
 	void SetStaffInd(bool Active);
 	void SetPickupPet(bool Active);
 	void SetLissajous(bool Active);
+	void SetHalo(bool Active);
 
 	void SetRainbowBody(bool Active);
 	void SetRainbowFeet(bool Active);
