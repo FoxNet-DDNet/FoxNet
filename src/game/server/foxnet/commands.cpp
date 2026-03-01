@@ -1239,6 +1239,10 @@ void CGameContext::ConRedirectClient(IConsole::IResult *pResult, void *pUserData
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	if(!CheckClientId(Victim))
+		return;
+	if(pSelf->Server()->ClientSlotEmpty(Victim))
+		return;
 
 	pSelf->Server()->RedirectClient(Victim, pResult->GetInteger(1));
 }
