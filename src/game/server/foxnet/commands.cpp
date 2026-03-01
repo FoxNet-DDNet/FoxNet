@@ -1646,6 +1646,36 @@ void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->Repredict(PredMargin);
 }
 
+void CGameContext::ConPowerups(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+
+	pPlayer->SetHidePowerUps(!pPlayer->Acc()->m_Configs.m_HidePowerUps);
+	if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
+		pSelf->SendChatTarget(pResult->m_ClientId, "Powerups are now hidden");
+	else
+		pSelf->SendChatTarget(pResult->m_ClientId, "Powerups are now shown");
+}
+
+void CGameContext::ConCosmetics(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+
+	pPlayer->Acc()->m_Configs.ToggleCosmetics();
+	if(pPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowRainbow)
+		pSelf->SendChatTarget(pResult->m_ClientId, "All Cosmetics are now shown");
+	else
+		pSelf->SendChatTarget(pResult->m_ClientId, "All Cosmetics are now hidden");
+}
+
 void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2070,7 +2100,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Player configs
 	// Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");
-	Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHidePowerUps, this, "Hides Powerups for Player (id)");
+	// Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHidePowerUps, this, "Hides Powerups for Player (id)");
 
 	// Records
 	Console()->Register("insert_map_entry", "s[mapname] s[server] s[mapper] i[points] i[stars] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
@@ -2121,6 +2151,9 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
+	
+	Console()->Register("powerups", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConPowerups, this, "Hide/show powerups");
+	Console()->Register("cosmetics", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConCosmetics, this, "Hide/show all cosmetics");
 
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);

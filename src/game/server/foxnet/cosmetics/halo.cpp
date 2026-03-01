@@ -74,7 +74,6 @@ void CHalo::SetData()
 
 		const float Tilt = sinf(Tick * 0.03f) * 0.15f;
 		Collision()->Rotate(Center + vec2(0, OffsetY), &m_aSnap[Idx].m_Pos, Tilt);
-
 	}
 }
 

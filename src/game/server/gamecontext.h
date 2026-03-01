@@ -895,6 +895,8 @@ private:
 	static void ConAccTop5Playtime(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConRepredict(IConsole::IResult *pResult, void *pUserData);
+	static void ConPowerups(IConsole::IResult *pResult, void *pUserData);
+	static void ConCosmetics(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetBet(IConsole::IResult *pResult, void *pUserData);
 

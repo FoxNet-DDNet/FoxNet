@@ -250,17 +250,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 		if(IsOption(pVote, SETTINGS_COSMETICS_ANY))
 		{
-			bool NewState = !(Acc.m_Configs.m_Cosmetics.m_ShowRainbow && Acc.m_Configs.m_Cosmetics.m_ShowGuns &&
-					  Acc.m_Configs.m_Cosmetics.m_ShowIndicators && Acc.m_Configs.m_Cosmetics.m_ShowDeaths &&
-					  Acc.m_Configs.m_Cosmetics.m_ShowTrails && Acc.m_Configs.m_Cosmetics.m_ShowHats &&
-					  Acc.m_Configs.m_Cosmetics.m_ShowEffects);
-			Acc.m_Configs.m_Cosmetics.m_ShowRainbow = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowGuns = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowIndicators = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowDeaths = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowTrails = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowHats = NewState;
-			Acc.m_Configs.m_Cosmetics.m_ShowEffects = NewState;
+			Acc.m_Configs.ToggleCosmetics();
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_COSMETICS_RAINBOW))

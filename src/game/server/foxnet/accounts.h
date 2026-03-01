@@ -108,6 +108,21 @@ public:
 		bool m_ShowHats = true;
 		bool m_ShowEffects = true;
 	} m_Cosmetics;
+
+	void ToggleCosmetics()
+	{
+		bool NewState = !(m_Cosmetics.m_ShowRainbow && m_Cosmetics.m_ShowGuns &&
+				  m_Cosmetics.m_ShowIndicators && m_Cosmetics.m_ShowDeaths &&
+				  m_Cosmetics.m_ShowTrails && m_Cosmetics.m_ShowHats &&
+				  m_Cosmetics.m_ShowEffects);
+		m_Cosmetics.m_ShowRainbow = NewState;
+		m_Cosmetics.m_ShowGuns = NewState;
+		m_Cosmetics.m_ShowIndicators = NewState;
+		m_Cosmetics.m_ShowDeaths = NewState;
+		m_Cosmetics.m_ShowTrails = NewState;
+		m_Cosmetics.m_ShowHats = NewState;
+		m_Cosmetics.m_ShowEffects = NewState;
+	}
 };
 
 class CAccountSession
