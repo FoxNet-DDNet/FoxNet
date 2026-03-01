@@ -33,6 +33,7 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		m_aIds[i] = Server()->SnapNewId();
+	std::sort(std::begin(m_aIds), std::end(m_aIds));
 
 	GameWorld()->InsertEntity(this);
 }
@@ -112,6 +113,11 @@ void CHeadItem::Snap(int SnappingClient)
 				SnapPartyHat(SnappingClient);
 				return;
 			}
+			else if(PlHatType == EHatType::Tophat)
+			{
+				SnapTopHat(SnappingClient);
+				return;
+			}
 		}
 
 		if(GetCharacter()->m_SpawnSolo)
@@ -147,16 +153,17 @@ void CHeadItem::Snap(int SnappingClient)
 
 void CHeadItem::SnapPartyHat(int SnappingClient)
 {
+	const int NumPoints = 2;
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 
-	vec2 HatFrom[2] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
-	vec2 HatTo[2] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
+	vec2 HatFrom[NumPoints] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
+	vec2 HatTo[NumPoints] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
 
 	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 
 	if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
 	{
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < NumPoints; i++)
 		{
 			vec2 Center = vec2(0, 0);
 			Collision()->Rotate(Center, &HatFrom[i], 0.2f);
@@ -171,7 +178,7 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 
 	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
 
-	for(size_t i = 0; i < std::size(m_aIds); i++)
+	for(size_t i = 0; i < NumPoints; i++)
 	{
 		if(Turn)
 		{
@@ -184,5 +191,73 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 		vec2 To = Pos + HatTo[i];
 
 		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[i], From, To, Server()->Tick() - 4, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+	}
+}
+
+void CHeadItem::SnapTopHat(int SnappingClient)
+{
+	const vec2 Center = vec2(0, 0);
+	const int NumPoints = 5;
+	const int Now = Server()->Tick();
+	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
+
+	vec2 HatFrom[NumPoints] = {
+		vec2(15.0f, -43.0f), // top line
+		vec2(-12.5f, -44.0f), // right line down
+		vec2(15.0f, -43.0f), // left line down
+		vec2(26.0f, -19.0f), // bottom line
+		vec2(-26.5f, -21.0f), // bottom dot
+	};
+
+	vec2 HatTo[NumPoints] = {
+		vec2(-12.5f, -44.0f),// top line
+		vec2(-12.5f, -20.0f), // right line down
+		vec2(14.5f, -20.0f), // left line down
+		vec2(-26.5f, -21.0f), // bottom line
+		vec2(-26.5f, -21.0f), // bottom dot
+	};
+
+	int HatSnapTick[NumPoints] = {
+		Now - 5, // top line
+		Now - 5,// right line down
+		Now - 5,// left line down
+		Now - 4, // Long Bottom Line
+		Now - 4 // bottom dot
+	};
+
+	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
+	for(int i = 0; i < NumPoints; i++)
+	{
+		Collision()->Rotate(Center, &HatFrom[i], 0.2f);
+		Collision()->Rotate(Center, &HatTo[i], 0.2f);
+
+		if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
+		{
+			Collision()->Rotate(Center, &HatFrom[i], 0.2f);
+			Collision()->Rotate(Center, &HatTo[i], 0.2f);
+			HatFrom[i] += vec2(-1.5f, 3.5f);
+			HatTo[i] += vec2(-1.5f, 3.5f);
+		}
+	}
+
+	const int SnapVer = Server()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient);
+
+	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
+
+	for(size_t i = 0; i < NumPoints; i++)
+	{
+		if(Turn)
+		{
+			HatFrom[i].x = -HatFrom[i].x;
+			HatTo[i].x = -HatTo[i].x;
+		}
+
+		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
+		vec2 From = Pos + HatFrom[i];
+		vec2 To = Pos + HatTo[i];
+		int StartTick = HatSnapTick[i];
+
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[i], From, To, StartTick, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 	}
 }

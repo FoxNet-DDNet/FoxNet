@@ -97,6 +97,7 @@ enum class EHatType
 	Laser,
 	Ninja,
 	Party,
+	Tophat,
 	COUNT
 };
 
