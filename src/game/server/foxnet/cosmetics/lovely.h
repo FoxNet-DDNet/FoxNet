@@ -13,7 +13,7 @@ class CLovely : public CEntityOwned
 {
 	enum
 	{
-		MAX_HEARTS = 4
+		MAX_HEARTS = 3
 	};
 
 	float m_SpawnDelay;

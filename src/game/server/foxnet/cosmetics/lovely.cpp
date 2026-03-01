@@ -63,7 +63,7 @@ void CLovely::Tick()
 			continue;
 
 		m_aData[i].m_Lifespan--;
-		m_aData[i].m_Pos.y -= 5.f;
+		m_aData[i].m_Pos.y -= 2.4f;
 
 		if(m_aData[i].m_Lifespan == 0 || Collision()->TestBox(m_aData[i].m_Pos, vec2(14.f, 14.f)))
 			m_aData[i].m_Lifespan = -1;
@@ -78,7 +78,7 @@ void CLovely::SpawnNewHeart()
 			continue;
 
 		CCharacter *pOwner = GetCharacter();
-		m_aData[i].m_Lifespan = Server()->TickSpeed() / 2;
+		m_aData[i].m_Lifespan = Server()->TickSpeed() / 2.5f;
 		m_aData[i].m_Pos = vec2(pOwner->GetPos().x + (rand() % 50 - 25), pOwner->GetPos().y - 30);
 		pOwner->SetEmote(EMOTE_HAPPY, Server()->Tick() + Server()->TickSpeed());
 		break;
