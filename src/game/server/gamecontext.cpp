@@ -1434,8 +1434,6 @@ void CGameContext::OnTick()
 					"sv_reset_file types/%s/flexreset.cfg; change_map \"%s\"",
 					g_Config.m_SvServerType, m_SqlRandomMapResult->m_aMap);
 				Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
-
-				Server()->ChangeMap(m_SqlRandomMapResult->m_aMap);
 			}
 			else
 				m_LastMapVote = 0;
