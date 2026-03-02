@@ -61,7 +61,7 @@ void CHalo::SetData()
 
 	const float L = 40.0f;
 
-	const vec2 Center(0.0f, -56.0f);
+	const vec2 Center(0.0f, -64.0f);
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{
