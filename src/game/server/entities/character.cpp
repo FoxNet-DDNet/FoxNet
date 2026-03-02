@@ -1298,7 +1298,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 	    Armor = 0;
 	int Emote = DetermineEyeEmote();
 	int Tick;
-	if(!m_ReckoningTick || GameServer()->m_World.m_Paused)
+	if(!m_ReckoningTick || GameServer()->m_pController->IsGamePaused())
 	{
 		Tick = 0;
 		pCore = &m_Core;

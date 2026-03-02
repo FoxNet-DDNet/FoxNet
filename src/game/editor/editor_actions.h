@@ -9,7 +9,7 @@
 #include <game/editor/mapitems/layer_tele.h>
 #include <game/editor/mapitems/layer_tiles.h>
 #include <game/editor/mapitems/layer_tune.h>
-#include <game/editor/quadart.h>
+#include <game/editor/quad_art.h>
 #include <game/mapitems.h>
 
 #include <memory>
@@ -451,7 +451,6 @@ private:
 	EEditType m_EditType;
 	int m_Previous;
 	int m_Current;
-	std::shared_ptr<CEnvelope> m_pEnv;
 };
 
 class CEditorActionEnvelopeEditPointTime : public IEditorAction
@@ -467,7 +466,6 @@ private:
 	int m_PointIndex;
 	CFixedTime m_Previous;
 	CFixedTime m_Current;
-	std::shared_ptr<CEnvelope> m_pEnv;
 
 	void Apply(CFixedTime Value);
 };
@@ -493,7 +491,6 @@ private:
 	EEditType m_EditType;
 	int m_Previous;
 	int m_Current;
-	std::shared_ptr<CEnvelope> m_pEnv;
 
 	void Apply(int Value);
 };

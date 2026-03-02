@@ -1345,7 +1345,7 @@ void CEditor::DoQuad(int LayerIndex, const std::shared_ptr<CLayerQuads> &pLayer,
 	};
 
 	// some basic values
-	void *pId = &pQuad->m_aPoints[4]; // use pivot addr as id
+	const void *pId = &pQuad->m_aPoints[4]; // use pivot addr as id
 	static std::vector<std::vector<CPoint>> s_vvRotatePoints;
 	static int s_Operation = OP_NONE;
 	static vec2 s_MouseStart = vec2(0.0f, 0.0f);
@@ -2802,30 +2802,32 @@ void CEditor::DoMapEditor(CUIRect View)
 		// menu proof selection
 		if(MapView()->ProofMode()->IsModeMenu() && !m_ShowPicker)
 		{
-			MapView()->ProofMode()->ResetMenuBackgroundPositions();
-			for(int i = 0; i < (int)MapView()->ProofMode()->m_vMenuBackgroundPositions.size(); i++)
+			MapView()->ProofMode()->InitMenuBackgroundPositions();
+			const std::vector<vec2> &MenuBackgroundPositions = MapView()->ProofMode()->MenuBackgroundPositions();
+			for(int i = 0; i < (int)MenuBackgroundPositions.size(); i++)
 			{
-				vec2 Pos = MapView()->ProofMode()->m_vMenuBackgroundPositions[i];
-				Pos += MapView()->GetWorldOffset() - MapView()->ProofMode()->m_vMenuBackgroundPositions[MapView()->ProofMode()->m_CurrentMenuProofIndex];
+				vec2 Pos = MenuBackgroundPositions[i];
+				const void *pId = &MenuBackgroundPositions[i];
+				Pos += MapView()->GetWorldOffset() - MenuBackgroundPositions[MapView()->ProofMode()->CurrentMenuProofIndex()];
 				Pos.y -= 3.0f;
 
 				if(distance(Pos, m_MouseWorldNoParaPos) <= 20.0f)
 				{
-					Ui()->SetHotItem(&MapView()->ProofMode()->m_vMenuBackgroundPositions[i]);
+					Ui()->SetHotItem(pId);
 
-					if(i != MapView()->ProofMode()->m_CurrentMenuProofIndex && Ui()->CheckActiveItem(&MapView()->ProofMode()->m_vMenuBackgroundPositions[i]))
+					if(i != MapView()->ProofMode()->CurrentMenuProofIndex() && Ui()->CheckActiveItem(pId))
 					{
 						if(!Ui()->MouseButton(0))
 						{
-							MapView()->ProofMode()->m_CurrentMenuProofIndex = i;
-							MapView()->SetWorldOffset(MapView()->ProofMode()->m_vMenuBackgroundPositions[i]);
+							MapView()->ProofMode()->SetCurrentMenuProofIndex(i);
+							MapView()->SetWorldOffset(MenuBackgroundPositions[i]);
 							Ui()->SetActiveItem(nullptr);
 						}
 					}
-					else if(Ui()->HotItem() == &MapView()->ProofMode()->m_vMenuBackgroundPositions[i])
+					else if(Ui()->HotItem() == pId)
 					{
 						char aTooltipPrefix[32] = "Switch proof position to";
-						if(i == MapView()->ProofMode()->m_CurrentMenuProofIndex)
+						if(i == MapView()->ProofMode()->CurrentMenuProofIndex())
 							str_copy(aTooltipPrefix, "Current proof position at");
 
 						char aNumBuf[8];
@@ -2835,15 +2837,15 @@ void CEditor::DoMapEditor(CUIRect View)
 							aNumBuf[0] = '\0';
 
 						char aTooltipPositions[128];
-						str_format(aTooltipPositions, sizeof(aTooltipPositions), "%s %s", MapView()->ProofMode()->m_vpMenuBackgroundPositionNames[i], aNumBuf);
+						str_format(aTooltipPositions, sizeof(aTooltipPositions), "%s %s", MapView()->ProofMode()->MenuBackgroundPositionName(i), aNumBuf);
 
-						for(int k : MapView()->ProofMode()->m_vMenuBackgroundCollisions.at(i))
+						for(int k : MapView()->ProofMode()->MenuBackgroundCollisions(i))
 						{
-							if(k == MapView()->ProofMode()->m_CurrentMenuProofIndex)
+							if(k == MapView()->ProofMode()->CurrentMenuProofIndex())
 								str_copy(aTooltipPrefix, "Current proof position at");
 
-							Pos = MapView()->ProofMode()->m_vMenuBackgroundPositions[k];
-							Pos += MapView()->GetWorldOffset() - MapView()->ProofMode()->m_vMenuBackgroundPositions[MapView()->ProofMode()->m_CurrentMenuProofIndex];
+							Pos = MenuBackgroundPositions[k];
+							Pos += MapView()->GetWorldOffset() - MenuBackgroundPositions[MapView()->ProofMode()->CurrentMenuProofIndex()];
 							Pos.y -= 3.0f;
 
 							if(distance(Pos, m_MouseWorldNoParaPos) > 20.0f)
@@ -2856,12 +2858,12 @@ void CEditor::DoMapEditor(CUIRect View)
 
 							char aTooltipPositionsCopy[128];
 							str_copy(aTooltipPositionsCopy, aTooltipPositions);
-							str_format(aTooltipPositions, sizeof(aTooltipPositions), "%s, %s %s", aTooltipPositionsCopy, MapView()->ProofMode()->m_vpMenuBackgroundPositionNames[k], aNumBuf);
+							str_format(aTooltipPositions, sizeof(aTooltipPositions), "%s, %s %s", aTooltipPositionsCopy, MapView()->ProofMode()->MenuBackgroundPositionName(k), aNumBuf);
 						}
 						str_format(m_aTooltip, sizeof(m_aTooltip), "%s %s.", aTooltipPrefix, aTooltipPositions);
 
 						if(Ui()->MouseButton(0))
-							Ui()->SetActiveItem(&MapView()->ProofMode()->m_vMenuBackgroundPositions[i]);
+							Ui()->SetActiveItem(pId);
 					}
 					break;
 				}
@@ -6263,14 +6265,9 @@ void CEditor::RenderMenubar(CUIRect MenuBar)
 	Ui()->DoLabel(&Info, aBuf, 10.0f, TEXTALIGN_MR);
 
 	static int s_HelpButton = 0;
-	if(DoButton_Editor(&s_HelpButton, "?", 0, &Help, BUTTONFLAG_LEFT, "[F1] Open the DDNet Wiki page for the map editor in a web browser.") ||
-		(Input()->KeyPress(KEY_F1) && m_Dialog == DIALOG_NONE && CLineInput::GetActiveInput() == nullptr))
+	if(DoButton_Editor(&s_HelpButton, "?", 0, &Help, BUTTONFLAG_LEFT, "[F1] Open the DDNet Wiki page for the map editor in a web browser."))
 	{
-		const char *pLink = Localize("https://wiki.ddnet.org/wiki/Mapping");
-		if(!Client()->ViewLink(pLink))
-		{
-			ShowFileDialogError("Failed to open the link '%s' in the default web browser.", pLink);
-		}
+		m_QuickActionShowHelp.Call();
 	}
 
 	static int s_CloseButton = 0;
@@ -6278,6 +6275,15 @@ void CEditor::RenderMenubar(CUIRect MenuBar)
 	{
 		OnClose();
 		g_Config.m_ClEditor = 0;
+	}
+}
+
+void CEditor::ShowHelp()
+{
+	const char *pLink = Localize("https://wiki.ddnet.org/wiki/Mapping");
+	if(!Client()->ViewLink(pLink))
+	{
+		ShowFileDialogError("Failed to open the link '%s' in the default web browser.", pLink);
 	}
 }
 
@@ -7341,6 +7347,18 @@ void CEditor::OnUpdate()
 
 	// handle key presses
 	Input()->ConsumeEvents([&](const IInput::CEvent &Event) {
+		if(m_Dialog == DIALOG_NONE &&
+			CLineInput::GetActiveInput() == nullptr &&
+			Event.m_Key == KEY_F1)
+		{
+			if((Event.m_Flags & IInput::FLAG_PRESS) != 0 &&
+				(Event.m_Flags & IInput::FLAG_REPEAT) == 0)
+			{
+				m_QuickActionShowHelp.Call();
+			}
+			return;
+		}
+
 		for(CEditorComponent &Component : m_vComponents)
 		{
 			// Events with flag `FLAG_RELEASE` must always be forwarded to all components so keys being
