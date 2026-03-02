@@ -1552,7 +1552,6 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	unsigned int MapSize = 0;
 	unsigned int MapCrc = 0;
 
-	int MapType = Sixup ? MAP_TYPE_SIXUP : MAP_TYPE_SIX;
 	pMapData = m_apCurrentMapData[MapType];
 	MapSize = m_aCurrentMapSize[MapType];
 	MapCrc = m_aCurrentMapCrc[MapType];
@@ -1579,7 +1578,7 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	}
 
 	CMsgPacker Msg(NETMSG_MAP_DATA, true);
-	if(!Sixup)
+	if(!MapType)
 	{
 		Msg.AddInt(Last);
 		Msg.AddInt((int)MapCrc);
