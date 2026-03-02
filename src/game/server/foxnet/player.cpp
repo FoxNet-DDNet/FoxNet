@@ -230,9 +230,6 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 	bool LeveledUp = false;
 	char aBuf[256];
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
 	// Level up as long as we have enough XP for the current level
 	while(true)
 	{
@@ -247,60 +244,91 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		LeveledUp = true;
 
 		const int Days = 7;
-		char aCmd[256];
-		char aCmdName[128];
-		char aSubject[128];
-		if(Acc()->m_Level == 5)
+		class CReward
 		{
-			std::vector<const CItemConfig *> CommonItems;
-			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
-			{
-				const CItemConfig &Item = kv.second;
-				if(Item.m_Rarity == EItemRarity::Common && Item.m_Price > 0)
-					CommonItems.push_back(&Item);
-			}
+		public:
+			int m_Days = 7;
+			int m_MinMoney = 1000;
+			int m_MaxMoney = 10000;
+			int m_ItemCount = 1;
+			std::vector<EItemRarity> m_AllowedRarities = {EItemRarity::Common};
 
-			if(!CommonItems.empty())
-			{
-				std::uniform_int_distribution<> dis(0, CommonItems.size() - 1);
-				const CItemConfig *Reward = CommonItems[dis(gen)];
+			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, std::vector<EItemRarity> AllowedRarities)
+				: m_Days(Days), m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
+			CReward() = default;
+		};
 
-				std::uniform_int_distribution<> moneyDis(10, 100);
-				int MoneyReward = moneyDis(gen) * 100; // Between 1.000 and 10.000
-				// Command keeps a literal %d for the client id placeholder
-				str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_money %s %d", "%d", Days, Reward->m_pName, "%d", MoneyReward);
-				str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %d%s", Reward->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
-				str_copy(aSubject, "Congratulations on reaching level 5!");
+		auto NewRewardMail = [this](CReward Reward) {
+			static std::mt19937 gen(std::random_device{}());
+			char aCmd[256] = "";
+			char aCmdName[128] = "";
+			char aSubject[128] = "";
+			char aMessage[128] = "";
 
-				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, "You have been given a random Common level Item and some Money!", aCmdName, aCmd);
-			}
-		}
-
-		if(Acc()->m_Level % 15 == 0)
-		{
 			std::vector<const CItemConfig *> Items;
 			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 			{
 				const CItemConfig &Item = kv.second;
-				if((Item.m_Rarity == EItemRarity::Common || Item.m_Rarity == EItemRarity::Uncommon || Item.m_Rarity == EItemRarity::Rare) && Item.m_Price > 0)
+				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), Item.m_Rarity) != Reward.m_AllowedRarities.end() && Item.m_Price > 0)
 					Items.push_back(&Item);
 			}
 
 			if(!Items.empty())
 			{
-				std::uniform_int_distribution<> dis(0, Items.size() - 1);
-				const CItemConfig *Reward = Items[dis(gen)];
-				const CItemConfig *Reward2 = Items[dis(gen)];
+				std::uniform_int_distribution<int> dis(0, Items.size() - 1);
 
-				std::uniform_int_distribution<> moneyDis(10, 250);
+				std::vector<const CItemConfig *> pItems;
+				for(int i = 0; i < Reward.m_ItemCount; i++)
+				{
+					const CItemConfig *pItem = Items[dis(gen)];
+					pItems.push_back(pItem);
+				}
+
+				std::uniform_int_distribution<> moneyDis(Reward.m_MinMoney * 0.01f, Reward.m_MaxMoney * 0.01f);
 				int MoneyReward = moneyDis(gen) * 100; // Between 1.000 and 25.000
 				// Three commands with a literal %d placeholder each
-				str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_item_days %s %d %s;give_money %s %d", "%d", Days, Reward->m_pName, "%d", Days, Reward2->m_pName, "%d", MoneyReward);
-				str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %s for %d days\n %d%s", Reward->m_pName, Days, Reward2->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
-				str_format(aSubject, sizeof(aSubject), "Congratulations on reaching level %ld!", Acc()->m_Level);
+				// str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_item_days %s %d %s;give_money %s %d", "%d", MoneyReward);
+				// str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %s for %d days\n %d%s", Reward->m_pName, Days, Reward2->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
 
-				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, "You have been given a random Item and some Money!", aCmdName, aCmd);
+				str_copy(aCmd, "");
+				str_copy(aCmdName, "");
+				for(const CItemConfig *pItem : pItems)
+				{
+					char aTemp[128];
+					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", Days, pItem->m_pName);
+					str_append(aCmd, aTemp, sizeof(aCmd));
+					char aTempName[128];
+					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", pItem->m_pName, Days);
+					str_append(aCmdName, aTempName, sizeof(aCmdName));
+				}
+				char aMoneyCmd[128];
+				str_format(aMoneyCmd, sizeof(aMoneyCmd), "give_money %s %d", "%d", MoneyReward);
+				str_append(aCmd, aMoneyCmd, sizeof(aCmd));
+				char aMoneyCmdName[128];
+				str_format(aMoneyCmdName, sizeof(aMoneyCmdName), "%d%s", MoneyReward, g_Config.m_SvCurrencyName);
+				str_append(aCmdName, aMoneyCmdName, sizeof(aCmdName));
+
+				str_format(aSubject, sizeof(aSubject), "Level %ld Reward!", Acc()->m_Level);
+				str_format(aMessage, sizeof(aMessage), "You have been given %d random Item%s and some Money!", Reward.m_ItemCount, Reward.m_ItemCount > 1 ? "s" : "");
+				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, aMessage, aCmdName, aCmd);
 			}
+		};
+
+		if(Acc()->m_Level == 5)
+		{
+			NewRewardMail(CReward(Days, 1000, 10000, 1, {EItemRarity::Common}));
+		}
+		else if(Acc()->m_Level % 100 == 0)
+		{
+			NewRewardMail(CReward(Days, 25000, 125000, 4, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic, EItemRarity::Mythic, }));
+		}
+		else if(Acc()->m_Level % 50 == 0)
+		{
+			NewRewardMail(CReward(Days, 7500, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
+		}
+		else if(Acc()->m_Level % 10 == 0)
+		{
+			NewRewardMail(CReward(Days, 5000, 20000, 2, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}));
 		}
 	}
 
