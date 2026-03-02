@@ -49,7 +49,7 @@ void CItemRegistry::Init()
 
 	// Effects
 	add({EItemId::Sparkle, EItemType::Effect,
-		"Sparkle", "O_S",
+		"Sparkle", "E_S",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		1500, 5, 1, EItemRarity::Common, "Makes you sparkle",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetSparkle(true); },
@@ -57,7 +57,7 @@ void CItemRegistry::Init()
 		30});
 
 	add({EItemId::Lovely, EItemType::Effect,
-		"Lovely", "O_L",
+		"Lovely", "E_L",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		12500, 15, 2, EItemRarity::Rare, "Spreading love huh?",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetLovely(true); },
@@ -65,19 +65,27 @@ void CItemRegistry::Init()
 		30});
 
 	add({EItemId::InverseAim, EItemType::Effect,
-		"Inverse Aim", "O_I",
+		"Inverse Aim", "E_I",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		50000, 35, 1, EItemRarity::Legendary, "Shows your aim backwards for others!",
+		500000, 35, 2, EItemRarity::Legendary, "Shows your aim backwards for others!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetInverseAim(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetInverseAim(false); },
 		30});
 
 	add({EItemId::RotatingBall, EItemType::Effect,
-		"Rotating Ball", "O_R",
+		"Rotating Ball", "E_R",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		12500, 15, 2, EItemRarity::Rare, "Ball rotate - life good",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetRotatingBall(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetRotatingBall(false); },
+		30});
+
+	add({EItemId::Halo, EItemType::Effect,
+		"Halo", "E_H",
+		EItemFlag::Equippable, EExclusiveGroup::None,
+		55000, 35, 3, EItemRarity::Epic, "an intertwining halo floating above you",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHalo(true); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHalo(false); },
 		30});
 
 	// Guns (value-based + types)
@@ -108,7 +116,7 @@ void CItemRegistry::Init()
 	add({EItemId::PhaseGun, EItemType::Gun,
 		"Phase Gun", "G_P",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		3250, 5, 2, EItemRarity::Uncommon, "Your bullets defy physics",
+		8250, 5, 2, EItemRarity::Uncommon, "Your bullets defy physics",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetPhaseGun(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetPhaseGun(false); },
 		30});
@@ -116,7 +124,7 @@ void CItemRegistry::Init()
 	add({EItemId::HeartGun, EItemType::Gun,
 		"Heart Gun", "G_H",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
-		20000, 15, 1, EItemRarity::Epic, "Shoot bullets full of love",
+		25000, 15, 1, EItemRarity::Epic, "Shoot bullets full of love",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_HEART); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == GUNTYPE_HEART)
@@ -127,7 +135,7 @@ void CItemRegistry::Init()
 	add({EItemId::MixedGun, EItemType::Gun,
 		"Mixed Gun", "G_M",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
-		25000, 25, 2, EItemRarity::Epic, "Shoots Hearts and Shields",
+		30000, 25, 1, EItemRarity::Epic, "Shoots Hearts and Shields",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_MIXED); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == GUNTYPE_MIXED)
@@ -138,7 +146,7 @@ void CItemRegistry::Init()
 	add({EItemId::LaserGun, EItemType::Gun, 
 		"Laser Gun", "G_L",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
-		35000, 25, 5, EItemRarity::Epic, "Lasertag in DDNet?",
+		40000, 25, 2, EItemRarity::Epic, "Lasertag in DDNet?",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_LASER); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == GUNTYPE_LASER)
@@ -294,6 +302,14 @@ void CItemRegistry::Init()
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Ninja) pl.SetHatType(EHatType::None); },
 		30});
 
+	add({EItemId::HeartHat, EItemType::Hat,
+		"Heart Hat", "H_H",
+		EItemFlag::Equippable, EExclusiveGroup::Hat,
+		15000, 12, 3, EItemRarity::Rare, "A hat of Hearts",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(true); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(false); },
+		30});
+
 	add({EItemId::PartyHat, EItemType::Hat,
 		"Party Hat", "H_P",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
@@ -303,12 +319,13 @@ void CItemRegistry::Init()
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Party) pl.SetHatType(EHatType::None); },
 		30});
 
-	add({EItemId::HeartHat, EItemType::Hat,
-		"Heart Hat", "H_H",
+	add({EItemId::TophatHat, EItemType::Hat,
+		"Top hat", "H_T",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
-		15000, 12, 3, EItemRarity::Rare, "A hat of Hearts",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(true); },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(false); },
+		// Price, MinLevel, Stars, Rarity
+		40000, 20, 2, EItemRarity::Epic, "Only missing a monocle now!",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Tophat); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Tophat) pl.SetHatType(EHatType::None); },
 		30});
 
 	// Roles (not toggleable)
