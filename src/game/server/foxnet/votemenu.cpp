@@ -99,10 +99,12 @@ constexpr const char *BACKPAGE = "↩ Back ↩";
 
 // Server Info Page
 
+constexpr const char *SERVER_INFO_DISCORD = "Discord";
 constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
 constexpr const char *SERVER_INFO_LEVELING = "Leveling";
 constexpr const char *SERVER_INFO_CONTRIBUTE = "Have any Ideas?";
-constexpr const char *SERVER_INFO_GITHUB = "Double click here to send the link to chat";
+
+constexpr const char *SERVER_INFO_SEND_LINK = "Double click here to send the link to chat";
 
 IServer *CVoteMenu::Server() const { return GameServer()->Server(); }
 
@@ -509,9 +511,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	}
 	if(Page == PAGE_SERVERINFO)
 	{
-		if(g_Config.m_SvVoteMenuServerInfoRulesOnly)
-			return true;
-
 		if(g_Config.m_SvAccounts)
 		{
 			if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
@@ -525,14 +524,27 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 		}
+		if(IsOption(pVote, SERVER_INFO_DISCORD))
+		{
+			SetSubPage(ClientId, SUB_SERVERINFO_DISCORD);
+			return true;
+		}
 		if(IsOption(pVote, SERVER_INFO_CONTRIBUTE))
 		{
 			SetSubPage(ClientId, SUB_SERVERINFO_CONTRIBUTE);
 			return true;
 		}
-		if(IsOption(pVote, SERVER_INFO_GITHUB))
+		if(IsOption(pVote, SERVER_INFO_SEND_LINK))
 		{
-			GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
+			if(SubPage == SUB_SERVERINFO_CONTRIBUTE)
+				GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
+			else if(SubPage == SUB_SERVERINFO_DISCORD)
+				GameServer()->SendChatTarget(ClientId, g_Config.m_SvDiscordLink);
+			else
+			{
+				SetSubPage(ClientId, SUB_SERVERINFO_MAIN);
+				GameServer()->SendChatTarget(ClientId, "Unknown Page");
+			}
 			return true;
 		}
 	}
@@ -1586,18 +1598,46 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 			}
 		}
 		AddVoteText("╰────────────────────");
-		if(g_Config.m_SvVoteMenuServerInfoRulesOnly)
-			return;
 
-		AddVoteSeparator();
 
+		if(g_Config.m_SvDiscordLink[0] || g_Config.m_SvGithubRepo[0] || g_Config.m_SvAccounts)
+			AddVoteSeparator();
+
+		if(g_Config.m_SvDiscordLink[0])
+			AddVoteText(SERVER_INFO_DISCORD, EPrefix::ARROWHEAD);
 		if(g_Config.m_SvAccounts)
 		{
 			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::ARROWHEAD);
 			AddVoteText(SERVER_INFO_LEVELING, EPrefix::ARROWHEAD);
 		}
-		if(!g_Config.m_SvGithubRepo[0])
+		if(g_Config.m_SvGithubRepo[0])
 			AddVoteText(SERVER_INFO_CONTRIBUTE, EPrefix::ARROWHEAD);
+	}
+	else if(SubPage == SUB_SERVERINFO_DISCORD)
+	{
+		if(!g_Config.m_SvDiscordLink[0])
+		{
+			AddVoteText("Discord link not set up by the server admin.");
+			return;
+		}
+
+		char aMsg[1024] = "";
+		str_copy(aMsg, g_Config.m_SvVoteMenuDiscordMessage, sizeof(aMsg));
+		UnescapeNewlines(aMsg);
+		StrNewlineExceedLength(aMsg, MAX_VOTE_LENGTH);
+		std::vector<const char *> Lines = StrSplit(aMsg, '\n');
+
+		if(!Lines.empty())
+		{
+			AddVoteText("╭───────    Dɪsᴄᴏʀᴅ");
+			for(const char *pLine : Lines)
+				AddVoteText(pLine, EPrefix::LONG_LINE);
+			AddVoteText("╰────────────────────");
+		}
+
+		AddVoteSeparator();
+
+		AddVoteText(SERVER_INFO_SEND_LINK, EPrefix::ARROWHEAD);
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
 	{
@@ -1641,7 +1681,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		AddVoteSeparator();
 
 		// AddVoteText(g_Config.m_SvGithubRepo, EPrefix::LONG_LINE);
-		AddVoteText(SERVER_INFO_GITHUB, EPrefix::ARROWHEAD);
+		AddVoteText(SERVER_INFO_SEND_LINK, EPrefix::ARROWHEAD);
 	}
 }
 
