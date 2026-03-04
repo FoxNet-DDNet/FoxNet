@@ -43,7 +43,7 @@ void CDotTrail::Tick()
 	}
 	if(!GetCharacter())
 		return;
-
+	m_LastPos = m_Pos;
 	m_Pos = GetCharacter()->GetPos();
 }
 
@@ -57,6 +57,9 @@ void CDotTrail::Snap(int SnappingClient)
 		return;
 
 	if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowTrails)
+		return;
+
+	if(m_LastPos == m_Pos)
 		return;
 
 	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());

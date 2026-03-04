@@ -10,6 +10,8 @@
 
 class CDotTrail : public CEntityOwned
 {
+	vec2 m_LastPos;
+
 public:
 	CDotTrail(CGameWorld *pGameWorld, int Owner, vec2 Pos);
 
