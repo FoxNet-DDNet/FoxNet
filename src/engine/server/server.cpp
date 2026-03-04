@@ -4671,9 +4671,9 @@ void CServer::RegisterCommands()
 #endif
 	// <FoxNet
 	Console()->Register("client_infos", "?i[type]", CFGFLAG_SERVER, ConClientInfo, this, "Prints information about what clients players are using");
-	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "Prints information about what clients players are using");
-	Console()->Register("get_traffic", "?v[id]", CFGFLAG_SERVER, ConGetClientTraffic, this, "Prints information about what clients players are using");
-	Console()->Register("send_map", "s[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Prints information about what clients players are using");
+	Console()->Register("high_bandwidth", "?i[enable]", CFGFLAG_SERVER, ConHighBandwidth, this, "set high bandwidth");
+	Console()->Register("get_traffic", "?v[id]", CFGFLAG_SERVER, ConGetClientTraffic, this, "get traffic in kb/s");
+	Console()->Register("send_map_visually", "s[name] ?v[id]", CFGFLAG_SERVER, ConSendMap, this, "Sends player (id) a map, only visually");
 	// FoxNet>
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
