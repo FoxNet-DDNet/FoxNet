@@ -783,6 +783,7 @@ private:
 	// Multimaps
 	void LoadMapByName(const char *pMapName, EMapType Type);
 	void UnloadMapByName(const char *pMapName);
+	void UnloadMapsAll();
 
 	void PowerUpSpawner();
 
@@ -790,6 +791,8 @@ private:
 	void QuadDebugIds(bool Clear);
 	std::vector<int> m_vQuadDebugIds;
 
+	static void ConchainMultimap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	
 	static void ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	void FormatAndRunScriptingBan(const char *pStr, int ClientId);
 

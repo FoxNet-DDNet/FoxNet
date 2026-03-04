@@ -83,6 +83,12 @@ void CGameContext::OnFoxNetConsoleInit()
 
 void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 {
+	if(!g_Config.m_SvMultimap)
+	{
+		log_error("multimap", "Failed to load map '%s': multimap is disabled", pMapName);
+		return;
+	}
+
 	for(size_t idx = 0; idx < m_vMapOverrides.size(); ++idx)
 	{
 		if(str_comp(m_vMapOverrides[idx].m_pMap->BaseName(), pMapName) == 0)
@@ -138,6 +144,22 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 	}
 	else
 		log_error("multimap", "Failed to unload map '%s': not found", pMapName);
+}
+void CGameContext::UnloadMapsAll()
+{
+	for(size_t idx = 0; idx < m_vMapOverrides.size(); ++idx)
+	{
+		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMapOverrides[idx].m_MapType, m_vMapOverrides[idx].m_pMap->BaseName());
+		m_vMapOverrides[idx].Unload();
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		{
+			CPlayer *pPlayer = m_apPlayers[ClientId];
+			if(!pPlayer)
+				continue;
+			pPlayer->SendToMap(-1);
+		}
+	}
+	m_vMapOverrides.clear();
 }
 
 void CGameContext::FoxNetInit()
@@ -381,6 +403,9 @@ int CGameContext::GetMapIndexByMapName(const char *pMapName) const
 }
 const char *CGameContext::MapName(int ClientId)
 {
+	if(!g_Config.m_SvMultimap)
+		return Map()->BaseName();
+
 	if(!CheckClientId(ClientId))
 		return Map()->BaseName();
 

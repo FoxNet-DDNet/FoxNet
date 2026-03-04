@@ -658,7 +658,7 @@ void CPlayer::Respawn(bool WeakHook)
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(MapIdx()), GameServer()->GetLastPlayerInput(m_ClientId));
+	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, MapIdx(), GameServer()->GetLastPlayerInput(m_ClientId));
 	m_pCharacter->Spawn(this, Pos);
 	m_Team = TEAM_GAME;
 	return m_pCharacter;
@@ -748,7 +748,7 @@ void CPlayer::TryRespawn()
 
 	m_WeakHookSpawn = false;
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(MapIdx()), GameServer()->GetLastPlayerInput(m_ClientId));
+	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, MapIdx(), GameServer()->GetLastPlayerInput(m_ClientId));
 	m_ViewPos = SpawnPos;
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientId));

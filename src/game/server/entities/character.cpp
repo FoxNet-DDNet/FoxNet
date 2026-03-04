@@ -63,7 +63,7 @@
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
-CCharacter::CCharacter(CGameWorld *pWorld, CCollision *pCollision, CNetObj_PlayerInput LastInput) :
+CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput) :
 	CEntity(pWorld, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
 {
 	m_Health = 0;
@@ -90,7 +90,7 @@ CCharacter::CCharacter(CGameWorld *pWorld, CCollision *pCollision, CNetObj_Playe
 	m_IsRainbowHooked = false;
 	m_TuneZoneOverride = -1;
 	m_InSnake = false;
-	SetCollision(pCollision);
+	SetCollision(GameServer()->Collision(MapIdx));
 	// FoxNet>
 }
 
@@ -128,6 +128,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_Core.m_ActiveWeapon = WEAPON_GUN;
 	m_Core.m_Pos = m_Pos;
 	m_Core.m_Id = m_pPlayer->GetCid();
+	m_Core.m_MapIndex = GetPlayer()->MapIdx();
 	int TuneZone = Collision()->IsTune(Collision()->GetMapIndex(Pos));
 	m_Core.m_Tuning = TuningList()[TuneZone];
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCid()] = &m_Core;
@@ -404,8 +405,9 @@ void CCharacter::HandleNinja()
 					continue;
 				if(pChr && pChr->Core()->m_Passive)
 					continue;
-
 				if(pChr && !pChr->Core()->m_Hittable)
+					continue;
+				if(!g_Config.m_SvMultimapAllowInteraction && MapIdx() != pChr->MapIdx())
 					continue;
 				// FoxNet>
 				// make sure we haven't Hit this object before
@@ -603,8 +605,9 @@ void CCharacter::FireWeapon()
 			// <FoxNet
 			if(pTarget->Core()->m_Passive)
 				continue;
-
 			if(!pTarget->Core()->m_Hittable)
+				continue;
+			if(!g_Config.m_SvMultimapAllowInteraction && MapIdx() != pTarget->MapIdx())
 				continue;
 			// FoxNet>
 
@@ -1038,6 +1041,7 @@ void CCharacter::TickDeferred()
 	bool StuckBefore = Collision()->TestBox(m_Core.m_Pos, CCharacterCore::PhysicalSizeVec2());
 
 	m_Core.m_Id = m_pPlayer->GetCid();
+	m_Core.m_MapIndex = m_pPlayer->MapIdx();
 	m_Core.Move();
 	bool StuckAfterMove = Collision()->TestBox(m_Core.m_Pos, CCharacterCore::PhysicalSizeVec2());
 	m_Core.Quantize();
@@ -1345,6 +1349,8 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			if(g_Config.m_SvTeeCursor)
 				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOHAMMER;
 
+			if(MapIdx() != m_pPlayer->MapIdx())
+				Faketuning |= FAKETUNE_SOLO;
 			// FoxNet>
 		}
 		if(Faketuning != m_NeededFaketuning)
@@ -1540,9 +1546,22 @@ void CCharacter::Snap(int SnappingClient)
 	if(!IsSnappingCharacterInView(SnappingClient) && Id != SnappingClient)
 		return;
 
+	// <FoxNet
 	if(GetPlayer()->m_Invisible && SnappingClient != Id && SnappingClient >= 0 && !Server()->ClientSlotEmpty(SnappingClient))
 		if(!GameServer()->m_apPlayers[SnappingClient]->m_Invisible && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
 			return;
+
+	// Multimap
+	{
+		CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < MAX_CLIENTS) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+
+		if(SnapPlayer)
+		{
+			if(MapIdx() != SnapPlayer->MapIdx() && !g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+				return;
+		}
+	}
+	// FoxNet>
 
 	SnapCharacter(SnappingClient, Id);
 
@@ -1624,6 +1643,9 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(SnapPlayer)
 	{
+		if(MapIdx() != SnapPlayer->MapIdx() && g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+			pDDNetCharacter->m_Flags |= CHARACTERFLAG_SOLO;
+
 		m_Ufo.Snap(SnappingClient);
 
 		if(SnappingClient == Id || SnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
@@ -2632,6 +2654,7 @@ void CCharacter::DDRaceTick()
 	TrySetRescue(RESCUEMODE_AUTO);
 
 	m_Core.m_Id = GetPlayer()->GetCid();
+	m_Core.m_MapIndex = GetPlayer()->MapIdx();
 }
 
 void CCharacter::DDRacePostCoreTick()
@@ -2868,6 +2891,7 @@ void CCharacter::DDRaceInit()
 	m_LastBroadcast = 0;
 	m_TeamBeforeSuper = 0;
 	m_Core.m_Id = GetPlayer()->GetCid();
+	m_Core.m_MapIndex = GetPlayer()->MapIdx();
 	m_TeleCheckpoint = 0;
 	m_Core.m_EndlessHook = g_Config.m_SvEndlessDrag;
 	if(g_Config.m_SvHit)
@@ -3288,8 +3312,8 @@ void CCharacter::DoTelekinesis()
 {
 	if(m_TelekinesisId == -1)
 	{
-		float zoom = std::max(1.0f, GetPlayer()->m_CameraInfo.GetZoom());
-		CCharacter *pClosest = GameServer()->m_World.ClosestCharacter(GetCursorPos(), CCharacterCore::PhysicalSize() * zoom, this);
+		float Zoom = std::max(1.0f, GetPlayer()->m_CameraInfo.GetZoom());
+		CCharacter *pClosest = GameServer()->m_World.ClosestCharacter(GetCursorPos(), CCharacterCore::PhysicalSize() * Zoom, this);
 		if(!pClosest)
 			return; // no one close
 		if(!pClosest->IsAlive())

@@ -334,8 +334,10 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				// <FoxNet
 				if(m_Passive || pCharCore->m_Passive)
 					continue;
-
 				if(!pCharCore->m_Hookable)
+					continue;
+
+				if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
 					continue;
 				// FoxNet>
 
@@ -498,6 +500,9 @@ void CCharacterCore::TickDeferred()
 			// <FoxNet
 			if(m_Passive || pCharCore->m_Passive)
 				continue;
+
+			if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
+				continue;
 			// FoxNet>
 
 			// handle player <-> player collision
@@ -623,8 +628,10 @@ void CCharacterCore::Move()
 					// <FoxNet
 					if(m_Passive || pCharCore->m_Passive)
 						continue;
-
 					if(!m_Collidable)
+						continue;
+
+					if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
 						continue;
 					// FoxNet>
 					float D = distance(Pos, pCharCore->m_Pos);

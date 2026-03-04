@@ -110,7 +110,10 @@ MACRO_CONFIG_INT(SvCorruptPickupPet, sv_corrupt_pickup_pet, 0, 0, 1, CFGFLAG_SER
 // Dummies
 MACRO_CONFIG_INT(SvAddDummies, add_dummies, 0, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "Add debug dummies to server")
 
-// Casino Stuff
+// Multimap
+MACRO_CONFIG_INT(SvMultimap, sv_multimap, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to enable multimap functionality")
+MACRO_CONFIG_INT(SvMultimapAllowInteraction, sv_multimap_allow_interaction, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Allow characters from different maps to interact with each other")
+MACRO_CONFIG_INT(SvMultimapShowOthersAuthed, sv_multimap_show_others_authed, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Allow authed players to see characters from different maps")
 
 // Roulette
 MACRO_CONFIG_INT(SvRouletteLength, sv_roulette_length, 140, 0, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "Length of the roulette spinner")

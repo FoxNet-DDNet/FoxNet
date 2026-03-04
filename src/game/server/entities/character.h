@@ -49,7 +49,7 @@ class CCharacter : public CEntity
 	friend class CSaveHotReloadTee;
 
 public:
-	CCharacter(CGameWorld *pWorld, CCollision *pCollision, CNetObj_PlayerInput LastInput);
+	CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput);
 
 	void Reset() override;
 	void Destroy() override;
@@ -389,6 +389,8 @@ private:
 
 	void HandleQuads();
 	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj);
+
+	int MapIdx() const { return m_pPlayer->MapIdx(); }
 	// FoxNet>
 };
 

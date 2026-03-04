@@ -347,6 +347,8 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, const CEntity *
 	{
 		if(p == pNotThis)
 			continue;
+		if(pNotThis->m_pCCollision != p->m_pCCollision)
+			continue;
 
 		float Len = distance(Pos, p->m_Pos);
 		if(Len < p->m_ProximityRadius + Radius)

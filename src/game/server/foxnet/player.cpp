@@ -1142,6 +1142,11 @@ float CPlayer::StatMultiplier()
 
 bool CPlayer::SendToMap(int Idx)
 {
+	if(!g_Config.m_SvMultimap)
+	{
+		log_error("multimap", "Failed to send to map index %d: multimap is disabled", Idx);
+		return false;
+	}
 	if(Idx == m_OverridenMapIndex)
 		return true;
 
@@ -1156,7 +1161,7 @@ bool CPlayer::SendToMap(int Idx)
 	}
 	else
 	{
-		if(Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
+		if(!Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
 			return false;
 		m_OverridenMapIndex = DefaultMapIndex;
 	}

@@ -284,6 +284,8 @@ public:
 	bool m_LiveFrozen;
 	CTuningParams m_Tuning;
 	// <FoxNet
+	int m_MapIndex;
+
 	CTuningParams m_FakeTuning;
 	bool m_FakeTuned;
 

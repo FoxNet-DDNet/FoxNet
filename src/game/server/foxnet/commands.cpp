@@ -2213,6 +2213,17 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("ban", ConchainScriptingBan, this);
 	Console()->Chain("banid", ConchainScriptingBan, this);
 	Console()->Chain("ban_timestamp", ConchainScriptingBan, this);
+
+	Console()->Chain("sv_multimap", ConchainMultimap, this);
+}
+void CGameContext::ConchainMultimap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
+{
+	pfnCallback(pResult, pCallbackUserData);
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int NumArgs = pResult->NumArguments();
+	if(!pResult->NumArguments())
+		return;
+	pSelf->UnloadMapsAll();
 }
 
 void CGameContext::ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
