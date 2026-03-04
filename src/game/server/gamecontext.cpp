@@ -4365,7 +4365,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 	Score()->LoadMapInfo();
 
 	// create all entities from the game layer
-	CreateAllEntities(true);
+	CreateAllEntities(true, DefaultMapIndex);
 
 	m_pAntibot->RoundStart(this);
 	// <FoxNet
@@ -4373,17 +4373,19 @@ void CGameContext::OnInit(const void *pPersistentData)
 	// FoxNet>
 }
 
-void CGameContext::CreateAllEntities(bool Initial)
+void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
 {
-	const CTile *pTiles = m_Collision.GameLayer();
-	const CTile *pFront = m_Collision.FrontLayer();
-	const CSwitchTile *pSwitch = m_Collision.SwitchLayer();
+	CCollision *pCollision = Collision(MapIdx);
 
-	for(int y = 0; y < m_Collision.GetHeight(); y++)
+	const CTile *pTiles = pCollision->GameLayer();
+	const CTile *pFront = pCollision->FrontLayer();
+	const CSwitchTile *pSwitch = pCollision->SwitchLayer();
+
+	for(int y = 0; y < pCollision->GetHeight(); y++)
 	{
-		for(int x = 0; x < m_Collision.GetWidth(); x++)
+		for(int x = 0; x <pCollision->GetWidth(); x++)
 		{
-			const int Index = y * m_Collision.GetWidth() + x;
+			const int Index = y *pCollision->GetWidth() + x;
 
 			// Game layer
 			{
@@ -4415,24 +4417,24 @@ void CGameContext::CreateAllEntities(bool Initial)
 				}
 				else if(GameIndex >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(GameIndex - ENTITY_OFFSET, x, y, LAYER_GAME, pTiles[Index].m_Flags, Initial);
+					m_pController->OnEntity(GameIndex - ENTITY_OFFSET, x, y, LAYER_GAME, pTiles[Index].m_Flags, Initial, 0, MapIdx);
 				}
 			}
 			// <FoxNet
 			if(m_Layers.SpeedupLayer())
 			{
 				const int MapIndex = y * m_Layers.GameLayer()->m_Width + x;
-				if(Collision()->IsSpeedup(MapIndex))
+				if(pCollision->IsSpeedup(MapIndex))
 				{
 					vec2 Direction = vec2(0, 0);
 					int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-					Collision()->GetSpeedup(MapIndex, &Direction, &Force, &MaxSpeed, &Type);
+					pCollision->GetSpeedup(MapIndex, &Direction, &Force, &MaxSpeed, &Type);
 
 					Angle = DirectionToEditorDeg(Direction);
 
 					if(Force == FORCE_ROULETTE && MaxSpeed == 1 && Angle == 0)
 					{
-						m_pController->OnEntity(ENTITY_ROULETTE, x, y, LAYER_SPEEDUP, 0, Initial);
+						m_pController->OnEntity(ENTITY_ROULETTE, x, y, LAYER_SPEEDUP, 0, Initial, 0, MapIdx);
 					}
 				}
 			}
@@ -4468,7 +4470,7 @@ void CGameContext::CreateAllEntities(bool Initial)
 				}
 				else if(FrontIndex >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(FrontIndex - ENTITY_OFFSET, x, y, LAYER_FRONT, pFront[Index].m_Flags, Initial);
+					m_pController->OnEntity(FrontIndex - ENTITY_OFFSET, x, y, LAYER_FRONT, pFront[Index].m_Flags, Initial,0 , MapIdx);
 				}
 			}
 
@@ -4479,7 +4481,7 @@ void CGameContext::CreateAllEntities(bool Initial)
 				// if(SwitchType == TILE_DOOR_OFF)
 				if(SwitchType >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(SwitchType - ENTITY_OFFSET, x, y, LAYER_SWITCH, pSwitch[Index].m_Flags, Initial, pSwitch[Index].m_Number);
+					m_pController->OnEntity(SwitchType - ENTITY_OFFSET, x, y, LAYER_SWITCH, pSwitch[Index].m_Flags, Initial, pSwitch[Index].m_Number, MapIdx);
 				}
 			}
 		}

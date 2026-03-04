@@ -106,7 +106,7 @@ void CCustomProjectile::Move()
 void CCustomProjectile::HitCharacter()
 {
 	vec2 NewPos = m_Pos + m_Core;
-	CCharacter *pHit = GameWorld()->IntersectCharacter(m_PrevPos, NewPos, 6.0f, NewPos, GetCharacter(), GetOwnerId());
+	CCharacter *pHit = GameWorld()->IntersectCharacter(m_PrevPos, NewPos, 6.0f, NewPos, GetCharacter(), m_Owner);
 	if(!pHit)
 		return;
 

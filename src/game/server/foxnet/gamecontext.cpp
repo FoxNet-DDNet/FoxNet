@@ -303,7 +303,7 @@ void CGameContext::FoxNetPostGlobalSnap()
 		Msg.m_pMessage = pFakePlayer->m_aMessage;
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
-		log_info(pFakePlayer->m_Context, "%d:%d:%s: %s", ClientId, Msg.m_Team, pFakePlayer->m_aName, pFakePlayer->m_aMessage);
+		log_info(pFakePlayer->m_aContext, "%d:%d:%s: %s", ClientId, Msg.m_Team, pFakePlayer->m_aName, pFakePlayer->m_aMessage);
 
 		pFakePlayer->m_ClientId = -1;
 	}

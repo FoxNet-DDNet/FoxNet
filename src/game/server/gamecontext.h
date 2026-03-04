@@ -325,7 +325,7 @@ public:
 	char m_aaZoneEnterMsg[TuneZone::NUM][256]; // 0 is used for switching from or to area without tunings
 	char m_aaZoneLeaveMsg[TuneZone::NUM][256];
 
-	void CreateAllEntities(bool Initial);
+	void CreateAllEntities(bool Initial, int MapIdx);
 	CPlayer *CreatePlayer(int ClientId, int StartTeam, bool Afk, int LastWhisperTo);
 
 	char m_aDeleteTempfile[128];
@@ -971,7 +971,7 @@ private:
 
 		char m_aMessage[256];
 
-		char m_Context[24] = "fake-message";
+		char m_aContext[24] = "fake-message";
 	};
 
 	std::vector<CFakeSnapPlayer> m_vFakeSnapPlayers;
@@ -988,7 +988,6 @@ public:
 
 	bool m_MapVoteLock = false;
 
-	CRoulette *m_pRoulette = nullptr;
 	int DirectionToEditorDeg(const vec2 &Dir);
 
 	int64_t m_PowerUpDelay;

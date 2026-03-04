@@ -145,7 +145,9 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 						CCharacter *pChr = static_cast<CCharacter *>(apEnts[c]);
 						const bool CanCollide = pChr->CanCollide(ClientId) && !pChr->GetCore().m_CollisionDisabled;
 
-						if(GameServer()->Collision()->CheckPoint(SpawnPoint + aPositions[Index]) ||
+						int MapIndex = pChr->GetCore().m_MapIndex;
+
+						if(GameServer()->Collision(MapIndex)->CheckPoint(SpawnPoint + aPositions[Index]) ||
 							(CanCollide && distance(pChr->m_Pos, SpawnPoint + aPositions[Index]) <= pChr->GetProximityRadius()))
 						{
 							Result = -1;
@@ -185,21 +187,21 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int ClientId)
 	return Eval.m_Got;
 }
 
-bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number)
+bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number, int MapIndex)
 {
 	dbg_assert(Index >= 0, "Invalid entity index");
 
 	const vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 
 	int aSides[8];
-	aSides[0] = GameServer()->Collision()->Entity(x, y + 1, Layer);
-	aSides[1] = GameServer()->Collision()->Entity(x + 1, y + 1, Layer);
-	aSides[2] = GameServer()->Collision()->Entity(x + 1, y, Layer);
-	aSides[3] = GameServer()->Collision()->Entity(x + 1, y - 1, Layer);
-	aSides[4] = GameServer()->Collision()->Entity(x, y - 1, Layer);
-	aSides[5] = GameServer()->Collision()->Entity(x - 1, y - 1, Layer);
-	aSides[6] = GameServer()->Collision()->Entity(x - 1, y, Layer);
-	aSides[7] = GameServer()->Collision()->Entity(x - 1, y + 1, Layer);
+	aSides[0] = GameServer()->Collision(MapIndex)->Entity(x, y + 1, Layer);
+	aSides[1] = GameServer()->Collision(MapIndex)->Entity(x + 1, y + 1, Layer);
+	aSides[2] = GameServer()->Collision(MapIndex)->Entity(x + 1, y, Layer);
+	aSides[3] = GameServer()->Collision(MapIndex)->Entity(x + 1, y - 1, Layer);
+	aSides[4] = GameServer()->Collision(MapIndex)->Entity(x, y - 1, Layer);
+	aSides[5] = GameServer()->Collision(MapIndex)->Entity(x - 1, y - 1, Layer);
+	aSides[6] = GameServer()->Collision(MapIndex)->Entity(x - 1, y, Layer);
+	aSides[7] = GameServer()->Collision(MapIndex)->Entity(x - 1, y + 1, Layer);
 
 	if(Index >= ENTITY_SPAWN && Index <= ENTITY_SPAWN_BLUE && Initial)
 	{
@@ -315,14 +317,14 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	else if(Index >= ENTITY_LASER_FAST_CCW && Index <= ENTITY_LASER_FAST_CW)
 	{
 		int aSides2[8];
-		aSides2[0] = GameServer()->Collision()->Entity(x, y + 2, Layer);
-		aSides2[1] = GameServer()->Collision()->Entity(x + 2, y + 2, Layer);
-		aSides2[2] = GameServer()->Collision()->Entity(x + 2, y, Layer);
-		aSides2[3] = GameServer()->Collision()->Entity(x + 2, y - 2, Layer);
-		aSides2[4] = GameServer()->Collision()->Entity(x, y - 2, Layer);
-		aSides2[5] = GameServer()->Collision()->Entity(x - 2, y - 2, Layer);
-		aSides2[6] = GameServer()->Collision()->Entity(x - 2, y, Layer);
-		aSides2[7] = GameServer()->Collision()->Entity(x - 2, y + 2, Layer);
+		aSides2[0] = GameServer()->Collision(MapIndex)->Entity(x, y + 2, Layer);
+		aSides2[1] = GameServer()->Collision(MapIndex)->Entity(x + 2, y + 2, Layer);
+		aSides2[2] = GameServer()->Collision(MapIndex)->Entity(x + 2, y, Layer);
+		aSides2[3] = GameServer()->Collision(MapIndex)->Entity(x + 2, y - 2, Layer);
+		aSides2[4] = GameServer()->Collision(MapIndex)->Entity(x, y - 2, Layer);
+		aSides2[5] = GameServer()->Collision(MapIndex)->Entity(x - 2, y - 2, Layer);
+		aSides2[6] = GameServer()->Collision(MapIndex)->Entity(x - 2, y, Layer);
+		aSides2[7] = GameServer()->Collision(MapIndex)->Entity(x - 2, y + 2, Layer);
 
 		int Ind = Index - ENTITY_LASER_STOP;
 		int M;
@@ -394,7 +396,8 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	}
 	else if(Index == ENTITY_ROULETTE)
 	{
-		GameServer()->m_pRoulette = new CRoulette(&GameServer()->m_World, Pos);
+		if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIndex))
+			new CRoulette(&GameServer()->m_World, Pos);
 	}
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)

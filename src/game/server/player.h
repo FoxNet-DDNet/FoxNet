@@ -583,8 +583,8 @@ public:
 	// Default loaded map Idx = -1
 
 	bool SendToMap(int Idx);
-	int m_OverridenMapIndex = DefaultMapIndex;
-	const int MapIdx() const { return m_OverridenMapIndex; }
+	int m_OverriddennMapIndex = DefaultMapIndex;
+	int MapIdx() const { return m_OverriddennMapIndex; }
 	// FoxNet>
 };
 #endif

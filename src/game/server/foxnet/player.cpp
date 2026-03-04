@@ -158,7 +158,7 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
-	m_OverridenMapIndex = DefaultMapIndex;
+	m_OverriddennMapIndex = DefaultMapIndex;
 	m_LastReport = 0;
 
 	m_AccLoginAttempts = 0;
@@ -398,7 +398,8 @@ bool CPlayer::CanUseMoney()
 {
 	if(!Acc()->m_LoggedIn)
 		return false;
-	if(GameServer()->m_pRoulette && GameServer()->m_pRoulette->ClientBetting(GetCid()))
+	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx()));
+	if(pRoulette && pRoulette->ClientBetting(GetCid()))
 		return false;
 
 	return true;
@@ -1147,7 +1148,7 @@ bool CPlayer::SendToMap(int Idx)
 		log_error("multimap", "Failed to send to map index %d: multimap is disabled", Idx);
 		return false;
 	}
-	if(Idx == m_OverridenMapIndex)
+	if(Idx == m_OverriddennMapIndex)
 		return true;
 
 	if((int)GameServer()->m_vMapOverrides.size() < Idx)
@@ -1157,13 +1158,13 @@ bool CPlayer::SendToMap(int Idx)
 	{
 		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMapOverrides[Idx].m_pMap.get()->BaseName()))
 			return false;
-		m_OverridenMapIndex = Idx;
+		m_OverriddennMapIndex = Idx;
 	}
 	else
 	{
 		if(!Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
 			return false;
-		m_OverridenMapIndex = DefaultMapIndex;
+		m_OverriddennMapIndex = DefaultMapIndex;
 	}
 
 	CCharacter *pChr = GetCharacter();

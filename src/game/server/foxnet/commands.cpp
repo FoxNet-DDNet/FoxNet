@@ -2004,7 +2004,7 @@ void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 
 	int Idx = pSelf->GetMapIndexByMapName(pMapName);
 
-	if(pSelf->m_vMapOverrides.size() < Idx)
+	if((int)pSelf->m_vMapOverrides.size() < Idx)
 	{
 		log_error("multimap", "This server doesn't have a that '%s' loaded", pMapName);
 		return;
@@ -2028,7 +2028,7 @@ void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 
 	int Idx = pSelf->GetMapIndexByType(EMapType::Casino);
 
-	if(pSelf->m_vMapOverrides.size() < Idx)
+	if((int)pSelf->m_vMapOverrides.size() < Idx)
 	{
 		log_error("multimap", "This server doesn't have that Map loaded");
 		return;
@@ -2221,7 +2221,7 @@ void CGameContext::ConchainMultimap(IConsole::IResult *pResult, void *pUserData,
 	pfnCallback(pResult, pCallbackUserData);
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int NumArgs = pResult->NumArguments();
-	if(!pResult->NumArguments())
+	if(NumArgs)
 		return;
 	pSelf->UnloadMapsAll();
 }
@@ -2231,7 +2231,7 @@ void CGameContext::ConchainScriptingBan(IConsole::IResult *pResult, void *pUserD
 	pfnCallback(pResult, pCallbackUserData);
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int NumArgs = pResult->NumArguments();
-	if(!pResult->NumArguments())
+	if(!NumArgs)
 		return;
 	int UserId = pResult->m_ClientId;
 	if(!CheckClientId(UserId) && UserId != IConsole::CLIENT_ID_FOXNET)

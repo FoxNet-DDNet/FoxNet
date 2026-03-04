@@ -30,8 +30,6 @@ public:
 	CClientMask CosmeticMask(const EItemType ItemType);
 	CClientMask TeamMask();
 
-	int GetOwnerId() const override { return m_Owner; }
-
 	void Reset() override {}
 	void Tick() override {}
 	void TickDeferred() override {}

@@ -155,7 +155,7 @@ void CGameWorld::Reset()
 
 	m_ResetRequested = false;
 
-	GameServer()->CreateAllEntities(false);
+	GameServer()->CreateAllEntities(false, -1);
 }
 
 void CGameWorld::RemoveEntitiesFromPlayer(int PlayerId)
@@ -426,5 +426,17 @@ std::vector<CEntity *> CGameWorld::FindEntitiesWithOwner(int Type, int Owner) co
 			vEntities.push_back(pEnt);
 	}
 	return vEntities;
+}
 
+CEntity *CGameWorld::FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotThis)
+{
+	CEntity *pEnt = m_apFirstEntityTypes[Type];
+	for(; pEnt; pEnt = pEnt->m_pNextTypeEntity)
+	{
+		if(pEnt == pNotThis)
+			continue;
+		if(pEnt->Collision() == GameServer()->Collision(MapIdx))
+			return pEnt;
+	}
+	return nullptr;
 }

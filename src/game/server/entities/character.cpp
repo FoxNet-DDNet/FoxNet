@@ -3152,7 +3152,8 @@ void CCharacter::FoxNetSpawn()
 
 void CCharacter::RouletteTileHandle()
 {
-	if(!GameServer()->m_pRoulette)
+	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx()));
+	if(!pRoulette)
 		return;
 
 	const int ClientId = GetPlayer()->GetCid();
@@ -3177,7 +3178,7 @@ void CCharacter::RouletteTileHandle()
 	{
 		if(Force == FORCE_ROULETTE && Angle == 0 && MaxSpeed == i + 2)
 		{
-			if(GameServer()->m_pRoulette->AddClient(ClientId, Bet, RouletteOptions[i]))
+			if(pRoulette->AddClient(ClientId, Bet, RouletteOptions[i]))
 			{
 				GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
 				return;
