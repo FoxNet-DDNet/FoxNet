@@ -131,13 +131,13 @@ void CPickupPet::FollowMode()
 		TargetPos = GetCharacter()->GetCursorPos();
 	}
 
-	bool ThreeBlocksUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -3.0f * 32.0f));
+	bool ThreeBlocksUp = GetCollision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -3.0f * 32.0f));
 
-	bool OneHalfBlocksUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -1.5f * 32.0f));
-	bool OneHalfBlocksDown = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 1.5f * 32.0f));
+	bool OneHalfBlocksUp = GetCollision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -1.5f * 32.0f));
+	bool OneHalfBlocksDown = GetCollision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 1.5f * 32.0f));
 
-	bool OneBlockUp = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -32.0f));
-	bool OneBlockDown = Collision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 32.0f));
+	bool OneBlockUp = GetCollision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, -32.0f));
+	bool OneBlockDown = GetCollision()->CheckPoint(GetCharacter()->GetPos() + vec2(0, 32.0f));
 
 	if(OneBlockUp)
 	{
@@ -165,13 +165,13 @@ void CPickupPet::FollowMode()
 	{
 		float ExtraOffset = abs(i);
 
-		if(TargetPos.x < m_aPos.x && Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * 32.0f, 0.0f)))
+		if(TargetPos.x < m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * 32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * 32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)
 				Offset.y += 48.0f;
 		}
-		else if(TargetPos.x > m_aPos.x && Collision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * -32.0f, 0.0f)))
+		else if(TargetPos.x > m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * -32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * -32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)
@@ -187,10 +187,10 @@ void CPickupPet::FollowMode()
 	NewPos.y = m_Pos.y + m_aSpeed * (TargetPos.y - m_Pos.y);
 
 	// Check for collision with blocks
-	bool CollidesLeft = NewPos.x < m_Pos.x && Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
-	bool CollidesRight = NewPos.x > m_Pos.x && Collision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
-	bool CollidesFloor = NewPos.y > m_Pos.y && Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
-	bool CollidesCeiling = NewPos.y < m_Pos.y && Collision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
+	bool CollidesLeft = NewPos.x < m_Pos.x && GetCollision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
+	bool CollidesRight = NewPos.x > m_Pos.x && GetCollision()->CheckPoint(vec2(NewPos.x, m_Pos.y));
+	bool CollidesFloor = NewPos.y > m_Pos.y && GetCollision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
+	bool CollidesCeiling = NewPos.y < m_Pos.y && GetCollision()->CheckPoint(vec2(m_Pos.x, NewPos.y));
 
 	if((!CollidesLeft && !CollidesRight && !CollidesFloor && !CollidesCeiling) || !FollowMouse)
 	{

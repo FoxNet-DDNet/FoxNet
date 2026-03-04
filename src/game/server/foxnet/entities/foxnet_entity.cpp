@@ -59,7 +59,7 @@ bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 
 CPlayer *CEntityOwned::GetPlayer()
 {
-	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id");
+	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id %d", m_Owner);
 	// Should be dbg_assert but idk
 	if(Server()->ClientSlotEmpty(m_Owner))
 		return nullptr;
@@ -67,7 +67,7 @@ CPlayer *CEntityOwned::GetPlayer()
 }
 CCharacter *CEntityOwned::GetCharacter()
 {
-	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id");
+	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id %d", m_Owner);
 	// same
 	if(Server()->ClientSlotEmpty(m_Owner))
 		return nullptr;
@@ -75,6 +75,18 @@ CCharacter *CEntityOwned::GetCharacter()
 	if(!pPlayer)
 		return nullptr;
 	return pPlayer->GetCharacter();
+}
+
+CCollision *CEntityOwned::GetCollision()
+{
+	dbg_assert(m_Owner >= 0 && m_Owner < MAX_CLIENTS, "invalid owner id %d", m_Owner);
+	// same
+	if(Server()->ClientSlotEmpty(m_Owner))
+		return Collision();
+	CPlayer *pPlayer = GetPlayer();
+	if(!pPlayer)
+		return Collision();
+	return GameServer()->Collision(pPlayer->MapIdx());
 }
 
 CClientMask CEntityOwned::CosmeticMask(const EItemType ItemType)

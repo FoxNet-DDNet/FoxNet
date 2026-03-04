@@ -15,12 +15,12 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
+#include "foxnet_entity.h"
 
 CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_CUSTOM_PROJECTILE, Pos)
 {
-	m_Owner = Owner;
 	m_Pos = Pos;
 	m_Core = normalize(Dir) * Speed;
 	m_Freeze = Freeze;
@@ -50,18 +50,11 @@ void CCustomProjectile::Reset()
 
 void CCustomProjectile::Tick()
 {
-	m_pOwner = 0;
-	if(GameServer()->GetPlayerChar(m_Owner))
-		m_pOwner = GameServer()->GetPlayerChar(m_Owner);
-
-	if(m_Owner >= 0 && !m_pOwner && Config()->m_SvDestroyBulletsOnDeath)
+	if(m_Owner >= 0 && !GetCharacter() && Config()->m_SvDestroyBulletsOnDeath)
 	{
 		Reset();
 		return;
 	}
-
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 
 	m_LifeTime--;
 	if(m_LifeTime <= 0)
@@ -73,12 +66,12 @@ void CCustomProjectile::Tick()
 	Move();
 	HitCharacter();
 
-	if(Collision()->IsSolid(m_Pos.x, m_Pos.y))
+	if(GetCollision()->IsSolid(m_Pos.x, m_Pos.y))
 	{
 		if(m_Explosive)
 		{
-			GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, m_pOwner ? m_pOwner->Team() : -1, m_TeamMask);
-			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, m_TeamMask);
+			GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, GetCharacter() ? GetCharacter()->Team() : -1, TeamMask());
+			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, TeamMask());
 		}
 
 		if(m_CollisionState == NOT_COLLIDED)
@@ -113,7 +106,7 @@ void CCustomProjectile::Move()
 void CCustomProjectile::HitCharacter()
 {
 	vec2 NewPos = m_Pos + m_Core;
-	CCharacter *pHit = GameWorld()->IntersectCharacter(m_PrevPos, NewPos, 6.0f, NewPos, m_pOwner, m_Owner);
+	CCharacter *pHit = GameWorld()->IntersectCharacter(m_PrevPos, NewPos, 6.0f, NewPos, GetCharacter(), GetOwnerId());
 	if(!pHit)
 		return;
 
@@ -124,13 +117,13 @@ void CCustomProjectile::HitCharacter()
 
 	if(m_Explosive)
 	{
-		GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, pHit->Team(), m_TeamMask);
-		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, m_TeamMask);
+		GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, pHit->Team(), TeamMask());
+		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, TeamMask());
 	}
 	// else
 	// pHit->TakeDamage(vec2(0, 0), g_pData->m_Weapons.m_aId[GameServer()->GetWeaponType(m_Type)].m_Damage, m_Owner, m_Type);
 
-	if(GameServer()->GetPlayerChar(m_Owner)->GetActiveWeapon() == WEAPON_HEARTGUN)
+	if(GetCharacter()->GetActiveWeapon() == WEAPON_HEARTGUN)
 	{
 		pHit->SetEmote(EMOTE_HAPPY, Server()->Tick() + 2 * Server()->TickSpeed());
 		GameServer()->SendEmoticon(pHit->GetPlayer()->GetCid(), EMOTICON_HEARTS, -1);
@@ -144,22 +137,8 @@ void CCustomProjectile::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pOwnerChar || !pSnapPlayer)
+	if(!CanSnapEntity(SnappingClient))
 		return;
-
-	if(pOwnerChar->IsPaused())
-		return;
-
-	if(pSnapPlayer->GetCharacter() && pOwnerChar)
-		if(!pOwnerChar->CanSnapCharacter(SnappingClient))
-			return;
-
-	if(pOwnerChar->GetPlayer()->m_Vanish && SnappingClient != pOwnerChar->GetPlayer()->GetCid() && SnappingClient != -1)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
-			return;
 
 	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);

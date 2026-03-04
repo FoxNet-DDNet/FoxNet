@@ -65,7 +65,7 @@ void CLovely::Tick()
 		m_aData[i].m_Lifespan--;
 		m_aData[i].m_Pos.y -= 2.4f;
 
-		if(m_aData[i].m_Lifespan == 0 || Collision()->TestBox(m_aData[i].m_Pos, vec2(14.f, 14.f)))
+		if(m_aData[i].m_Lifespan == 0 || GetCollision()->TestBox(m_aData[i].m_Pos, vec2(14.f, 14.f)))
 			m_aData[i].m_Lifespan = -1;
 	}
 }

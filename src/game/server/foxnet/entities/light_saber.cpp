@@ -107,7 +107,7 @@ void CLightSaber::Tick()
 	m_From = vec2(0, 0);
 	m_To = vec2(0, 0);
 	vec2 WantedFrom = m_To + normalize(vec2(pChr->Input()->m_TargetX, pChr->Input()->m_TargetY)) * m_Length;
-	Collision()->IntersectLine(m_To, WantedFrom, &m_From, 0);
+	GetCollision()->IntersectLine(m_To, WantedFrom, &m_From, 0);
 
 	if(pChr->Core()->m_Solo)
 		return;
@@ -160,7 +160,7 @@ void CLightSaber::Snap(int SnappingClient)
 	vec2 To = GetCharacter()->GetPredictedPos(SnappingClient, false) + m_To;
 
 	const vec2 WantedFrom = To + normalize(vec2(GetCharacter()->Input()->m_TargetX, GetCharacter()->Input()->m_TargetY)) * m_Length;
-	Collision()->IntersectLine(To, WantedFrom, &From, 0);
+	GetCollision()->IntersectLine(To, WantedFrom, &From, 0);
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

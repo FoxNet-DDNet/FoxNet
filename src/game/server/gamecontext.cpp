@@ -196,8 +196,7 @@ void CGameContext::Clear()
 	std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	// std::unique_ptr<IMap> pOverrideMap;
-	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
+	std::vector<CMapOverride> vMapOverrides = std::move(m_vMapOverrides);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
@@ -219,7 +218,7 @@ void CGameContext::Clear()
 	std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	// std::swap(pOverrideMap, m_MapOverride.m_pMap);
+	m_vMapOverrides = std::move(vMapOverrides);
 	m_vChatDetection = vChatDetection;
 	m_vNameDetection = vNameDetection;
 	m_vQuadDebugIds = vQuadDebugIds;

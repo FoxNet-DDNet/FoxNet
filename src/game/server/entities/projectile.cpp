@@ -62,6 +62,13 @@ CProjectile::CProjectile(
 	// <FoxNet
 	m_CosmeticMask = CClientMask().set();
 	m_OppCosmeticMask = CClientMask().set().reset();
+
+	if(CheckClientId(m_Owner))
+	{
+		if(GameServer()->m_apPlayers[m_Owner])
+			SetCollision(GameServer()->Collision(GameServer()->m_apPlayers[m_Owner]->MapIdx()));
+	}
+
 	if(pOwnerChar)
 	{
 		m_CosmeticMask = pOwnerChar->CosmeticMask(EItemType::Gun);

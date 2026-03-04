@@ -1965,19 +1965,51 @@ void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserDat
 	pSelf->CreateSoundGlobal(Sound);
 }
 
-void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConLoadMap(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(pResult->NumArguments() != 2)
+	{
+		log_info("foxnet", "Usage: load_map <type> <map-name>");
+		log_info("foxnet", "Types:");
+		log_info("foxnet", "0 = Any");
+		log_info("foxnet", "1 = Casino");
+		return;
+	}
+	const char *pMapName = pResult->GetString(1);
+	EMapType Type = (EMapType)pResult->GetInteger(0);
+	if(!pMapName[0])
+		return;
+
+	pSelf->LoadMapByName(pMapName, Type);
+}
+
+void CGameContext::ConUnloadMap(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pMapName = pResult->GetString(0);
+	if(!pMapName[0])
+		return;
+
+	pSelf->UnloadMapByName(pMapName);
+}
+
+void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	const char *pMapName = pResult->GetString(1);
+	if(!pMapName[0])
+		return;
 
-	pSelf->SendChatTarget(Victim, "still a massive ToDo");
-	return;
+	int Idx = pSelf->GetMapIndexByMapName(pMapName);
 
-	//if(!pSelf->m_MapOverride.m_MapLoaded)
-	//{
-	//	pSelf->SendChatTarget(Victim, "This server doesn't have a Casino Map loaded");
-	//	return;
-	//}
+	if(pSelf->m_vMapOverrides.size() < Idx)
+	{
+		log_error("multimap", "This server doesn't have a that '%s' loaded", pMapName);
+		return;
+	}
+
 	if(!CheckClientId(Victim))
 		return;
 	if(pSelf->Server()->ClientSlotEmpty(Victim))
@@ -1985,31 +2017,42 @@ void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 	if(!pPlayer)
 		return;
-	if(!pPlayer->m_MapOverridden)
-	{
-		if(!pSelf->Server()->SendMapByName(Victim, g_Config.m_SvCasinoMapName))
-			return;
-		pPlayer->m_MapOverridden = true;
 
-	}	
-	else
+	pPlayer->SendToMap(Idx);
+}
+
+void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	int Idx = pSelf->GetMapIndexByType(EMapType::Casino);
+
+	if(pSelf->m_vMapOverrides.size() < Idx)
 	{
-		if(pSelf->Server()->SendMapByName(Victim, pSelf->Map()->BaseName()))
-			return;
-		pPlayer->m_MapOverridden = false;
+		log_error("multimap", "This server doesn't have that Map loaded");
+		return;
 	}
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
-	if(pChr)
-	{
-		pPlayer->m_PreviousDieTick = pPlayer->m_DieTick = pSelf->Server()->Tick();
-		pChr->Die(-1, WEAPON_GAME);
-	}
+	if(!CheckClientId(Victim))
+		return;
+	if(pSelf->Server()->ClientSlotEmpty(Victim))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+	if(!pPlayer)
+		return;
+
+	pPlayer->SendToMap(Idx);
 }
 
 void CGameContext::RegisterFoxNetCommands()
 {
-	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Play a sound globally for everyone");
+	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMap, this, "Load a map of type (leave empty for help text)");
+	Console()->Register("unload_map", "r[map-name]", CFGFLAG_SERVER, ConUnloadMap, this, "Unload a map by name");
+	
+	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send players (id) to the casino map (if loaded)");
+
+	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Send players (id) to the casino map (if loaded)");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 

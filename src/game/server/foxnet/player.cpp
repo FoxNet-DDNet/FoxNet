@@ -34,6 +34,7 @@
 #include <iterator>
 #include <random>
 #include <string>
+#include <engine/map.h>
 #include <vector>
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
@@ -157,7 +158,7 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
-	m_MapOverridden = false;
+	m_OverridenMapIndex = DefaultMapIndex;
 	m_LastReport = 0;
 
 	m_AccLoginAttempts = 0;
@@ -1137,4 +1138,34 @@ float CPlayer::StatMultiplier()
 	if(OwnsItem(EItemId::MVP))
 		Multiplier += 3.5f;
 	return Multiplier;
+}
+
+bool CPlayer::SendToMap(int Idx)
+{
+	if(Idx == m_OverridenMapIndex)
+		return true;
+
+	if((int)GameServer()->m_vMapOverrides.size() < Idx)
+		return false;
+
+	if(Idx >= 0)
+	{
+		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMapOverrides[Idx].m_pMap.get()->BaseName()))
+			return false;
+		m_OverridenMapIndex = Idx;
+	}
+	else
+	{
+		if(Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
+			return false;
+		m_OverridenMapIndex = DefaultMapIndex;
+	}
+
+	CCharacter *pChr = GetCharacter();
+	if(pChr)
+	{
+		m_PreviousDieTick = m_DieTick = Server()->Tick();
+		pChr->Die(-1, WEAPON_GAME);
+	}
+	return true;
 }

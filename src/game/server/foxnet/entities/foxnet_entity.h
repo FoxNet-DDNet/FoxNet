@@ -24,10 +24,13 @@ public:
 
 	CPlayer *GetPlayer();
 	CCharacter *GetCharacter();
-
+	// Gets the actual collision of the map thats loaded
+	CCollision *GetCollision();
 
 	CClientMask CosmeticMask(const EItemType ItemType);
 	CClientMask TeamMask();
+
+	int GetOwnerId() const override { return m_Owner; }
 
 	void Reset() override {}
 	void Tick() override {}

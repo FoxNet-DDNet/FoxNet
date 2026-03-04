@@ -79,26 +79,65 @@ void CGameContext::OnFoxNetConsoleInit()
 {
 	m_Scripting.OnConsoleInit(this);
 	RegisterFoxNetCommands();
+}
 
-	// ToDo: Make this more modular, allow more than just one map
-	//m_MapOverride.m_MapLoaded = false;
-	//m_MapOverride.m_pMap = CreateMap();
+void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
+{
+	for(size_t idx = 0; idx < m_vMapOverrides.size(); ++idx)
+	{
+		if(str_comp(m_vMapOverrides[idx].m_pMap->BaseName(), pMapName) == 0)
+		{
+			log_error("multimap", "Failed to load map '%s': already loaded", pMapName);
+			return;
+		}
+		else if(Type == m_vMapOverrides[idx].m_MapType)
+		{
+			log_error("multimap", "Failed to load map '%s': a map of type %" PRIzu " is already loaded", pMapName, (size_t)Type);
+			return;
+		}
+	}
 
-	//const char *pMapName = g_Config.m_SvCasinoMapName;
-	//char aBuf[IO_MAX_PATH_LENGTH];
-	//str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
-	//if(!str_valid_filename(fs_filename(aBuf)))
-	//{
-	//	log_error("server", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
-	//	return;
-	//}
-	//if(!m_MapOverride.m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
-	//{
-	//	log_error("server", "Failed to load casino map '%s'", aBuf);
-	//	return;
-	//}
-	//log_info("server", "Casino map loaded: %s", aBuf);
-	//m_MapOverride.Init();
+	CMapOverride NewMap;
+	NewMap.m_pMap = CreateMap();
+
+	char aBuf[IO_MAX_PATH_LENGTH];
+	str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
+	if(!str_valid_filename(fs_filename(aBuf)))
+	{
+		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
+		return;
+	}
+	if(!NewMap.m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
+	{
+		log_error("multimap", "Failed to load casino map '%s'", aBuf);
+		return;
+	}
+	log_info("multimap", "Casino map loaded: %s", aBuf);
+	NewMap.Init();
+	NewMap.m_MapType = Type;
+	m_vMapOverrides.push_back(std::move(NewMap));
+}
+void CGameContext::UnloadMapByName(const char *pMapName)
+{
+	auto it = std::find_if(m_vMapOverrides.begin(), m_vMapOverrides.end(), [pMapName](const CMapOverride &MapOverride) {
+		return str_comp(MapOverride.m_pMap->BaseName(), pMapName) == 0;
+	});
+	if(it != m_vMapOverrides.end())
+	{
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		{
+			CPlayer *pPlayer = m_apPlayers[ClientId];
+			if(!pPlayer)
+				continue;
+			pPlayer->SendToMap(-1);
+		}
+
+		log_info("multimap", "Map unloaded of type %d: %s", (int)it->m_MapType, pMapName);
+		it->Unload();
+		m_vMapOverrides.erase(it);
+	}
+	else
+		log_error("multimap", "Failed to unload map '%s': not found", pMapName);
 }
 
 void CGameContext::FoxNetInit()
@@ -320,6 +359,39 @@ static bool TryingToBeFunny(const char *pMsg)
 			return true;
 	}
 	return false;
+}
+
+int CGameContext::GetMapIndexByType(EMapType MapType) const
+{
+	for(size_t i = 0; i < m_vMapOverrides.size(); i++)
+	{
+		if(m_vMapOverrides[i].m_MapType == MapType)
+			return i;
+	}
+	return -1;
+}
+int CGameContext::GetMapIndexByMapName(const char *pMapName) const
+{
+	for(size_t i = 0; i < m_vMapOverrides.size(); i++)
+	{
+		if(str_comp(m_vMapOverrides[i].m_pMap->BaseName(), pMapName) == 0)
+			return i;
+	}
+	return -1;
+}
+const char *CGameContext::MapName(int ClientId)
+{
+	if(!CheckClientId(ClientId))
+		return Map()->BaseName();
+
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
+		return Map()->BaseName();
+
+	int PlayerMapIndex = pPlayer->MapIdx();
+	if(PlayerMapIndex >= 0 && PlayerMapIndex < (int)m_vMapOverrides.size())
+		return m_vMapOverrides[PlayerMapIndex].m_pMap->BaseName();
+	return Map()->BaseName();
 }
 
 bool CGameContext::ChatDetection(int ClientId, const char *pMsg)

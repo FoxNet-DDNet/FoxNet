@@ -8,6 +8,7 @@
 #include "foxnet/entities/powerup.h"
 #include "foxnet/entities/roulette.h"
 #include "foxnet/persistent_data.h"
+#include "foxnet/scripting/scripting.h"
 #include "foxnet/shop.h"
 #include "foxnet/votemenu.h"
 #include "gameworld.h"
@@ -16,6 +17,7 @@
 #include <base/types.h>
 
 #include <engine/console.h>
+#include <engine/map.h>
 #include <engine/server.h>
 
 #include <generated/protocol.h>
@@ -29,7 +31,6 @@
 #include <memory>
 #include <random>
 #include <string>
-#include "foxnet/scripting/scripting.h"
 
 /*
 	Tick
@@ -70,6 +71,13 @@ struct CScoreRandomMapResult;
 struct CScorePlayerResult;
 
 // <FoxNet
+
+enum class EMapType
+{
+	None,
+	Casino,
+};
+
 class CStringDetection
 {
 	char m_String[32] = "";
@@ -253,6 +261,14 @@ public:
 	IMap *Map() override { return m_pMap.get(); }
 	const IMap *Map() const override { return m_pMap.get(); }
 	CCollision *Collision() { return &m_Collision; }
+	// <FoxNet
+	CCollision *Collision(int Idx)
+	{
+		if(Idx < 0 || m_vMapOverrides.size() < (size_t)Idx)
+			return &m_Collision;
+		return &m_vMapOverrides[Idx].m_Collision;
+	}
+	// FoxNet>
 	CTuningParams *GlobalTuning() { return &m_aTuningList[0]; }
 	CTuningParams *TuningList() { return m_aTuningList; }
 	IAntibot *Antibot() { return m_pAntibot; }
@@ -704,18 +720,35 @@ public:
 
 	void ResetTuning();
 	// <FoxNet
-	//class CMapOverride
-	//{
-	//public:
-	//	std::unique_ptr<IMap> m_pMap;
-	//	CLayers m_Layers;
-	//	CCollision m_Collision;
-	//	bool m_MapLoaded;
+	class CMapOverride
+	{
+	public:
+		std::unique_ptr<IMap> m_pMap;
+		CLayers m_Layers;
+		CCollision m_Collision;
 
-	//	void Init();
+		EMapType m_MapType = EMapType::None;
 
-	//	void Reset();
-	//} m_MapOverride;
+		void Init()
+		{
+			m_Layers.Init(m_pMap.get(), false);
+			m_Collision.Init(&m_Layers);
+		}
+		void Unload()
+		{
+			m_pMap.get()->Unload();
+			m_pMap.reset();
+			m_pMap = nullptr;
+			m_Layers.Unload();
+			m_Collision.Unload();
+		}
+	};
+	std::vector<CMapOverride> m_vMapOverrides;
+
+	int GetMapIndexByType(EMapType MapType) const;
+	int GetMapIndexByMapName(const char *pMapName) const;
+
+	const char *MapName(int ClientId);
 
 private:
 	class CDamageIndEffects
@@ -747,6 +780,10 @@ private:
 	void FoxNetPostGlobalSnap();
 	void RegisterFoxNetCommands();
 	void OnFoxNetConsoleInit();
+	// Multimaps
+	void LoadMapByName(const char *pMapName, EMapType Type);
+	void UnloadMapByName(const char *pMapName);
+
 	void PowerUpSpawner();
 
 	void SnapDebuggedQuad(int ClientId);
@@ -911,6 +948,9 @@ private:
 
 	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConLoadMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConUnloadMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 
 	struct CFakeSnapPlayer
@@ -976,9 +1016,9 @@ public:
 	void ClearVotes(int ClientId);
 
 	/*
-	* @param ClientId: Tee which visually has the emote above their head
-	* @param TargetId: Client that receives the packet
-	*/
+	 * @param ClientId: Tee which visually has the emote above their head
+	 * @param TargetId: Client that receives the packet
+	 */
 	void SendEmote(int ClientId, int Type, int TargetId);
 
 	void CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMask Mask);

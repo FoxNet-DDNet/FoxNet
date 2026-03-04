@@ -261,11 +261,11 @@ void CPlayer::Tick()
 	}
 
 	m_TuneZoneOld = m_TuneZone; // determine needed tunings with viewpos
-	int CurrentIndex = GameServer()->Collision()->GetMapIndex(m_ViewPos);
+	int CurrentIndex = GameServer()->Collision(MapIdx())->GetMapIndex(m_ViewPos);
 	if(m_pCharacter)
 		m_TuneZone = m_pCharacter->GetOverriddenTuneZone();
 	else
-		m_TuneZone = GameServer()->Collision()->IsTune(CurrentIndex);
+		m_TuneZone = GameServer()->Collision(MapIdx())->IsTune(CurrentIndex);
 	if(m_TuneZone != m_TuneZoneOld) // don't send tunings all the time
 	{
 		GameServer()->SendTuningParams(m_ClientId, m_TuneZone);
@@ -658,7 +658,7 @@ void CPlayer::Respawn(bool WeakHook)
 CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(), GameServer()->GetLastPlayerInput(m_ClientId));
+	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(MapIdx()), GameServer()->GetLastPlayerInput(m_ClientId));
 	m_pCharacter->Spawn(this, Pos);
 	m_Team = TEAM_GAME;
 	return m_pCharacter;
@@ -748,7 +748,7 @@ void CPlayer::TryRespawn()
 
 	m_WeakHookSpawn = false;
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(), GameServer()->GetLastPlayerInput(m_ClientId));
+	m_pCharacter = new(m_ClientId) CCharacter(&GameServer()->m_World, GameServer()->Collision(MapIdx()), GameServer()->GetLastPlayerInput(m_ClientId));
 	m_ViewPos = SpawnPos;
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientId));

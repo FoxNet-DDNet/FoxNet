@@ -32,6 +32,12 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
 
+	if(CheckClientId(m_Owner))
+	{
+		if(GameServer()->m_apPlayers[m_Owner])
+			SetCollision(GameServer()->Collision(GameServer()->m_apPlayers[m_Owner]->MapIdx()));
+	}
+
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }

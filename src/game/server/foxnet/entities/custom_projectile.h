@@ -18,7 +18,7 @@ enum
 	COLLIDED_TWICE
 };
 
-class CCustomProjectile : public CEntity
+class CCustomProjectile : public CEntityOwned
 {
 public:
 	CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
@@ -35,10 +35,6 @@ private:
 
 	int m_EvalTick;
 	int m_LifeTime;
-
-	CClientMask m_TeamMask;
-	CCharacter *m_pOwner;
-	int m_Owner;
 
 	int m_Freeze;
 	int m_Unfreeze;
