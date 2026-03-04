@@ -1,42 +1,32 @@
-#include "server.h"
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
-#include "authmanager.h"
+#include "server.h"
+
 #include "databases/connection.h"
 #include "databases/connection_pool.h"
-#include "name_ban.h"
 #include "register.h"
 
 #include <base/bytes.h>
-#include <antibot/antibot_data.h>
-
-#include <base/detect.h>
-#include <base/hash.h>
-#include <base/log.h>
 #include <base/logger.h>
 #include <base/math.h>
-#include <base/str.h>
-#include <base/types.h>
 
-#include <engine/antibot.h>
+#include <engine/config.h>
 #include <engine/console.h>
-#include <engine/demo.h>
 #include <engine/engine.h>
-#include <engine/http.h>
 #include <engine/map.h>
-#include <engine/message.h>
 #include <engine/server.h>
 #include <engine/server/authmanager.h>
 #include <engine/shared/compression.h>
 #include <engine/shared/config.h>
+#include <engine/shared/console.h>
 #include <engine/shared/demo.h>
 #include <engine/shared/econ.h>
 #include <engine/shared/fifo.h>
 #include <engine/shared/filecollection.h>
 #include <engine/shared/host_lookup.h>
 #include <engine/shared/http.h>
-#include <engine/shared/jobs.h>
+#include <engine/shared/json.h>
 #include <engine/shared/jsonwriter.h>
 #include <engine/shared/linereader.h>
 #include <engine/shared/masterserver.h>
@@ -46,30 +36,15 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/protocol7.h>
 #include <engine/shared/protocol_ex.h>
-#include <engine/shared/protocol_ex_msgs.h>
 #include <engine/shared/rust_version.h>
 #include <engine/shared/snapshot.h>
-#include <engine/shared/uuid_manager.h>
 #include <engine/storage.h>
-
-#include <generated/protocol.h>
-#include <generated/protocol7.h>
-#include <generated/protocolglue.h>
 
 #include <game/version.h>
 
 #include <zlib.h>
 
-#include <algorithm>
-#include <array>
 #include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <iterator>
-#include <memory>
-#include <optional>
-#include <string>
-#include <type_traits>
 #include <vector>
 
 using namespace std::chrono_literals;
@@ -1193,7 +1168,7 @@ void CServer::DoSnapshot()
 			if(IsSixup(i))
 				continue;
 			if(!m_aClients[i].m_HighBandwidth)
-				continue;
+			continue;
 			// FoxNet>
 		}
 
@@ -1389,9 +1364,6 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 #if defined(CONF_FAMILY_UNIX)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->ClientAddr(ClientId));
 #endif
-	// <FoxNet
-	pThis->m_aClients[ClientId].ResetContent();
-	// FoxNet>
 	return 0;
 }
 
@@ -1399,7 +1371,7 @@ void CServer::InitDnsbl(int ClientId)
 {
 	NETADDR Addr = *ClientAddr(ClientId);
 
-	// TODO: support ipv6
+	//TODO: support ipv6
 	if(Addr.type != NETTYPE_IPV4)
 		return;
 
@@ -1578,12 +1550,12 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	}
 
 	CMsgPacker Msg(NETMSG_MAP_DATA, true);
-	if(!MapType)
+	if(MapType == MAP_TYPE_SIX)
 	{
 		Msg.AddInt(Last);
-		Msg.AddInt((int)MapCrc);
+		Msg.AddInt(MapCrc);
 		Msg.AddInt(Chunk);
-		Msg.AddInt((int)ChunkSize);
+		Msg.AddInt(ChunkSize);
 	}
 	Msg.AddRaw(&pMapData[Offset], ChunkSize);
 	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
@@ -1862,11 +1834,21 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		if(m_aClients[ClientId].m_Traffic > Limit)
 		{
 			char aBanBuf[1024];
+			const double TrafficBytesPerTick = m_aClients[ClientId].m_Traffic; // EMA, bytes/tick
+			const double LimitBytesPerTick = Limit;
+			const double TrafficKBps = TrafficBytesPerTick * (double)time_freq() / 1024.0;
+			const double LimitKBps = LimitBytesPerTick * (double)time_freq() / 1024.0;
+
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
+				"%.2f/%.2f bytes/tick, %.2f/%.2f KB/s\n"
 				"ver: %s (%d) [%s]",
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
+				TrafficBytesPerTick,
+				LimitBytesPerTick,
+				TrafficKBps,
+				LimitKBps,
 				GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
@@ -2018,28 +2000,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_READY)
 		{
-			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && (m_aClients[ClientId].m_State == CClient::STATE_CONNECTING))
-			{
-				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "player is ready. ClientId=%d addr=<{%s}> secure=%s", ClientId, ClientAddrString(ClientId, true), m_NetServer.HasSecurityToken(ClientId) ? "yes" : "no");
-				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
-
-				void *pPersistentData = nullptr;
-				if(m_aClients[ClientId].m_HasPersistentData)
-				{
-					pPersistentData = m_aClients[ClientId].m_pPersistentData;
-					m_aClients[ClientId].m_HasPersistentData = false;
-				}
-				m_aClients[ClientId].m_State = CClient::STATE_READY;
-				GameServer()->OnClientConnected(ClientId, pPersistentData);
-			}
-			SendConnectionReady(ClientId);
-			if(m_aClients[ClientId].m_OverrideMapActive)
-			{
-				CNetMsg_Sv_ReadyToEnter ReadyMsg;
-				SendPackMsg(&ReadyMsg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
-				FreeClientOverrideMap(m_aClients[ClientId]);
-			}
+			OnNetMsgReady(ClientId);
 		}
 		else if(Msg == NETMSG_ENTERGAME)
 		{
@@ -2218,7 +2179,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			constexpr int MaxDumpedDataSize = 32;
 			char aBuf[MaxDumpedDataSize * 3 + 1];
 			str_hex(aBuf, sizeof(aBuf), pPacket->m_pData, minimum(pPacket->m_DataSize, MaxDumpedDataSize));
-			Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "server", aBuf);
+			log_info("server", "%s", aBuf);
 		}
 	}
 	else if(m_aClients[ClientId].m_State >= CClient::STATE_READY)
@@ -2267,6 +2228,14 @@ void CServer::OnNetMsgReady(int ClientId)
 	// Make rejoining session possible before timeout protection triggers
 	// https://github.com/ddnet/ddnet/pull/301
 	SendConnectionReady(ClientId);
+	// <FoxNet
+	if(m_aClients[ClientId].m_OverrideMapActive)
+	{
+		CNetMsg_Sv_ReadyToEnter ReadyMsg;
+		SendPackMsg(&ReadyMsg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+		FreeClientOverrideMap(m_aClients[ClientId]);
+	}
+	// FoxNet>
 }
 
 void CServer::OnNetMsgEnterGame(int ClientId)
@@ -3528,7 +3497,6 @@ int CServer::Run()
 			while(LastTime > TickStartTime(m_CurrentGameTick + 1))
 			{
 				GameServer()->OnPreTickTeehistorian();
-
 				UpdateDebugDummies(false);
 
 				for(int c = 0; c < MAX_CLIENTS; c++)
@@ -4436,8 +4404,8 @@ void CServer::LogoutClient(int ClientId, const char *pReason)
 	if(!IsSixup(ClientId))
 	{
 		CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS, true);
-		Msg.AddInt(0); // authed
-		Msg.AddInt(0); // cmdlist
+		Msg.AddInt(0); //authed
+		Msg.AddInt(0); //cmdlist
 		SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
 	}
 	else
