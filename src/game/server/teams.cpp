@@ -573,7 +573,7 @@ bool CGameTeams::TeamFinished(int Team)
 	return true;
 }
 
-CClientMask CGameTeams::TeamMask(int Team, int ExceptId, int Asker, int VersionFlags)
+CClientMask CGameTeams::TeamMask(int Team, int MultiMapIdx, int ExceptId, int Asker, int VersionFlags)
 {
 	if(Team == TEAM_SUPER)
 	{
@@ -586,7 +586,7 @@ CClientMask CGameTeams::TeamMask(int Team, int ExceptId, int Asker, int VersionF
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		// <FoxNet
-		if(!SetMask(i, Team, ExceptId, Asker, VersionFlags))
+		if(!SetMask(i, MultiMapIdx, Team, ExceptId, Asker, VersionFlags))
 			continue;
 		// FoxNet>
 
@@ -1436,7 +1436,7 @@ bool CGameTeams::IsValidTeamNumber(int Team) const
 }
 
 // <FoxNet
-bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int VersionFlags, int Flags)
+bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags)
 {
 	if(Team == TEAM_SUPER)
 	{
@@ -1457,8 +1457,7 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 	CCharacter *pAskerChr = Asker >= 0 ? Character(Asker) : nullptr;
 	CCharacter *pClientChr = Character(ClientId);
 
-	const int AskerMultiMapIdx = GetPlayer(Asker) ? GetPlayer(Asker)->MultiMapIdx() : DefaultMapIndex;
-	if(AskerMultiMapIdx != pClient->MultiMapIdx())
+	if(MultiMapIdx != pClient->MultiMapIdx())
 		return false;
 
 	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
@@ -1524,7 +1523,7 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 	return true;
 }
 
-CClientMask CGameTeams::CosmeticMask(int Team, int Asker, EItemType Type, bool Opposite)
+CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItemType Type, bool Opposite)
 {
 	if(Team == TEAM_SUPER)
 	{
@@ -1537,7 +1536,7 @@ CClientMask CGameTeams::CosmeticMask(int Team, int Asker, EItemType Type, bool O
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
-		if(!SetMask(ClientId, Team, -1, Asker, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP))
+		if(!SetMask(ClientId, MultiMapIdx, Team, -1, Asker, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP))
 			continue;
 
 		if(ClientId == Asker)

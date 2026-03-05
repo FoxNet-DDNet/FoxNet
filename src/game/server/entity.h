@@ -68,7 +68,10 @@ public: // TODO: Maybe make protected
 	class CConfig *Config() { return m_pGameWorld->Config(); }
 	class CGameContext *GameServer() { return m_pGameWorld->GameServer(); }
 	class IServer *Server() { return m_pGameWorld->Server(); }
-	CCollision *Collision() { return m_pCCollision; }
+	// <FoxNet
+	// CCollision *Collision() { return m_pCCollision; }
+	virtual CCollision *Collision();
+	// FoxNet>
 
 	/* Getters */
 	CEntity *TypeNext() { return m_pNextTypeEntity; }

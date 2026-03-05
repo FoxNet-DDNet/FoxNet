@@ -177,9 +177,6 @@ class CGameContext : public IGameServer
 	IEngine *m_pEngine;
 	IStorage *m_pStorage;
 	IAntibot *m_pAntibot;
-	std::unique_ptr<IMap> m_pMap;
-	CLayers m_Layers;
-	CCollision m_Collision;
 	protocol7::CNetObjHandler m_NetObjHandler7;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_aTuningList[TuneZone::NUM];
@@ -258,15 +255,15 @@ public:
 	IConsole *Console() { return m_pConsole; }
 	IEngine *Engine() { return m_pEngine; }
 	IStorage *Storage() { return m_pStorage; }
-	IMap *Map() override { return m_pMap.get(); }
-	const IMap *Map() const override { return m_pMap.get(); }
-	CCollision *Collision() { return &m_Collision; }
+	IMap *Map() override { return m_vMultiMaps[DefaultMapIndex].m_pMap.get(); }
+	const IMap *Map() const override { return m_vMultiMaps[DefaultMapIndex].m_pMap.get(); }
+	CCollision *Collision() { return &m_vMultiMaps[DefaultMapIndex].m_Collision; }
 	// <FoxNet
 	CCollision *Collision(int Idx)
 	{
-		if(Idx < 0 || m_vMapOverrides.size() < (size_t)Idx)
-			return &m_Collision;
-		return &m_vMapOverrides[Idx].m_Collision;
+		if(Idx < 0 || Idx >= (int)m_vMultiMaps.size())
+			return Collision();
+		return &m_vMultiMaps[Idx].m_Collision;
 	}
 	// FoxNet>
 	CTuningParams *GlobalTuning() { return &m_aTuningList[0]; }
@@ -325,7 +322,7 @@ public:
 	char m_aaZoneEnterMsg[TuneZone::NUM][256]; // 0 is used for switching from or to area without tunings
 	char m_aaZoneLeaveMsg[TuneZone::NUM][256];
 
-	void CreateAllEntities(bool Initial, int MapIdx);
+	void CreateAllEntities(bool Initial, int MultiMapIdx);
 	CPlayer *CreatePlayer(int ClientId, int StartTeam, bool Afk, int LastWhisperTo);
 
 	char m_aDeleteTempfile[128];
@@ -694,7 +691,7 @@ private:
 	void LogEvent(const char *Description, int ClientId);
 
 public:
-	CLayers *Layers() { return &m_Layers; }
+	CLayers *Layers() { return &m_vMultiMaps[DefaultMapIndex].m_Layers; }
 	CScore *Score() { return m_pScore; }
 
 	enum
@@ -743,7 +740,7 @@ public:
 			m_Collision.Unload();
 		}
 	};
-	std::vector<CMapOverride> m_vMapOverrides;
+	std::deque<CMapOverride> m_vMultiMaps = std::deque<CMapOverride>(1); // index 0 is default map
 
 	int GetMapIndexByType(EMapType MapType) const;
 	int GetMapIndexByMapName(const char *pMapName) const;

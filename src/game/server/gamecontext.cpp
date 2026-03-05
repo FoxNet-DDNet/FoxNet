@@ -138,7 +138,7 @@ CGameContext::CGameContext(bool Resetting) :
 
 	if(!Resetting)
 	{
-		m_pMap = CreateMap();
+		m_vMultiMaps[DefaultMapIndex].m_pMap = CreateMap();
 
 		for(auto &pSavedTee : m_apSavedTees)
 			pSavedTee = nullptr;
@@ -167,8 +167,8 @@ CGameContext::~CGameContext()
 
 	if(!m_Resetting)
 	{
-		m_pMap->Unload();
-		m_pMap = nullptr;
+		m_vMultiMaps[DefaultMapIndex].m_pMap->Unload();
+		m_vMultiMaps[DefaultMapIndex].m_pMap = nullptr;
 
 		for(auto &pSavedTee : m_apSavedTees)
 			delete pSavedTee;
@@ -193,10 +193,10 @@ void CGameContext::Clear()
 	CMutes Mutes = m_Mutes;
 	CMutes VoteMutes = m_VoteMutes;
 	std::unique_ptr<IMap> pMap;
-	std::swap(pMap, m_pMap);
+	// std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	std::vector<CMapOverride> vMapOverrides = std::move(m_vMapOverrides);
+	std::deque<CMapOverride> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
@@ -215,10 +215,10 @@ void CGameContext::Clear()
 	m_aTuningList[0] = Tuning;
 	m_Mutes = Mutes;
 	m_VoteMutes = VoteMutes;
-	std::swap(pMap, m_pMap);
+	// std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	m_vMapOverrides = std::move(vMapOverrides);
+	m_vMultiMaps = std::move(vMultiMaps);
 	m_vChatDetection = vChatDetection;
 	m_vNameDetection = vNameDetection;
 	m_vQuadDebugIds = vQuadDebugIds;
@@ -4205,13 +4205,13 @@ void CGameContext::OnInit(const void *pPersistentData)
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
-	m_Layers.Init(Map(), false);
-	m_Collision.Init(&m_Layers);
+	Layers()->Init(Map(), false);
+	Collision()->Init(Layers());
 	// <FoxNet
-	m_Collision.InitQuads();
-	m_Collision.InitSpawnCandidates();
+	Collision()->InitQuads();
+	Collision()->InitSpawnCandidates();
 	// FoxNet>
-	m_World.Init(&m_Collision, m_aTuningList);
+	m_World.Init(Collision(), m_aTuningList);
 	m_MapBugs = CMapBugs::Create(Map()->BaseName(), Map()->Size(), Map()->Sha256());
 
 	// Reset Tunezones
@@ -4373,13 +4373,14 @@ void CGameContext::OnInit(const void *pPersistentData)
 	// FoxNet>
 }
 
-void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
+void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 {
-	CCollision *pCollision = Collision(MapIdx);
+	CCollision *pCollision = Collision(MultiMapIdx);
 
 	const CTile *pTiles = pCollision->GameLayer();
 	const CTile *pFront = pCollision->FrontLayer();
 	const CSwitchTile *pSwitch = pCollision->SwitchLayer();
+	const CSpeedupTile *pSpeedup = pCollision->SpeedupLayer();
 
 	for(int y = 0; y < pCollision->GetHeight(); y++)
 	{
@@ -4417,24 +4418,23 @@ void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
 				}
 				else if(GameIndex >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(GameIndex - ENTITY_OFFSET, x, y, LAYER_GAME, pTiles[Index].m_Flags, Initial, 0, MapIdx);
+					m_pController->OnEntity(GameIndex - ENTITY_OFFSET, x, y, LAYER_GAME, pTiles[Index].m_Flags, Initial, 0, MultiMapIdx);
 				}
 			}
 			// <FoxNet
-			if(m_Layers.SpeedupLayer())
+			if(pSpeedup)
 			{
-				const int MultiMapIdx = y * m_Layers.GameLayer()->m_Width + x;
-				if(pCollision->IsSpeedup(MultiMapIdx))
+				const int MapIdx = y * m_vMultiMaps[MultiMapIdx].m_Layers.GameLayer()->m_Width + x;
+				if(pCollision->IsSpeedup(MapIdx))
 				{
 					vec2 Direction = vec2(0, 0);
 					int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-					pCollision->GetSpeedup(MultiMapIdx, &Direction, &Force, &MaxSpeed, &Type);
-
+					pCollision->GetSpeedup(MapIdx, &Direction, &Force, &MaxSpeed, &Type);
 					Angle = DirectionToEditorDeg(Direction);
 
 					if(Force == FORCE_ROULETTE && MaxSpeed == 1 && Angle == 0)
 					{
-						m_pController->OnEntity(ENTITY_ROULETTE, x, y, LAYER_SPEEDUP, 0, Initial, 0, MapIdx);
+						m_pController->OnEntity(ENTITY_ROULETTE, x, y, LAYER_SPEEDUP, 0, Initial, 0, MultiMapIdx);
 					}
 				}
 			}
@@ -4470,7 +4470,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
 				}
 				else if(FrontIndex >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(FrontIndex - ENTITY_OFFSET, x, y, LAYER_FRONT, pFront[Index].m_Flags, Initial,0 , MapIdx);
+					m_pController->OnEntity(FrontIndex - ENTITY_OFFSET, x, y, LAYER_FRONT, pFront[Index].m_Flags, Initial, 0, MultiMapIdx);
 				}
 			}
 
@@ -4481,7 +4481,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
 				// if(SwitchType == TILE_DOOR_OFF)
 				if(SwitchType >= ENTITY_OFFSET)
 				{
-					m_pController->OnEntity(SwitchType - ENTITY_OFFSET, x, y, LAYER_SWITCH, pSwitch[Index].m_Flags, Initial, pSwitch[Index].m_Number, MapIdx);
+					m_pController->OnEntity(SwitchType - ENTITY_OFFSET, x, y, LAYER_SWITCH, pSwitch[Index].m_Flags, Initial, pSwitch[Index].m_Number, MultiMapIdx);
 				}
 			}
 		}

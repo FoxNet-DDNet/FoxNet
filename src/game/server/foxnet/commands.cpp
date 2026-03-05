@@ -2004,9 +2004,9 @@ void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 
 	int Idx = pSelf->GetMapIndexByMapName(pMapName);
 
-	if((int)pSelf->m_vMapOverrides.size() < Idx)
+	if((int)pSelf->m_vMultiMaps.size() < Idx)
 	{
-		log_error("multimap", "This server doesn't have a that '%s' loaded", pMapName);
+		log_error("multimap", "Server doesn't have that '%s' loaded", pMapName);
 		return;
 	}
 
@@ -2028,7 +2028,7 @@ void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 
 	int Idx = pSelf->GetMapIndexByType(EMapType::Casino);
 
-	if((int)pSelf->m_vMapOverrides.size() < Idx)
+	if((int)pSelf->m_vMultiMaps.size() < Idx)
 	{
 		log_error("multimap", "This server doesn't have that Map loaded");
 		return;

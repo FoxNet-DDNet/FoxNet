@@ -85,7 +85,7 @@ public:
 
 	void ChangeTeamState(int Team, ETeamState State);
 
-	CClientMask TeamMask(int Team, int ExceptId = -1, int Asker = -1, int VersionFlags = CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP);
+	CClientMask TeamMask(int Team, int MultiMapIdx, int ExceptId = -1, int Asker = -1, int VersionFlags = CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP);
 
 	int Count(int Team) const;
 
@@ -135,9 +135,9 @@ public:
 		IGNORE_SOLO = 1 << 0,
 	};
 
-	bool SetMask(int ClientId, int Team, int ExceptId = -1, int Asker = -1, int VersionFlags = CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, int Flags = 0);
-	bool SetMaskWithFlags(int ClientId, int Team, int Flags = 0) { return SetMask(ClientId, Team, -1, -1, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, Flags); }
-	CClientMask CosmeticMask(int Team, int Asker, EItemType Type, bool Opposite);
+	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId = -1, int Asker = -1, int VersionFlags = CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, int Flags = 0);
+	bool SetMaskWithFlags(int ClientId, int MultiMapIdx, int Team, int Flags = 0) { return SetMask(ClientId, MultiMapIdx, Team, -1, -1, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, Flags); }
+	CClientMask CosmeticMask(int Team, int MultiMapIdx, int Asker, EItemType Type, bool Opposite);
 	// FoxNet>
 };
 

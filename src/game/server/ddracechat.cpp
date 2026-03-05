@@ -1861,7 +1861,7 @@ void CGameContext::ConTeleXY(IConsole::IResult *pResult, void *pUserData)
 	{
 		float BaseX = 0.f, BaseY = 0.f;
 
-		CMapItemLayerTilemap *pGameLayer = pSelf->m_Layers.GameLayer();
+		CMapItemLayerTilemap *pGameLayer = pSelf->Layers()->GameLayer();
 		constexpr float OuterKillTileBoundaryDistance = 201 * 32.f;
 		float MapWidth = (pGameLayer->m_Width * 32) + (OuterKillTileBoundaryDistance * 2.f), MapHeight = (pGameLayer->m_Height * 32) + (OuterKillTileBoundaryDistance * 2.f);
 

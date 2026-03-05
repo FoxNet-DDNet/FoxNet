@@ -158,7 +158,7 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
-	m_OverriddennMapIndex = DefaultMapIndex;
+	m_MultiMapIndex = DefaultMapIndex;
 	m_LastReport = 0;
 
 	m_AccLoginAttempts = 0;
@@ -1148,23 +1148,23 @@ bool CPlayer::SendToMap(int Idx)
 		log_error("multimap", "Failed to send to map index %d: multimap is disabled", Idx);
 		return false;
 	}
-	if(Idx == m_OverriddennMapIndex)
+	if(Idx == m_MultiMapIndex)
 		return true;
 
-	if((int)GameServer()->m_vMapOverrides.size() < Idx)
+	if((int)GameServer()->m_vMultiMaps.size() < Idx)
 		return false;
 
-	if(Idx >= 0)
+	if(Idx != DefaultMapIndex)
 	{
-		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMapOverrides[Idx].m_pMap.get()->BaseName()))
+		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMultiMaps[Idx].m_pMap.get()->BaseName()))
 			return false;
-		m_OverriddennMapIndex = Idx;
+		m_MultiMapIndex = Idx;
 	}
 	else
 	{
 		if(!Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
 			return false;
-		m_OverriddennMapIndex = DefaultMapIndex;
+		m_MultiMapIndex = DefaultMapIndex;
 	}
 
 	CCharacter *pChr = GetCharacter();

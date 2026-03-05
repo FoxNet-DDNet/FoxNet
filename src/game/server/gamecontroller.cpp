@@ -24,6 +24,7 @@
 // <FoxNet
 #include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/integration/antibob.h>
+#include <base/log.h>
 
 IGameController::IGameController(class CGameContext *pGameServer) :
 	m_Teams(pGameServer), m_pLoadBestTimeResult(nullptr)
@@ -124,13 +125,20 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
-	int MultiMapIdx = pPlayer->MultiMapIdx();
+	const int MultiMapIdx = pPlayer->MultiMapIdx();
+
+	if(SpawnType < 0 || SpawnType >= NUM_SPAWNTYPES)
+		return;
+
+	auto &vMaps = m_avvSpawnPoints[SpawnType];
+	if(MultiMapIdx < 0 || (size_t)MultiMapIdx >= vMaps.size())
+		return;
 
 	// j == 0: Find an empty slot, j == 1: Take any slot if no empty one found
 	for(int j = 0; j < 2; j++)
 	{
 		// get spawn point
-		for(const vec2 &SpawnPoint : m_avSpawnPoints[SpawnType])
+		for(const vec2 &SpawnPoint : vMaps[MultiMapIdx])
 		{
 			vec2 P = SpawnPoint;
 			if(j == 0)
@@ -150,9 +158,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 						CCharacter *pChr = static_cast<CCharacter *>(apEnts[c]);
 						const bool CanCollide = pChr->CanCollide(ClientId) && !pChr->GetCore().m_CollisionDisabled;
 
-						int MultiMapIdx = pChr->GetCore().m_MapIndex;
-
-						if(GameServer()->Collision(MultiMapIdx)->CheckPoint(SpawnPoint + aPositions[Index]) ||
+						if(GameServer()->Collision(pChr->GetCore().m_MapIndex)->CheckPoint(SpawnPoint + aPositions[Index]) ||
 							(CanCollide && distance(pChr->m_Pos, SpawnPoint + aPositions[Index]) <= pChr->GetProximityRadius()))
 						{
 							Result = -1;
@@ -211,7 +217,10 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	if(Index >= ENTITY_SPAWN && Index <= ENTITY_SPAWN_BLUE && Initial)
 	{
 		const int SpawnType = Index - ENTITY_SPAWN;
-		m_avSpawnPoints[SpawnType].push_back(Pos);
+		auto &v = m_avvSpawnPoints[SpawnType];
+		if((int)v.size() <= MultiMapIdx)
+			v.resize(MultiMapIdx + 1);
+		v[MultiMapIdx].push_back(Pos);
 	}
 	else if(Index == ENTITY_DOOR)
 	{
@@ -405,7 +414,14 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	else if(Index == ENTITY_ROULETTE)
 	{
 		if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx))
+		{
+			log_info("foxnet", "Roulette created at %.2f, %.2f on map %d", Pos.x, Pos.y, MultiMapIdx);
 			new CRoulette(&GameServer()->m_World, MultiMapIdx, Pos);
+		}
+		else
+		{
+			log_info("foxnet", "Roulette already exists on map %d, skipping creation at %.2f, %.2f", MultiMapIdx, Pos.x, Pos.y);
+		}
 	}
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
@@ -839,4 +855,13 @@ int IGameController::TileFlagsToPickupFlags(int TileFlags) const
 	if(TileFlags & TILEFLAG_ROTATE)
 		PickupFlags |= PICKUPFLAG_ROTATE;
 	return PickupFlags;
+}
+
+void IGameController::ClearSpawnPoints(int MultiMapIdx)
+{
+	for(int i = 0; i < NUM_SPAWNTYPES; i++)
+	{
+		if((size_t)MultiMapIdx < m_avvSpawnPoints[i].size())
+			m_avvSpawnPoints[i][MultiMapIdx].clear();
+	}
 }

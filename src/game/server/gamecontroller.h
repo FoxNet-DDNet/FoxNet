@@ -35,7 +35,7 @@ protected:
 	};
 
 private:
-	std::vector<vec2> m_avSpawnPoints[NUM_SPAWNTYPES];
+	std::vector<std::vector<vec2>> m_avvSpawnPoints[NUM_SPAWNTYPES];
 
 	class CGameContext *m_pGameServer;
 	class CConfig *m_pConfig;
@@ -225,6 +225,7 @@ public:
 	// <FoxNet
 	int m_QuadStartTick;
 	double GetTime() { return static_cast<double>(Server()->Tick() - m_QuadStartTick + 1) / Server()->TickSpeed(); }
+	void ClearSpawnPoints(int MultiMapIdx);
 	// FoxNet>
 };
 

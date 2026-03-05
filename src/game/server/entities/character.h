@@ -369,6 +369,8 @@ public:
 	vec2 GetPredictedPos(int SnappingClient, bool Pickup = true);
 
 	int MultiMapIdx() const override { return m_pPlayer->MultiMapIdx(); }
+	CCollision *Collision() override;
+
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 

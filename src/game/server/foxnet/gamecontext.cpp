@@ -65,8 +65,8 @@ void CGameContext::FoxNetTick()
 		BanSync();
 
 	// Set moving tiles time for quads with pos envelopes
-	m_Collision.SetTime(m_pController->GetTime());
-	m_Collision.UpdateQuadCache();
+	Collision()->SetTime(m_pController->GetTime());
+	Collision()->UpdateQuadCache();
 
 	// Save all logged in accounts every 15 minutes
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
@@ -89,14 +89,14 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		return;
 	}
 
-	for(size_t idx = 0; idx < m_vMapOverrides.size(); ++idx)
+	for(size_t idx = 0; idx < m_vMultiMaps.size(); ++idx)
 	{
-		if(str_comp(m_vMapOverrides[idx].m_pMap->BaseName(), pMapName) == 0)
+		if(str_comp(m_vMultiMaps[idx].m_pMap->BaseName(), pMapName) == 0)
 		{
 			log_error("multimap", "Failed to load map '%s': already loaded", pMapName);
 			return;
 		}
-		else if(Type == m_vMapOverrides[idx].m_MapType)
+		else if(Type != EMapType::None && Type == m_vMultiMaps[idx].m_MapType)
 		{
 			log_error("multimap", "Failed to load map '%s': a map of type %" PRIzu " is already loaded", pMapName, (size_t)Type);
 			return;
@@ -121,45 +121,57 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	log_info("multimap", "Map loaded: %s", aBuf);
 	NewMap.Init();
 	NewMap.m_MapType = Type;
-	m_vMapOverrides.push_back(std::move(NewMap));
+	m_vMultiMaps.push_back(std::move(NewMap));
+	CreateAllEntities(true, m_vMultiMaps.size() - 1);
 }
 void CGameContext::UnloadMapByName(const char *pMapName)
 {
-	auto it = std::find_if(m_vMapOverrides.begin(), m_vMapOverrides.end(), [pMapName](const CMapOverride &MapOverride) {
+	auto it = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const CMapOverride &MapOverride) {
 		return str_comp(MapOverride.m_pMap->BaseName(), pMapName) == 0;
 	});
-	if(it != m_vMapOverrides.end())
+	if(it != m_vMultiMaps.end())
 	{
+		int Idx = std::distance(m_vMultiMaps.begin(), it);
+		if(Idx == DefaultMapIndex)
+		{
+			log_error("multimap", "Failed to unload map '%s': cannot unload default map", pMapName);
+			return;
+		}
+		m_pController->ClearSpawnPoints(Idx);
+		m_World.DestroyEntitiesOfMap(Idx);
+
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
 			CPlayer *pPlayer = m_apPlayers[ClientId];
 			if(!pPlayer)
 				continue;
-			pPlayer->SendToMap(-1);
+			pPlayer->SendToMap(DefaultMapIndex);
 		}
 
 		log_info("multimap", "Map unloaded of type %d: %s", (int)it->m_MapType, pMapName);
 		it->Unload();
-		m_vMapOverrides.erase(it);
+		m_vMultiMaps.erase(it);
 	}
 	else
 		log_error("multimap", "Failed to unload map '%s': not found", pMapName);
 }
 void CGameContext::UnloadMapsAll()
 {
-	for(size_t idx = 0; idx < m_vMapOverrides.size(); ++idx)
+	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)
 	{
-		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMapOverrides[idx].m_MapType, m_vMapOverrides[idx].m_pMap->BaseName());
-		m_vMapOverrides[idx].Unload();
+		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMultiMaps[Idx].m_MapType, m_vMultiMaps[Idx].m_pMap->BaseName());
+		m_vMultiMaps[Idx].Unload();
+		m_pController->ClearSpawnPoints(Idx);
+		m_World.DestroyEntitiesOfMap(Idx);
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
 			CPlayer *pPlayer = m_apPlayers[ClientId];
 			if(!pPlayer)
 				continue;
-			pPlayer->SendToMap(-1);
+			pPlayer->SendToMap(DefaultMapIndex);
 		}
 	}
-	m_vMapOverrides.clear();
+	m_vMultiMaps.clear();
 }
 
 void CGameContext::FoxNetInit()
@@ -385,18 +397,18 @@ static bool TryingToBeFunny(const char *pMsg)
 
 int CGameContext::GetMapIndexByType(EMapType MapType) const
 {
-	for(size_t i = 0; i < m_vMapOverrides.size(); i++)
+	for(size_t i = 0; i < m_vMultiMaps.size(); i++)
 	{
-		if(m_vMapOverrides[i].m_MapType == MapType)
+		if(m_vMultiMaps[i].m_MapType == MapType)
 			return i;
 	}
 	return -1;
 }
 int CGameContext::GetMapIndexByMapName(const char *pMapName) const
 {
-	for(size_t i = 0; i < m_vMapOverrides.size(); i++)
+	for(size_t i = 0; i < m_vMultiMaps.size(); i++)
 	{
-		if(str_comp(m_vMapOverrides[i].m_pMap->BaseName(), pMapName) == 0)
+		if(str_comp(m_vMultiMaps[i].m_pMap->BaseName(), pMapName) == 0)
 			return i;
 	}
 	return -1;
@@ -414,8 +426,8 @@ const char *CGameContext::MapName(int ClientId)
 		return Map()->BaseName();
 
 	int PlayerMapIndex = pPlayer->MultiMapIdx();
-	if(PlayerMapIndex >= 0 && PlayerMapIndex < (int)m_vMapOverrides.size())
-		return m_vMapOverrides[PlayerMapIndex].m_pMap->BaseName();
+	if(PlayerMapIndex >= 0 && PlayerMapIndex < (int)m_vMultiMaps.size())
+		return m_vMultiMaps[PlayerMapIndex].m_pMap->BaseName();
 	return Map()->BaseName();
 }
 

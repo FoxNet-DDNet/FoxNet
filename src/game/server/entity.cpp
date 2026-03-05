@@ -41,6 +41,11 @@ CEntity::~CEntity()
 	Server()->SnapFreeId(m_Id);
 }
 
+CCollision *CEntity::Collision()
+{
+	return GameServer()->Collision(MultiMapIdx());
+}
+
 bool CEntity::NetworkClipped(int SnappingClient) const
 {
 	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))

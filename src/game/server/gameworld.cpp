@@ -350,7 +350,7 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, const CEntity *
 	{
 		if(p == pNotThis)
 			continue;
-		if(pNotThis->MultiMapIdx() != p->MultiMapIdx())
+		if(pNotThis && pNotThis->MultiMapIdx() != p->MultiMapIdx())
 			continue;
 
 		float Len = distance(Pos, p->m_Pos);
@@ -442,4 +442,21 @@ CEntity *CGameWorld::FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotTh
 			return pEnt;
 	}
 	return nullptr;
+}
+
+void CGameWorld::DestroyEntitiesOfMap(int MultiMapIdx)
+{
+	for(auto *pEnt : m_apFirstEntityTypes)
+	{
+		for(; pEnt;)
+		{
+			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+			if(pEnt->MultiMapIdx() == MultiMapIdx)
+			{
+				RemoveEntity(pEnt);
+				pEnt->Destroy();
+			}
+			pEnt = m_pNextTraverseEntity;
+		}
+	}
 }

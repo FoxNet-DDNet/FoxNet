@@ -224,10 +224,12 @@ public:
 	CTuningParams *TuningList() { return m_pTuningList; }
 	const CTuningParams *GetTuning(int i) const { return &TuningList()[i]; }
 	CTuningParams *GetTuning(int i) { return &TuningList()[i]; }
+
 	// <FoxNet
 	void RemoveEntities(int Type);
 	std::vector<CEntity *> FindEntitiesWithOwner(int Type, int Owner) const;
 	CEntity *FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotThis = nullptr);
+	void DestroyEntitiesOfMap(int MultiMapIdx);
 	// FoxNet
 };
 

@@ -1080,9 +1080,9 @@ void CCharacter::TickDeferred()
 
 		// Some sounds are triggered client-side for the acting player (or for all players on Sixup)
 		// so we need to avoid duplicating them
-		CClientMask TeamMaskExceptSelfAndSixup = Teams()->TeamMask(Team(), CID, CID, CGameContext::FLAG_SIX);
+		CClientMask TeamMaskExceptSelfAndSixup = Teams()->TeamMask(Team(), MultiMapIdx(), CID, CID, CGameContext::FLAG_SIX);
 		// Some are triggered client-side but only on Sixup
-		CClientMask TeamMaskExceptSixup = Teams()->TeamMask(Team(), -1, CID, CGameContext::FLAG_SIX);
+		CClientMask TeamMaskExceptSixup = Teams()->TeamMask(Team(), MultiMapIdx(),	 -1, CID, CGameContext::FLAG_SIX);
 
 		if(Events & COREEVENT_GROUND_JUMP)
 			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, TeamMaskExceptSelfAndSixup);
@@ -2973,7 +2973,7 @@ void CCharacter::Rescue()
 
 CClientMask CCharacter::TeamMask()
 {
-	return Teams()->TeamMask(Team(), -1, GetPlayer()->GetCid());
+	return Teams()->TeamMask(Team(), MultiMapIdx(), -1, GetPlayer()->GetCid());
 }
 
 void CCharacter::SetPosition(const vec2 &Position)
@@ -3060,11 +3060,11 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 
 CClientMask CCharacter::CosmeticMask(EItemType Type)
 {
-	return Teams()->CosmeticMask(Team(), GetPlayer()->GetCid(), Type, false);
+	return Teams()->CosmeticMask(Team(), MultiMapIdx(), GetPlayer()->GetCid(), Type, false);
 }
 CClientMask CCharacter::OppositeCosmeticMask(EItemType Type)
 {
-	return Teams()->CosmeticMask(Team(), GetPlayer()->GetCid(), Type, true);
+	return Teams()->CosmeticMask(Team(), MultiMapIdx(), GetPlayer()->GetCid(), Type, true);
 }
 
 void CCharacter::FoxNetTick()
@@ -3839,4 +3839,9 @@ vec2 CCharacter::GetPredictedPos(int SnappingClient, bool Pickup)
 	vec2 Offset = Dir * Pred * dist;
 
 	return Pos + Offset;
+}
+
+CCollision *CCharacter::Collision()
+{
+	return GameServer()->Collision(MultiMapIdx());
 }

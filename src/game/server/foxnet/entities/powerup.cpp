@@ -136,7 +136,7 @@ void CPowerUp::HandleClient(int ClientId)
 			pPlayer = GameServer()->m_apPlayers[i];
 
 		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
-			TeamMask.set(ClientId).reset();
+			TeamMask.set(ClientId, false);
 
 		// Prevent multi-collect from the same address (covers rejoin to different slot)
 		// If either current slot or inspected slot has a collected flag, compare addresses.
