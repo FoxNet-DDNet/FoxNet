@@ -4660,12 +4660,13 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	}
 
 	// <FoxNet
-	if(pPersistentData == nullptr)
+	if(pPersistentData == nullptr) // Full shutdown, not map reload
 	{
-		for(size_t i = 0; i < m_vMultiMaps.size(); i++)
+		for(size_t i = 1; i < m_vMultiMaps.size(); i++)
 		{
-			log_info("foxnet", "unloading map id %d (%s)", i, m_vMultiMaps[i].m_pMap.get()->BaseName());
+			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i].m_pMap.get()->BaseName());
 			m_vMultiMaps[i].Unload();
+			m_vMultiMaps[i].m_pMap = nullptr;	
 		}
 
 		if(g_Config.m_SvScriptShutdown[0])

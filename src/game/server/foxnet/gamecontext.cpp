@@ -121,7 +121,6 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	log_info("multimap", "Map loaded: %s", aBuf);
 	NewMap.Init();
 	NewMap.m_MapType = Type;
-	NewMap.m_pMap;
 	NewMap.m_CreatedEntities = false;
 	m_vMultiMaps.push_back(std::move(NewMap));
 }

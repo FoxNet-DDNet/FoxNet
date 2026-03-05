@@ -741,6 +741,7 @@ public:
 			m_Layers.Unload();
 			m_Collision.Unload();
 		}
+		CMapOverride() = default;
 	};
 	std::deque<CMapOverride> m_vMultiMaps = std::deque<CMapOverride>(1); // index 0 is default map
 

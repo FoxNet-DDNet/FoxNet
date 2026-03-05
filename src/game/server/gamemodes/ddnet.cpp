@@ -200,8 +200,6 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 
 		if(Server()->GetClientInfo(ClientId, &Info) && Info.m_GotDDNetVersion)
 			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s %d)", Server()->GetCustomClient(ClientId), Info.m_DDNetVersion);
-		else if(Info.m_GotDDNetVersion)
-			str_format(PlayerInfo, sizeof(PlayerInfo), "(%d)", Info.m_DDNetVersion);
 
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s%s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()), PlayerInfo);
