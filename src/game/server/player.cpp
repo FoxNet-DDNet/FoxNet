@@ -499,6 +499,9 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(ShowSpec)
 	{
+		if(pSnapPlayer->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
+			return;
+
 		CNetObj_SpecChar *pSpecChar = Server()->SnapNewItem<CNetObj_SpecChar>(TranslatedId);
 		if(!pSpecChar)
 			return;
