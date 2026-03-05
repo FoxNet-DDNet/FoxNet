@@ -120,6 +120,9 @@ bool CEntity::CheckMapIndex(int SnappingClient, int MapIdx) const
 
 bool CheckMapIndex(const CGameContext *pGameServer, int SnappingClient, int MapIdx)
 {
+	if(SnappingClient == SERVER_DEMO_CLIENT)
+		return true;
+
 	return MapIdx == pGameServer->m_apPlayers[SnappingClient]->MultiMapIdx();
 }
 // FoxNet>

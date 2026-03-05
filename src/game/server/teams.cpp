@@ -531,6 +531,25 @@ int CGameTeams::Count(int Team) const
 	return Count;
 }
 
+int CGameTeams::MultiMapIndex(int Team)
+{
+	if(Team == TEAM_SUPER)
+		return DefaultMapIndex;
+
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(m_Core.Team(i) == Team)
+		{
+			CPlayer *pPlayer = GetPlayer(i);
+			if(!pPlayer)
+				continue;
+			return pPlayer->MultiMapIdx();
+		}
+	}
+
+	return DefaultMapIndex;
+}
+
 void CGameTeams::ChangeTeamState(int Team, ETeamState State)
 {
 	m_aTeamState[Team] = State;

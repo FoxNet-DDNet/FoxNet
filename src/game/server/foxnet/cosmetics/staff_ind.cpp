@@ -79,17 +79,15 @@ void CStaffInd::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
-	CPlayer *pSnapPlayer;
-	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
+	if(!CanSnapEntity(SnappingClient))
 		return;
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 	const int BallId = m_BallFirst ? m_aIds[BALL_FRONT] : m_aIds[BALL];
 
-	vec2 Pos = m_Pos + pOwnerChr->GetPredictedPos(SnappingClient) + m_aPos[ARMOR];
-	vec2 LaserPos = m_Pos + pOwnerChr->GetPredictedPos(SnappingClient, false) + m_aPos[ARMOR];
+	vec2 Pos = m_Pos + GetCharacter()->GetPredictedPos(SnappingClient) + m_aPos[ARMOR];
+	vec2 LaserPos = m_Pos + GetCharacter()->GetPredictedPos(SnappingClient, false) + m_aPos[ARMOR];
 
 	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[ARMOR], Pos, POWERUP_ARMOR, -1, -1, PICKUPFLAG_NO_PREDICT);
 	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), BallId, LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);

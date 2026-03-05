@@ -784,6 +784,12 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
+	if(Teams.MultiMapIndex(Team) != pPlayer->MultiMapIdx())
+	{
+		log_info("chatresp", "You can't swap with players on different maps.");
+		return;
+	}
+
 	int TargetClientId = -1;
 	if(pResult->NumArguments() == 1)
 	{
@@ -1092,6 +1098,8 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		Team = EmptyTeam.value();
 	}
 
+	int TeamMultiMapIdx = m_pController->Teams().MultiMapIndex(Team);
+
 	char aError[512];
 	if(pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
 	{
@@ -1109,6 +1117,16 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		str_format(aBuf, sizeof(aBuf), "This team already has the maximum allowed size of %d players", g_Config.m_SvMaxTeamSize);
 		log_info("chatresp", "%s", aBuf);
 	}
+	// <FoxNet
+	else if(Team != TEAM_FLOCK && (TeamMultiMapIdx != pPlayer->MultiMapIdx() && m_pController->Teams().Count(Team) > 0))
+	{
+		char aMapName[32] = "unknown";
+
+		if(TeamMultiMapIdx >= 0 && TeamMultiMapIdx < (int)m_vMultiMaps.size() && m_vMultiMaps[TeamMultiMapIdx].m_pMap)
+			str_copy(aMapName, m_vMultiMaps[TeamMultiMapIdx].m_pMap.get()->BaseName());
+		log_info("chatresp", "You aren't on the same map (%s) as this team.", aMapName);
+	}
+	// FoxNet>
 	else if(!m_pController->Teams().SetCharacterTeam(pPlayer->GetCid(), Team, aError, sizeof(aError)))
 	{
 		log_info("chatresp", "%s", aError);

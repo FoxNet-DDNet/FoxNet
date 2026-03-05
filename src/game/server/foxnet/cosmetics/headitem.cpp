@@ -91,19 +91,15 @@ void CHeadItem::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	if(!CanSnapEntity(SnappingClient))
-		return;
-
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(!pSnapPlayer)
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
 		return;
 
 	EHatType PlHatType = GetPlayer()->Cosmetics()->m_HatType;
 
 	if(m_Type != HEADITEM_SPAWNSOLO)
 	{
-		if(m_Owner != SnappingClient && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
+		if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
 			return;
 
 		if(m_Type == HEADITEM_COSMETIC)

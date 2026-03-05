@@ -2827,12 +2827,24 @@ void CGameContext::OnSetSpectatorModeNetMessage(const CNetMsg_Cl_SetSpectatorMod
 	pPlayer->m_LastSetSpectatorMode = Server()->Tick();
 	pPlayer->UpdatePlaytime();
 	// <FoxNet
-	if(SpectatorId >= 0 && ((!m_apPlayers[SpectatorId] || m_apPlayers[SpectatorId]->m_Vanish) && !pPlayer->m_Vanish))
+	if(CheckClientId(SpectatorId) && !Server()->ClientSlotEmpty(SpectatorId))
 	{
-		SendChatTarget(ClientId, "Invalid spectator id used");
-		return;
+		CPlayer *pSpectator = m_apPlayers[SpectatorId];
+		if(pSpectator && !Server()->IsRconAuthed(ClientId))
+		{
+			if(pSpectator->m_Vanish && !pPlayer->m_Vanish)
+			{
+				SendChatTarget(ClientId, "Invalid spectator id used");
+				return;
+			}
+			else if(pSpectator->MultiMapIdx() != pPlayer->MultiMapIdx())
+			{
+				SendChatTarget(ClientId, "You can't spectate players on different maps");
+				return;
+			}
+		}
 	}
-	// >FoxNet
+	// FoxNet>
 	if(SpectatorId >= 0 && (!m_apPlayers[SpectatorId] || m_apPlayers[SpectatorId]->GetTeam() == TEAM_SPECTATORS))
 		SendChatTarget(ClientId, "Invalid spectator id used");
 	else
