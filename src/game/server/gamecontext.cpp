@@ -196,6 +196,9 @@ void CGameContext::Clear()
 	// std::swap(pMap, m_pMap);
 
 	// <FoxNet
+	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); Idx++)
+		m_vMultiMaps[Idx].m_CreatedEntities = false;
+
 	std::deque<CMapOverride> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
@@ -4657,11 +4660,20 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	}
 
 	// <FoxNet
-	if(pPersistentData == nullptr && g_Config.m_SvScriptShutdown[0])
+	if(pPersistentData == nullptr)
 	{
-		char aScriptingBuf[256];
-		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s", g_Config.m_SvScriptShutdown);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		for(size_t i = 0; i < m_vMultiMaps.size(); i++)
+		{
+			log_info("foxnet", "unloading map id %d (%s)", i, m_vMultiMaps[i].m_pMap.get()->BaseName());
+			m_vMultiMaps[i].Unload();
+		}
+
+		if(g_Config.m_SvScriptShutdown[0])
+		{
+			char aScriptingBuf[256];
+			str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s", g_Config.m_SvScriptShutdown);
+			Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		}
 	}
 	// FoxNet>
 

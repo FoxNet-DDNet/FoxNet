@@ -89,7 +89,7 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		return;
 	}
 
-	for(size_t idx = 0; idx < m_vMultiMaps.size(); ++idx)
+	for(size_t idx = 1; idx < m_vMultiMaps.size(); ++idx)
 	{
 		if(str_comp(m_vMultiMaps[idx].m_pMap->BaseName(), pMapName) == 0)
 		{
@@ -121,8 +121,9 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	log_info("multimap", "Map loaded: %s", aBuf);
 	NewMap.Init();
 	NewMap.m_MapType = Type;
+	NewMap.m_pMap;
+	NewMap.m_CreatedEntities = false;
 	m_vMultiMaps.push_back(std::move(NewMap));
-	CreateAllEntities(true, m_vMultiMaps.size() - 1);
 }
 void CGameContext::UnloadMapByName(const char *pMapName)
 {

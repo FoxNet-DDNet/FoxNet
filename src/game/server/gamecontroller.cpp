@@ -805,12 +805,12 @@ bool IGameController::CanJoinTeam(int Team, int NotThisId, char *pErrorReason, i
 	return false;
 }
 
-CClientMask IGameController::GetMaskForPlayerWorldEvent(int Asker, int ExceptId)
+CClientMask IGameController::GetMaskForPlayerWorldEvent(int Asker, int MultiMapIdx, int ExceptId)
 {
 	if(Asker == -1)
 		return CClientMask().set().reset(ExceptId);
 
-	return Teams().TeamMask(GameServer()->GetDDRaceTeam(Asker), ExceptId, Asker);
+	return Teams().TeamMask(GameServer()->GetDDRaceTeam(Asker), MultiMapIdx, ExceptId, Asker);
 }
 
 void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)

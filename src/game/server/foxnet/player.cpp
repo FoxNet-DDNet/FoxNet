@@ -176,6 +176,8 @@ void CPlayer::FoxNetReset()
 	m_Spazzing = false;
 
 	m_Area = 0;
+	m_LastAreaMotd = 0;
+	m_LastEnteredArea = 0;
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 
@@ -1044,14 +1046,17 @@ void CPlayer::SendAreaMotd(int Area)
 	if(pChr->Team() != TEAM_FLOCK)
 		return;
 
-	if(Area == 0)
+	if(Area == AREA_GAME)
 	{
 		ClearBroadcast();
 		return;
 	}
+	if(m_LastEnteredArea == Area && m_LastAreaMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastAreaMotd > 0)
+		return;
+	m_LastAreaMotd = Server()->Tick();
 
 	CNetMsg_Sv_Motd Msg;
-	Msg.m_pMessage = "\0";
+	Msg.m_pMessage = "";
 	switch(Area)
 	{
 	case AREA_ROULETTE:
@@ -1069,6 +1074,7 @@ void CPlayer::SendAreaMotd(int Area)
 			"3x dozens: 3x\n"
 			"Green [Zero]: 10x\n"
 			"\n"
+			"\n"
 			"[Press Tab to hide]";
 		break;
 	default:
@@ -1083,6 +1089,8 @@ void CPlayer::SetArea(int Area)
 {
 	if(HasImportantBroadcast())
 		return;
+	if(m_Area != AREA_GAME)
+		m_LastEnteredArea = m_Area;
 	SendAreaMotd(Area);
 	m_Area = Area;
 }
@@ -1153,6 +1161,12 @@ bool CPlayer::SendToMap(int Idx)
 
 	if((int)GameServer()->m_vMultiMaps.size() < Idx)
 		return false;
+
+	if(!GameServer()->m_vMultiMaps[Idx].m_CreatedEntities)
+	{
+		GameServer()->CreateAllEntities(true, Idx);
+		GameServer()->m_vMultiMaps[Idx].m_CreatedEntities = true;
+	}
 
 	if(Idx != DefaultMapIndex)
 	{

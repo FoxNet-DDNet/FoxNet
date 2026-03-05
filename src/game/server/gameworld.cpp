@@ -158,7 +158,7 @@ void CGameWorld::Reset()
 
 	m_ResetRequested = false;
 
-	GameServer()->CreateAllEntities(false, -1);
+	GameServer()->CreateAllEntities(false, DefaultMapIndex);
 }
 
 void CGameWorld::RemoveEntitiesFromPlayer(int PlayerId)

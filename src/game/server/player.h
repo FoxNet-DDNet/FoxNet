@@ -435,6 +435,9 @@ private:
 
 	void LootBoxTick();
 
+	// Excluding AREA_GAME
+	int m_LastEnteredArea = 0;
+	int64_t m_LastAreaMotd = 0;
 	int m_Area = 0;
 	void SendAreaMotd(int Area);
 

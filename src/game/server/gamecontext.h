@@ -726,6 +726,8 @@ public:
 
 		EMapType m_MapType = EMapType::None;
 
+		bool m_CreatedEntities = false;
+
 		void Init()
 		{
 			m_Layers.Init(m_pMap.get(), false);
