@@ -136,7 +136,7 @@ void CPowerUp::HandleClient(int ClientId)
 			pPlayer = GameServer()->m_apPlayers[i];
 
 		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
-			TeamMask.set(ClientId).reset();
+			TeamMask.set(i, false);
 
 		// Prevent multi-collect from the same address (covers rejoin to different slot)
 		// If either current slot or inspected slot has a collected flag, compare addresses.
@@ -215,7 +215,7 @@ void CPowerUp::Snap(int SnappingClient)
 		return;
 
 	CGameTeams Teams = GameServer()->m_pController->Teams();
-	if(!Teams.SetMaskWithFlags(SnappingClient, TEAM_FLOCK, CGameTeams::IGNORE_SOLO))
+	if(!Teams.SetMaskWithFlags(SnappingClient, MultiMapIdx(), TEAM_FLOCK, CGameTeams::IGNORE_SOLO))
 		return;
 
 	const int SnappingClientVersion = Server()->GetClientVersion(SnappingClient);
