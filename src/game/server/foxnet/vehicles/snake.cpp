@@ -179,7 +179,7 @@ void CSnake::AddNewTees()
 			continue;
 		if(pChr->m_Ufo.Active())
 			continue;
-		if(pChr->MultiMapIdx() != m_pCharacter->MultiMapIdx())
+		if(pChr->MultiMapIdx() != m_pCharacter->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 			continue;
 
 		if(distance(m_vSnake[0].m_pChr->Core()->m_Pos, pChr->Core()->m_Pos) <= 40.f)

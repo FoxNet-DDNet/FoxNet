@@ -33,7 +33,6 @@ struct CScorePlayerResult;
 // <FoxNet
 constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
 constexpr int DefaultMapIndex = 0;
-constexpr int AllowInteractionMapIndex = -1;
 
 enum Areas
 {

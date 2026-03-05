@@ -219,16 +219,16 @@ void CProjectile::Tick()
 		if(pOwnerChar && !GLClipped &&
 			((m_Type == WEAPON_GRENADE && pOwnerChar->HasTelegunGrenade()) || (m_Type == WEAPON_GUN && pOwnerChar->HasTelegunGun())))
 		{
-			int MultiMapIdx = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
-			int TileFIndex = Collision()->GetFrontTileIndex(MultiMapIdx);
-			bool IsSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_TELE_GUN;
-			bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_BLUE_TELE_GUN;
+			int MapIdx = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
+			int TileFIndex = Collision()->GetFrontTileIndex(MapIdx);
+			bool IsSwitchTeleGun = Collision()->GetSwitchType(MapIdx) == TILE_ALLOW_TELE_GUN;
+			bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MapIdx) == TILE_ALLOW_BLUE_TELE_GUN;
 
 			if(IsSwitchTeleGun || IsBlueSwitchTeleGun)
 			{
 				// Delay specifies which weapon the tile should work for.
 				// Delay = 0 means all.
-				int Delay = Collision()->GetSwitchDelay(MultiMapIdx);
+				int Delay = Collision()->GetSwitchDelay(MapIdx);
 
 				if(Delay == 1 && m_Type != WEAPON_GUN)
 					IsSwitchTeleGun = IsBlueSwitchTeleGun = false;

@@ -122,6 +122,8 @@ bool CheckMapIndex(const CGameContext *pGameServer, int SnappingClient, int MapI
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
+	if(g_Config.m_SvMultimapShowOthers || g_Config.m_SvMultimapAllowInteraction)
+		return true;
 
 	return MapIdx == pGameServer->m_apPlayers[SnappingClient]->MultiMapIdx();
 }

@@ -2837,7 +2837,7 @@ void CGameContext::OnSetSpectatorModeNetMessage(const CNetMsg_Cl_SetSpectatorMod
 				SendChatTarget(ClientId, "Invalid spectator id used");
 				return;
 			}
-			else if(pSpectator->MultiMapIdx() != pPlayer->MultiMapIdx())
+			else if(pSpectator->MultiMapIdx() != pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 			{
 				SendChatTarget(ClientId, "You can't spectate players on different maps");
 				return;

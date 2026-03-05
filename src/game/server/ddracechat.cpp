@@ -784,7 +784,7 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(Teams.MultiMapIndex(Team) != pPlayer->MultiMapIdx())
+	if(Teams.MultiMapIndex(Team) != pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 	{
 		log_info("chatresp", "You can't swap with players on different maps.");
 		return;
@@ -1118,7 +1118,7 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		log_info("chatresp", "%s", aBuf);
 	}
 	// <FoxNet
-	else if(Team != TEAM_FLOCK && (TeamMultiMapIdx != pPlayer->MultiMapIdx() && m_pController->Teams().Count(Team) > 0))
+	else if(Team != TEAM_FLOCK && (TeamMultiMapIdx != pPlayer->MultiMapIdx() && m_pController->Teams().Count(Team) > 0) && !g_Config.m_SvMultimapAllowInteraction)
 	{
 		char aMapName[32] = "unknown";
 

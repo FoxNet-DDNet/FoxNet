@@ -406,7 +406,7 @@ void CCharacter::HandleNinja()
 					continue;
 				if(pChr && !pChr->Core()->m_Hittable)
 					continue;
-				if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pChr->MultiMapIdx())
+				if(MultiMapIdx() != pChr->MultiMapIdx()&& !g_Config.m_SvMultimapAllowInteraction)
 					continue;
 				// FoxNet>
 				// make sure we haven't Hit this object before
@@ -592,7 +592,7 @@ void CCharacter::FireWeapon()
 
 		CEntity *apEnts[MAX_CLIENTS];
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, AllowInteractionMapIndex);
+		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 
 		for(int i = 0; i < Num; ++i)
 		{
@@ -606,7 +606,7 @@ void CCharacter::FireWeapon()
 				continue;
 			if(!pTarget->Core()->m_Hittable)
 				continue;
-			if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pTarget->MultiMapIdx())
+			if(MultiMapIdx() != pTarget->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 				continue;
 			// FoxNet>
 
@@ -1082,7 +1082,7 @@ void CCharacter::TickDeferred()
 		// so we need to avoid duplicating them
 		CClientMask TeamMaskExceptSelfAndSixup = Teams()->TeamMask(Team(), MultiMapIdx(), CID, CID, CGameContext::FLAG_SIX);
 		// Some are triggered client-side but only on Sixup
-		CClientMask TeamMaskExceptSixup = Teams()->TeamMask(Team(), MultiMapIdx(),	 -1, CID, CGameContext::FLAG_SIX);
+		CClientMask TeamMaskExceptSixup = Teams()->TeamMask(Team(), MultiMapIdx(), -1, CID, CGameContext::FLAG_SIX);
 
 		if(Events & COREEVENT_GROUND_JUMP)
 			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, TeamMaskExceptSelfAndSixup);
@@ -1349,7 +1349,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			if(g_Config.m_SvTeeCursor)
 				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOHAMMER;
 
-			if(MultiMapIdx() != m_pPlayer->MultiMapIdx())
+			if(MultiMapIdx() != m_pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 				Faketuning |= FAKETUNE_SOLO;
 			// FoxNet>
 		}
@@ -1557,7 +1557,7 @@ void CCharacter::Snap(int SnappingClient)
 
 		if(SnapPlayer)
 		{
-			if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+			if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
 				return;
 		}
 	}
@@ -1643,7 +1643,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(SnapPlayer)
 	{
-		if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+		if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
 			pDDNetCharacter->m_Flags |= CHARACTERFLAG_SOLO;
 
 		m_Ufo.Snap(SnappingClient);
@@ -1729,7 +1729,7 @@ bool CCharacter::CanCollide(int ClientId)
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return false;
-	if(pPlayer->MultiMapIdx() != MultiMapIdx())
+	if(pPlayer->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		return false;
 
 	return Teams()->m_Core.CanCollide(GetPlayer()->GetCid(), ClientId);

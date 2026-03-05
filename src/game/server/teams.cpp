@@ -1476,7 +1476,7 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 	CCharacter *pAskerChr = Asker >= 0 ? Character(Asker) : nullptr;
 	CCharacter *pClientChr = Character(ClientId);
 
-	if(MultiMapIdx != pClient->MultiMapIdx())
+	if(MultiMapIdx != pClient->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		return false;
 
 	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
