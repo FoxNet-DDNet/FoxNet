@@ -56,7 +56,7 @@ CEntity *CGameWorld::FindFirst(int Type)
 	return Type < 0 || Type >= NUM_ENTTYPES ? nullptr : m_apFirstEntityTypes[Type];
 }
 
-int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type)
+int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type, int MultiMapIdx)
 {
 	if(Type < 0 || Type >= NUM_ENTTYPES)
 		return 0;
@@ -64,6 +64,9 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 	int Num = 0;
 	for(CEntity *pEnt = m_apFirstEntityTypes[Type]; pEnt; pEnt = pEnt->m_pNextTypeEntity)
 	{
+		if(pEnt->MultiMapIdx() != MultiMapIdx && MultiMapIdx != AllowInteractionMapIndex)
+			continue;
+
 		if(distance(pEnt->m_Pos, Pos) < Radius + pEnt->m_ProximityRadius)
 		{
 			if(ppEnts)
@@ -347,7 +350,7 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, const CEntity *
 	{
 		if(p == pNotThis)
 			continue;
-		if(pNotThis->m_pCCollision != p->m_pCCollision)
+		if(pNotThis->MultiMapIdx() != p->MultiMapIdx())
 			continue;
 
 		float Len = distance(Pos, p->m_Pos);

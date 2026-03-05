@@ -54,7 +54,7 @@ public: // TODO: Maybe make protected
 	int GetId() const { return m_Id; }
 
 	/* Constructor */
-	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
+	CEntity(CGameWorld *pGameWorld, int MapIdx, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
 	/* Destructor */
 	virtual ~CEntity();
@@ -69,9 +69,6 @@ public: // TODO: Maybe make protected
 	class CGameContext *GameServer() { return m_pGameWorld->GameServer(); }
 	class IServer *Server() { return m_pGameWorld->Server(); }
 	CCollision *Collision() { return m_pCCollision; }
-	// <FoxNet
-	void SetCollision(CCollision *pCollision) { m_pCCollision = pCollision; }
-	// FoxNet>
 
 	/* Getters */
 	CEntity *TypeNext() { return m_pNextTypeEntity; }
@@ -183,8 +180,19 @@ public: // TODO: Maybe make protected
 
 	int m_Number;
 	int m_Layer;
+	
+	// <FoxNet
+	bool CheckMapIndex(int SnappingClient, int MapIdx) const;
+
+	void SetMapIndex(int MultiMapIdx) { m_MapIndex = MultiMapIdx; }
+	virtual int MultiMapIdx() const { return m_MapIndex; }
+
+private:
+	int m_MapIndex;
+	// FoxNet>
 };
 
+bool CheckMapIndex(const CGameContext *pGameServer, int SnappingClient, int MapIdx);
 bool NetworkClipped(const CGameContext *pGameServer, int SnappingClient, vec2 CheckPos);
 bool NetworkClippedLine(const CGameContext *pGameServer, int SnappingClient, vec2 StartPos, vec2 EndPos);
 

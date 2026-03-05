@@ -33,13 +33,13 @@ CScore *CGameControllerDDNet::Score()
 	return GameServer()->Score();
 }
 
-void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MapIndex)
+void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MultiMapIdx)
 {
 	CPlayer *pPlayer = pChr->GetPlayer();
 	const int ClientId = pPlayer->GetCid();
 
-	int TileIndex = pChr->Collision()->GetTileIndex(MapIndex);
-	int TileFIndex = pChr->Collision()->GetFrontTileIndex(MapIndex);
+	int TileIndex = pChr->Collision()->GetTileIndex(MultiMapIdx);
+	int TileFIndex = pChr->Collision()->GetFrontTileIndex(MultiMapIdx);
 
 	//Sensitivity
 	int S1 = pChr->Collision()->GetPureMapIndex(vec2(pChr->GetPos().x + pChr->GetProximityRadius() / 3.f, pChr->GetPos().y - pChr->GetProximityRadius() / 3.f));

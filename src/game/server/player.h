@@ -33,6 +33,7 @@ struct CScorePlayerResult;
 // <FoxNet
 constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
 constexpr int DefaultMapIndex = -1;
+constexpr int AllowInteractionMapIndex = -50;
 
 enum Areas
 {
@@ -584,7 +585,7 @@ public:
 
 	bool SendToMap(int Idx);
 	int m_OverriddennMapIndex = DefaultMapIndex;
-	int MapIdx() const { return m_OverriddennMapIndex; }
+	int MultiMapIdx() const { return m_OverriddennMapIndex; }
 	// FoxNet>
 };
 #endif

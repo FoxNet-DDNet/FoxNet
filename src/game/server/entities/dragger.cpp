@@ -14,8 +14,8 @@
 #include <game/server/player.h>
 #include <game/server/teams.h>
 
-CDragger::CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool IgnoreWalls, int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+CDragger::CDragger(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Strength, bool IgnoreWalls, int Layer, int Number) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_Core = vec2(0.0f, 0.0f);
 	m_Pos = Pos;
@@ -62,7 +62,7 @@ void CDragger::LookForPlayersToDrag()
 
 	int NumPlayersInRange = GameServer()->m_World.FindEntities(m_Pos,
 		g_Config.m_SvDraggerRange - CCharacterCore::PhysicalSize(),
-		apPlayersInRange, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		apPlayersInRange, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 
 	// The closest player (within range) in a team is selected as the target
 	int aClosestTargetIdInTeam[MAX_CLIENTS];
@@ -135,7 +135,7 @@ void CDragger::LookForPlayersToDrag()
 		// Create Dragger Beams which have not been created yet
 		if(aIsTarget[i] && m_apDraggerBeam[i] == nullptr)
 		{
-			m_apDraggerBeam[i] = new CDraggerBeam(&GameServer()->m_World, this, m_Pos, m_Strength, m_IgnoreWalls, i, m_Layer, m_Number);
+			m_apDraggerBeam[i] = new CDraggerBeam(&GameServer()->m_World, this, MultiMapIdx(), m_Pos, m_Strength, m_IgnoreWalls, i, m_Layer, m_Number);
 			// The generated dragger beam is placed in the first position in the tick sequence and would therefore
 			// no longer be executed automatically in this tick. To execute the dragger beam nevertheless already
 			// this tick we call it manually (we do this to keep the old game logic)

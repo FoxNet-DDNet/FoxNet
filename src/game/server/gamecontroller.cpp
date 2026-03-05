@@ -121,6 +121,11 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 	if(!PlayerCollision && pEval->m_Got)
 		return;
 
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	int MultiMapIdx = pPlayer->MultiMapIdx();
+
 	// j == 0: Find an empty slot, j == 1: Take any slot if no empty one found
 	for(int j = 0; j < 2; j++)
 	{
@@ -132,7 +137,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 			{
 				// check if the position is occupado
 				CEntity *apEnts[MAX_CLIENTS];
-				int Num = GameServer()->m_World.FindEntities(SpawnPoint, 64, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+				int Num = GameServer()->m_World.FindEntities(SpawnPoint, 64, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx);
 				vec2 aPositions[5] = {vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f)}; // start, left, up, right, down
 				int Result = -1;
 				for(int Index = 0; Index < 5 && Result == -1; ++Index)
@@ -145,9 +150,9 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 						CCharacter *pChr = static_cast<CCharacter *>(apEnts[c]);
 						const bool CanCollide = pChr->CanCollide(ClientId) && !pChr->GetCore().m_CollisionDisabled;
 
-						int MapIndex = pChr->GetCore().m_MapIndex;
+						int MultiMapIdx = pChr->GetCore().m_MapIndex;
 
-						if(GameServer()->Collision(MapIndex)->CheckPoint(SpawnPoint + aPositions[Index]) ||
+						if(GameServer()->Collision(MultiMapIdx)->CheckPoint(SpawnPoint + aPositions[Index]) ||
 							(CanCollide && distance(pChr->m_Pos, SpawnPoint + aPositions[Index]) <= pChr->GetProximityRadius()))
 						{
 							Result = -1;
@@ -187,21 +192,21 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int ClientId)
 	return Eval.m_Got;
 }
 
-bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number, int MapIndex)
+bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number, int MultiMapIdx)
 {
 	dbg_assert(Index >= 0, "Invalid entity index");
 
 	const vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
 
 	int aSides[8];
-	aSides[0] = GameServer()->Collision(MapIndex)->Entity(x, y + 1, Layer);
-	aSides[1] = GameServer()->Collision(MapIndex)->Entity(x + 1, y + 1, Layer);
-	aSides[2] = GameServer()->Collision(MapIndex)->Entity(x + 1, y, Layer);
-	aSides[3] = GameServer()->Collision(MapIndex)->Entity(x + 1, y - 1, Layer);
-	aSides[4] = GameServer()->Collision(MapIndex)->Entity(x, y - 1, Layer);
-	aSides[5] = GameServer()->Collision(MapIndex)->Entity(x - 1, y - 1, Layer);
-	aSides[6] = GameServer()->Collision(MapIndex)->Entity(x - 1, y, Layer);
-	aSides[7] = GameServer()->Collision(MapIndex)->Entity(x - 1, y + 1, Layer);
+	aSides[0] = GameServer()->Collision(MultiMapIdx)->Entity(x, y + 1, Layer);
+	aSides[1] = GameServer()->Collision(MultiMapIdx)->Entity(x + 1, y + 1, Layer);
+	aSides[2] = GameServer()->Collision(MultiMapIdx)->Entity(x + 1, y, Layer);
+	aSides[3] = GameServer()->Collision(MultiMapIdx)->Entity(x + 1, y - 1, Layer);
+	aSides[4] = GameServer()->Collision(MultiMapIdx)->Entity(x, y - 1, Layer);
+	aSides[5] = GameServer()->Collision(MultiMapIdx)->Entity(x - 1, y - 1, Layer);
+	aSides[6] = GameServer()->Collision(MultiMapIdx)->Entity(x - 1, y, Layer);
+	aSides[7] = GameServer()->Collision(MultiMapIdx)->Entity(x - 1, y + 1, Layer);
 
 	if(Index >= ENTITY_SPAWN && Index <= ENTITY_SPAWN_BLUE && Initial)
 	{
@@ -216,6 +221,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 			{
 				new CDoor(
 					&GameServer()->m_World, // GameWorld
+					MultiMapIdx, // FoxNet: MultiMapIdx
 					Pos, // Pos
 					pi / 4 * i, // Rotation
 					32 * 3 + 32 * (aSides[i] - ENTITY_LASER_SHORT) * 3, // Length
@@ -238,6 +244,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 		float Deg = Dir * (pi / 2);
 		CProjectile *pBullet = new CProjectile(
 			&GameServer()->m_World,
+			MultiMapIdx, // FoxNet: MultiMapIdx
 			WEAPON_SHOTGUN, // Type
 			-1, // Owner
 			Pos, // Pos
@@ -265,6 +272,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 		float Deg = Dir * (pi / 2);
 		CProjectile *pBullet = new CProjectile(
 			&GameServer()->m_World,
+			MultiMapIdx, // FoxNet: MultiMapIdx
 			WEAPON_SHOTGUN, // Type
 			-1, // Owner
 			Pos, // Pos
@@ -317,14 +325,14 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	else if(Index >= ENTITY_LASER_FAST_CCW && Index <= ENTITY_LASER_FAST_CW)
 	{
 		int aSides2[8];
-		aSides2[0] = GameServer()->Collision(MapIndex)->Entity(x, y + 2, Layer);
-		aSides2[1] = GameServer()->Collision(MapIndex)->Entity(x + 2, y + 2, Layer);
-		aSides2[2] = GameServer()->Collision(MapIndex)->Entity(x + 2, y, Layer);
-		aSides2[3] = GameServer()->Collision(MapIndex)->Entity(x + 2, y - 2, Layer);
-		aSides2[4] = GameServer()->Collision(MapIndex)->Entity(x, y - 2, Layer);
-		aSides2[5] = GameServer()->Collision(MapIndex)->Entity(x - 2, y - 2, Layer);
-		aSides2[6] = GameServer()->Collision(MapIndex)->Entity(x - 2, y, Layer);
-		aSides2[7] = GameServer()->Collision(MapIndex)->Entity(x - 2, y + 2, Layer);
+		aSides2[0] = GameServer()->Collision(MultiMapIdx)->Entity(x, y + 2, Layer);
+		aSides2[1] = GameServer()->Collision(MultiMapIdx)->Entity(x + 2, y + 2, Layer);
+		aSides2[2] = GameServer()->Collision(MultiMapIdx)->Entity(x + 2, y, Layer);
+		aSides2[3] = GameServer()->Collision(MultiMapIdx)->Entity(x + 2, y - 2, Layer);
+		aSides2[4] = GameServer()->Collision(MultiMapIdx)->Entity(x, y - 2, Layer);
+		aSides2[5] = GameServer()->Collision(MultiMapIdx)->Entity(x - 2, y - 2, Layer);
+		aSides2[6] = GameServer()->Collision(MultiMapIdx)->Entity(x - 2, y, Layer);
+		aSides2[7] = GameServer()->Collision(MultiMapIdx)->Entity(x - 2, y + 2, Layer);
 
 		int Ind = Index - ENTITY_LASER_STOP;
 		int M;
@@ -353,7 +361,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 		{
 			if(aSides[i] >= ENTITY_LASER_SHORT && aSides[i] <= ENTITY_LASER_LONG)
 			{
-				CLight *pLight = new CLight(&GameServer()->m_World, Pos, pi / 4 * i, 32 * 3 + 32 * (aSides[i] - ENTITY_LASER_SHORT) * 3, Layer, Number);
+				CLight *pLight = new CLight(&GameServer()->m_World, MultiMapIdx, Pos, pi / 4 * i, 32 * 3 + 32 * (aSides[i] - ENTITY_LASER_SHORT) * 3, Layer, Number);
 				pLight->m_AngularSpeed = AngularSpeed;
 				if(aSides2[i] >= ENTITY_LASER_C_SLOW && aSides2[i] <= ENTITY_LASER_C_FAST)
 				{
@@ -372,38 +380,38 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK && Index <= ENTITY_DRAGGER_STRONG)
 	{
-		new CDragger(&GameServer()->m_World, Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
+		new CDragger(&GameServer()->m_World, MultiMapIdx, Pos, Index - ENTITY_DRAGGER_WEAK + 1, false, Layer, Number);
 	}
 	else if(Index >= ENTITY_DRAGGER_WEAK_NW && Index <= ENTITY_DRAGGER_STRONG_NW)
 	{
-		new CDragger(&GameServer()->m_World, Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
+		new CDragger(&GameServer()->m_World, MultiMapIdx, Pos, Index - ENTITY_DRAGGER_WEAK_NW + 1, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAE)
 	{
-		new CGun(&GameServer()->m_World, Pos, false, true, Layer, Number);
+		new CGun(&GameServer()->m_World, MultiMapIdx, Pos, false, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAF)
 	{
-		new CGun(&GameServer()->m_World, Pos, true, false, Layer, Number);
+		new CGun(&GameServer()->m_World, MultiMapIdx, Pos, true, false, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMA)
 	{
-		new CGun(&GameServer()->m_World, Pos, true, true, Layer, Number);
+		new CGun(&GameServer()->m_World, MultiMapIdx, Pos, true, true, Layer, Number);
 	}
 	else if(Index == ENTITY_PLASMAU)
 	{
-		new CGun(&GameServer()->m_World, Pos, false, false, Layer, Number);
+		new CGun(&GameServer()->m_World, MultiMapIdx, Pos, false, false, Layer, Number);
 	}
 	else if(Index == ENTITY_ROULETTE)
 	{
-		if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIndex))
-			new CRoulette(&GameServer()->m_World, Pos);
+		if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx))
+			new CRoulette(&GameServer()->m_World, MultiMapIdx, Pos);
 	}
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
 	{
 		int PickupFlags = TileFlagsToPickupFlags(Flags);
-		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, Layer, Number, PickupFlags);
+		CPickup *pPickup = new CPickup(&GameServer()->m_World, MultiMapIdx, Type, SubType, Layer, Number, PickupFlags);
 		pPickup->m_Pos = Pos;
 		return true; // NOLINT(clang-analyzer-unix.Malloc)
 	}
@@ -556,7 +564,7 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_GUN);
 }
 
-void IGameController::HandleCharacterTiles(CCharacter *pChr, int MapIndex)
+void IGameController::HandleCharacterTiles(CCharacter *pChr, int MultiMapIdx)
 {
 	// Do nothing by default
 }

@@ -33,7 +33,7 @@ class CDragger : public CEntity
 	void LookForPlayersToDrag();
 
 public:
-	CDragger(CGameWorld *pGameWorld, vec2 Pos, float Strength, bool IgnoreWalls, int Layer = 0, int Number = 0);
+	CDragger(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Strength, bool IgnoreWalls, int Layer = 0, int Number = 0);
 
 	void RemoveDraggerBeam(int ClientId);
 	bool WillDraggerBeamUseDraggerId(int TargetClientId, int SnappingClientId);

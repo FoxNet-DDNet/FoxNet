@@ -1457,6 +1457,10 @@ bool CGameTeams::SetMask(int ClientId, int Team, int ExceptId, int Asker, int Ve
 	CCharacter *pAskerChr = Asker >= 0 ? Character(Asker) : nullptr;
 	CCharacter *pClientChr = Character(ClientId);
 
+	const int AskerMultiMapIdx = GetPlayer(Asker) ? GetPlayer(Asker)->MultiMapIdx() : DefaultMapIndex;
+	if(AskerMultiMapIdx != pClient->MultiMapIdx())
+		return false;
+
 	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
 	{ // Not spectator
 		if(ClientId != Asker)

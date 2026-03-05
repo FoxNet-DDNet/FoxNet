@@ -374,7 +374,7 @@ void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
 		str_format(aText, sizeof(aText), "%c%ld", PlusMinus, std::abs(Amount));
-		new CProjectileText(pChr->GameWorld(), GetCid(), Pos, 100, aText, WEAPON_HAMMER);
+		new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER);
 		if(Amount >= 0)
 			pChr->SetEmote(Amount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
@@ -398,7 +398,7 @@ bool CPlayer::CanUseMoney()
 {
 	if(!Acc()->m_LoggedIn)
 		return false;
-	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx()));
+	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
 	if(pRoulette && pRoulette->ClientBetting(GetCid()))
 		return false;
 

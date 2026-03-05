@@ -14,7 +14,7 @@ public:
 
 	CScore *Score();
 
-	void HandleCharacterTiles(class CCharacter *pChr, int MapIndex) override;
+	void HandleCharacterTiles(class CCharacter *pChr, int MultiMapIdx) override;
 	void SetArmorProgress(CCharacter *pCharacter, int Progress) override;
 	int SnapPlayerScore(int SnappingClient, CPlayer *pPlayer) override;
 	CFinishTime SnapPlayerTime(int SnappingClient, CPlayer *pPlayer) override;

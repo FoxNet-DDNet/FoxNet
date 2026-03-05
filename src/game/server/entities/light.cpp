@@ -12,9 +12,9 @@
 #include <game/server/player.h>
 #include <game/teamscore.h>
 
-CLight::CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
+CLight::CLight(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Rotation, int Length,
 	int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_To = vec2(0.0f, 0.0f);
 	m_Core = vec2(0.0f, 0.0f);

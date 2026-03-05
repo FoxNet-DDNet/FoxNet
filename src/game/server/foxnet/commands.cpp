@@ -1627,7 +1627,7 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 
 	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
 
-	new CPickupDrop(&pSelf->m_World, -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
+	new CPickupDrop(&pSelf->m_World, pChr->MultiMapIdx(), -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
 }
 
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
@@ -1828,7 +1828,7 @@ void CGameContext::ConLaserText(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pText = pResult->NumArguments() ? pResult->GetString(0) : "noob";
 
-	new CLaserText(&pSelf->m_World, ClientId, Pos, 250, pText);
+	new CLaserText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText);
 }
 
 void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData)
@@ -1845,7 +1845,7 @@ void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData
 
 	const vec2 Pos = pChr->m_Pos + vec2(0, -60);
 	const char *pText = pResult->GetString(0);
-	new CProjectileText(&pSelf->m_World, ClientId, Pos, 250, pText, WEAPON_HAMMER);
+	new CProjectileText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText, WEAPON_HAMMER);
 }
 
 void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)

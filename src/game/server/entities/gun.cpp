@@ -14,8 +14,8 @@
 #include <game/server/player.h>
 #include <game/server/teams.h>
 
-CGun::CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+CGun::CGun(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, bool Freeze, bool Explosive, int Layer, int Number) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_Core = vec2(0.0f, 0.0f);
 	m_Pos = Pos;
@@ -51,8 +51,7 @@ void CGun::Fire()
 	std::fill(std::begin(apPlayersInRange), std::end(apPlayersInRange), nullptr);
 
 	int NumPlayersInRange = GameServer()->m_World.FindEntities(m_Pos, g_Config.m_SvPlasmaRange,
-		apPlayersInRange, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
-
+		apPlayersInRange, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 	// The closest player (within range) in a team is selected as the target
 	int aTargetIdInTeam[MAX_CLIENTS];
 	bool aIsTarget[MAX_CLIENTS];
@@ -126,7 +125,7 @@ void CGun::Fire()
 		if(aIsTarget[i])
 		{
 			CCharacter *pTarget = GameServer()->GetPlayerChar(i);
-			new CPlasma(&GameServer()->m_World, m_Pos, normalize(pTarget->m_Pos - m_Pos), m_Freeze, m_Explosive, i);
+			new CPlasma(&GameServer()->m_World, MultiMapIdx(), m_Pos, normalize(pTarget->m_Pos - m_Pos), m_Freeze, m_Explosive, i);
 		}
 	}
 }

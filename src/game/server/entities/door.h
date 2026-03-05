@@ -14,7 +14,7 @@ class CDoor : public CEntity
 	vec2 m_Direction;
 
 public:
-	CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
+	CDoor(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Rotation, int Length,
 		int Number);
 
 	void Reset() override;

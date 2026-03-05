@@ -15,8 +15,8 @@
 
 constexpr float CellSize = 16.0f;
 
-CLaserText::CLaserText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText) :
-	CText(pGameWorld, Owner, Pos, AliveTicks, pText, CGameWorld::ENTTYPE_LASER)
+CLaserText::CLaserText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText) :
+	CText(pGameWorld, MultiMapIdx, Owner, Pos, AliveTicks, pText, CGameWorld::ENTTYPE_LASER)
 {
 	m_CurTicks = Server()->Tick();
 	m_StartTick = Server()->Tick();

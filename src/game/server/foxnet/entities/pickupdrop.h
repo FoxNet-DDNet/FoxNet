@@ -57,7 +57,7 @@ public:
 
 	void ForceSetPos(vec2 NewPos);
 
-	CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
+	CPickupDrop(CGameWorld *pGameWorld, int MultiMapIdx, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 
 	void Reset(bool PickedUp);
 	void Reset() override { Reset(false); }

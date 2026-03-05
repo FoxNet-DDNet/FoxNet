@@ -12,9 +12,9 @@
 
 const float PLASMA_ACCEL = 1.1f;
 
-CPlasma::CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
+CPlasma::CPlasma(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Dir, bool Freeze,
 	bool Explosive, int ForClientId) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_Pos = Pos;
 	m_Core = Dir;
@@ -77,7 +77,7 @@ bool CPlasma::HitCharacter(CCharacter *pTarget)
 		// Plasma Turrets are very precise weapons only one tee gets speed from it,
 		// other tees near the explosion remain unaffected
 		GameServer()->CreateExplosion(
-			m_Pos, m_ForClientId, WEAPON_GRENADE, true, pTarget->Team(), pTarget->TeamMask());
+			m_Pos, m_ForClientId, WEAPON_GRENADE, true, pTarget->Team(), MultiMapIdx(), pTarget->TeamMask());
 	}
 	Reset();
 	return true;
@@ -93,7 +93,7 @@ bool CPlasma::HitObstacle(CCharacter *pTarget)
 		{
 			// Even in the case of an explosion due to a collision with obstacles, only one player is affected
 			GameServer()->CreateExplosion(
-				m_Pos, m_ForClientId, WEAPON_GRENADE, true, pTarget->Team(), pTarget->TeamMask());
+				m_Pos, m_ForClientId, WEAPON_GRENADE, true, pTarget->Team(), MultiMapIdx(), pTarget->TeamMask());
 		}
 		Reset();
 		return true;

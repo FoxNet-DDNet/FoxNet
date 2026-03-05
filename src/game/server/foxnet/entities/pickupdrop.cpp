@@ -31,8 +31,8 @@
 #include <limits>
 #include <vector>
 
-CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
+CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIdx, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
 {
 	m_StartTick = Server()->Tick();
 
@@ -296,7 +296,7 @@ void CPickupDrop::HandleSkippableTiles(int Index)
 bool CPickupDrop::CheckArmor()
 {
 	CPickup *apEnts[9];
-	int Num = GameWorld()->FindEntities(m_Pos, 34, (CEntity **)apEnts, 9, CGameWorld::ENTTYPE_PICKUP);
+	int Num = GameWorld()->FindEntities(m_Pos, 34, (CEntity **)apEnts, 9, CGameWorld::ENTTYPE_PICKUP, MultiMapIdx());
 
 	for(int i = 0; i < Num; i++)
 	{
@@ -387,7 +387,7 @@ bool CPickupDrop::CollectItem()
 
 	const int Max = 8;
 	CCharacter *pClosest[Max];
-	int Num = GameWorld()->FindEntities(m_Pos, Radius, (CEntity **)pClosest, Max, CGameWorld::ENTTYPE_CHARACTER);
+	int Num = GameWorld()->FindEntities(m_Pos, Radius, (CEntity **)pClosest, Max, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 	// find closest valid character
 	for(int i = 0; i < Num; i++)
 	{
@@ -411,12 +411,12 @@ bool CPickupDrop::CollectItem()
 
 void CPickupDrop::HandleTiles(int Index)
 {
-	int MapIndex = Index;
+	int MultiMapIdx = Index;
 	// int PureMapIndex = Collision()->GetPureMapIndex(m_Pos);
-	m_TileIndex = Collision()->GetTileIndex(MapIndex);
-	m_TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
+	m_TileIndex = Collision()->GetTileIndex(MultiMapIdx);
+	m_TileFIndex = Collision()->GetFrontTileIndex(MultiMapIdx);
 
-	int TeleCheckpoint = Collision()->IsTeleCheckpoint(MapIndex);
+	int TeleCheckpoint = Collision()->IsTeleCheckpoint(MultiMapIdx);
 	if(TeleCheckpoint)
 		m_TeleCheckpoint = TeleCheckpoint;
 
@@ -428,14 +428,14 @@ void CPickupDrop::HandleTiles(int Index)
 	}
 
 	// teleporters
-	int z = Collision()->IsTeleport(MapIndex);
+	int z = Collision()->IsTeleport(MultiMapIdx);
 	if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons && z && !Collision()->TeleOuts(z - 1).empty())
 	{
 		int TeleOut = GameWorld()->m_Core.RandomOr0(Collision()->TeleOuts(z - 1).size());
 		m_Pos = Collision()->TeleOuts(z - 1)[TeleOut];
 		return;
 	}
-	int evilz = Collision()->IsEvilTeleport(MapIndex);
+	int evilz = Collision()->IsEvilTeleport(MultiMapIdx);
 	if(evilz && !Collision()->TeleOuts(evilz - 1).empty())
 	{
 		int TeleOut = GameWorld()->m_Core.RandomOr0(Collision()->TeleOuts(evilz - 1).size());
@@ -446,7 +446,7 @@ void CPickupDrop::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckEvilTeleport(MapIndex))
+	if(Collision()->IsCheckEvilTeleport(MultiMapIdx))
 	{
 		// first check if there is a TeleCheckOut for the current recorded checkpoint, if not check previous checkpoints
 		for(int k = m_TeleCheckpoint - 1; k >= 0; k--)
@@ -469,7 +469,7 @@ void CPickupDrop::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckTeleport(MapIndex))
+	if(Collision()->IsCheckTeleport(MultiMapIdx))
 	{
 		// first check if there is a TeleCheckOut for the current recorded checkpoint, if not check previous checkpoints
 		for(int k = m_TeleCheckpoint - 1; k >= 0; k--)

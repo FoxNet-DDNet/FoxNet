@@ -34,7 +34,7 @@ class CPlasma : public CEntity
 	bool HitObstacle(CCharacter *pTarget);
 
 public:
-	CPlasma(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, bool Freeze,
+	CPlasma(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Dir, bool Freeze,
 		bool Explosive, int ForClientId);
 
 	void Reset() override;

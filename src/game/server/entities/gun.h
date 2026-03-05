@@ -31,7 +31,7 @@ class CGun : public CEntity
 	void Fire();
 
 public:
-	CGun(CGameWorld *pGameWorld, vec2 Pos, bool Freeze, bool Explosive, int Layer = 0, int Number = 0);
+	CGun(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, bool Freeze, bool Explosive, int Layer = 0, int Number = 0);
 
 	void Reset() override;
 	void Tick() override;

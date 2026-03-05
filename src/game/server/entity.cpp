@@ -18,11 +18,12 @@
 //////////////////////////////////////////////////
 // Entity
 //////////////////////////////////////////////////
-CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int MapIdx, int ObjType, vec2 Pos, int ProximityRadius)
 {
 	m_pGameWorld = pGameWorld;
-	m_pCCollision = GameServer()->Collision();
-
+	m_MapIndex = MapIdx;
+	m_pCCollision = GameServer()->Collision(m_MapIndex);
+	
 	m_ObjType = ObjType;
 	m_Pos = Pos;
 	m_ProximityRadius = ProximityRadius;
@@ -42,16 +43,25 @@ CEntity::~CEntity()
 
 bool CEntity::NetworkClipped(int SnappingClient) const
 {
+	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+		return true;
+
 	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, m_Pos);
 }
 
 bool CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos) const
 {
+	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+		return true;
+
 	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, CheckPos);
 }
 
 bool CEntity::NetworkClippedLine(int SnappingClient, vec2 StartPos, vec2 EndPos) const
 {
+	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+		return true;
+
 	return ::NetworkClippedLine(m_pGameWorld->GameServer(), SnappingClient, StartPos, EndPos);
 }
 
@@ -96,6 +106,18 @@ bool CEntity::GetNearestAirPosPlayer(vec2 PlayerPos, vec2 *pOutPos)
 	}
 	return false;
 }
+
+// <FoxNet
+bool CEntity::CheckMapIndex(int SnappingClient, int MapIdx) const
+{
+	return ::CheckMapIndex(m_pGameWorld->GameServer(), SnappingClient, MapIdx);
+}
+
+bool CheckMapIndex(const CGameContext *pGameServer, int SnappingClient, int MapIdx)
+{
+	return MapIdx == pGameServer->m_apPlayers[SnappingClient]->MultiMapIdx();
+}
+// FoxNet>
 
 bool NetworkClipped(const CGameContext *pGameServer, int SnappingClient, vec2 CheckPos)
 {

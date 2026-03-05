@@ -8,7 +8,7 @@
 class CLaser : public CEntity
 {
 public:
-	CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type);
+	CLaser(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type);
 
 	void Reset() override;
 	void Tick() override;

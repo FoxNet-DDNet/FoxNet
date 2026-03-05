@@ -115,10 +115,10 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	}
 	if(!NewMap.m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
 	{
-		log_error("multimap", "Failed to load casino map '%s'", aBuf);
+		log_error("multimap", "Failed to load map '%s'", aBuf);
 		return;
 	}
-	log_info("multimap", "Casino map loaded: %s", aBuf);
+	log_info("multimap", "Map loaded: %s", aBuf);
 	NewMap.Init();
 	NewMap.m_MapType = Type;
 	m_vMapOverrides.push_back(std::move(NewMap));
@@ -224,7 +224,7 @@ void CGameContext::PowerUpSpawner()
 	std::mt19937 rng{std::random_device{}()};
 	std::uniform_int_distribution<int> dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
 	EPowerUp Type = (EPowerUp)dist(rng);
-	CPowerUp *NewPowerUp = new CPowerUp(&m_World, *RandomPos, Type);
+	CPowerUp *NewPowerUp = new CPowerUp(&m_World, DefaultMapIndex, *RandomPos, Type);
 
 	m_vPowerups.push_back(NewPowerUp);
 	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;
@@ -413,7 +413,7 @@ const char *CGameContext::MapName(int ClientId)
 	if(!pPlayer)
 		return Map()->BaseName();
 
-	int PlayerMapIndex = pPlayer->MapIdx();
+	int PlayerMapIndex = pPlayer->MultiMapIdx();
 	if(PlayerMapIndex >= 0 && PlayerMapIndex < (int)m_vMapOverrides.size())
 		return m_vMapOverrides[PlayerMapIndex].m_pMap->BaseName();
 	return Map()->BaseName();
@@ -1203,7 +1203,7 @@ std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 			return std::nullopt;
 
 		CEntity *apEnts[64] = {0};
-		const int num = m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER);
+		const int num = m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
 		bool NearPlayer = false;
 		for(int i = 0; i < num; ++i)
 		{
@@ -1230,7 +1230,7 @@ std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 
 		float MinDist2 = std::numeric_limits<float>::infinity();
 		CEntity *apEnts[128] = {0};
-		const int Num = m_World.FindEntities(Pos, 1024.0f, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER);
+		const int Num = m_World.FindEntities(Pos, 1024.0f, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
 		for(int i = 0; i < Num; ++i)
 		{
 			auto *pChr = static_cast<CCharacter *>(apEnts[i]);
@@ -1345,7 +1345,7 @@ void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, i
 	CEntity *apDrops[(int)MAX_CLIENTS * 10];
 	float Radius = 135.0f;
 	float InnerRadius = 48.0f;
-	int NumDrops = m_World.FindEntities(Pos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
+	int NumDrops = m_World.FindEntities(Pos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP, DefaultMapIndex);
 	for(int i = 0; i < NumDrops; i++)
 	{
 		auto *pPickup = static_cast<CPickupDrop *>(apDrops[i]);
@@ -1406,7 +1406,7 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 	// deal damage
 	CEntity *apDrops[(int)MAX_CLIENTS * 10];
 	int Hits = 0;
-	int NumDrops = m_World.FindEntities(StartPos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP);
+	int NumDrops = m_World.FindEntities(StartPos, Radius, apDrops, std::size(apDrops), CGameWorld::ENTTYPE_PICKUPDROP, DefaultMapIndex);
 
 	for(int i = 0; i < NumDrops; ++i)
 	{

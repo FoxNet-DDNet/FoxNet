@@ -64,7 +64,7 @@ MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
 CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput) :
-	CEntity(pWorld, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
+	CEntity(pWorld, MapIdx, CGameWorld::ENTTYPE_CHARACTER, vec2(0, 0), CCharacterCore::PhysicalSize())
 {
 	m_Health = 0;
 	m_Armor = 0;
@@ -90,7 +90,6 @@ CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastI
 	m_IsRainbowHooked = false;
 	m_TuneZoneOverride = -1;
 	m_InSnake = false;
-	SetCollision(GameServer()->Collision(MapIdx));
 	// FoxNet>
 }
 
@@ -128,7 +127,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_Core.m_ActiveWeapon = WEAPON_GUN;
 	m_Core.m_Pos = m_Pos;
 	m_Core.m_Id = m_pPlayer->GetCid();
-	m_Core.m_MapIndex = GetPlayer()->MapIdx();
+	m_Core.m_MapIndex = GetPlayer()->MultiMapIdx();
 	int TuneZone = Collision()->IsTune(Collision()->GetMapIndex(Pos));
 	m_Core.m_Tuning = TuningList()[TuneZone];
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCid()] = &m_Core;
@@ -379,7 +378,7 @@ void CCharacter::HandleNinja()
 		{
 			CEntity *apEnts[MAX_CLIENTS];
 			float Radius = GetProximityRadius() * 2.0f;
-			int Num = GameServer()->m_World.FindEntities(OldPos, Radius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+			int Num = GameServer()->m_World.FindEntities(OldPos, Radius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 
 			// check that we're not in solo part
 			if(Teams()->m_Core.GetSolo(m_pPlayer->GetCid()))
@@ -407,7 +406,7 @@ void CCharacter::HandleNinja()
 					continue;
 				if(pChr && !pChr->Core()->m_Hittable)
 					continue;
-				if(!g_Config.m_SvMultimapAllowInteraction && MapIdx() != pChr->MapIdx())
+				if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pChr->MultiMapIdx())
 					continue;
 				// FoxNet>
 				// make sure we haven't Hit this object before
@@ -593,7 +592,7 @@ void CCharacter::FireWeapon()
 
 		CEntity *apEnts[MAX_CLIENTS];
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, AllowInteractionMapIndex);
 
 		for(int i = 0; i < Num; ++i)
 		{
@@ -607,7 +606,7 @@ void CCharacter::FireWeapon()
 				continue;
 			if(!pTarget->Core()->m_Hittable)
 				continue;
-			if(!g_Config.m_SvMultimapAllowInteraction && MapIdx() != pTarget->MapIdx())
+			if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pTarget->MultiMapIdx())
 				continue;
 			// FoxNet>
 
@@ -654,7 +653,7 @@ void CCharacter::FireWeapon()
 	{
 		float LaserReach = GetTuning(GetOverriddenTuneZone())->m_LaserReach;
 
-		new CLaser(&GameServer()->m_World, m_Pos, Direction, LaserReach, m_pPlayer->GetCid(), WEAPON_SHOTGUN);
+		new CLaser(&GameServer()->m_World, MultiMapIdx(), m_Pos, Direction, LaserReach, m_pPlayer->GetCid(), WEAPON_SHOTGUN);
 		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
 	}
 	break;
@@ -707,6 +706,7 @@ void CCharacter::FireWeapon()
 
 		new CProjectile(
 			GameWorld(),
+			MultiMapIdx(),
 			WEAPON_GRENADE, // Type
 			m_pPlayer->GetCid(), // Owner
 			ProjStartPos, // Pos
@@ -726,7 +726,7 @@ void CCharacter::FireWeapon()
 	{
 		float LaserReach = GetTuning(GetOverriddenTuneZone())->m_LaserReach;
 
-		new CLaser(GameWorld(), m_Pos, Direction, LaserReach, m_pPlayer->GetCid(), WEAPON_LASER);
+		new CLaser(GameWorld(), MultiMapIdx(), m_Pos, Direction, LaserReach, m_pPlayer->GetCid(), WEAPON_LASER);
 		GameServer()->CreateSound(m_Pos, SOUND_LASER_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
 	}
 	break;
@@ -1041,7 +1041,7 @@ void CCharacter::TickDeferred()
 	bool StuckBefore = Collision()->TestBox(m_Core.m_Pos, CCharacterCore::PhysicalSizeVec2());
 
 	m_Core.m_Id = m_pPlayer->GetCid();
-	m_Core.m_MapIndex = m_pPlayer->MapIdx();
+	m_Core.m_MapIndex = MultiMapIdx();
 	m_Core.Move();
 	bool StuckAfterMove = Collision()->TestBox(m_Core.m_Pos, CCharacterCore::PhysicalSizeVec2());
 	m_Core.Quantize();
@@ -1349,7 +1349,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 			if(g_Config.m_SvTeeCursor)
 				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOHAMMER;
 
-			if(MapIdx() != m_pPlayer->MapIdx())
+			if(MultiMapIdx() != m_pPlayer->MultiMapIdx())
 				Faketuning |= FAKETUNE_SOLO;
 			// FoxNet>
 		}
@@ -1557,7 +1557,7 @@ void CCharacter::Snap(int SnappingClient)
 
 		if(SnapPlayer)
 		{
-			if(MapIdx() != SnapPlayer->MapIdx() && !g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+			if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
 				return;
 		}
 	}
@@ -1643,7 +1643,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(SnapPlayer)
 	{
-		if(MapIdx() != SnapPlayer->MapIdx() && g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
+		if(MultiMapIdx() != SnapPlayer->MultiMapIdx() && g_Config.m_SvMultimapShowOthersAuthed && !g_Config.m_SvMultimapAllowInteraction)
 			pDDNetCharacter->m_Flags |= CHARACTERFLAG_SOLO;
 
 		m_Ufo.Snap(SnappingClient);
@@ -1726,6 +1726,12 @@ void CCharacter::PostGlobalSnap()
 
 bool CCharacter::CanCollide(int ClientId)
 {
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return false;
+	if(pPlayer->MultiMapIdx() != MultiMapIdx())
+		return false;
+
 	return Teams()->m_Core.CanCollide(GetPlayer()->GetCid(), ClientId);
 }
 bool CCharacter::SameTeam(int ClientId)
@@ -1978,11 +1984,11 @@ void CCharacter::SetTimeCheckpoint(int TimeCheckpoint)
 
 void CCharacter::HandleTiles(int Index)
 {
-	int MapIndex = Index;
+	int MultiMapIdx = Index;
 	// int PureMapIndex = Collision()->GetPureMapIndex(m_Pos);
-	m_TileIndex = Collision()->GetTileIndex(MapIndex);
-	m_TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
-	m_MoveRestrictions = Collision()->GetMoveRestrictions(IsSwitchActiveCb, this, m_Pos, 18.0f, MapIndex);
+	m_TileIndex = Collision()->GetTileIndex(MultiMapIdx);
+	m_TileFIndex = Collision()->GetFrontTileIndex(MultiMapIdx);
+	m_MoveRestrictions = Collision()->GetMoveRestrictions(IsSwitchActiveCb, this, m_Pos, 18.0f, MultiMapIdx);
 	if(Index < 0)
 	{
 		m_LastRefillJumps = false;
@@ -1990,9 +1996,9 @@ void CCharacter::HandleTiles(int Index)
 		m_LastBonus = false;
 		return;
 	}
-	SetTimeCheckpoint(Collision()->IsTimeCheckpoint(MapIndex));
-	SetTimeCheckpoint(Collision()->IsFrontTimeCheckpoint(MapIndex));
-	int TeleCheckpoint = Collision()->IsTeleCheckpoint(MapIndex);
+	SetTimeCheckpoint(Collision()->IsTimeCheckpoint(MultiMapIdx));
+	SetTimeCheckpoint(Collision()->IsFrontTimeCheckpoint(MultiMapIdx));
+	int TeleCheckpoint = Collision()->IsTeleCheckpoint(MultiMapIdx);
 	if(TeleCheckpoint)
 		m_TeleCheckpoint = TeleCheckpoint;
 
@@ -2174,108 +2180,108 @@ void CCharacter::HandleTiles(int Index)
 	ApplyMoveRestrictions();
 
 	// handle switch tiles
-	if(Collision()->GetSwitchType(MapIndex) == TILE_SWITCHOPEN && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MapIndex) > 0)
+	if(Collision()->GetSwitchType(MultiMapIdx) == TILE_SWITCHOPEN && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MultiMapIdx) > 0)
 	{
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()] = true;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aEndTick[Team()] = 0;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aType[Team()] = TILE_SWITCHOPEN;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aLastUpdateTick[Team()] = Server()->Tick();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()] = true;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aEndTick[Team()] = 0;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aType[Team()] = TILE_SWITCHOPEN;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aLastUpdateTick[Team()] = Server()->Tick();
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_SWITCHTIMEDOPEN && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MapIndex) > 0)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_SWITCHTIMEDOPEN && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MultiMapIdx) > 0)
 	{
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()] = true;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aEndTick[Team()] = Server()->Tick() + 1 + Collision()->GetSwitchDelay(MapIndex) * Server()->TickSpeed();
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aType[Team()] = TILE_SWITCHTIMEDOPEN;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aLastUpdateTick[Team()] = Server()->Tick();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()] = true;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aEndTick[Team()] = Server()->Tick() + 1 + Collision()->GetSwitchDelay(MultiMapIdx) * Server()->TickSpeed();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aType[Team()] = TILE_SWITCHTIMEDOPEN;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aLastUpdateTick[Team()] = Server()->Tick();
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_SWITCHTIMEDCLOSE && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MapIndex) > 0)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_SWITCHTIMEDCLOSE && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MultiMapIdx) > 0)
 	{
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()] = false;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aEndTick[Team()] = Server()->Tick() + 1 + Collision()->GetSwitchDelay(MapIndex) * Server()->TickSpeed();
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aType[Team()] = TILE_SWITCHTIMEDCLOSE;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aLastUpdateTick[Team()] = Server()->Tick();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()] = false;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aEndTick[Team()] = Server()->Tick() + 1 + Collision()->GetSwitchDelay(MultiMapIdx) * Server()->TickSpeed();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aType[Team()] = TILE_SWITCHTIMEDCLOSE;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aLastUpdateTick[Team()] = Server()->Tick();
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_SWITCHCLOSE && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MapIndex) > 0)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_SWITCHCLOSE && Team() != TEAM_SUPER && Collision()->GetSwitchNumber(MultiMapIdx) > 0)
 	{
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()] = false;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aEndTick[Team()] = 0;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aType[Team()] = TILE_SWITCHCLOSE;
-		Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aLastUpdateTick[Team()] = Server()->Tick();
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()] = false;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aEndTick[Team()] = 0;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aType[Team()] = TILE_SWITCHCLOSE;
+		Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aLastUpdateTick[Team()] = Server()->Tick();
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_FREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_FREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
 	{
-		if(Collision()->GetSwitchNumber(MapIndex) == 0 || Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()])
+		if(Collision()->GetSwitchNumber(MultiMapIdx) == 0 || Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()])
 		{
-			Freeze(Collision()->GetSwitchDelay(MapIndex));
+			Freeze(Collision()->GetSwitchDelay(MultiMapIdx));
 		}
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_DFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_DFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
 	{
-		if(Collision()->GetSwitchNumber(MapIndex) == 0 || Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()])
+		if(Collision()->GetSwitchNumber(MultiMapIdx) == 0 || Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()])
 			m_Core.m_DeepFrozen = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_DUNFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_DUNFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
 	{
-		if(Collision()->GetSwitchNumber(MapIndex) == 0 || Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()])
+		if(Collision()->GetSwitchNumber(MultiMapIdx) == 0 || Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()])
 			m_Core.m_DeepFrozen = false;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_LFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_LFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
 	{
-		if(Collision()->GetSwitchNumber(MapIndex) == 0 || Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()])
+		if(Collision()->GetSwitchNumber(MultiMapIdx) == 0 || Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()])
 		{
 			m_Core.m_LiveFrozen = true;
 		}
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_LUNFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_LUNFREEZE && Team() != TEAM_SUPER && !m_Core.m_Invincible)
 	{
-		if(Collision()->GetSwitchNumber(MapIndex) == 0 || Switchers()[Collision()->GetSwitchNumber(MapIndex)].m_aStatus[Team()])
+		if(Collision()->GetSwitchNumber(MultiMapIdx) == 0 || Switchers()[Collision()->GetSwitchNumber(MultiMapIdx)].m_aStatus[Team()])
 		{
 			m_Core.m_LiveFrozen = false;
 		}
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_ENABLE && m_Core.m_HammerHitDisabled && Collision()->GetSwitchDelay(MapIndex) == WEAPON_HAMMER)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_ENABLE && m_Core.m_HammerHitDisabled && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_HAMMER)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can hammer hit others");
 		m_Core.m_HammerHitDisabled = false;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_DISABLE && !(m_Core.m_HammerHitDisabled) && Collision()->GetSwitchDelay(MapIndex) == WEAPON_HAMMER)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_DISABLE && !(m_Core.m_HammerHitDisabled) && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_HAMMER)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can't hammer hit others");
 		m_Core.m_HammerHitDisabled = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_ENABLE && m_Core.m_ShotgunHitDisabled && Collision()->GetSwitchDelay(MapIndex) == WEAPON_SHOTGUN)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_ENABLE && m_Core.m_ShotgunHitDisabled && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_SHOTGUN)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can shoot others with shotgun");
 		m_Core.m_ShotgunHitDisabled = false;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_DISABLE && !(m_Core.m_ShotgunHitDisabled) && Collision()->GetSwitchDelay(MapIndex) == WEAPON_SHOTGUN)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_DISABLE && !(m_Core.m_ShotgunHitDisabled) && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_SHOTGUN)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can't shoot others with shotgun");
 		m_Core.m_ShotgunHitDisabled = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_ENABLE && m_Core.m_GrenadeHitDisabled && Collision()->GetSwitchDelay(MapIndex) == WEAPON_GRENADE)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_ENABLE && m_Core.m_GrenadeHitDisabled && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_GRENADE)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can shoot others with grenade");
 		m_Core.m_GrenadeHitDisabled = false;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_DISABLE && !(m_Core.m_GrenadeHitDisabled) && Collision()->GetSwitchDelay(MapIndex) == WEAPON_GRENADE)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_DISABLE && !(m_Core.m_GrenadeHitDisabled) && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_GRENADE)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can't shoot others with grenade");
 		m_Core.m_GrenadeHitDisabled = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_ENABLE && m_Core.m_LaserHitDisabled && Collision()->GetSwitchDelay(MapIndex) == WEAPON_LASER)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_ENABLE && m_Core.m_LaserHitDisabled && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_LASER)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can shoot others with laser");
 		m_Core.m_LaserHitDisabled = false;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_HIT_DISABLE && !(m_Core.m_LaserHitDisabled) && Collision()->GetSwitchDelay(MapIndex) == WEAPON_LASER)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_HIT_DISABLE && !(m_Core.m_LaserHitDisabled) && Collision()->GetSwitchDelay(MultiMapIdx) == WEAPON_LASER)
 	{
 		GameServer()->SendChatTarget(GetPlayer()->GetCid(), "You can't shoot others with laser");
 		m_Core.m_LaserHitDisabled = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_JUMP)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_JUMP)
 	{
-		int NewJumps = Collision()->GetSwitchDelay(MapIndex);
+		int NewJumps = Collision()->GetSwitchDelay(MultiMapIdx);
 		if(NewJumps == 255)
 		{
 			NewJumps = -1;
@@ -2294,10 +2300,10 @@ void CCharacter::HandleTiles(int Index)
 			m_Core.m_Jumps = NewJumps;
 		}
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_ADD_TIME && !m_LastPenalty)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_ADD_TIME && !m_LastPenalty)
 	{
-		const int Minutes = Collision()->GetSwitchDelay(MapIndex);
-		const int Seconds = Collision()->GetSwitchNumber(MapIndex);
+		const int Minutes = Collision()->GetSwitchDelay(MultiMapIdx);
+		const int Seconds = Collision()->GetSwitchNumber(MultiMapIdx);
 		int Team = Teams()->m_Core.Team(m_Core.m_Id);
 
 		m_StartTime -= (Minutes * 60 + Seconds) * Server()->TickSpeed();
@@ -2318,10 +2324,10 @@ void CCharacter::HandleTiles(int Index)
 
 		m_LastPenalty = true;
 	}
-	else if(Collision()->GetSwitchType(MapIndex) == TILE_SUBTRACT_TIME && !m_LastBonus)
+	else if(Collision()->GetSwitchType(MultiMapIdx) == TILE_SUBTRACT_TIME && !m_LastBonus)
 	{
-		const int Minutes = Collision()->GetSwitchDelay(MapIndex);
-		const int Seconds = Collision()->GetSwitchNumber(MapIndex);
+		const int Minutes = Collision()->GetSwitchDelay(MultiMapIdx);
+		const int Seconds = Collision()->GetSwitchNumber(MultiMapIdx);
 		int Team = Teams()->m_Core.Team(m_Core.m_Id);
 
 		m_StartTime += (Minutes * 60 + Seconds) * Server()->TickSpeed();
@@ -2345,17 +2351,17 @@ void CCharacter::HandleTiles(int Index)
 		m_LastBonus = true;
 	}
 
-	if(Collision()->GetSwitchType(MapIndex) != TILE_ADD_TIME)
+	if(Collision()->GetSwitchType(MultiMapIdx) != TILE_ADD_TIME)
 	{
 		m_LastPenalty = false;
 	}
 
-	if(Collision()->GetSwitchType(MapIndex) != TILE_SUBTRACT_TIME)
+	if(Collision()->GetSwitchType(MultiMapIdx) != TILE_SUBTRACT_TIME)
 	{
 		m_LastBonus = false;
 	}
 
-	int z = Collision()->IsTeleport(MapIndex);
+	int z = Collision()->IsTeleport(MultiMapIdx);
 	if(!g_Config.m_SvOldTeleportHook && !g_Config.m_SvOldTeleportWeapons && z && !Collision()->TeleOuts(z - 1).empty())
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
@@ -2370,7 +2376,7 @@ void CCharacter::HandleTiles(int Index)
 			ResetPickups();
 		return;
 	}
-	const int EvilTeleport = Collision()->IsEvilTeleport(MapIndex);
+	const int EvilTeleport = Collision()->IsEvilTeleport(MultiMapIdx);
 	if(EvilTeleport && !Collision()->TeleOuts(EvilTeleport - 1).empty())
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
@@ -2393,7 +2399,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckEvilTeleport(MapIndex))
+	if(Collision()->IsCheckEvilTeleport(MultiMapIdx))
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
 			return;
@@ -2430,7 +2436,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckTeleport(MapIndex))
+	if(Collision()->IsCheckTeleport(MultiMapIdx))
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
 			return;
@@ -2548,7 +2554,7 @@ bool CCharacter::TrySetRescue(int RescueMode)
 		if(!m_Core.m_IsInFreeze && /*FoxNet*/ !m_InQuadFreeze)
 		{
 			CEntity *apEnts[9];
-			int Num = GameWorld()->FindEntities(m_Pos, GetProximityRadius() + CPickup::ms_CollisionExtraSize, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_PICKUP);
+			int Num = GameWorld()->FindEntities(m_Pos, GetProximityRadius() + CPickup::ms_CollisionExtraSize, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_PICKUP, MultiMapIdx());
 			for(int i = 0; i < Num; ++i)
 			{
 				CPickup *pPickup = static_cast<CPickup *>(apEnts[i]);
@@ -2654,7 +2660,7 @@ void CCharacter::DDRaceTick()
 	TrySetRescue(RESCUEMODE_AUTO);
 
 	m_Core.m_Id = GetPlayer()->GetCid();
-	m_Core.m_MapIndex = GetPlayer()->MapIdx();
+	m_Core.m_MapIndex = GetPlayer()->MultiMapIdx();
 }
 
 void CCharacter::DDRacePostCoreTick()
@@ -2891,7 +2897,7 @@ void CCharacter::DDRaceInit()
 	m_LastBroadcast = 0;
 	m_TeamBeforeSuper = 0;
 	m_Core.m_Id = GetPlayer()->GetCid();
-	m_Core.m_MapIndex = GetPlayer()->MapIdx();
+	m_Core.m_MapIndex = GetPlayer()->MultiMapIdx();
 	m_TeleCheckpoint = 0;
 	m_Core.m_EndlessHook = g_Config.m_SvEndlessDrag;
 	if(g_Config.m_SvHit)
@@ -3152,7 +3158,7 @@ void CCharacter::FoxNetSpawn()
 
 void CCharacter::RouletteTileHandle()
 {
-	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx()));
+	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
 	if(!pRoulette)
 		return;
 
@@ -3285,6 +3291,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 
 		new CProjectile(
 			GameWorld(),
+			MultiMapIdx(),
 			WEAPON_GUN, // Type
 			m_pPlayer->GetCid(), // Owner
 			ProjStartPos, // Pos
@@ -3560,7 +3567,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 	if(Type <= WEAPON_GUN)
 		Lifetime = 120;
 
-	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
+	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
 
 	if(!Death)

@@ -108,7 +108,7 @@ public:
 	*/
 	virtual void OnCharacterSpawn(class CCharacter *pChr);
 
-	virtual void HandleCharacterTiles(class CCharacter *pChr, int MapIndex);
+	virtual void HandleCharacterTiles(class CCharacter *pChr, int MultiMapIdx);
 	virtual void SetArmorProgress(CCharacter *pCharacter, int Progress) {}
 
 	/*
@@ -123,7 +123,7 @@ public:
 		Returns:
 			bool?
 	*/
-	virtual bool OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number, int MapIndex);
+	virtual bool OnEntity(int Index, int x, int y, int Layer, int Flags, bool Initial, int Number, int MultiMapIdx);
 
 	virtual void OnPlayerConnect(class CPlayer *pPlayer);
 	virtual void OnPlayerDisconnect(class CPlayer *pPlayer, const char *pReason);

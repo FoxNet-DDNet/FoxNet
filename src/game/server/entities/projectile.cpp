@@ -24,6 +24,7 @@
 
 CProjectile::CProjectile(
 	CGameWorld *pGameWorld,
+	int MultiMapIdx, // FoxNet
 	int Type,
 	int Owner,
 	vec2 Pos,
@@ -35,7 +36,7 @@ CProjectile::CProjectile(
 	vec2 InitDir,
 	int Layer,
 	int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_PROJECTILE)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_PROJECTILE)
 {
 	m_Type = Type;
 	m_Pos = Pos;
@@ -62,12 +63,6 @@ CProjectile::CProjectile(
 	// <FoxNet
 	m_CosmeticMask = CClientMask().set();
 	m_OppCosmeticMask = CClientMask().set().reset();
-
-	if(CheckClientId(m_Owner))
-	{
-		if(GameServer()->m_apPlayers[m_Owner])
-			SetCollision(GameServer()->Collision(GameServer()->m_apPlayers[m_Owner]->MapIdx()));
-	}
 
 	if(pOwnerChar)
 	{
@@ -201,7 +196,7 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
+				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()), MultiMapIdx(),
 					(m_Owner != -1) ? TeamMask : CClientMask().set());
 				GameServer()->CreateSound(ColPos, m_SoundImpact,
 					(m_Owner != -1) ? TeamMask : CClientMask().set());
@@ -210,7 +205,7 @@ void CProjectile::Tick()
 		else if(m_Freeze)
 		{
 			CEntity *apEnts[MAX_CLIENTS];
-			int Num = GameWorld()->FindEntities(CurPos, 1.0f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+			int Num = GameWorld()->FindEntities(CurPos, 1.0f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 			for(int i = 0; i < Num; ++i)
 			{
 				auto *pChr = static_cast<CCharacter *>(apEnts[i]);
@@ -224,16 +219,16 @@ void CProjectile::Tick()
 		if(pOwnerChar && !GLClipped &&
 			((m_Type == WEAPON_GRENADE && pOwnerChar->HasTelegunGrenade()) || (m_Type == WEAPON_GUN && pOwnerChar->HasTelegunGun())))
 		{
-			int MapIndex = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
-			int TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
-			bool IsSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
-			bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
+			int MultiMapIdx = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
+			int TileFIndex = Collision()->GetFrontTileIndex(MultiMapIdx);
+			bool IsSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_TELE_GUN;
+			bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_BLUE_TELE_GUN;
 
 			if(IsSwitchTeleGun || IsBlueSwitchTeleGun)
 			{
 				// Delay specifies which weapon the tile should work for.
 				// Delay = 0 means all.
-				int Delay = Collision()->GetSwitchDelay(MapIndex);
+				int Delay = Collision()->GetSwitchDelay(MultiMapIdx);
 
 				if(Delay == 1 && m_Type != WEAPON_GUN)
 					IsSwitchTeleGun = IsBlueSwitchTeleGun = false;
@@ -303,7 +298,7 @@ void CProjectile::Tick()
 				TeamMask = pOwnerChar->TeamMask();
 			}
 
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
+			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()), MultiMapIdx(),
 				(m_Owner != -1) ? TeamMask : CClientMask().set());
 			GameServer()->CreateSound(ColPos, m_SoundImpact,
 				(m_Owner != -1) ? TeamMask : CClientMask().set());

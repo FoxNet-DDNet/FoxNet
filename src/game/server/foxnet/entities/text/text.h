@@ -309,7 +309,7 @@ public:
 
 	void SetData(float Cell);
 
-	CText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType);
+	CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType);
 
 	void Reset() override;
 	void Tick() override;
@@ -437,8 +437,8 @@ inline void CText::SetData(float Cell)
 	m_CenterX = (xCursorCols * Cell * 0.70f) / 2.0f;
 }
 
-inline CText::CText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType) :
-	CEntity(pGameWorld, EntType, Pos)
+inline CText::CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType) :
+	CEntity(pGameWorld, MultiMapIdx, EntType, Pos)
 {
 	m_AliveTicks = AliveTicks;
 	m_CurTicks = 0;
@@ -452,7 +452,7 @@ class CProjectileText : public CText
 	int m_Type;
 
 public:
-	CProjectileText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText, int Type = WEAPON_HAMMER);
+	CProjectileText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int Type = WEAPON_HAMMER);
 
 	void Snap(int SnappingClient) override;
 };
@@ -460,7 +460,7 @@ public:
 class CLaserText : public CText
 {
 public:
-	CLaserText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText);
+	CLaserText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText);
 
 	void Snap(int SnappingClient) override;
 };

@@ -163,7 +163,7 @@ bool CSnake::HandleInput()
 	m_vSnake[0].m_Pos = RoundPos(m_vSnake[0].m_Pos + m_Dir * 32.f);
 	if(g_Config.m_SvSnakeCollision && m_pCharacter->Collision()->TestBox(m_vSnake[0].m_Pos, CCharacterCore::PhysicalSizeVec2()))
 	{
-		GameServer()->CreateExplosion(m_vSnake[0].m_Pos, m_pCharacter->GetPlayer()->GetCid(), WEAPON_GRENADE, true, m_pCharacter->Team(), m_pCharacter->TeamMask());
+		GameServer()->CreateExplosion(m_vSnake[0].m_Pos, m_pCharacter->GetPlayer()->GetCid(), WEAPON_GRENADE, true, m_pCharacter->Team(), m_pCharacter->MultiMapIdx(), m_pCharacter->TeamMask());
 		SetActive(false);
 		return true;
 	}
@@ -178,6 +178,8 @@ void CSnake::AddNewTees()
 		if(!pChr || pChr->m_InSnake || pChr->Team() != m_pCharacter->Team())
 			continue;
 		if(pChr->m_Ufo.Active())
+			continue;
+		if(pChr->MultiMapIdx() != m_pCharacter->MultiMapIdx())
 			continue;
 
 		if(distance(m_vSnake[0].m_pChr->Core()->m_Pos, pChr->Core()->m_Pos) <= 40.f)

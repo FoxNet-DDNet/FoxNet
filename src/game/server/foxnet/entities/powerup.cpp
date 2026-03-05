@@ -26,8 +26,8 @@
 
 static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
 
-CPowerUp::CPowerUp(CGameWorld *pGameWorld, vec2 Pos, EPowerUp Type) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_POWERUP, Pos, 54)
+CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp Type) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, Pos, 54)
 {
 	m_Pos = Pos;
 	m_Data.m_Type = Type;

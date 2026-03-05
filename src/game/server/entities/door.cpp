@@ -10,9 +10,8 @@
 #include <game/server/player.h>
 #include <game/teamscore.h>
 
-CDoor::CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
-	int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+CDoor::CDoor(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Rotation, int Length, int Number) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_Number = Number;
 	m_Pos = Pos;

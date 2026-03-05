@@ -25,8 +25,8 @@
 #include <vector>
 #include <base/log.h>
 
-CRoulette::CRoulette(CGameWorld *pGameWorld, vec2 Pos) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_ROULETTE, Pos, 54)
+CRoulette::CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_ROULETTE, Pos, 54)
 {
 	m_Pos = Pos;
 	m_StartDelay = -1;

@@ -12,8 +12,8 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/ddnet.h>
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+CLaser::CLaser(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type) :
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -31,12 +31,6 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
-
-	if(CheckClientId(m_Owner))
-	{
-		if(GameServer()->m_apPlayers[m_Owner])
-			SetCollision(GameServer()->Collision(GameServer()->m_apPlayers[m_Owner]->MapIdx()));
-	}
 
 	GameWorld()->InsertEntity(this);
 	DoBounce();
@@ -231,11 +225,11 @@ void CLaser::DoBounce()
 	}
 	else if(m_Owner >= 0)
 	{
-		int MapIndex = Collision()->GetPureMapIndex(Coltile);
-		int TileFIndex = Collision()->GetFrontTileIndex(MapIndex);
-		bool IsSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_TELE_GUN;
-		bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MapIndex) == TILE_ALLOW_BLUE_TELE_GUN;
-		int IsTeleInWeapon = Collision()->IsTeleportWeapon(MapIndex);
+		int MultiMapIdx = Collision()->GetPureMapIndex(Coltile);
+		int TileFIndex = Collision()->GetFrontTileIndex(MultiMapIdx);
+		bool IsSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_TELE_GUN;
+		bool IsBlueSwitchTeleGun = Collision()->GetSwitchType(MultiMapIdx) == TILE_ALLOW_BLUE_TELE_GUN;
+		int IsTeleInWeapon = Collision()->IsTeleportWeapon(MultiMapIdx);
 
 		if(!IsTeleInWeapon)
 		{
@@ -243,7 +237,7 @@ void CLaser::DoBounce()
 			{
 				// Delay specifies which weapon the tile should work for.
 				// Delay = 0 means all.
-				const int Delay = Collision()->GetSwitchDelay(MapIndex);
+				const int Delay = Collision()->GetSwitchDelay(MultiMapIdx);
 
 				if((Delay != 3 && Delay != 0) && m_Type == WEAPON_LASER)
 				{

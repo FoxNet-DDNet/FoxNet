@@ -345,7 +345,7 @@ void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int MultiMapIdx, CClientMask Mask)
 {
 	// create the event
 	Explosion(Pos, Mask);
@@ -356,7 +356,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	CEntity *apEnts[MAX_CLIENTS];
 	float Radius = 135.0f;
 	float InnerRadius = 48.0f;
-	int Num = m_World.FindEntities(Pos, Radius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	int Num = m_World.FindEntities(Pos, Radius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx);
 	CClientMask TeamMask = CClientMask().set();
 	for(int i = 0; i < Num; i++)
 	{
@@ -4423,12 +4423,12 @@ void CGameContext::CreateAllEntities(bool Initial, int MapIdx)
 			// <FoxNet
 			if(m_Layers.SpeedupLayer())
 			{
-				const int MapIndex = y * m_Layers.GameLayer()->m_Width + x;
-				if(pCollision->IsSpeedup(MapIndex))
+				const int MultiMapIdx = y * m_Layers.GameLayer()->m_Width + x;
+				if(pCollision->IsSpeedup(MultiMapIdx))
 				{
 					vec2 Direction = vec2(0, 0);
 					int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-					pCollision->GetSpeedup(MapIndex, &Direction, &Force, &MaxSpeed, &Type);
+					pCollision->GetSpeedup(MultiMapIdx, &Direction, &Force, &MaxSpeed, &Type);
 
 					Angle = DirectionToEditorDeg(Direction);
 

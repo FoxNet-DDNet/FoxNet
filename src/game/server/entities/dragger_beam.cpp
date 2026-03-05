@@ -13,9 +13,9 @@
 #include <game/server/gamecontext.h>
 #include <game/server/save.h>
 
-CDraggerBeam::CDraggerBeam(CGameWorld *pGameWorld, CDragger *pDragger, vec2 Pos, float Strength, bool IgnoreWalls,
+CDraggerBeam::CDraggerBeam(CGameWorld *pGameWorld, CDragger *pDragger, int MultiMapIdx, vec2 Pos, float Strength, bool IgnoreWalls,
 	int ForClientId, int Layer, int Number) :
-	CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
 {
 	m_pDragger = pDragger;
 	m_Pos = Pos;

@@ -15,8 +15,8 @@
 
 constexpr float CellSize = 8.0f;
 
-CProjectileText::CProjectileText(CGameWorld *pGameWorld, int Owner, vec2 Pos, int AliveTicks, const char *pText, int Type) :
-	CText(pGameWorld, Owner, Pos, AliveTicks, pText, CGameWorld::ENTTYPE_PROJECTILE)
+CProjectileText::CProjectileText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int Type) :
+	CText(pGameWorld, MultiMapIdx, Owner, Pos, AliveTicks, pText, CGameWorld::ENTTYPE_PROJECTILE)
 {
 	m_CurTicks = Server()->Tick();
 	m_StartTick = Server()->Tick();

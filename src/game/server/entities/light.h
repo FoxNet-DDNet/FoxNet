@@ -25,7 +25,7 @@ public:
 	int m_Speed;
 	int m_Length;
 
-	CLight(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
+	CLight(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, float Rotation, int Length,
 		int Layer = 0, int Number = 0);
 
 	void Reset() override;

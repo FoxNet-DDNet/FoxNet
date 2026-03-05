@@ -17,14 +17,14 @@
 #include <game/server/player.h>
 
 CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos, int ProximityRadius) :
-	CEntity(pGameWorld, Objtype, Pos, ProximityRadius)
+	CEntity(pGameWorld, DefaultMapIndex, Objtype, Pos, ProximityRadius)
 {
 	m_Owner = Owner;
+
 	if(GetCharacter())
-	{
-		SetCollision(GetCharacter()->Collision());
-		m_StartTeamMask = GetCharacter()->TeamMask();
-	}
+		m_StartTeamMask = TeamMask();
+	if(GetPlayer())
+		SetMapIndex(GetPlayer()->MultiMapIdx());
 }
 
 bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
@@ -74,6 +74,10 @@ CCharacter *CEntityOwned::GetCharacter()
 	CPlayer *pPlayer = GetPlayer();
 	if(!pPlayer)
 		return nullptr;
+
+	if(MultiMapIdx() != pPlayer->MultiMapIdx())
+		SetMapIndex(pPlayer->MultiMapIdx());
+
 	return pPlayer->GetCharacter();
 }
 
@@ -86,7 +90,7 @@ CCollision *CEntityOwned::GetCollision()
 	CPlayer *pPlayer = GetPlayer();
 	if(!pPlayer)
 		return Collision();
-	return GameServer()->Collision(pPlayer->MapIdx());
+	return GameServer()->Collision(pPlayer->MultiMapIdx());
 }
 
 CClientMask CEntityOwned::CosmeticMask(const EItemType ItemType)

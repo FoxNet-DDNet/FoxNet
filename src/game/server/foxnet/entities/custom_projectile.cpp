@@ -70,7 +70,7 @@ void CCustomProjectile::Tick()
 	{
 		if(m_Explosive)
 		{
-			GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, GetCharacter() ? GetCharacter()->Team() : -1, TeamMask());
+			GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, GetCharacter() ? GetCharacter()->Team() : -1, MultiMapIdx(), TeamMask());
 			GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, TeamMask());
 		}
 
@@ -117,7 +117,7 @@ void CCustomProjectile::HitCharacter()
 
 	if(m_Explosive)
 	{
-		GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, pHit->Team(), TeamMask());
+		GameServer()->CreateExplosion(m_Pos, m_Owner, m_Type, m_Owner == -1, pHit->Team(), MultiMapIdx(), TeamMask());
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, TeamMask());
 	}
 	// else

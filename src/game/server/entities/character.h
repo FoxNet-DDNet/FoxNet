@@ -367,6 +367,8 @@ public:
 	vec2 GetSpecialPos();
 
 	vec2 GetPredictedPos(int SnappingClient, bool Pickup = true);
+
+	int MultiMapIdx() const override { return m_pPlayer->MultiMapIdx(); }
 private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 
@@ -389,8 +391,6 @@ private:
 
 	void HandleQuads();
 	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj);
-
-	int MapIdx() const { return m_pPlayer->MapIdx(); }
 	// FoxNet>
 };
 
