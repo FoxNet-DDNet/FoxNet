@@ -1046,7 +1046,7 @@ public:
 
 	int NumPlayersInTeam(int Team) const;
 
-	void OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, CClientMask Mask);
+	void OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int MultiMapIdx, CClientMask Mask);
 	void OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStrength);
 
 	bool SetPredictEventsFlag(int ClientId) const;

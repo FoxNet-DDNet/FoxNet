@@ -7,14 +7,13 @@
 #include <engine/shared/protocol.h>
 
 #include <game/mapitems.h>
-#include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
 
-class CPickupDrop : public CEntity
+class CPickupDrop : public CEntityOwned
 {
 	int m_StartTick;
 
-	int m_LastOwner;
 	int m_Lifetime; // In ticks
 	int m_PickupDelay; // In ticks
 	int m_Type;
@@ -26,7 +25,6 @@ class CPickupDrop : public CEntity
 	vec2 m_GroundElasticity;
 	vec2 m_PrevPos;
 	vec2 m_Vel;
-	CClientMask m_TeamMask;
 
 	static bool IsSwitchActiveCb(int Number, void *pUser);
 	bool IsGrounded();
@@ -57,7 +55,7 @@ public:
 
 	void ForceSetPos(vec2 NewPos);
 
-	CPickupDrop(CGameWorld *pGameWorld, int MultiMapIdx, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
+	CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 
 	void Reset(bool PickedUp);
 	void Reset() override { Reset(false); }

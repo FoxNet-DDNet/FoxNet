@@ -350,7 +350,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	// create the event
 	Explosion(Pos, Mask);
 
-	OnExplosion(Pos, Owner, Weapon, NoDamage, ActivatedTeam, Mask);
+	OnExplosion(Pos, Owner, Weapon, NoDamage, ActivatedTeam, MultiMapIdx, Mask);
 
 	// deal damage
 	CEntity *apEnts[MAX_CLIENTS];

@@ -30,13 +30,13 @@
 #include <iterator>
 #include <limits>
 #include <vector>
+#include "foxnet_entity.h"
 
-CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIdx, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
-	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
+CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
+	CEntityOwned(pGameWorld, LastOwner, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
 {
 	m_StartTick = Server()->Tick();
 
-	m_LastOwner = LastOwner;
 	m_PrevPos = m_Pos;
 	m_Pos = Pos;
 	m_Team = Team;
@@ -45,11 +45,6 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIdx, int LastOwner,
 	m_Type = std::clamp(Type, (int)WEAPON_NONE + 1, (int)NUM_EXTRA_WEAPONS);
 	m_TuneZone = -1;
 	m_TeleCheckpoint = TeleCheckpoint;
-
-	if(CCharacter *pChr = GameServer()->GetPlayerChar(LastOwner))
-		m_TeamMask = pChr->TeamMask();
-	else
-		m_TeamMask = CClientMask().set();
 
 	m_PickupDelay = Server()->TickSpeed() * 1.5f;
 	m_GroundElasticity = vec2(0.5f, 0.5f);
@@ -69,9 +64,9 @@ void CPickupDrop::Reset(bool PickedUp)
 		Server()->SnapFreeId(m_aIds[i]);
 	Server()->SnapFreeId(GetId());
 
-	if(m_LastOwner >= 0)
+	if(m_Owner >= 0)
 	{
-		if(CPlayer *pPlayer = GameServer()->m_apPlayers[m_LastOwner])
+		if(CPlayer *pPlayer = GameServer()->m_apPlayers[m_Owner])
 		{
 			for(size_t i = 0; i < pPlayer->m_vPickupDrops.size(); i++)
 			{
@@ -82,7 +77,7 @@ void CPickupDrop::Reset(bool PickedUp)
 	}
 
 	if(!PickedUp)
-		GameServer()->CreateDeath(m_Pos, m_LastOwner, m_TeamMask);
+		GameServer()->CreateDeath(m_Pos, m_Owner, m_StartTeamMask);
 
 	GameWorld()->RemoveEntity(this);
 }
@@ -96,7 +91,7 @@ bool CPickupDrop::IsSwitchActiveCb(int Number, void *pUser)
 
 void CPickupDrop::Tick()
 {
-	if(m_LastOwner >= 0 && (!GameServer()->m_apPlayers[m_LastOwner] && g_Config.m_SvResetDropsOnLeave))
+	if(m_Owner >= 0 && (!GameServer()->m_apPlayers[m_Owner] && g_Config.m_SvResetDropsOnLeave))
 	{
 		Reset();
 		return;
@@ -172,8 +167,8 @@ void CPickupDrop::Tick()
 
 void CPickupDrop::HandleSkippableTiles(int Index)
 {
-	const CPlayer *pPlayer = m_LastOwner >= 0 ? GameServer()->m_apPlayers[m_LastOwner] : nullptr;
-	const CCharacter *pChr = m_LastOwner >= 0 ? GameServer()->GetPlayerChar(m_LastOwner) : nullptr;
+	const CPlayer *pPlayer = m_Owner >= 0 ? GameServer()->m_apPlayers[m_Owner] : nullptr;
+	const CCharacter *pChr = m_Owner >= 0 ? GameServer()->GetPlayerChar(m_Owner) : nullptr;
 
 	// handle death-tiles and leaving gamelayer
 	if((Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) == TILE_DEATH ||
@@ -306,7 +301,7 @@ bool CPickupDrop::CheckArmor()
 		{
 			if(m_Type > WEAPON_GUN && m_Type < NUM_WEAPONS && apEnts[i]->GetOwnerId() < 0)
 			{
-				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_TeamMask);
+				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_StartTeamMask);
 				Reset(false);
 				return true;
 			}
@@ -317,7 +312,7 @@ bool CPickupDrop::CheckArmor()
 		{
 			if(m_Type == WEAPON_SHOTGUN && apEnts[i]->GetOwnerId() < 0)
 			{
-				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_TeamMask);
+				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_StartTeamMask);
 				Reset(false);
 				return true;
 			}
@@ -328,7 +323,7 @@ bool CPickupDrop::CheckArmor()
 		{
 			if(m_Type == WEAPON_GRENADE && apEnts[i]->GetOwnerId() < 0)
 			{
-				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_TeamMask);
+				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_StartTeamMask);
 				Reset();
 				return true;
 			}
@@ -339,7 +334,7 @@ bool CPickupDrop::CheckArmor()
 		{
 			if(m_Type == WEAPON_NINJA && apEnts[i]->GetOwnerId() < 0)
 			{
-				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_TeamMask);
+				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_StartTeamMask);
 				Reset();
 				return true;
 			}
@@ -350,7 +345,7 @@ bool CPickupDrop::CheckArmor()
 		{
 			if(m_Type == WEAPON_LASER && apEnts[i]->GetOwnerId() < 0)
 			{
-				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_TeamMask);
+				GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, m_StartTeamMask);
 				Reset();
 				return true;
 			}
@@ -645,17 +640,14 @@ void CPickupDrop::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	if(SnappingClient != SERVER_DEMO_CLIENT)
-	{
-		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-		if(!pSnapPlayer)
-			return;
-	}
+	CPlayer *pSnapPlayer;
+	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
+		return;
 
 	int Tick = Server()->Tick() - m_StartTick;
 
 	CGameTeams Teams = GameServer()->m_pController->Teams();
-	if(!Teams.SetMaskWithFlags(SnappingClient, m_Team, CGameTeams::IGNORE_SOLO))
+	if(!Teams.SetMaskWithFlags(SnappingClient, MultiMapIdx(), m_Team, CGameTeams::IGNORE_SOLO))
 		return;
 
 	// Make the pickup blink when about to disappear

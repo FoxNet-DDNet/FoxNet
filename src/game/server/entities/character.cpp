@@ -3567,7 +3567,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 	if(Type <= WEAPON_GUN)
 		Lifetime = 120;
 
-	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
+	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
 
 	if(!Death)

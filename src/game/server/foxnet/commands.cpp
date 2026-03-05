@@ -1627,7 +1627,7 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 
 	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
 
-	new CPickupDrop(&pSelf->m_World, pChr->MultiMapIdx(), -1, Pos, Team, TeleCheck, Dir, Lifetime, Type);
+	new CPickupDrop(&pSelf->m_World, pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type);
 }
 
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
