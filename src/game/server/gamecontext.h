@@ -733,6 +733,7 @@ public:
 		{
 			m_Layers.Init(m_pMap.get(), false);
 			m_Collision.Init(&m_Layers);
+			m_Collision.InitQuads();
 		}
 		void Unload()
 		{

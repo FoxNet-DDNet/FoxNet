@@ -66,8 +66,11 @@ void CGameContext::FoxNetTick()
 		BanSync();
 
 	// Set moving tiles time for quads with pos envelopes
-	Collision()->SetTime(m_pController->GetTime());
-	Collision()->UpdateQuadCache();
+	for(int Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
+	{
+		Collision(Idx)->SetTime(m_pController->GetTime());
+		Collision(Idx)->UpdateQuadCache();
+	}
 
 	// Save all logged in accounts every 15 minutes
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
