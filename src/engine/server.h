@@ -377,9 +377,11 @@ public:
 	virtual const char *GameType() = 0;
 	virtual const char *Version() const = 0;
 	virtual const char *NetVersion() const = 0;
-
-	virtual IMap *Map() = 0;
-	virtual const IMap *Map() const = 0;
+	// <FoxNet
+	virtual IMap *Map(size_t Idx = 0) = 0;
+	virtual const IMap *Map(size_t Idx = 0) const = 0;
+	virtual int GetMultiMapIdx(int ClientId) const = 0;
+	// FoxNet>
 	virtual CNetObjHandler *GetNetObjHandler() = 0;
 	virtual protocol7::CNetObjHandler *GetNetObjHandler7() = 0;
 

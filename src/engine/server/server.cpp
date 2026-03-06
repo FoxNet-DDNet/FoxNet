@@ -4842,7 +4842,7 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	{
 		return false;
 	}
-
+	
 	// The login was on the current conn, logout should also be on the current conn
 	if(IsRconAuthed(OrigId))
 	{
@@ -4859,6 +4859,13 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	m_aClients[ClientId].m_DDNetVersion = m_aClients[OrigId].m_DDNetVersion;
 	m_aClients[ClientId].m_GotDDNetVersionPacket = m_aClients[OrigId].m_GotDDNetVersionPacket;
 	m_aClients[ClientId].m_DDNetVersionSettled = m_aClients[OrigId].m_DDNetVersionSettled;
+	// <FoxNet
+	size_t MultiMapIdx = GameServer()->GetMultiMapIdx(ClientId);
+	const char *pMapName = GameServer()->Map(MultiMapIdx)->BaseName();
+	log_info("server", "%s", pMapName);
+	if(pMapName[0] != '\0')
+		SendMapByName(ClientId, pMapName);
+
 	return true;
 }
 

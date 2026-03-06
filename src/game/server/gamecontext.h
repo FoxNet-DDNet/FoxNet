@@ -255,14 +255,31 @@ public:
 	IConsole *Console() { return m_pConsole; }
 	IEngine *Engine() { return m_pEngine; }
 	IStorage *Storage() { return m_pStorage; }
-	IMap *Map() override { return m_vMultiMaps[DefaultMapIndex]->m_pMap.get(); }
-	const IMap *Map() const override { return m_vMultiMaps[DefaultMapIndex]->m_pMap.get(); }
-	CCollision *Collision() { return &m_vMultiMaps[DefaultMapIndex]->m_Collision; }
-	// <FoxNet
-	CCollision *Collision(int Idx)
+	IMap *Map(size_t Idx = 0) override
 	{
-		if(Idx < 0 || Idx >= (int)m_vMultiMaps.size())
-			return Collision();
+		if(Idx >= m_vMultiMaps.size())
+			return m_vMultiMaps[DefaultMapIndex]->m_pMap.get();
+		return m_vMultiMaps[Idx]->m_pMap.get();
+	}
+	const IMap *Map(size_t Idx = 0) const override
+	{ 
+		if(Idx >= m_vMultiMaps.size())
+			return m_vMultiMaps[DefaultMapIndex]->m_pMap.get();
+		return m_vMultiMaps[Idx]->m_pMap.get();
+	}
+	int GetMultiMapIdx(int ClientId) const override
+	{
+		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+			return DefaultMapIndex;
+		if(!m_apPlayers[ClientId])
+			return DefaultMapIndex;
+		return m_apPlayers[ClientId]->MultiMapIdx();
+	}
+	// <FoxNet
+	CCollision *Collision(size_t Idx = 0)
+	{
+		if(Idx >= m_vMultiMaps.size())
+			return &m_vMultiMaps[DefaultMapIndex]->m_Collision;
 		return &m_vMultiMaps[Idx]->m_Collision;
 	}
 	// FoxNet>
