@@ -89,10 +89,6 @@ void CHalo::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
-	if(!pProj)
-		return;
-
 	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
