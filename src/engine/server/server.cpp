@@ -337,6 +337,7 @@ void CServer::CClient::Reset()
 	m_RedirectDropTime = 0;
 
 	FreeClientOverrideMap(*this);
+	ResetContent();
 }
 
 CServer::CServer()
@@ -1292,6 +1293,9 @@ int CServer::ClientRejoinCallback(int ClientId, void *pUser)
 
 	pThis->SendMap(ClientId);
 
+	// <FoxNet
+	pThis->SendFoxnetInfo(ClientId);
+	// FoxNet>
 	return 0;
 }
 
@@ -1323,7 +1327,6 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 
 	// <FoxNet
 	pThis->SendFoxnetInfo(ClientId);
-	pThis->m_aClients[ClientId].ResetContent();
 	// FoxNet>
 
 	pThis->SendCapabilities(ClientId);
@@ -1364,6 +1367,9 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 #if defined(CONF_FAMILY_UNIX)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->ClientAddr(ClientId));
 #endif
+	// <FoxNet
+	pThis->SendFoxnetInfo(ClientId);
+	// FoxNet>
 	return 0;
 }
 

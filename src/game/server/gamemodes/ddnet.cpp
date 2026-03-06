@@ -195,12 +195,13 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 	if(!Server()->ClientPrevIngame(ClientId))
 	{
 		// <FoxNet
-		IServer::CClientInfo Info;
 		char PlayerInfo[24] = " (No Client Info)";
 
-		if(Server()->GetClientInfo(ClientId, &Info) && Info.m_GotDDNetVersion)
-			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s %d)", Server()->GetCustomClient(ClientId), Info.m_DDNetVersion);
-
+		int ClientVersion = Server()->GetClientVersion(ClientId);
+		if(ClientVersion >= 0)
+			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s %d)", Server()->GetCustomClient(ClientId), ClientVersion);
+		else
+			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s)", Server()->GetCustomClient(ClientId));
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s%s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 		if(!Server()->QuietJoin(ClientId))
@@ -211,9 +212,9 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 		if(GameServer()->IsWeekend())
 			GameServer()->SendChatTarget(ClientId, "2x XP/Money weekend");
 
-		// FoxNet>
 	}
 	GameServer()->SendMovingTilesInfo(ClientId);
+	// FoxNet>
 }
 
 void CGameControllerDDNet::OnPlayerDisconnect(CPlayer *pPlayer, const char *pReason)

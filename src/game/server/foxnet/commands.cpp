@@ -863,16 +863,17 @@ void CGameContext::ConSetVanish(IConsole::IResult *pResult, void *pUserData)
 
 	pPlayer->m_Vanish = !pPlayer->m_Vanish;
 
-	char PlayerInfo[512] = " (No Client Info)";
 	char aBuf[128];
 
 	if(!pPlayer->m_Vanish)
 	{
-		IServer::CClientInfo Info;
-		if(pSelf->Server()->GetClientInfo(Victim, &Info) && Info.m_GotDDNetVersion)
-			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", pSelf->Server()->GetCustomClient(Victim), Info.m_DDNetVersion);
-		else if(Info.m_GotDDNetVersion)
-			str_format(PlayerInfo, sizeof(PlayerInfo), "(%d)", Info.m_DDNetVersion);
+		char PlayerInfo[24] = " (No Client Info)";
+
+		int ClientVersion = pSelf->Server()->GetClientVersion(Victim);
+		if(ClientVersion >= 0)
+			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", pSelf->Server()->GetCustomClient(Victim), ClientVersion);
+		else	
+			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s)", pSelf->Server()->GetCustomClient(Victim));
 
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", pSelf->Server()->ClientName(Victim), pSelf->m_pController->GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 	}
