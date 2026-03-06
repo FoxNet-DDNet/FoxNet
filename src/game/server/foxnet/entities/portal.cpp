@@ -165,6 +165,8 @@ void CPortal::HandleTele()
 		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 		if(!pChr || !pChr->IsAlive())
 			continue;
+		if(pChr->MultiMapIdx() != MultiMapIdx())
+			continue; // Different map
 
 		if(m_aData[0].m_Team != TEAM_SUPER && pChr->Team() != TEAM_SUPER && pChr->Team() != m_aData[0].m_Team)
 			continue;

@@ -125,6 +125,8 @@ void CPowerUp::HandleClient(int ClientId)
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 	if(!pChr || !pChr->IsAlive() || pChr->Team() != TEAM_FLOCK)
 		return;
+	if(pChr->MultiMapIdx() != MultiMapIdx())
+		return; // Prevent collection across maps
 
 	CClientMask TeamMask = pChr->TeamMask();
 	for(int i = 0; i < MAX_CLIENTS; i++)
