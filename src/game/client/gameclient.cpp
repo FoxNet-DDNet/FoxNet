@@ -582,7 +582,7 @@ void CGameClient::OnConnected()
 	m_Menus.RenderLoading(pConnectCaption, pLoadMapContent, 0);
 	m_Layers.Init(Map(), false);
 	m_Collision.Init(Layers());
-	m_GameWorld.m_Core.InitSwitchers(m_Collision.m_HighestSwitchNumber);
+	m_GameWorld.m_Core.InitSwitchers(m_Collision.m_HighestSwitchNumber, 0);
 	m_GameWorld.m_PredictedEvents.clear();
 	m_RaceHelper.Init(this);
 
@@ -1997,7 +1997,7 @@ void CGameClient::OnNewSnapshot()
 				int HighestSwitchNumber = std::clamp(pSwitchStateData->m_HighestSwitchNumber, 0, 255);
 				if(HighestSwitchNumber != maximum(0, (int)Switchers().size() - 1))
 				{
-					m_GameWorld.m_Core.InitSwitchers(HighestSwitchNumber);
+					m_GameWorld.m_Core.InitSwitchers(HighestSwitchNumber, 0);
 					Collision()->m_HighestSwitchNumber = HighestSwitchNumber;
 				}
 

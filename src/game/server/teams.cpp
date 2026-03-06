@@ -88,7 +88,8 @@ void CGameTeams::ResetRoundState(int Team)
 
 void CGameTeams::ResetSwitchers(int Team)
 {
-	for(auto &Switcher : GameServer()->Switchers())
+	int TeamMultiMapIdx = MultiMapIndex(Team);
+	for(auto &Switcher : GameServer()->Switchers()[TeamMultiMapIdx])
 	{
 		Switcher.m_aStatus[Team] = Switcher.m_Initial;
 		Switcher.m_aEndTick[Team] = 0;

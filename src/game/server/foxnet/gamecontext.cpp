@@ -103,20 +103,20 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 
 	for(size_t idx = 1; idx < m_vMultiMaps.size(); ++idx)
 	{
-		if(str_comp(m_vMultiMaps[idx].m_pMap->BaseName(), pMapName) == 0)
+		if(str_comp(m_vMultiMaps[idx]->m_pMap->BaseName(), pMapName) == 0)
 		{
 			log_error("multimap", "Failed to load map '%s': already loaded", pMapName);
 			return;
 		}
-		else if(Type != EMapType::None && Type == m_vMultiMaps[idx].m_MapType)
+		else if(Type != EMapType::None && Type == m_vMultiMaps[idx]->m_MapType)
 		{
 			log_error("multimap", "Failed to load map '%s': a map of type %" PRIzu " is already loaded", pMapName, (size_t)Type);
 			return;
 		}
 	}
 
-	CMapOverride NewMap;
-	NewMap.m_pMap = CreateMap();
+	std::unique_ptr<CMapOverride> pNewMap = std::make_unique<CMapOverride>();
+	pNewMap->m_pMap = CreateMap();
 
 	char aBuf[IO_MAX_PATH_LENGTH];
 	str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
@@ -125,21 +125,22 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
 		return;
 	}
-	if(!NewMap.m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
+	if(!pNewMap->m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
 	{
 		log_error("multimap", "Failed to load map '%s'", aBuf);
 		return;
 	}
 	log_info("multimap", "Map loaded: %s", aBuf);
-	NewMap.Init();
-	NewMap.m_MapType = Type;
-	NewMap.m_CreatedEntities = false;
-	m_vMultiMaps.push_back(std::move(NewMap));
+	pNewMap->Init();
+	pNewMap->m_MapType = Type;
+	pNewMap->m_CreatedEntities = false;
+	pNewMap->m_LoadedSwitchers = false;
+	m_vMultiMaps.push_back(std::move(pNewMap));
 }
 void CGameContext::UnloadMapByName(const char *pMapName)
 {
-	auto it = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const CMapOverride &MapOverride) {
-		return str_comp(MapOverride.m_pMap->BaseName(), pMapName) == 0;
+	auto it = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const auto &pMapOverride) {
+		return pMapOverride && pMapOverride->m_pMap && str_comp(pMapOverride->m_pMap->BaseName(), pMapName) == 0;
 	});
 	if(it != m_vMultiMaps.end())
 	{
@@ -160,8 +161,8 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 			pPlayer->SendToMap(DefaultMapIndex);
 		}
 
-		log_info("multimap", "Map unloaded of type %d: %s", (int)it->m_MapType, pMapName);
-		it->Unload();
+		log_info("multimap", "Map unloaded of type %d: %s", (int)(*it)->m_MapType, pMapName);
+		(*it)->Unload();
 		m_vMultiMaps.erase(it);
 	}
 	else
@@ -171,8 +172,8 @@ void CGameContext::UnloadMapsAll()
 {
 	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)
 	{
-		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMultiMaps[Idx].m_MapType, m_vMultiMaps[Idx].m_pMap->BaseName());
-		m_vMultiMaps[Idx].Unload();
+		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMultiMaps[Idx]->m_MapType, m_vMultiMaps[Idx]->m_pMap->BaseName());
+		m_vMultiMaps[Idx]->Unload();
 		m_pController->ClearSpawnPoints(Idx);
 		m_World.DestroyEntitiesOfMap(Idx);
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
@@ -368,7 +369,7 @@ int CGameContext::GetMapIndexByType(EMapType MapType) const
 {
 	for(size_t i = 0; i < m_vMultiMaps.size(); i++)
 	{
-		if(m_vMultiMaps[i].m_MapType == MapType)
+		if(m_vMultiMaps[i]->m_MapType == MapType)
 			return i;
 	}
 	return -1;
@@ -377,7 +378,7 @@ int CGameContext::GetMapIndexByMapName(const char *pMapName) const
 {
 	for(size_t i = 0; i < m_vMultiMaps.size(); i++)
 	{
-		if(str_comp(m_vMultiMaps[i].m_pMap->BaseName(), pMapName) == 0)
+		if(str_comp(m_vMultiMaps[i]->m_pMap->BaseName(), pMapName) == 0)
 			return i;
 	}
 	return -1;
@@ -396,7 +397,7 @@ const char *CGameContext::MapName(int ClientId)
 
 	int PlayerMapIndex = pPlayer->MultiMapIdx();
 	if(PlayerMapIndex >= 0 && PlayerMapIndex < (int)m_vMultiMaps.size())
-		return m_vMultiMaps[PlayerMapIndex].m_pMap->BaseName();
+		return m_vMultiMaps[PlayerMapIndex]->m_pMap->BaseName();
 	return Map()->BaseName();
 }
 

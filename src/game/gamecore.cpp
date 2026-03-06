@@ -337,7 +337,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				if(!pCharCore->m_Hookable)
 					continue;
 
-				if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
+				if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)
 					continue;
 				// FoxNet>
 
@@ -501,7 +501,7 @@ void CCharacterCore::TickDeferred()
 			if(m_Passive || pCharCore->m_Passive)
 				continue;
 
-			if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
+			if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)
 				continue;
 			// FoxNet>
 
@@ -631,7 +631,7 @@ void CCharacterCore::Move()
 					if(!m_Collidable)
 						continue;
 
-					if(!g_Config.m_SvMultimapAllowInteraction && m_MapIndex != pCharCore->m_MapIndex)
+					if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)
 						continue;
 					// FoxNet>
 					float D = distance(Pos, pCharCore->m_Pos);
@@ -786,20 +786,23 @@ void CCharacterCore::SetTeamsCore(CTeamsCore *pTeams)
 bool CCharacterCore::IsSwitchActiveCb(int Number, void *pUser)
 {
 	CCharacterCore *pThis = (CCharacterCore *)pUser;
-	if(pThis->m_pWorld && !pThis->m_pWorld->m_vSwitchers.empty())
+	if(pThis->m_pWorld && !pThis->m_pWorld->m_vvSwitchers[pThis->m_MultiMapIdx].empty())
 		if(pThis->m_Id != -1 && pThis->m_pTeams->Team(pThis->m_Id) != (pThis->m_pTeams->m_IsDDRace16 ? VANILLA_TEAM_SUPER : TEAM_SUPER))
-			return pThis->m_pWorld->m_vSwitchers[Number].m_aStatus[pThis->m_pTeams->Team(pThis->m_Id)];
+			return pThis->m_pWorld->m_vvSwitchers[pThis->m_MultiMapIdx][Number].m_aStatus[pThis->m_pTeams->Team(pThis->m_Id)];
 	return false;
 }
 
-void CWorldCore::InitSwitchers(int HighestSwitchNumber)
+void CWorldCore::InitSwitchers(int HighestSwitchNumber, int MultiMapIdx)
 {
-	if(HighestSwitchNumber > 0)
-		m_vSwitchers.resize(HighestSwitchNumber + 1);
-	else
-		m_vSwitchers.clear();
+	if((int)m_vvSwitchers.size() <= MultiMapIdx)
+		m_vvSwitchers.resize(MultiMapIdx + 1);
 
-	for(auto &Switcher : m_vSwitchers)
+	if(HighestSwitchNumber > 0)
+		m_vvSwitchers[MultiMapIdx].resize(HighestSwitchNumber + 1);
+	else
+		m_vvSwitchers[MultiMapIdx].clear();
+
+	for(auto &Switcher : m_vvSwitchers[MultiMapIdx])
 	{
 		Switcher.m_Initial = true;
 		for(int j = 0; j < NUM_DDRACE_TEAMS; j++)

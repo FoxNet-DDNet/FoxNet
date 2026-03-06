@@ -80,7 +80,8 @@ public:
 	~CGameWorld();
 
 	void SetGameServer(CGameContext *pGameServer);
-	void Init(CCollision *pCollision, CTuningParams *pTuningList);
+	void Init(CTuningParams *pTuningList);
+	void InitSwitchers(int HighestSwitchNumber, int MultiMapIdx);
 
 	CEntity *FindFirst(int Type);
 

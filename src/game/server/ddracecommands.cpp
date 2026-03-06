@@ -382,14 +382,14 @@ void CGameContext::ConSetSwitch(IConsole::IResult *pResult, void *pUserData)
 		log_info("chatresp", "Invalid switch ID");
 		return;
 	}
-	const bool State = pResult->NumArguments() == 1 ? !pSelf->Switchers()[Switch].m_aStatus[Team] : pResult->GetInteger(1) != 0;
+	const bool State = pResult->NumArguments() == 1 ? !pChr->Switchers()[Switch].m_aStatus[Team] : pResult->GetInteger(1) != 0;
 	const int EndTick = pResult->NumArguments() == 3 ? pSelf->Server()->Tick() + 1 + pResult->GetInteger(2) * pSelf->Server()->TickSpeed() : 0;
-	pSelf->Switchers()[Switch].m_aStatus[Team] = State;
-	pSelf->Switchers()[Switch].m_aEndTick[Team] = EndTick;
+	pChr->Switchers()[Switch].m_aStatus[Team] = State;
+	pChr->Switchers()[Switch].m_aEndTick[Team] = EndTick;
 	if(State)
-		pSelf->Switchers()[Switch].m_aType[Team] = EndTick ? TILE_SWITCHTIMEDOPEN : TILE_SWITCHOPEN;
+		pChr->Switchers()[Switch].m_aType[Team] = EndTick ? TILE_SWITCHTIMEDOPEN : TILE_SWITCHOPEN;
 	else
-		pSelf->Switchers()[Switch].m_aType[Team] = EndTick ? TILE_SWITCHTIMEDCLOSE : TILE_SWITCHCLOSE;
+		pChr->Switchers()[Switch].m_aType[Team] = EndTick ? TILE_SWITCHTIMEDCLOSE : TILE_SWITCHCLOSE;
 }
 
 void CGameContext::ConUnWeapons(IConsole::IResult *pResult, void *pUserData)

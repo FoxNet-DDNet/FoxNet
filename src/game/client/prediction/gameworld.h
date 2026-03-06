@@ -61,7 +61,7 @@ public:
 	const CCollision *Collision() const { return m_pCollision; }
 	CCollision *Collision() { return m_pCollision; }
 	CTeamsCore *Teams() { return &m_Teams; }
-	std::vector<SSwitchers> &Switchers() { return m_Core.m_vSwitchers; }
+	std::vector<SSwitchers> &Switchers() { return m_Core.m_vvSwitchers[0]; }
 	CEntity *GetEntity(int Id, int EntityType);
 	CCharacter *GetCharacterById(int Id) { return (Id >= 0 && Id < MAX_CLIENTS) ? m_apCharacters[Id] : nullptr; }
 

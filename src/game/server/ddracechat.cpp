@@ -1122,8 +1122,8 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 	{
 		char aMapName[32] = "unknown";
 
-		if(TeamMultiMapIdx >= 0 && TeamMultiMapIdx < (int)m_vMultiMaps.size() && m_vMultiMaps[TeamMultiMapIdx].m_pMap)
-			str_copy(aMapName, m_vMultiMaps[TeamMultiMapIdx].m_pMap.get()->BaseName());
+		if(TeamMultiMapIdx >= 0 && TeamMultiMapIdx < (int)m_vMultiMaps.size() && m_vMultiMaps[TeamMultiMapIdx]->m_pMap)
+			str_copy(aMapName, m_vMultiMaps[TeamMultiMapIdx]->m_pMap->BaseName());
 		log_info("chatresp", "You aren't on the same map (%s) as this team.", aMapName);
 	}
 	// FoxNet>

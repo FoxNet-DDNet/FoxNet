@@ -158,7 +158,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 						CCharacter *pChr = static_cast<CCharacter *>(apEnts[c]);
 						const bool CanCollide = pChr->CanCollide(ClientId) && !pChr->GetCore().m_CollisionDisabled;
 
-						if(GameServer()->Collision(pChr->GetCore().m_MapIndex)->CheckPoint(SpawnPoint + aPositions[Index]) ||
+						if(GameServer()->Collision(pChr->GetCore().m_MultiMapIdx)->CheckPoint(SpawnPoint + aPositions[Index]) ||
 							(CanCollide && distance(pChr->m_Pos, SpawnPoint + aPositions[Index]) <= pChr->GetProximityRadius()))
 						{
 							Result = -1;

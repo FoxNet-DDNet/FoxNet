@@ -572,18 +572,19 @@ ESaveResult CSaveTeam::Save(CGameContext *pGameServer, int Team, bool Dry, bool 
 	if(m_MembersCount != j && !Force)
 		return ESaveResult::CHAR_NOT_FOUND;
 
+	int TeamMultiMapIdx = pTeams->MultiMapIndex(Team);
 	if(pGameServer->Collision()->m_HighestSwitchNumber)
 	{
 		m_pSwitchers = new SSimpleSwitchers[pGameServer->Collision()->m_HighestSwitchNumber + 1];
 
 		for(int i = 1; i < pGameServer->Collision()->m_HighestSwitchNumber + 1; i++)
 		{
-			m_pSwitchers[i].m_Status = pGameServer->Switchers()[i].m_aStatus[Team];
-			if(pGameServer->Switchers()[i].m_aEndTick[Team])
-				m_pSwitchers[i].m_EndTime = pController->Server()->Tick() - pGameServer->Switchers()[i].m_aEndTick[Team];
+			m_pSwitchers[i].m_Status = pGameServer->Switchers()[TeamMultiMapIdx][i].m_aStatus[Team];
+			if(pGameServer->Switchers()[TeamMultiMapIdx][i].m_aEndTick[Team])
+				m_pSwitchers[i].m_EndTime = pController->Server()->Tick() - pGameServer->Switchers()[TeamMultiMapIdx][i].m_aEndTick[Team];
 			else
 				m_pSwitchers[i].m_EndTime = 0;
-			m_pSwitchers[i].m_Type = pGameServer->Switchers()[i].m_aType[Team];
+			m_pSwitchers[i].m_Type = pGameServer->Switchers()[TeamMultiMapIdx][i].m_aType[Team];
 		}
 	}
 	if(!Dry)
@@ -647,14 +648,15 @@ bool CSaveTeam::Load(CGameContext *pGameServer, int Team, bool KeepCurrentWeakSt
 		}
 	}
 
+	int TeamMultiMapIdx = pTeams->MultiMapIndex(Team);
 	if(pGameServer->Collision()->m_HighestSwitchNumber)
 	{
 		for(int i = 1; i < minimum(m_HighestSwitchNumber, pGameServer->Collision()->m_HighestSwitchNumber) + 1; i++)
 		{
-			pGameServer->Switchers()[i].m_aStatus[Team] = m_pSwitchers[i].m_Status;
+			pGameServer->Switchers()[TeamMultiMapIdx][i].m_aStatus[Team] = m_pSwitchers[i].m_Status;
 			if(m_pSwitchers[i].m_EndTime)
-				pGameServer->Switchers()[i].m_aEndTick[Team] = pController->Server()->Tick() - m_pSwitchers[i].m_EndTime;
-			pGameServer->Switchers()[i].m_aType[Team] = m_pSwitchers[i].m_Type;
+				pGameServer->Switchers()[TeamMultiMapIdx][i].m_aEndTick[Team] = pController->Server()->Tick() - m_pSwitchers[i].m_EndTime;
+			pGameServer->Switchers()[TeamMultiMapIdx][i].m_aType[Team] = m_pSwitchers[i].m_Type;
 		}
 	}
 	// remove projectiles and laser

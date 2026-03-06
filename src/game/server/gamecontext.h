@@ -255,15 +255,15 @@ public:
 	IConsole *Console() { return m_pConsole; }
 	IEngine *Engine() { return m_pEngine; }
 	IStorage *Storage() { return m_pStorage; }
-	IMap *Map() override { return m_vMultiMaps[DefaultMapIndex].m_pMap.get(); }
-	const IMap *Map() const override { return m_vMultiMaps[DefaultMapIndex].m_pMap.get(); }
-	CCollision *Collision() { return &m_vMultiMaps[DefaultMapIndex].m_Collision; }
+	IMap *Map() override { return m_vMultiMaps[DefaultMapIndex]->m_pMap.get(); }
+	const IMap *Map() const override { return m_vMultiMaps[DefaultMapIndex]->m_pMap.get(); }
+	CCollision *Collision() { return &m_vMultiMaps[DefaultMapIndex]->m_Collision; }
 	// <FoxNet
 	CCollision *Collision(int Idx)
 	{
 		if(Idx < 0 || Idx >= (int)m_vMultiMaps.size())
 			return Collision();
-		return &m_vMultiMaps[Idx].m_Collision;
+		return &m_vMultiMaps[Idx]->m_Collision;
 	}
 	// FoxNet>
 	CTuningParams *GlobalTuning() { return &m_aTuningList[0]; }
@@ -299,7 +299,7 @@ public:
 	CCharacter *GetPlayerChar(int ClientId);
 	const CCharacter *GetPlayerChar(int ClientId) const;
 	bool EmulateBug(int Bug) const;
-	std::vector<SSwitchers> &Switchers() { return m_World.m_Core.m_vSwitchers; }
+	std::vector<std::vector<SSwitchers>> &Switchers() { return m_World.m_Core.m_vvSwitchers; }
 
 	// voting
 	void StartVote(const char *pDesc, const char *pCommand, const char *pReason, const char *pSixupDesc);
@@ -691,7 +691,7 @@ private:
 	void LogEvent(const char *Description, int ClientId);
 
 public:
-	CLayers *Layers() { return &m_vMultiMaps[DefaultMapIndex].m_Layers; }
+	CLayers *Layers() { return &m_vMultiMaps[DefaultMapIndex]->m_Layers; }
 	CScore *Score() { return m_pScore; }
 
 	enum
@@ -727,6 +727,7 @@ public:
 		EMapType m_MapType = EMapType::None;
 
 		bool m_CreatedEntities = false;
+		bool m_LoadedSwitchers = false;
 
 		void Init()
 		{
@@ -740,10 +741,12 @@ public:
 			m_pMap = nullptr;
 			m_Layers.Unload();
 			m_Collision.Unload();
+			m_LoadedSwitchers = false;
+			m_CreatedEntities = false;
 		}
 		CMapOverride() = default;
 	};
-	std::deque<CMapOverride> m_vMultiMaps = std::deque<CMapOverride>(1); // index 0 is default map
+	std::deque<std::unique_ptr<CMapOverride>> m_vMultiMaps; // index 0 is default map
 
 	int GetMapIndexByType(EMapType MapType) const;
 	int GetMapIndexByMapName(const char *pMapName) const;

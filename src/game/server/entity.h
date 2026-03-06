@@ -60,7 +60,7 @@ public: // TODO: Maybe make protected
 	virtual ~CEntity();
 
 	/* Objects */
-	std::vector<SSwitchers> &Switchers() { return m_pGameWorld->m_Core.m_vSwitchers; }
+	std::vector<SSwitchers> &Switchers() { return m_pGameWorld->m_Core.m_vvSwitchers[MultiMapIdx()]; }
 	CGameWorld *GameWorld() { return m_pGameWorld; }
 	CTuningParams *GlobalTuning() { return &GameWorld()->TuningList()[0]; }
 	CTuningParams *TuningList() { return GameWorld()->TuningList(); }

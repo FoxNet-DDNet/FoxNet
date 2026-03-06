@@ -2239,7 +2239,6 @@ void CServer::OnNetMsgReady(int ClientId)
 	{
 		CNetMsg_Sv_ReadyToEnter ReadyMsg;
 		SendPackMsg(&ReadyMsg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
-		FreeClientOverrideMap(m_aClients[ClientId]);
 	}
 	// FoxNet>
 }

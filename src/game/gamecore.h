@@ -180,8 +180,8 @@ public:
 	class CCharacterCore *m_apCharacters[MAX_CLIENTS];
 	CPrng *m_pPrng;
 
-	void InitSwitchers(int HighestSwitchNumber);
-	std::vector<SSwitchers> m_vSwitchers;
+	void InitSwitchers(int HighestSwitchNumber, int MultiMapIdx);
+	std::vector<std::vector<SSwitchers>> m_vvSwitchers;
 };
 
 class CCharacterCore
@@ -284,7 +284,7 @@ public:
 	bool m_LiveFrozen;
 	CTuningParams m_Tuning;
 	// <FoxNet
-	int m_MapIndex;
+	int m_MultiMapIdx;
 
 	CTuningParams m_FakeTuning;
 	bool m_FakeTuned;

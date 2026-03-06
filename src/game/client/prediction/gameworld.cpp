@@ -642,7 +642,7 @@ void CGameWorld::CopyWorld(CGameWorld *pFrom)
 	m_pTuningList = pFrom->m_pTuningList;
 	m_pMapBugs = pFrom->m_pMapBugs;
 	m_Teams = pFrom->m_Teams;
-	m_Core.m_vSwitchers = pFrom->m_Core.m_vSwitchers;
+	m_Core.m_vvSwitchers = pFrom->m_Core.m_vvSwitchers;
 	m_PredictedEvents = pFrom->m_PredictedEvents;
 	// delete the previous entities
 	Clear();

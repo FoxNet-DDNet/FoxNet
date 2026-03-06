@@ -1169,15 +1169,22 @@ bool CPlayer::SendToMap(int Idx)
 	if((int)GameServer()->m_vMultiMaps.size() < Idx)
 		return false;
 
-	if(!GameServer()->m_vMultiMaps[Idx].m_CreatedEntities)
+	if(!GameServer()->m_vMultiMaps[Idx]->m_LoadedSwitchers)
+	{
+		GameServer()->m_World.InitSwitchers(GameServer()->Collision(Idx)->m_HighestSwitchNumber, Idx);
+		for(auto &Switcher : GameServer()->Switchers()[Idx])
+			Switcher.m_Initial = true;
+		GameServer()->m_vMultiMaps[Idx]->m_LoadedSwitchers = true;
+	}
+	if(!GameServer()->m_vMultiMaps[Idx]->m_CreatedEntities)
 	{
 		GameServer()->CreateAllEntities(true, Idx);
-		GameServer()->m_vMultiMaps[Idx].m_CreatedEntities = true;
+		GameServer()->m_vMultiMaps[Idx]->m_CreatedEntities = true;
 	}
 
 	if(Idx != DefaultMapIndex)
 	{
-		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMultiMaps[Idx].m_pMap.get()->BaseName()))
+		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMultiMaps[Idx]->m_pMap->BaseName()))
 			return false;
 		m_MultiMapIndex = Idx;
 	}

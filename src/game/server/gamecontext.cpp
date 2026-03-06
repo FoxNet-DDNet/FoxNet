@@ -138,7 +138,9 @@ CGameContext::CGameContext(bool Resetting) :
 
 	if(!Resetting)
 	{
-		m_vMultiMaps[DefaultMapIndex].m_pMap = CreateMap();
+		std::unique_ptr<CMapOverride> pNewMap = std::make_unique<CMapOverride>();
+		pNewMap->m_pMap = CreateMap();
+		m_vMultiMaps.push_back(std::move(pNewMap));
 
 		for(auto &pSavedTee : m_apSavedTees)
 			pSavedTee = nullptr;
@@ -167,8 +169,8 @@ CGameContext::~CGameContext()
 
 	if(!m_Resetting)
 	{
-		m_vMultiMaps[DefaultMapIndex].m_pMap->Unload();
-		m_vMultiMaps[DefaultMapIndex].m_pMap = nullptr;
+		m_vMultiMaps[DefaultMapIndex]->m_pMap->Unload();
+		m_vMultiMaps[DefaultMapIndex]->m_pMap = nullptr;
 
 		for(auto &pSavedTee : m_apSavedTees)
 			delete pSavedTee;
@@ -196,12 +198,15 @@ void CGameContext::Clear()
 	// std::swap(pMap, m_pMap);
 
 	// <FoxNet
-	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); Idx++)
-		m_vMultiMaps[Idx].m_CreatedEntities = false;
+	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); Idx++)
+	{
+		m_vMultiMaps[Idx]->m_CreatedEntities = false;
+		m_vMultiMaps[Idx]->m_LoadedSwitchers = false;
+	}
 
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnPreReset();
-	std::deque<CMapOverride> vMultiMaps = std::move(m_vMultiMaps);
+	std::deque<std::unique_ptr<CMapOverride>> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
@@ -509,6 +514,13 @@ void CGameContext::SnapSwitchers(int SnappingClient)
 	if(pPlayer && (pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()) && pPlayer->SpectatorId() != SPEC_FREEVIEW && m_apPlayers[pPlayer->SpectatorId()] && m_apPlayers[pPlayer->SpectatorId()]->GetCharacter())
 		Team = m_apPlayers[pPlayer->SpectatorId()]->GetCharacter()->Team();
 
+	int MultiMapIdx = pPlayer ? pPlayer->MultiMapIdx() : 0;
+
+	if(!m_vMultiMaps[MultiMapIdx]->m_LoadedSwitchers)
+		return;
+	if(Switchers()[MultiMapIdx].empty())
+		return;
+
 	if(Team == TEAM_SUPER)
 		return;
 
@@ -520,21 +532,21 @@ void CGameContext::SnapSwitchers(int SnappingClient)
 	if(!pSwitchState)
 		return;
 
-	pSwitchState->m_HighestSwitchNumber = std::clamp((int)Switchers().size() - 1, 0, 255);
+	pSwitchState->m_HighestSwitchNumber = std::clamp((int)Switchers()[MultiMapIdx].size() - 1, 0, 255);
 	std::fill(std::begin(pSwitchState->m_aStatus), std::end(pSwitchState->m_aStatus), 0);
 
 	std::vector<std::pair<int, int>> vEndTicks; // <EndTick, SwitchNumber>
 
 	for(int i = 0; i <= pSwitchState->m_HighestSwitchNumber; i++)
 	{
-		int Status = (int)Switchers()[i].m_aStatus[Team];
+		int Status = (int)Switchers()[MultiMapIdx][i].m_aStatus[Team];
 		pSwitchState->m_aStatus[i / 32] |= (Status << (i % 32));
 
-		int EndTick = Switchers()[i].m_aEndTick[Team];
-		if(EndTick > 0 && EndTick < Server()->Tick() + 3 * Server()->TickSpeed() && Switchers()[i].m_aLastUpdateTick[Team] < Server()->Tick())
+		int EndTick = Switchers()[MultiMapIdx][i].m_aEndTick[Team];
+		if(EndTick > 0 && EndTick < Server()->Tick() + 3 * Server()->TickSpeed() && Switchers()[MultiMapIdx][i].m_aLastUpdateTick[Team] < Server()->Tick())
 		{
 			// only keep track of EndTicks that have less than three second left and are not currently being updated by a player being present on a switch tile, to limit how often these are sent
-			vEndTicks.emplace_back(Switchers()[i].m_aEndTick[Team], i);
+			vEndTicks.emplace_back(Switchers()[MultiMapIdx][i].m_aEndTick[Team], i);
 		}
 	}
 
@@ -1414,21 +1426,27 @@ void CGameContext::OnTick()
 			SendChat(-1, TEAM_ALL, pLine);
 	}
 
-	for(auto &Switcher : Switchers())
+	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
 	{
-		for(int j = 0; j < NUM_DDRACE_TEAMS; ++j)
+		if(!m_vMultiMaps[Idx]->m_LoadedSwitchers)
+			continue;
+
+		for(auto &Switcher : Switchers()[Idx])
 		{
-			if(Switcher.m_aEndTick[j] <= Server()->Tick() && Switcher.m_aType[j] == TILE_SWITCHTIMEDOPEN)
+			for(int j = 0; j < NUM_DDRACE_TEAMS; ++j)
 			{
-				Switcher.m_aStatus[j] = false;
-				Switcher.m_aEndTick[j] = 0;
-				Switcher.m_aType[j] = TILE_SWITCHCLOSE;
-			}
-			else if(Switcher.m_aEndTick[j] <= Server()->Tick() && Switcher.m_aType[j] == TILE_SWITCHTIMEDCLOSE)
-			{
-				Switcher.m_aStatus[j] = true;
-				Switcher.m_aEndTick[j] = 0;
-				Switcher.m_aType[j] = TILE_SWITCHOPEN;
+				if(Switcher.m_aEndTick[j] <= Server()->Tick() && Switcher.m_aType[j] == TILE_SWITCHTIMEDOPEN)
+				{
+					Switcher.m_aStatus[j] = false;
+					Switcher.m_aEndTick[j] = 0;
+					Switcher.m_aType[j] = TILE_SWITCHCLOSE;
+				}
+				else if(Switcher.m_aEndTick[j] <= Server()->Tick() && Switcher.m_aType[j] == TILE_SWITCHTIMEDCLOSE)
+				{
+					Switcher.m_aStatus[j] = true;
+					Switcher.m_aEndTick[j] = 0;
+					Switcher.m_aType[j] = TILE_SWITCHOPEN;
+				}
 			}
 		}
 	}
@@ -3369,10 +3387,11 @@ void CGameContext::ConSwitchOpen(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Switch = pResult->GetInteger(0);
+	int MapIdx = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : 0;
 
 	if(in_range(Switch, (int)pSelf->Switchers().size() - 1))
 	{
-		pSelf->Switchers()[Switch].m_Initial = false;
+		pSelf->Switchers()[MapIdx][Switch].m_Initial = false;
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "switch %d opened by default", Switch);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
@@ -3983,7 +4002,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_zone_enter", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgEnter, this, "Which message to display on zone enter; use 0 for normal area");
 	Console()->Register("tune_zone_leave", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgLeave, this, "Which message to display on zone leave; use 0 for normal area");
 	Console()->Register("mapbug", "s[mapbug]", CFGFLAG_SERVER | CFGFLAG_GAME, ConMapbug, this, "Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)");
-	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
+	Console()->Register("switch_open", "i[switch] ?i[MapIdx]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
 	Console()->Register("random_map", "?i[stars] ?i[max stars]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map");
@@ -4235,7 +4254,9 @@ void CGameContext::OnInit(const void *pPersistentData)
 	Collision()->InitQuads();
 	Collision()->InitSpawnCandidates();
 	// FoxNet>
-	m_World.Init(Collision(), m_aTuningList);
+	m_World.Init(m_aTuningList);
+	m_World.InitSwitchers(Collision()->m_HighestSwitchNumber, DefaultMapIndex);
+	m_vMultiMaps[DefaultMapIndex]->m_LoadedSwitchers = true;
 	m_MapBugs = CMapBugs::Create(Map()->BaseName(), Map()->Size(), Map()->Sha256());
 
 	// Reset Tunezones
@@ -4280,7 +4301,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 		g_Config.m_SvTeam = SV_TEAM_ALLOWED;
 		g_Config.m_SvShowOthersDefault = SHOW_OTHERS_OFF;
 
-		for(auto &Switcher : Switchers())
+		for(auto &Switcher : Switchers()[DefaultMapIndex])
 			Switcher.m_Initial = true;
 	}
 
@@ -4390,6 +4411,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 
 	// create all entities from the game layer
 	CreateAllEntities(true, DefaultMapIndex);
+	m_vMultiMaps[DefaultMapIndex]->m_CreatedEntities = true;
 
 	m_pAntibot->RoundStart(this);
 	// <FoxNet
@@ -4448,7 +4470,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 			// <FoxNet
 			if(pSpeedup)
 			{
-				const int MapIdx = y * m_vMultiMaps[MultiMapIdx].m_Layers.GameLayer()->m_Width + x;
+				const int MapIdx = y * m_vMultiMaps[MultiMapIdx]->m_Layers.GameLayer()->m_Width + x;
 				if(pCollision->IsSpeedup(MapIdx))
 				{
 					vec2 Direction = vec2(0, 0);
@@ -4676,9 +4698,9 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	{
 		for(size_t i = 1; i < m_vMultiMaps.size(); i++)
 		{
-			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i].m_pMap.get()->BaseName());
-			m_vMultiMaps[i].Unload();
-			m_vMultiMaps[i].m_pMap = nullptr;	
+			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i]->m_pMap->BaseName());
+			m_vMultiMaps[i]->Unload();
+			m_vMultiMaps[i]->m_pMap = nullptr;	
 		}
 
 		if(g_Config.m_SvScriptShutdown[0])

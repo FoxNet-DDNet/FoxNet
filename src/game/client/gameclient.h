@@ -696,8 +696,8 @@ public:
 	CGameWorld m_PredictedWorld;
 	CGameWorld m_PrevPredictedWorld;
 
-	std::vector<SSwitchers> &Switchers() { return m_GameWorld.m_Core.m_vSwitchers; }
-	std::vector<SSwitchers> &PredSwitchers() { return m_PredictedWorld.m_Core.m_vSwitchers; }
+	std::vector<SSwitchers> &Switchers() { return m_GameWorld.m_Core.m_vvSwitchers[0]; }
+	std::vector<SSwitchers> &PredSwitchers() { return m_PredictedWorld.m_Core.m_vvSwitchers[0]; }
 
 	void DummyResetInput() override;
 	void Echo(const char *pString) override;
