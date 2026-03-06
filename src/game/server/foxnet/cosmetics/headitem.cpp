@@ -46,8 +46,7 @@ void CHeadItem::Reset()
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		Server()->SnapFreeId(m_aIds[i]);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CHeadItem::Tick()

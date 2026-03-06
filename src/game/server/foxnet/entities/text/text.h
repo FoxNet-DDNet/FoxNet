@@ -322,12 +322,11 @@ inline void CText::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("text", "Reset");
 
-	Server()->SnapFreeId(GetId());
 
 	for(auto *pData : m_pData)
 		Server()->SnapFreeId(pData->m_Id);
 
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 inline void CText::Tick()

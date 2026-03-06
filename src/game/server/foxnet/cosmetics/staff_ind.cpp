@@ -41,8 +41,7 @@ void CStaffInd::Reset()
 	for(int i = 0; i < NUM_IDS; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CStaffInd::Tick()

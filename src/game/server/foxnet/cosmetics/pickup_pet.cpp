@@ -36,9 +36,6 @@ void CPickupPet::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("pickuppet", "Reset");
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
-
 	if(!GetCharacter())
 		return;
 
@@ -46,6 +43,7 @@ void CPickupPet::Reset()
 	{
 		GameServer()->ResetFakeTunes(GetPlayer()->GetCid(), GetCharacter()->GetOverriddenTuneZone());
 	}
+	m_MarkedForDestroy = true;
 }
 
 void CPickupPet::Tick()

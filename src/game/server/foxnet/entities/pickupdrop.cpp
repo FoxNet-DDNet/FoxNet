@@ -62,7 +62,6 @@ void CPickupDrop::Reset(bool PickedUp)
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		Server()->SnapFreeId(m_aIds[i]);
-	Server()->SnapFreeId(GetId());
 
 	if(m_Owner >= 0)
 	{
@@ -79,7 +78,7 @@ void CPickupDrop::Reset(bool PickedUp)
 	if(!PickedUp)
 		GameServer()->CreateDeath(m_Pos, m_Owner, m_StartTeamMask);
 
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 bool CPickupDrop::IsSwitchActiveCb(int Number, void *pUser)

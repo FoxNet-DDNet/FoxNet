@@ -37,8 +37,7 @@ void CEpicCircle::Reset()
 	for(int i = 0; i < MAX_PARTICLES; i++)
 		Server()->SnapFreeId(m_aIds[i]);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CEpicCircle::Tick()

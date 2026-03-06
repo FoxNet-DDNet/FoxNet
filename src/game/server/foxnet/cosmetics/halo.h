@@ -15,7 +15,6 @@ class CHalo : public CEntityOwned
 		NUM_IDS = 6
 	};
 
-
 	class CSnapData
 	{
 	public:

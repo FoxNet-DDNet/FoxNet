@@ -25,7 +25,7 @@ CHalo::CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 	m_StartTick = Server()->Tick();
 
-	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
+	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
 	std::sort(m_aSnap, m_aSnap + NUM_IDS, [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
@@ -37,8 +37,9 @@ void CHalo::Reset()
 {
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("halo", "Reset");
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
+		Server()->SnapFreeId(m_aSnap[Idx].m_Id);
+	m_MarkedForDestroy = true;
 }
 
 void CHalo::Tick()
@@ -63,7 +64,7 @@ void CHalo::SetData()
 
 	const vec2 Center(0.0f, -64.0f);
 
-	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
+	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 	{
 		m_aSnap[Idx].m_Pos = Center;
 
@@ -91,7 +92,7 @@ void CHalo::Snap(int SnappingClient)
 
 	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
 
-	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
+	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 	{
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);

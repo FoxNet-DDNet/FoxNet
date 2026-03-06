@@ -38,8 +38,8 @@ void CHeartHat::Reset()
 
 	for(size_t i = 0; i < NUM_HEARTS; i++)
 		Server()->SnapFreeId(m_aIds[i]);
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+
+	m_MarkedForDestroy = true;
 }
 
 void CHeartHat::Tick()

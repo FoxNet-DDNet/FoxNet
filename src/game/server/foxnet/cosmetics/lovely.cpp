@@ -33,8 +33,7 @@ void CLovely::Reset()
 	for(int i = 0; i < MAX_HEARTS; i++)
 		Server()->SnapFreeId(m_aData[i].m_Id);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CLovely::Tick()

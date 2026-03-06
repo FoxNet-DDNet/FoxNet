@@ -56,8 +56,6 @@ void CPortal::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("portal", "Reset");
 
-	Server()->SnapFreeId(GetId());
-
 	for(int p = 0; p < NUM_PORTALS; p++)
 	{
 		for(int i = 0; i < NUM_IDS; i++)
@@ -69,7 +67,8 @@ void CPortal::Reset()
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	if(pOwnerChar)
 		pOwnerChar->m_pPortal = nullptr;
-	GameWorld()->RemoveEntity(this);
+
+	m_MarkedForDestroy = true;
 }
 
 inline static bool PointInCircle(vec2 pos, vec2 center, float radius)

@@ -44,8 +44,7 @@ void CCustomProjectile::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("custom-projectile", "Reset");
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CCustomProjectile::Tick()

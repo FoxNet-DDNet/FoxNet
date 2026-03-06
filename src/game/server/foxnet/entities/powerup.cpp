@@ -65,7 +65,6 @@ void CPowerUp::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("powerup", "Reset");
 
-	Server()->SnapFreeId(GetId());
 	for(size_t i = 0; i < NUM_LASERS; i++)
 		Server()->SnapFreeId(m_Snap.m_aLaserIds[i]);
 
@@ -75,7 +74,7 @@ void CPowerUp::Reset()
 			GameServer()->m_vPowerups.erase(GameServer()->m_vPowerups.begin() + i);
 	}
 
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 inline static bool PointInSquare(vec2 Point, vec2 Center, float Size)

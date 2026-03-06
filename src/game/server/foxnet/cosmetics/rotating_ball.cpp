@@ -43,8 +43,7 @@ void CRotatingBall::Reset()
 
 	Server()->SnapFreeId(m_Id1);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CRotatingBall::Tick()

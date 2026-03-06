@@ -44,8 +44,7 @@ void CLissajous::Reset()
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 		Server()->SnapFreeId(m_Snap[Idx].m_Id);
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CLissajous::Tick()

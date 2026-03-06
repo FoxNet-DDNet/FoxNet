@@ -39,8 +39,7 @@ void CLightSaber::Reset()
 
 	if(GetCharacter())
 		GetCharacter()->m_pLightSaber = nullptr;
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CLightSaber::OnFire()

@@ -44,8 +44,7 @@ void CFlyingPoint::Reset()
 		GameServer()->CreateSoundGlobal(SOUND_PICKUP_HEALTH, m_To);
 	}
 
-	Server()->SnapFreeId(GetId());
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CFlyingPoint::Tick()
