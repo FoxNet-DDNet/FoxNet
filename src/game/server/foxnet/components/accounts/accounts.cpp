@@ -841,7 +841,7 @@ int CAccounts::NeededXP(int Level)
 	else if(Level < 20)
 		return 80;
 	else
-		return 80 +Level * 1.5;
+		return 80 + Level * 1.5;
 }
 
 void CAccounts::MarkAllMailsRead(const char *pUsername)

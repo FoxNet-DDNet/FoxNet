@@ -428,6 +428,16 @@ void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const cha
 	m_pPool->ExecuteWrite(CScoreWorker::InsertMapEntry, std::move(Tmp), "insert map entry");
 }
 
+void CScore::RemoveMapEntry(const char *pMapName)
+{
+	auto pResult = std::make_shared<CScorePlayerResult>();
+	auto Tmp = std::make_unique<CSqlRemoveMapEntry>(pResult);
+
+	str_copy(Tmp->m_aMapName, pMapName, sizeof(Tmp->m_aMapName));
+
+	m_pPool->ExecuteWrite(CScoreWorker::RemoveMapEntry, std::move(Tmp), "remove map entry");
+}
+
 void CScore::InsertPlayerRecord(int ClientId, const char *pName, const char *pMap, float Time)
 {
 	CPlayer *pCurPlayer = GameServer()->m_apPlayers[ClientId];

@@ -1985,6 +1985,31 @@ bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 	return true;
 }
 
+bool CScoreWorker::RemoveMapEntry(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlRemoveMapEntry *>(pGameData);
+	if(!pData)
+		return false;
+	char aBuf[256];
+	// Remove the map entry
+	str_format(aBuf, sizeof(aBuf),
+		"DELETE FROM %s_maps WHERE Map = ?",
+		pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+		return false;
+	pSqlServer->BindString(1, pData->m_aMapName);
+	int NumDeleted = 0;
+	if(!pSqlServer->ExecuteUpdate(&NumDeleted, pError, ErrorSize))
+		return false;
+	if(NumDeleted != 1)
+	{
+		log_warn("sql", "Failed to delete map entry for map '%s'", pData->m_aMapName);
+		return false;
+	}
+	log_info("sql", "Deleted map entry for map '%s'", pData->m_aMapName);
+	return true;
+}
+
 bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);

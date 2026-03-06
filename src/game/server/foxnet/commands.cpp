@@ -1197,6 +1197,20 @@ void CGameContext::ConInsertMapEntry(IConsole::IResult *pResult, void *pUserData
 	pSelf->Score()->InsertMapEntry(pMap, pServer, pMapper, Points, Stars, aTimestamp);
 }
 
+void CGameContext::ConRemoveMapEntry(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pMapName = pResult->GetString(0);
+
+	if(!pMapName)
+	{
+		log_info("score", "ConRemoveMapEntry: no map specified");
+		return;
+	}
+
+	pSelf->Score()->RemoveMapEntry(pMapName);
+}
+
 void CGameContext::ConInsertRecord(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1835,7 +1849,8 @@ void CGameContext::RegisterFoxNetCommands()
 	// Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHidePowerUps, this, "Hides Powerups for Player (id)");
 
 	// Records
-	Console()->Register("insert_map_entry", "s[mapname] s[server] s[mapper] i[points] i[stars] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
+	Console()->Register("map_entry_insert", "s[mapname] s[server] s[mapper] i[points] i[stars] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
+	Console()->Register("map_entry_remove", "s[mapname]", CFGFLAG_SERVER, ConRemoveMapEntry, this, "Remove a map entry from the ddnet_maps sql table");
 
 	Console()->Register("record_insert", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConInsertRecord, this, "Insert a new record for that name on the given map with given time");
 	Console()->Register("record_remove", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecord, this, "Remove all records a name has on the given map");
