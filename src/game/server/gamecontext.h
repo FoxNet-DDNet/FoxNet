@@ -865,6 +865,7 @@ private:
 	static void ConSetPlayerColorFeet(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPlayerColorBody(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetPlayerAfk(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetExtraPing(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetAbility(IConsole::IResult *pResult, void *pUserData);
 

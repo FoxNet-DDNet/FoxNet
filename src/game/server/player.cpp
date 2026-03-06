@@ -348,6 +348,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	int Latency = SnappingClient == SERVER_DEMO_CLIENT ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aCurLatency[m_ClientId];
+	Latency += m_ExtraPing;
 	int Score = GameServer()->m_pController->SnapPlayerScore(SnappingClient, this);
 
 	if(!Server()->IsSixup(SnappingClient))

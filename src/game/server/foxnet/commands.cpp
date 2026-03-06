@@ -821,6 +821,21 @@ void CGameContext::ConSetPlayerAfk(IConsole::IResult *pResult, void *pUserData)
 	log_info("server", "changed player '%s's afk status to '%d'", pSelf->Server()->ClientName(Victim), Afk);
 }
 
+void CGameContext::ConSetExtraPing(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	int Amount = pResult->GetInteger(1);
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+
+	if(!pPlayer)
+		return;
+
+	pPlayer->m_ExtraPing = Amount;
+	log_info("server", "changed player '%s's extra ping to '%d'", pSelf->Server()->ClientName(Victim), Amount);
+}
+
 void CGameContext::ConSetAbility(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1677,7 +1692,7 @@ void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 
 	if(Idx < 0 || (int)pSelf->m_vMultiMaps.size() < Idx)
 	{
-		log_error("multimap", "Server doesn't have that '%s' loaded", pMapName);
+		log_error("multimap", "Map '%s' isn't loaded", pMapName);
 		return;
 	}
 
@@ -1701,7 +1716,7 @@ void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 
 	if(Idx < 0 || (int)pSelf->m_vMultiMaps.size() < Idx)
 	{
-		log_error("multimap", "This server doesn't have that Map loaded");
+		log_error("multimap", "Casino map isn't loaded");
 		return;
 	}
 
@@ -1752,6 +1767,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("set_color_body", "v[id] i[color]", CFGFLAG_SERVER, ConSetPlayerColorBody, this, "Set a players (id) Body Color");
 	Console()->Register("set_color_feet", "v[id] i[color]", CFGFLAG_SERVER, ConSetPlayerColorFeet, this, "Set a players (id) Feet Color");
 	Console()->Register("set_afk", "v[id] ?i[afk]", CFGFLAG_SERVER, ConSetPlayerAfk, this, "Set a players (id) afk status");
+	Console()->Register("set_extra_ping", "v[id] i[amount]", CFGFLAG_SERVER, ConSetExtraPing, this, "Set a players (id) extra ping");
 
 	Console()->Register("set_ability", "i[ability] ?v[id]", CFGFLAG_SERVER, ConSetAbility, this, "Set a players (id) Ability");
 

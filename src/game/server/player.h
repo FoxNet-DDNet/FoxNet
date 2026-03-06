@@ -515,7 +515,6 @@ public:
 
 	void HookPower(int Extra);
 	void SetEmoticonGun(int Type);
-	void SetExtraPing(int Type);
 	void SetIgnoreGameLayer(bool Active);
 	void SetObfuscated(bool Active);
 	void SetInvisible(bool Active);

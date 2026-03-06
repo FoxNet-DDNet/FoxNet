@@ -912,11 +912,6 @@ void CPlayer::SetInvisible(bool Active)
 	m_Invisible = Active;
 }
 
-void CPlayer::SetExtraPing(int Ping)
-{
-	m_ExtraPing = Ping;
-}
-
 void CPlayer::SetIgnoreGameLayer(bool Set)
 {
 	m_IgnoreGamelayer = Set;
