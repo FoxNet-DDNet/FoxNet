@@ -226,10 +226,10 @@ void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 	}
 
-	CheckLevelUp(Amount);
+	CheckLevelUp();
 }
 
-bool CPlayer::CheckLevelUp(long Amount, bool Silent)
+bool CPlayer::CheckLevelUp(bool Silent)
 {
 	bool LeveledUp = false;
 	char aBuf[256];
@@ -320,7 +320,7 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 
 		if(Acc()->m_Level == 5)
 		{
-			NewRewardMail(CReward(Days, 1000, 10000, 1, {EItemRarity::Common}));
+			NewRewardMail(CReward(Days, 1000, 7500, 1, {EItemRarity::Common}));
 		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
@@ -334,11 +334,11 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		}
 		else if(Acc()->m_Level % 50 == 0)
 		{
-			NewRewardMail(CReward(Days, 7500, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
+			NewRewardMail(CReward(Days, 10000, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
 		}
 		else if(Acc()->m_Level % 10 == 0)
 		{
-			NewRewardMail(CReward(Days, 5000, 20000, 2, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}));
+			NewRewardMail(CReward(Days, 5000, 10000, 2, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}));
 		}
 	}
 

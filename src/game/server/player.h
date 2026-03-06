@@ -496,7 +496,7 @@ public:
 
 	void GivePlaytime(long Amount);
 	void GiveXP(long Amount, const char *pMessage = "", bool Multiplier = true);
-	bool CheckLevelUp(long Amount, bool Silent = false);
+	bool CheckLevelUp(bool Silent = false);
 
 	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
 	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }

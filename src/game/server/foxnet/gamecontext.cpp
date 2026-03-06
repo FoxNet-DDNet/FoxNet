@@ -675,7 +675,9 @@ void CGameContext::OnLogin(int ClientId)
 		pPlayer->SetTeam(TEAM_GAME, false);
 	}
 
-	pPlayer->m_AccLoginAttempts = 0; // reset login attempts on successful login
+	pPlayer->CheckLevelUp();
+
+	// pPlayer->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
 	if(pPlayer->Acc()->m_LastName[0] == '\0')
 	{

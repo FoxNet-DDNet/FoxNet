@@ -833,15 +833,15 @@ void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
 int CAccounts::NeededXP(int Level)
 {
 	if(Level < 1)
-		return 30;
+		return 15;
 	else if(Level < 5)
-		return 65;
+		return 40;
 	else if(Level < 10)
-		return 100;
+		return 60;
 	else if(Level < 20)
-		return 150;
+		return 80;
 	else
-		return 150 + Level * 2;
+		return 80 +Level * 1.5;
 }
 
 void CAccounts::MarkAllMailsRead(const char *pUsername)
