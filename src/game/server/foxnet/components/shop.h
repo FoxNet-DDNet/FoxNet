@@ -1,23 +1,29 @@
-﻿#ifndef GAME_SERVER_FOXNET_COSMETICHANDLER_H
-#define GAME_SERVER_FOXNET_COSMETICHANDLER_H
+﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_SHOP_H
+#define GAME_SERVER_FOXNET_COMPONENTS_SHOP_H
 
-#include <base/system.h>
 
-#include <vector>
-#include "item_registry.h"
+#include <game/server/foxnet/item_registry.h>
+#include <game/server/foxnet/component.h>
+#include <engine/console.h>
 
 class CGameContext;
 class IServer;
 
-class CShop
+class CShop : public CServerComponent
 {
-	CGameContext *m_pGameServer = nullptr;
 	CItemRegistry m_Registry;
-	CGameContext *GameServer() const { return m_pGameServer; }
-	IServer *Server() const;
 
+	static void ConListItems(IConsole::IResult *pResult, void *pUserData);
+	static void ConEditItem(IConsole::IResult *pResult, void *pUserData);
+	static void ConReset(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConGiveItem(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveItemDays(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveItemForever(IConsole::IResult *pResult, void *pUserData);
+	static void ConRemoveItem(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConBuyItem(IConsole::IResult *pResult, void *pUserData);
 public:
-	void Init(CGameContext *pGameServer);
 
 	const CItemRegistry &Registry() const { return m_Registry; }
 
@@ -42,6 +48,9 @@ public:
 	const CItemConfig *RandomItemByRarity(EItemRarity Rarity, bool AllowAny);
 
 	const char *GetItemName(EItemId Id) const;
+
+	void OnInit() override;
+	void OnConsoleInit() override;
 };
 
-#endif // GAME_SERVER_FOXNET_COSMETICHANDLER_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_SHOP_H

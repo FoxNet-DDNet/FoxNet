@@ -4,13 +4,12 @@
 #define GAME_SERVER_GAMECONTEXT_H
 
 #include "eventhandler.h"
-#include "foxnet/accounts.h"
+#include "foxnet/components/accounts/accounts.h"
+#include "foxnet/components/votemenu.h"
 #include "foxnet/entities/powerup.h"
 #include "foxnet/entities/roulette.h"
 #include "foxnet/persistent_data.h"
-#include "foxnet/scripting/scripting.h"
-#include "foxnet/shop.h"
-#include "foxnet/votemenu.h"
+#include "foxnet/components/scripting/scripting.h"
 #include "gameworld.h"
 #include "teehistorian.h"
 
@@ -31,6 +30,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "foxnet/components/fake_snap.h"
 
 /*
 	Tick
@@ -751,6 +751,8 @@ public:
 	const char *MapName(int ClientId);
 
 private:
+	std::vector<class CServerComponent *> m_vpComponents;
+
 	class CDamageIndEffects
 	{
 	public:
@@ -776,10 +778,10 @@ private:
 
 	void FoxNetTick();
 	void FoxNetInit();
-	void FoxNetSnap(int ClientId, bool GlobalSnap);
-	void FoxNetPostGlobalSnap();
+	void FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo);
 	void RegisterFoxNetCommands();
 	void OnFoxNetConsoleInit();
+
 	// Multimaps
 	void LoadMapByName(const char *pMapName, EMapType Type);
 	void UnloadMapByName(const char *pMapName);
@@ -792,7 +794,7 @@ private:
 	std::vector<int> m_vQuadDebugIds;
 
 	static void ConchainMultimap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	
+
 	static void ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	void FormatAndRunScriptingBan(const char *pStr, int ClientId);
 
@@ -891,34 +893,10 @@ private:
 	static void ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetSpazzing(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConAccRegister(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccPassword(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccLogin(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccLogout(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccProfile(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccDisable(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccForcePassword(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccForceLogin(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccForceLogout(IConsole::IResult *pResult, void *pUserData);
-
 	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
-	static void ConGiveItem(IConsole::IResult *pResult, void *pUserData);
-	static void ConGiveItemDays(IConsole::IResult *pResult, void *pUserData);
-	static void ConGiveItemForever(IConsole::IResult *pResult, void *pUserData);
-	static void ConRemoveItem(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConNewMail(IConsole::IResult *pResult, void *pUserData);
-	static void ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConShopListItems(IConsole::IResult *pResult, void *pUserData);
-	static void ConShopEditItem(IConsole::IResult *pResult, void *pUserData);
-	static void ConShopReset(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConShopBuyItem(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleItem(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConSendFakeMessage(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData);
 
@@ -931,10 +909,6 @@ private:
 	static void ConDropWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConCleanDroppedPickups(IConsole::IResult *pResult, void *pUserData);
 	static void ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConAccTop5Money(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccTop5Level(IConsole::IResult *pResult, void *pUserData);
-	static void ConAccTop5Playtime(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConRepredict(IConsole::IResult *pResult, void *pUserData);
 	static void ConPowerups(IConsole::IResult *pResult, void *pUserData);
@@ -955,26 +929,6 @@ private:
 	static void ConUnloadMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
-
-	struct CFakeSnapPlayer
-	{
-		int m_ClientId;
-
-		char m_aName[16];
-		char m_aClan[12];
-		int m_Country;
-
-		bool m_CustomColors;
-		char m_aSkinName[24];
-		int m_ColorBody;
-		int m_ColorFeet;
-
-		char m_aMessage[256];
-
-		char m_aContext[24] = "fake-message";
-	};
-
-	std::vector<CFakeSnapPlayer> m_vFakeSnapPlayers;
 	bool RandomMapVote();
 
 public:
@@ -1009,11 +963,12 @@ public:
 	bool m_InitRandomMap = false;
 
 	CAccountSession m_aAccounts[MAX_CLIENTS];
-	CAccounts m_AccountManager;
-	CScripting m_Scripting;
 
+	CScripting m_Scripting;
+	CAccounts m_AccountManager;
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;
+	CFakeSnap m_FakeSnap;
 
 	void ClearVotes(int ClientId);
 
@@ -1037,8 +992,6 @@ public:
 	void OnLogout(int ClientId);
 
 	void Explosion(vec2 Pos, CClientMask Mask);
-
-	bool AddFakeMessage(const char *pName, const char *pMessage, const char *pSkinName, bool CustomColor = false, int ColorBody = 0, int ColorFeet = 0);
 
 	int GetWeaponType(int Weapon);
 	std::optional<vec2> GetRandomAccessiblePos();

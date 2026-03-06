@@ -2857,11 +2857,23 @@ if(SERVER)
     eventhandler.cpp
     eventhandler.h  
     # <FoxNet
-    foxnet/accounts.cpp
-    foxnet/accounts.h
-    foxnet/accountworker.cpp
-    foxnet/accountworker.h
     foxnet/commands.cpp
+    foxnet/component.cpp
+    foxnet/component.h
+    foxnet/components/accounts/accounts.cpp
+    foxnet/components/accounts/accounts.h
+    foxnet/components/accounts/accountworker.cpp
+    foxnet/components/accounts/accountworker.h
+    foxnet/components/fake_snap.cpp
+    foxnet/components/fake_snap.h
+    foxnet/components/scripting/impl.cpp
+    foxnet/components/scripting/impl.h
+    foxnet/components/scripting/scripting.cpp
+    foxnet/components/scripting/scripting.h
+    foxnet/components/shop.cpp
+    foxnet/components/shop.h
+    foxnet/components/votemenu.cpp
+    foxnet/components/votemenu.h
     foxnet/cosmetics/dot_trail.cpp
     foxnet/cosmetics/dot_trail.h
     foxnet/cosmetics/epic_circle.cpp
@@ -2915,18 +2927,10 @@ if(SERVER)
     foxnet/persistent_data.cpp
     foxnet/persistent_data.h
     foxnet/player.cpp
-    foxnet/scripting/impl.cpp
-    foxnet/scripting/impl.h
-    foxnet/scripting/scripting.cpp
-    foxnet/scripting/scripting.h
-    foxnet/shop.cpp
-    foxnet/shop.h
     foxnet/vehicles/snake.cpp
     foxnet/vehicles/snake.h
     foxnet/vehicles/ufo.cpp
     foxnet/vehicles/ufo.h
-    foxnet/votemenu.cpp
-    foxnet/votemenu.h
     # FoxNet>
     gamecontext.cpp
     gamecontext.h

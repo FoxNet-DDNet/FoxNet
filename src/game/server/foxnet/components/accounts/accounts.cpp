@@ -1,9 +1,6 @@
 ﻿#include "accounts.h"
 
 #include "accountworker.h"
-#include "game/server/gamecontext.h"
-#include "item_registry.h"
-#include "shop.h"
 
 #include <base/hash.h>
 #include <base/hash_ctxt.h>
@@ -19,18 +16,240 @@
 
 #include <generated/protocol.h>
 
+#include <game/server/foxnet/components/shop.h>
+#include <game/server/foxnet/components/votemenu.h>
+#include <game/server/foxnet/item_registry.h>
+#include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
+#include <cstdint>
 #include <ctime>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cstdint>
-#include "votemenu.h"
+#include <engine/server/server.h>
 
-IServer *CAccounts::Server() const { return GameServer()->Server(); }
+void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!g_Config.m_SvAccounts)
+	{
+		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
+		return;
+	}
+	if(!g_Config.m_SvAccountsAllowRegister)
+	{
+		pSelf->SendChatTarget(ClientId, "Account registration is disabled");
+		return;
+	}
+	
+	if(pSelf->GetAcc(ClientId)->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(ClientId, "You are already logged in");
+		return;
+	}
+	const char *pUser = pResult->GetString(0);
+	const char *pPass = pResult->GetString(1);
+
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+	if(pPlayer->m_AccRegisters >= g_Config.m_SvAccountsMaxRegister)
+	{
+		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
+		char aBanBuf[1024];
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
+						     "ver: %s (%d) [%s]",
+			pSelf->Server()->ClientName(ClientId),
+			pAddr,
+			pSelf->Server()->GetCustomClient(ClientId),
+			pSelf->Server()->GetClientVersion(ClientId),
+			pSelf->Server()->GetClientVersionStr(ClientId));
+		char aTitle[32];
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
+		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
+		char aCmdBuf[512];
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/register's");
+		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
+		return;
+	}
+
+	pSelf->Register(ClientId, pUser, pPass);
+}
+
+void CAccounts::ConPassword(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!g_Config.m_SvAccounts)
+	{
+		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
+		return;
+	}
+
+	if(!pSelf->GetAcc(ClientId)->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(ClientId, "You aren't logged in");
+		return;
+	}
+	const char *pOldPass = pResult->GetString(0);
+	const char *pPass = pResult->GetString(1);
+
+	pSelf->ChangePassword(ClientId, pOldPass, pPass);
+}
+
+void CAccounts::ConLogin(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!g_Config.m_SvAccounts)
+	{
+		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
+		return;
+	}
+
+	if(pSelf->GetAcc(ClientId)->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(ClientId, "You are already logged in");
+		return;
+	}
+
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvAccountsMaxLoginAttempts)
+	{
+		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
+		char aBanBuf[1024];
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
+						     "ver: %s (%d) [%s]",
+			pSelf->Server()->ClientName(ClientId),
+			pAddr,
+			g_Config.m_SvRconBantime,
+			pSelf->Server()->GetCustomClient(ClientId),
+			pSelf->Server()->GetClientVersion(ClientId),
+			pSelf->Server()->GetClientVersionStr(ClientId));
+		char aTitle[32];
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
+		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
+
+		char aCmdBuf[512];
+		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/login' attempts.");
+		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
+		return;
+	}
+
+	const char *pUser = pResult->GetString(0);
+	const char *pPass = pResult->GetString(1);
+
+	pSelf->Login(ClientId, pUser, pPass);
+}
+
+void CAccounts::ConLogout(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(pSelf->Logout(ClientId))
+		pSelf->SendChatTarget(ClientId, "Logged out");
+	else
+		pSelf->SendChatTarget(ClientId, "Not logged in");
+}
+
+void CAccounts::ConProfile(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const char *pName = pResult->NumArguments() ? pResult->GetString(0) : pSelf->Server()->ClientName(pResult->m_ClientId);
+	pSelf->ShowAccProfile(pResult->m_ClientId, pName);
+}
+
+void CAccounts::ConDisable(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const char *pUser = pResult->GetString(0);
+	const int pValue = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : 1;
+
+	pSelf->DisableAccount(pUser, pValue);
+}
+
+void CAccounts::ConForcePassword(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const char *pUser = pResult->GetString(0);
+	const char *pNewPassword = pResult->GetString(1);
+
+	pSelf->SetPassword(pUser, pNewPassword);
+}
+
+void CAccounts::ConForceLogin(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
+
+	const char *pName = pResult->GetString(0);
+	pSelf->ForceLogin(Victim, pName);
+}
+
+void CAccounts::ConForceLogout(IConsole::IResult *pResult, void *pUserData)
+{ // Logs out Current Acc Session, does not work across servers
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	pSelf->Logout(ClientId);
+}
+
+void CAccounts::ConTop5Money(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	pSelf->Top5(pResult->m_ClientId, "money", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
+}
+void CAccounts::ConTop5Level(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	pSelf->Top5(pResult->m_ClientId, "level", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
+}
+void CAccounts::ConTop5Playtime(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	pSelf->Top5(pResult->m_ClientId, "playtime", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
+}
+
+void CAccounts::ConNewMail(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const char *pUsername = pResult->GetString(0);
+	const char *pSubject = pResult->GetString(1);
+	const char *pMessage = pResult->GetString(2);
+	const char *pCmdName = pResult->GetString(3);
+	const char *pCmd = pResult->GetString(4);
+
+	pSelf->NewMail(pUsername, pSubject, pMessage, pCmdName, pCmd);
+}
+
+void CAccounts::ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	int Param = 0;
+	const char *pSubject = pResult->GetString(Param++);
+	const char *pMessage = pResult->GetString(Param++);
+	const char *pCmdName = pResult->GetString(Param++);
+	const char *pCmd = pResult->GetString(Param++);
+
+	int MinLevel = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) : 0;
+	bool OnlyOnline = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
+	bool IncludeDisabled = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
+
+	pSelf->NewGlobalMail(pSubject, pMessage, pCmdName, pCmd, IncludeDisabled, OnlyOnline, MinLevel);
+}
+
+CDbConnectionPool *CAccounts::DbPool()
+{
+	return ((CServer *)Server())->DbPool();
+}
 
 void CAccounts::AddPending(const std::shared_ptr<CAccResult> &pRes, std::function<void(CAccResult &)> &&Cb)
 {
@@ -45,14 +264,17 @@ SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
 	return sha256_finish(&Sha256Ctx);
 }
 
-void CAccounts::Init(CGameContext *pGameServer, CDbConnectionPool *pPool)
+void CAccounts::OnInit()
 {
-	m_pGameServer = pGameServer;
-	m_pPool = pPool;
 	LogoutAllAccountsPort(Server()->Port());
 }
 
-void CAccounts::Tick()
+void CAccounts::OnClientDrop(int ClientId, const char *pReason)
+{
+	Logout(ClientId);
+}
+
+void CAccounts::OnTick()
 {
 	if(m_vPending.empty())
 	{
@@ -80,7 +302,7 @@ void CAccounts::Tick()
 
 void CAccounts::AutoLogin(int ClientId)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	if(!g_Config.m_SvAccounts)
 		return;
@@ -102,12 +324,12 @@ void CAccounts::AutoLogin(int ClientId)
 			return;
 		ForceLogin(ClientId, Res.m_aUsername, true, true);
 	});
-	m_pPool->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name");
+	DbPool()->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name");
 }
 
 bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, bool Auto)
 {
-	if(!m_pPool || !pUsername[0])
+	if(!DbPool() || !pUsername[0])
 		return false;
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByUser>(pRes);
@@ -137,13 +359,13 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 			GameServer()->SendChatTarget(ClientId, "Automatically logged into your account");
 		OnLogin(ClientId, Res);
 	});
-	m_pPool->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
+	DbPool()->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
 	return true;
 }
 
 void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	if(!pUsername[0] || !pPassword[0])
 		return;
@@ -176,7 +398,7 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 		GameServer()->SendChatTarget(ClientId, "Login successful");
 		OnLogin(ClientId, Res);
 	});
-	m_pPool->Execute(CAccountsWorker::Login, std::move(pReq), "acc login");
+	DbPool()->Execute(CAccountsWorker::Login, std::move(pReq), "acc login");
 }
 
 static bool IsAllLowercase(const char *pStr)
@@ -196,7 +418,7 @@ static bool IsAllLowercase(const char *pStr)
 
 bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassword)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return false;
 	if(!pUsername[0] || !pPassword[0])
 	{
@@ -250,7 +472,7 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 				GameServer()->m_apPlayers[ClientId]->m_AccRegisters++;
 		}
 	});
-	m_pPool->ExecuteWrite(CAccountsWorker::Register, std::move(pReq), "acc register");
+	DbPool()->ExecuteWrite(CAccountsWorker::Register, std::move(pReq), "acc register");
 	return true;
 }
 
@@ -318,7 +540,7 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();
 	pUpd->m_ClientId = ClientId;
-	m_pPool->ExecuteWrite(CAccountsWorker::UpdateLoginState, std::move(pUpd), "acc update login");
+	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLoginState, std::move(pUpd), "acc update login");
 }
 
 bool CAccounts::Logout(int ClientId)
@@ -326,8 +548,8 @@ bool CAccounts::Logout(int ClientId)
 	if(GameServer()->m_aAccounts[ClientId].m_LoggedIn)
 	{
 		OnLogout(ClientId, GameServer()->m_aAccounts[ClientId]);
-		GameServer()->m_aAccounts[ClientId] = CAccountSession();
 		GameServer()->OnLogout(ClientId);
+		GameServer()->m_aAccounts[ClientId] = CAccountSession();
 		return true;
 	}
 	return false;
@@ -335,7 +557,7 @@ bool CAccounts::Logout(int ClientId)
 
 void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
@@ -347,12 +569,12 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
 	pReq->m_Configs = AccInfo.m_Configs;
-	m_pPool->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
+	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 
 void CAccounts::LogoutAllAccountsPort(int Port)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	struct CSqlLogoutByPort : ISqlData
 	{
@@ -374,12 +596,12 @@ void CAccounts::LogoutAllAccountsPort(int Port)
 	};
 	auto pReq = std::make_unique<CSqlLogoutByPort>();
 	pReq->m_Port = Port;
-	m_pPool->ExecuteWrite(Fn, std::move(pReq), "acc bulk logout by port");
+	DbPool()->ExecuteWrite(Fn, std::move(pReq), "acc bulk logout by port");
 }
 
 bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return false;
 	if(!GameServer()->m_aAccounts[ClientId].m_LoggedIn)
 	{
@@ -430,13 +652,13 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
 	});
 
-	m_pPool->ExecuteWrite(CAccountsWorker::ChangePassword, std::move(pReq), "acc change password");
+	DbPool()->ExecuteWrite(CAccountsWorker::ChangePassword, std::move(pReq), "acc change password");
 	return true;
 }
 
 void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	if(!pUsername[0] || !pNewPassword[0])
 		return;
@@ -445,12 +667,12 @@ void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
 	auto pReq = std::make_unique<CAccSetPassword>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_aNewPasswordHash, HashedPassword, sizeof(pReq->m_aNewPasswordHash));
-	m_pPool->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
+	DbPool()->ExecuteWrite(CAccountsWorker::SetPassword, std::move(pReq), "acc change password (admin)");
 }
 
 void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 {
-	if(!m_pPool || !pName[0])
+	if(!DbPool() || !pName[0])
 		return;
 	auto SendProfile = [this, ClientId, NameCopy = std::string(pName)](const CAccResult &Data) {
 		char aBuf[128];
@@ -511,7 +733,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 			}
 			SendProfile(Res2);
 		});
-		m_pPool->Execute(CAccountsWorker::SelectByUsername, std::move(pReq2), "acc select by username (profile)");
+		DbPool()->Execute(CAccountsWorker::SelectByUsername, std::move(pReq2), "acc select by username (profile)");
 	};
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByLastName>(pRes);
@@ -522,12 +744,12 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		else
 			SendProfile(Res);
 	});
-	m_pPool->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name (profile)");
+	DbPool()->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name (profile)");
 }
 
 void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccSaveInfo>();
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
@@ -539,12 +761,12 @@ void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
 	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
 	pReq->m_Configs = AccInfo.m_Configs;
-	m_pPool->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
+	DbPool()->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
 }
 
 void CAccounts::SaveAllAccounts()
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -555,7 +777,7 @@ void CAccounts::SaveAllAccounts()
 
 void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccShowTop5>(pRes);
@@ -575,37 +797,37 @@ void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
 	});
 
-	m_pPool->ExecuteWrite(CAccountsWorker::ShowTop5, std::move(pReq), "show acc top5");
+	DbPool()->ExecuteWrite(CAccountsWorker::ShowTop5, std::move(pReq), "show acc top5");
 }
 
 void CAccounts::SetPlayerName(int ClientId, const char *pName)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccSetNameReq>();
 	str_copy(pReq->m_NewPlayerName, pName, sizeof(pReq->m_NewPlayerName));
 	str_copy(pReq->m_aUsername, GameServer()->m_aAccounts[ClientId].m_aUsername, sizeof(pReq->m_aUsername));
-	m_pPool->ExecuteWrite(CAccountsWorker::SetPlayerName, std::move(pReq), "acc set player name");
+	DbPool()->ExecuteWrite(CAccountsWorker::SetPlayerName, std::move(pReq), "acc set player name");
 }
 
 void CAccounts::DisableAccount(const char *pUsername, bool Disable)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccDisable>();
 	pReq->m_Disable = Disable;
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	m_pPool->ExecuteWrite(CAccountsWorker::DisableAccount, std::move(pReq), "acc (un)disable");
+	DbPool()->ExecuteWrite(CAccountsWorker::DisableAccount, std::move(pReq), "acc (un)disable");
 }
 
 void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccRemoveItem>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_aItemName, pItemName, sizeof(pReq->m_aItemName));
-	m_pPool->ExecuteWrite(CAccountsWorker::RemoveItem, std::move(pReq), "acc remove item");
+	DbPool()->ExecuteWrite(CAccountsWorker::RemoveItem, std::move(pReq), "acc remove item");
 }
 
 int CAccounts::NeededXP(int Level)
@@ -624,62 +846,62 @@ int CAccounts::NeededXP(int Level)
 
 void CAccounts::MarkAllMailsRead(const char *pUsername)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccMarkAllMailsRead>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	m_pPool->ExecuteWrite(CAccountsWorker::MarkAllMailsRead, std::move(pReq), "acc mark all mails read");
+	DbPool()->ExecuteWrite(CAccountsWorker::MarkAllMailsRead, std::move(pReq), "acc mark all mails read");
 }
 
 void CAccounts::ClaimAllMailRewards(const char *pUsername)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccClaimAllMailRewards>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	m_pPool->ExecuteWrite(CAccountsWorker::ClaimAllMailRewards, std::move(pReq), "acc mark all mails claimed");
+	DbPool()->ExecuteWrite(CAccountsWorker::ClaimAllMailRewards, std::move(pReq), "acc mark all mails claimed");
 }
 
 void CAccounts::DeleteAllReadMails(const char *pUsername)
 {
-	if(!m_pPool || !pUsername || !pUsername[0])
+	if(!DbPool() || !pUsername || !pUsername[0])
 		return;
 
 	auto pReq = std::make_unique<CAccDeleteAllRead>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	m_pPool->ExecuteWrite(CAccountsWorker::DeleteAllReadMails, std::move(pReq), "acc delete all read mails");
+	DbPool()->ExecuteWrite(CAccountsWorker::DeleteAllReadMails, std::move(pReq), "acc delete all read mails");
 }
 
 void CAccounts::SetMailRead(const char *pUsername, int64_t MailId, bool Read)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccSetMailRead>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	pReq->m_MailId = MailId;
 	pReq->m_Read = Read;
-	m_pPool->ExecuteWrite(CAccountsWorker::SetMailRead, std::move(pReq), "acc set mail read");
+	DbPool()->ExecuteWrite(CAccountsWorker::SetMailRead, std::move(pReq), "acc set mail read");
 }
 
 void CAccounts::SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccSetMailUsedCmd>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	pReq->m_MailId = MailId;
 	pReq->m_UsedCmd = Used;
-	m_pPool->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
+	DbPool()->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
 }
 
 void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 	auto pReq = std::make_unique<CAccDeleteMail>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	pReq->m_MailId = MailId;
-	m_pPool->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
+	DbPool()->ExecuteWrite(CAccountsWorker::DeleteMail, std::move(pReq), "acc delete mail");
 }
 
 void CAccounts::NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
@@ -698,7 +920,7 @@ void CAccounts::NewMail(int ClientId, const char *pSubject, const char *pMessage
 
 void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 
 	auto pRes = std::make_shared<CAccMailAcknowledge>();
@@ -765,12 +987,12 @@ void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char 
 		}
 	});
 
-	m_pPool->ExecuteWrite(CAccountsWorker::NewMail, std::move(pReq), "acc new mail");
+	DbPool()->ExecuteWrite(CAccountsWorker::NewMail, std::move(pReq), "acc new mail");
 }
 
 void CAccounts::NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled, bool OnlyLoggedIn, int MinLevel)
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 
 	if(str_length(pSubject) > MAX_VOTE_LENGTH - str_length("──────"))
@@ -811,12 +1033,12 @@ void CAccounts::NewGlobalMail(const char *pSubject, const char *pMessage, const 
 		}
 	});
 
-	m_pPool->ExecuteWrite(CAccountsWorker::NewGlobalMail, std::move(pReq), "acc bulk new mail");
+	DbPool()->ExecuteWrite(CAccountsWorker::NewGlobalMail, std::move(pReq), "acc bulk new mail");
 }
 
 void CAccounts::FetchMailBox()
 {
-	if(!m_pPool)
+	if(!DbPool())
 		return;
 
 	time_t Now = time(0);
@@ -892,6 +1114,26 @@ void CAccounts::FetchMailBox()
 			AccRef.m_MailboxFetchPending = false;
 		});
 
-		m_pPool->Execute(FnLoadMailbox, std::move(pReq), "acc mailbox refresh");
+		DbPool()->Execute(FnLoadMailbox, std::move(pReq), "acc mailbox refresh");
 	}
+}
+
+void CAccounts::OnConsoleInit()
+{
+	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConForceLogin, this, "Force Login player (id) into any account");
+	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConForceLogout, this, "Force logout an account thats currently active on the server");
+	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConDisable, this, "Disable an account");
+	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConForcePassword, this, "Disable an account");
+	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConRegister, this, "Register a account");
+	Console()->Register("password", "s[oldpass] s[password]", CFGFLAG_CHAT, ConPassword, this, "Change your password");
+	Console()->Register("login", "s[username] r[password]", CFGFLAG_CHAT, ConLogin, this, "Login to your account");
+	Console()->Register("logout", "", CFGFLAG_CHAT, ConLogout, this, "Logout of your account");
+	Console()->Register("profile", "?r[name]", CFGFLAG_CHAT, ConProfile, this, "Show someones profile");
+
+	Console()->Register("top5money", "?i[offset]", CFGFLAG_CHAT, ConTop5Money, this, "Show someones profile");
+	Console()->Register("top5level", "?i[offset]", CFGFLAG_CHAT, ConTop5Level, this, "Show someones profile");
+	Console()->Register("top5playtime", "?i[offset]", CFGFLAG_CHAT, ConTop5Playtime, this, "Show someones profile");
+
+	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
+	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
 }

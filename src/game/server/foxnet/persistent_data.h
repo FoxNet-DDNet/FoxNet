@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include <game/server/foxnet/accounts.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 
 class CPlayer;
 

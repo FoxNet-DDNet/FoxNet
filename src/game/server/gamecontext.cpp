@@ -199,12 +199,15 @@ void CGameContext::Clear()
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); Idx++)
 		m_vMultiMaps[Idx].m_CreatedEntities = false;
 
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnPreReset();
 	std::deque<CMapOverride> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
+	std::vector<CServerComponent * > vComponents = m_vpComponents;
 	// FoxNet>
 
 	m_Resetting = true;
@@ -227,6 +230,12 @@ void CGameContext::Clear()
 	m_vQuadDebugIds = vQuadDebugIds;
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;
+	m_vpComponents = std::move(vComponents);
+	for(auto &pComponent : m_vpComponents)
+		pComponent->InitComponent(this);
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnReset();
 	// FoxNet>
 }
 
@@ -1600,6 +1609,8 @@ void CGameContext::OnClientEnter(int ClientId)
 
 	if(NameDetection(ClientId, Server()->ClientName(ClientId)))
 		return;
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnClientEnter(ClientId);
 	// FoxNet>
 
 	if(m_TeeHistorianActive)
@@ -1856,10 +1867,8 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptPlayerDisconnect, ClientId);
 		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
-
-	m_VoteMenu.OnClientDrop(ClientId);
-	m_AccountManager.Logout(ClientId);
-	m_aAccounts[ClientId] = CAccountSession(); // reset
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnClientDrop(ClientId, pReason);
 	// FoxNet>
 
 	AbortVoteKickOnDisconnect(ClientId);
@@ -4660,6 +4669,9 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	}
 
 	// <FoxNet
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnShutdown(pPersistentData);
+
 	if(pPersistentData == nullptr) // Full shutdown, not map reload
 	{
 		for(size_t i = 1; i < m_vMultiMaps.size(); i++)
@@ -4790,7 +4802,7 @@ void CGameContext::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 		m_Events.Snap(ClientId);
 	}
 	// <FoxNet
-	FoxNetSnap(ClientId, GlobalSnap);
+	FoxNetSnap(ClientId, GlobalSnap, RecordingDemo);
 	// FoxNet>
 }
 
@@ -4802,7 +4814,8 @@ void CGameContext::OnPostGlobalSnap()
 			pPlayer->GetCharacter()->PostGlobalSnap();
 	}
 	// <FoxNet
-	FoxNetPostGlobalSnap();
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnPostGlobalSnap();
 	// FoxNet>
 	m_Events.Clear();
 }

@@ -1,5 +1,4 @@
 ﻿#include "entities/pickupdrop.h"
-#include "votemenu.h"
 
 #include <base/log.h>
 #include <base/str.h>
@@ -17,6 +16,7 @@
 
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
+#include <game/server/foxnet/components/votemenu.h>
 #include <game/server/foxnet/entities/text/text.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
@@ -27,193 +27,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
-
-void CGameContext::ConAccRegister(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->m_ClientId;
-	if(!g_Config.m_SvAccounts)
-	{
-		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
-		return;
-	}
-	if(!g_Config.m_SvAccountsAllowRegister)
-	{
-		pSelf->SendChatTarget(ClientId, "Account registration is disabled");
-		return;
-	}
-
-	if(pSelf->m_aAccounts[ClientId].m_LoggedIn)
-	{
-		pSelf->SendChatTarget(ClientId, "You are already logged in");
-		return;
-	}
-	const char *pUser = pResult->GetString(0);
-	const char *pPass = pResult->GetString(1);
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-	if(pPlayer->m_AccRegisters >= g_Config.m_SvAccountsMaxRegister)
-	{
-		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
-						     "ver: %s (%d) [%s]",
-			pSelf->Server()->ClientName(ClientId),
-			pAddr,
-			pSelf->Server()->GetCustomClient(ClientId),
-			pSelf->Server()->GetClientVersion(ClientId),
-			pSelf->Server()->GetClientVersionStr(ClientId));
-		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-		char aCmdBuf[512];
-		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/register's");
-		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
-		return;
-	}
-
-	pSelf->m_AccountManager.Register(ClientId, pUser, pPass);
-}
-
-void CGameContext::ConAccPassword(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->m_ClientId;
-	if(!g_Config.m_SvAccounts)
-	{
-		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
-		return;
-	}
-
-	if(!pSelf->m_aAccounts[ClientId].m_LoggedIn)
-	{
-		pSelf->SendChatTarget(ClientId, "You aren't logged in");
-		return;
-	}
-	const char *pOldPass = pResult->GetString(0);
-	const char *pPass = pResult->GetString(1);
-
-	pSelf->m_AccountManager.ChangePassword(ClientId, pOldPass, pPass);
-}
-
-void CGameContext::ConAccLogin(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->m_ClientId;
-	if(!g_Config.m_SvAccounts)
-	{
-		pSelf->SendChatTarget(ClientId, "Accounts are disabled");
-		return;
-	}
-
-	if(pSelf->m_aAccounts[ClientId].m_LoggedIn)
-	{
-		pSelf->SendChatTarget(ClientId, "You are already logged in");
-		return;
-	}
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvAccountsMaxLoginAttempts)
-	{
-		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
-						     "ver: %s (%d) [%s]",
-			pSelf->Server()->ClientName(ClientId),
-			pAddr,
-			g_Config.m_SvRconBantime,
-			pSelf->Server()->GetCustomClient(ClientId),
-			pSelf->Server()->GetClientVersion(ClientId),
-			pSelf->Server()->GetClientVersionStr(ClientId));
-		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-
-		char aCmdBuf[512];
-		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/login' attempts.");
-		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
-		return;
-	}
-
-	const char *pUser = pResult->GetString(0);
-	const char *pPass = pResult->GetString(1);
-
-	pSelf->m_AccountManager.Login(ClientId, pUser, pPass);
-}
-
-void CGameContext::ConAccLogout(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->m_ClientId;
-	if(pSelf->m_AccountManager.Logout(ClientId))
-		pSelf->SendChatTarget(ClientId, "Logged out");
-	else
-		pSelf->SendChatTarget(ClientId, "Not logged in");
-}
-
-void CGameContext::ConAccProfile(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pName = pResult->NumArguments() ? pResult->GetString(0) : pSelf->Server()->ClientName(pResult->m_ClientId);
-	pSelf->m_AccountManager.ShowAccProfile(pResult->m_ClientId, pName);
-}
-
-void CGameContext::ConAccTop5Money(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_AccountManager.Top5(pResult->m_ClientId, "money", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
-}
-void CGameContext::ConAccTop5Level(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_AccountManager.Top5(pResult->m_ClientId, "level", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
-}
-void CGameContext::ConAccTop5Playtime(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_AccountManager.Top5(pResult->m_ClientId, "playtime", pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0);
-}
-
-void CGameContext::ConAccDisable(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pUser = pResult->GetString(0);
-	const int pValue = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : 1;
-
-	pSelf->m_AccountManager.DisableAccount(pUser, pValue);
-}
-
-void CGameContext::ConAccForcePassword(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pUser = pResult->GetString(0);
-	const char *pNewPassword = pResult->GetString(1);
-
-	pSelf->m_AccountManager.SetPassword(pUser, pNewPassword);
-}
-
-void CGameContext::ConAccForceLogin(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
-
-	const char *pName = pResult->GetString(0);
-	pSelf->m_AccountManager.ForceLogin(Victim, pName);
-}
-
-void CGameContext::ConAccForceLogout(IConsole::IResult *pResult, void *pUserData)
-{ // Logs out Current Acc Session, does not work across servers
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int ClientId = pResult->GetVictim();
-	if(!CheckClientId(ClientId))
-		return;
-	pSelf->m_AccountManager.Logout(ClientId);
-}
 
 void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 {
@@ -252,109 +65,6 @@ void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 	const int Amount = pResult->GetInteger(1);
 	if(Amount > 0)
 		pPlayer->GiveXP(Amount, "", false);
-}
-
-void CGameContext::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetVictim();
-	if(!CheckClientId(ClientId))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	char aFrom[MAX_NAME_LENGTH] = "Server";
-	if(CheckClientId(ClientId))
-		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
-
-	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, -1, aFrom);
-}
-
-void CGameContext::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetVictim();
-	if(!CheckClientId(ClientId))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	const int Days = pResult->GetInteger(1);
-	const char *pItemName = pResult->GetString(2);
-
-	char aFrom[MAX_NAME_LENGTH] = "Server";
-	if(CheckClientId(ClientId))
-		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
-
-	pSelf->m_Shop.GiveItem(ClientId, pItemName, Days, aFrom);
-}
-
-void CGameContext::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetVictim();
-	if(!CheckClientId(ClientId))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	char aFrom[MAX_NAME_LENGTH] = "Server";
-	if(CheckClientId(ClientId))
-		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
-
-	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.GiveItemForever(ClientId, pItemName, aFrom);
-}
-
-void CGameContext::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->GetVictim();
-	if(!CheckClientId(ClientId))
-		return;
-
-	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	char aBy[MAX_NAME_LENGTH] = "Server";
-	if(CheckClientId(ClientId))
-		str_copy(aBy, pSelf->Server()->ClientName(ClientId));
-
-	const char *pItemName = pResult->GetString(1);
-	pSelf->m_Shop.RemoveItem(ClientId, pItemName, aBy);
-}
-
-void CGameContext::ConNewMail(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pUsername = pResult->GetString(0);
-	const char *pSubject = pResult->GetString(1);
-	const char *pMessage = pResult->GetString(2);
-	const char *pCmdName = pResult->GetString(3);
-	const char *pCmd = pResult->GetString(4);
-
-	pSelf->m_AccountManager.NewMail(pUsername, pSubject, pMessage, pCmdName, pCmd);
-}
-
-void CGameContext::ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Param = 0;
-	const char *pSubject = pResult->GetString(Param++);
-	const char *pMessage = pResult->GetString(Param++);
-	const char *pCmdName = pResult->GetString(Param++);
-	const char *pCmd = pResult->GetString(Param++);
-
-	int MinLevel = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) : 0;
-	bool OnlyOnline = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
-	bool IncludeDisabled = pResult->NumArguments() >= Param + 1 ? pResult->GetInteger(Param++) != 0 : 0;
-
-	pSelf->m_AccountManager.NewGlobalMail(pSubject, pMessage, pCmdName, pCmd, IncludeDisabled, OnlyOnline, MinLevel);
 }
 
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)
@@ -534,38 +244,6 @@ void CGameContext::ConListNameDetectionStrings(IConsole::IResult *pResult, void 
 
 		log_info("name-detection", "Str: %s | Reas: %s | Time: %d | Exact: %d", Words.String(), Words.Reason(), Words.Time(), Words.ExactMatch());
 	}
-}
-
-void CGameContext::ConShopListItems(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_Shop.ListItems();
-}
-
-void CGameContext::ConShopEditItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pItem = pResult->GetString(0);
-	int Price = pResult->GetInteger(1);
-	int MinLevel = pResult->NumArguments() > 2 ? pResult->GetInteger(2) : -1;
-
-	pSelf->m_Shop.EditItem(pItem, Price, MinLevel);
-}
-
-void CGameContext::ConShopReset(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_Shop.ResetItems();
-}
-
-void CGameContext::ConShopBuyItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const int ClientId = pResult->m_ClientId;
-	if(!CheckClientId(ClientId))
-		return;
-	const char *pItem = pResult->GetString(0);
-	pSelf->m_Shop.BuyItem(ClientId, pItem);
 }
 
 void CGameContext::ConToggleItem(IConsole::IResult *pResult, void *pUserData)
@@ -1452,14 +1130,6 @@ void CGameContext::ConSetSpazzing(IConsole::IResult *pResult, void *pUserData)
 	log_info("server", "Set spazzing to %d for '%s' (%d)", pPlayer->m_Spazzing, pSelf->Server()->ClientName(ClientId), ClientId);
 }
 
-void CGameContext::ConSendFakeMessage(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pName = pResult->GetString(0);
-	const char *pMsg = pResult->GetString(1);
-	pSelf->AddFakeMessage(pName, pMsg, "Robot");
-}
-
 void CGameContext::ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2049,7 +1719,7 @@ void CGameContext::RegisterFoxNetCommands()
 {
 	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMap, this, "Load a map of type (leave empty for help text)");
 	Console()->Register("unload_map", "r[map-name]", CFGFLAG_SERVER, ConUnloadMap, this, "Unload a map by name");
-	
+
 	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send players (id) to the casino map (if loaded)");
 
 	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Send players (id) to the casino map (if loaded)");
@@ -2109,8 +1779,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("spider_hook", "?v[id]", CFGFLAG_SERVER, ConSetSpiderHook, this, "whether player (id) has spider hook");
 	Console()->Register("spazzing", "?v[id]", CFGFLAG_SERVER, ConSetSpazzing, this, "Makes players (id) spazzing");
 
-	Console()->Register("fake_message", "s[name] r[msg]", CFGFLAG_SERVER, ConSendFakeMessage, this, "Sends a message as a fake player with that name");
-
 	Console()->Register("map_vote_lock", "", CFGFLAG_SERVER, ConToggleMapVoteLock, this, "Toggle Map Vote Locking");
 
 	// Cosmetics
@@ -2158,39 +1826,14 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Remove all records a name has");
 
 	// Account
-	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConAccForceLogin, this, "Force Login player (id) into any account");
-	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConAccForceLogout, this, "Force logout an account thats currently active on the server");
-	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConAccDisable, this, "Disable an account");
-	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConAccForcePassword, this, "Disable an account");
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
-	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
-	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
-	Console()->Register("give_item_days", "v[id] i[days] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item for x days");
-	Console()->Register("give_item_forever", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItemForever, this, "Give player (id) an item forever");
-
-	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
-	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
-
-	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConAccRegister, this, "Register a account");
-	Console()->Register("password", "s[oldpass] s[password]", CFGFLAG_CHAT, ConAccPassword, this, "Change your password");
-	Console()->Register("login", "s[username] r[password]", CFGFLAG_CHAT, ConAccLogin, this, "Login to your account");
-	Console()->Register("logout", "", CFGFLAG_CHAT, ConAccLogout, this, "Logout of your account");
-	Console()->Register("profile", "?r[name]", CFGFLAG_CHAT, ConAccProfile, this, "Show someones profile");
-
-	Console()->Register("top5money", "?i[offset]", CFGFLAG_CHAT, ConAccTop5Money, this, "Show someones profile");
-	Console()->Register("top5level", "?i[offset]", CFGFLAG_CHAT, ConAccTop5Level, this, "Show someones profile");
-	Console()->Register("top5playtime", "?i[offset]", CFGFLAG_CHAT, ConAccTop5Playtime, this, "Show someones profile");
 
 	Console()->Register("bet", "i[amount]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
 
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConReport, this, "Report a player");
 	// Shop
-	Console()->Register("shop_edit_item", "s[Name] i[Price] ?i[Minimum Level]", CFGFLAG_SERVER, ConShopEditItem, this, "Edit a shop item");
-	Console()->Register("shop_list_items", "", CFGFLAG_SERVER, ConShopListItems, this, "Lists all shop items");
-	Console()->Register("shop_reset", "", CFGFLAG_SERVER, ConShopReset, this, "Resets all prices in the shop");
-
-	Console()->Register("buyitem", "r[item]", CFGFLAG_CHAT, ConShopBuyItem, this, "Buy an item from the shop");
+	
 	Console()->Register("toggleitem", "s[item] ?i[value]", CFGFLAG_CHAT, ConToggleItem, this, "Toggle an Item, value is only needed for 2 items");
 	Console()->Register("dropweapon", "", CFGFLAG_CHAT, ConDropWeapon, this, "Drops the weapon you're currently holding");
 
@@ -2198,7 +1841,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
-	
+
 	Console()->Register("powerups", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConPowerups, this, "Hide/show powerups");
 	Console()->Register("cosmetics", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConCosmetics, this, "Hide/show all cosmetics");
 

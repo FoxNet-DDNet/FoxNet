@@ -370,7 +370,7 @@ void CScripting::ConExecScript(IConsole::IResult *pResult, void *pUserData)
 
 void CScripting::ExecScript(const char *pFilename, const char *pArgs)
 {
-	if(!m_pGameServer)
+	if(!GameServer())
 	{
 		log_error(SCRIPTING_IMPL, "GameContext is null, %s %s", pFilename, pArgs);
 		return;
@@ -378,23 +378,21 @@ void CScripting::ExecScript(const char *pFilename, const char *pArgs)
 
 	if(!m_pRunner)
 	{
-		m_pRunner.reset(new CScriptRunner(m_pGameServer));
+		m_pRunner.reset(new CScriptRunner(GameServer()));
 	}
 
 	m_pRunner->Run(pFilename, pArgs);
 }
 
-void CScripting::OnInit(CGameContext *pGameServer)
+void CScripting::OnInit()
 {
-	m_pGameServer = pGameServer;
 	if(!m_pRunner)
-		m_pRunner.reset(new CScriptRunner(m_pGameServer));
+		m_pRunner.reset(new CScriptRunner(GameServer()));
 }
 
-void CScripting::OnConsoleInit(CGameContext *pGameServer)
+void CScripting::OnConsoleInit()
 {
-	m_pGameServer = pGameServer;
 	if(!m_pRunner)
-		m_pRunner.reset(new CScriptRunner(m_pGameServer));
-	m_pGameServer->Console()->Register(SCRIPTING_IMPL, "s[file] ?r[args]", CFGFLAG_SERVER, ConExecScript, this, "Execute a " SCRIPTING_IMPL " script");
+		m_pRunner.reset(new CScriptRunner(GameServer()));
+	GameServer()->Console()->Register(SCRIPTING_IMPL, "s[file] ?r[args]", CFGFLAG_SERVER, ConExecScript, this, "Execute a " SCRIPTING_IMPL " script");
 }

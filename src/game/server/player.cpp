@@ -3,7 +3,6 @@
 #include "player.h"
 
 #include "entities/character.h"
-#include "foxnet/accounts.h"
 #include "gamecontext.h"
 #include "gamecontroller.h"
 #include "score.h"
@@ -15,6 +14,7 @@
 #include <engine/shared/config.h>
 
 #include <game/gamecore.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/teamscore.h>
 
 #include <algorithm>

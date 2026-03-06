@@ -6,7 +6,7 @@
 #include <game/race_state.h>
 #include <game/server/entity.h>
 #include <game/server/save.h>
-#include <game/server/foxnet/accounts.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/vehicles/ufo.h>
 #include <game/server/foxnet/vehicles/snake.h>
 #include <game/mapitems.h>

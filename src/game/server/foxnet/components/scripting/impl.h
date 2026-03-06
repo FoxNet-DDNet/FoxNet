@@ -1,5 +1,5 @@
-#ifndef GAME_SERVER_FOXNET_SCRIPTING_IMPL_H
-#define GAME_SERVER_FOXNET_SCRIPTING_IMPL_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_SCRIPTING_IMPL_H
+#define GAME_SERVER_FOXNET_COMPONENTS_SCRIPTING_IMPL_H
 
 #include <functional>
 #include <string>
@@ -39,4 +39,4 @@ public:
 	void Run(IStorage *pStorage, const char *pFilename, const char *pArgs);
 };
 
-#endif // GAME_SERVER_FOXNET_SCRIPTING_IMPL_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_SCRIPTING_IMPL_H

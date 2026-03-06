@@ -13,11 +13,13 @@
 #include <game/server/save.h>
 
 // <FoxNet
-#include <memory>
-#include <optional>
 #include "foxnet/cosmetics/pickup_pet.h"
 #include "foxnet/entities/pickupdrop.h"
-#include "foxnet/shop.h"
+
+#include <game/server/foxnet/components/shop.h>
+
+#include <memory>
+#include <optional>
 
 class CAccountSession;
 
@@ -149,7 +151,7 @@ class CInventoryEntry
 {
 public:
 	int m_Quantity = 0;
-	int m_Value = 0;  
+	int m_Value = 0;
 	int64_t m_AcquiredAt = 0;
 	int64_t m_ExpiresAt = -1;
 
@@ -457,12 +459,11 @@ private:
 
 	} m_LootBoxData;
 
-	bool OpenLootCase(const CItemConfig &CaseCfg);	
+	bool OpenLootCase(const CItemConfig &CaseCfg);
 
 	bool HasImportantBroadcast() const;
 
 public:
-
 	int64_t m_LastReport = 0;
 
 	int m_BetAmount = -1;
@@ -570,10 +571,10 @@ public:
 
 	int NumDDraceHudRows();
 	void SendBroadcastHud(std::vector<std::string> pMessages, int Offset = -1);
-	void ClearBroadcast() { return SendBroadcast(""); };
+	void ClearBroadcast() { return SendBroadcast(""); }
 
 	float m_PredMargin;
-	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; };
+	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; }
 	float GetClientPred();
 
 	int GetSubPage();

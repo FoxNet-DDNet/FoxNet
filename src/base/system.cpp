@@ -39,7 +39,7 @@
 
 // <FoxNet
 #include <random>
-#include <game/server/foxnet/shop.h>
+#include <game/server/foxnet/components/shop.h>
 // FoxNet>
 
 static NETSTATS network_stats = {0};

@@ -1,5 +1,5 @@
-#ifndef GAME_SERVER_FOXNET_ACCOUNTS_H
-#define GAME_SERVER_FOXNET_ACCOUNTS_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H
+#define GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H
 
 #include <base/system.h>
 
@@ -163,25 +163,34 @@ struct CPendingAccResult
 	std::function<void(CAccResult &)> m_Callback;
 };
 
-class CAccounts
+class CAccounts : public CServerComponent
 {
-	CGameContext *m_pGameServer = nullptr;
-	CDbConnectionPool *m_pPool;
-
-	CGameContext *GameServer() const { return m_pGameServer; }
-	IServer *Server() const;
-
 	// Password hashing
 	SHA256_DIGEST HashPassword(const char *pPassword);
 
 	std::vector<CPendingAccResult> m_vPending;
 	void AddPending(const std::shared_ptr<CAccResult> &pRes, std::function<void(CAccResult &)> &&Cb);
 
+	CDbConnectionPool *DbPool();
+
+	static void ConRegister(IConsole::IResult *pResult, void *pUserData);
+	static void ConPassword(IConsole::IResult *pResult, void *pUserData);
+	static void ConLogin(IConsole::IResult *pResult, void *pUserData);
+	static void ConLogout(IConsole::IResult *pResult, void *pUserData);
+	static void ConProfile(IConsole::IResult *pResult, void *pUserData);
+	static void ConDisable(IConsole::IResult *pResult, void *pUserData);
+	static void ConForcePassword(IConsole::IResult *pResult, void *pUserData);
+	static void ConForceLogin(IConsole::IResult *pResult, void *pUserData);
+	static void ConForceLogout(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConTop5Money(IConsole::IResult *pResult, void *pUserData);
+	static void ConTop5Level(IConsole::IResult *pResult, void *pUserData);
+	static void ConTop5Playtime(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConNewMail(IConsole::IResult *pResult, void *pUserData);
+	static void ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData);
+
 public:
-	void Init(CGameContext *pGameServer, CDbConnectionPool *pPool);
-
-	void Tick();
-
 	bool Register(int ClientId, const char *pUsername, const char *pPassword);
 	bool ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword);
 
@@ -226,6 +235,11 @@ public:
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
+
+	void OnClientDrop(int ClientId, const char *pReason) override;
+	void OnInit() override;
+	void OnConsoleInit() override;
+	void OnTick() override;
 };
 
-#endif // GAME_SERVER_FOXNET_ACCOUNTS_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H

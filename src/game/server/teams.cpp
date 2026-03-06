@@ -1,38 +1,40 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "teams.h"
 
+#include "foxnet/item_registry.h"
+#include "gamecontext.h"
 #include "gamecontroller.h"
 #include "player.h"
+#include "save.h"
 #include "score.h"
+#include "scoreworker.h"
 #include "teehistorian.h"
 
+#include <base/math.h>
+#include <base/str.h>
 #include <base/system.h>
 
+#include <engine/message.h>
+#include <engine/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
+#include <engine/shared/uuid_manager.h>
 
+#include <generated/protocol.h>
+
+#include <game/gamecore.h>
 #include <game/mapitems.h>
+#include <game/race_state.h>
 #include <game/server/entities/character.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/gamecontext.h>
 #include <game/team_state.h>
-#include "foxnet/accounts.h"
+#include <game/teamscore.h>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
-#include <generated/protocol.h>
-#include <base/math.h>
-#include <base/str.h>
-#include <engine/message.h>
-#include <engine/server.h>
-#include <engine/shared/protocol.h>
-#include <engine/shared/uuid_manager.h>
-#include <game/gamecore.h>
-#include <game/race_state.h>
-#include "foxnet/item_registry.h"
-#include "gamecontext.h"
-#include "save.h"
-#include "scoreworker.h"
-#include <game/teamscore.h>
 
 CGameTeams::CGameTeams(CGameContext *pGameContext) :
 	m_pGameContext(pGameContext)
@@ -1559,13 +1561,13 @@ CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItem
 			continue;
 
 		if(ClientId == Asker)
-		{ 
+		{
 			if(!Opposite)
 				Mask.set(Asker);
 			continue;
 		}
 
-		CAccConfigs Configs = GetPlayer(ClientId)->Acc()->m_Configs;	
+		CAccConfigs Configs = GetPlayer(ClientId)->Acc()->m_Configs;
 
 		bool ShowCosmetic = false;
 		if(Type == EItemType::Rainbow)

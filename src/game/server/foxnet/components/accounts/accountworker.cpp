@@ -2,14 +2,15 @@
 
 #include "accounts.h"
 #include "accountworker.h"
-#include "shop.h"
 
 #include <base/system.h>
 
 #include <engine/server/databases/connection.h>
 
+#include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <base/log.h>
 
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
@@ -41,7 +42,6 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 		Entry.m_Value = Value;
 		Entry.m_AcquiredAt = AcquiredAt;
 		Entry.m_ExpiresAt = ExpiresAt;
-
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
 	}
@@ -442,7 +442,6 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_Disabled = pSql->GetInt(Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
-		pRes->m_Inventory.Reset();
 	}
 	if(pRes->m_Found)
 	{

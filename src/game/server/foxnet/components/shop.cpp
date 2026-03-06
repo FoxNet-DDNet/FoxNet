@@ -1,9 +1,5 @@
 ﻿#include "shop.h"
 
-#include "accounts.h"
-#include "game/server/gamecontext.h"
-#include "game/server/player.h"
-
 #include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
@@ -11,17 +7,119 @@
 #include <engine/server.h>
 #include <engine/shared/config.h>
 
+#include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/item_registry.h>
+#include <game/server/gamecontext.h>
+#include <game/server/player.h>
+
 #include <algorithm>
 #include <vector>
-#include "item_registry.h"
 
-IServer *CShop::Server() const { return GameServer()->Server(); }
-
-void CShop::Init(CGameContext *pGameServer)
+void CShop::ConListItems(IConsole::IResult *pResult, void *pUserData)
 {
-	m_pGameServer = pGameServer;
-	if(m_Registry.Map().empty())
-		AddItems();
+	CShop *pSelf = (CShop *)pUserData;
+	pSelf->ListItems();
+}
+
+void CShop::ConEditItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const char *pItem = pResult->GetString(0);
+	int Price = pResult->GetInteger(1);
+	int MinLevel = pResult->NumArguments() > 2 ? pResult->GetInteger(2) : -1;
+
+	pSelf->EditItem(pItem, Price, MinLevel);
+}
+
+void CShop::ConReset(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	pSelf->ResetItems();
+}
+
+void CShop::ConBuyItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!CheckClientId(ClientId))
+		return;
+	const char *pItem = pResult->GetString(0);
+	pSelf->BuyItem(ClientId, pItem);
+}
+
+void CShop::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
+	const char *pItemName = pResult->GetString(1);
+	pSelf->GiveItem(ClientId, pItemName, -1, aFrom);
+}
+
+void CShop::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	const int Days = pResult->GetInteger(1);
+	const char *pItemName = pResult->GetString(2);
+
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
+	pSelf->GiveItem(ClientId, pItemName, Days, aFrom);
+}
+
+void CShop::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	char aFrom[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
+
+	const char *pItemName = pResult->GetString(1);
+	pSelf->GiveItemForever(ClientId, pItemName, aFrom);
+}
+
+void CShop::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CShop *pSelf = (CShop *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	char aBy[MAX_NAME_LENGTH] = "Server";
+	if(CheckClientId(ClientId))
+		str_copy(aBy, pSelf->Server()->ClientName(ClientId));
+
+	const char *pItemName = pResult->GetString(1);
+	pSelf->RemoveItem(ClientId, pItemName, aBy);
 }
 
 void CShop::AddItems()
@@ -103,7 +201,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	if(!Acc.m_LoggedIn)
 	{
 		GameServer()->SendChatTarget(ClientId, "You aren't logged in.");
-		
+
 		return false;
 	}
 
@@ -348,4 +446,24 @@ const char *CShop::GetItemName(EItemId Id) const
 	if(pItem)
 		return pItem->m_pName;
 	return "Unknown";
+}
+
+void CShop::OnInit()
+{
+	if(m_Registry.Map().empty())
+		AddItems();
+}
+
+void CShop::OnConsoleInit()
+{
+	Console()->Register("shop_edit_item", "s[Name] i[Price] ?i[Minimum Level]", CFGFLAG_SERVER, ConEditItem, this, "Edit a shop item");
+	Console()->Register("shop_list_items", "", CFGFLAG_SERVER, ConListItems, this, "Lists all shop items");
+	Console()->Register("shop_reset", "", CFGFLAG_SERVER, ConReset, this, "Resets all prices in the shop");
+
+	Console()->Register("remove_item", "v[id] r[item]", CFGFLAG_SERVER, ConRemoveItem, this, "remove an item from player (id)");
+	Console()->Register("give_item", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItem, this, "Give player (id) an item");
+	Console()->Register("give_item_days", "v[id] i[days] r[item]", CFGFLAG_SERVER, ConGiveItemDays, this, "Give player (id) an item for x days");
+	Console()->Register("give_item_forever", "v[id] r[item]", CFGFLAG_SERVER, ConGiveItemForever, this, "Give player (id) an item forever");
+
+	Console()->Register("buyitem", "?r[item]", CFGFLAG_CHAT, ConBuyItem, this, "Buy an item from the shop");
 }

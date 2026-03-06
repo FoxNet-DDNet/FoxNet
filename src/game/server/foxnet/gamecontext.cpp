@@ -1,20 +1,24 @@
-﻿#include "accounts.h"
+﻿
 #include "entities/pickupdrop.h"
 #include "entities/powerup.h"
 #include "fontconvert.h"
 #include "persistent_data.h"
 
+#include <base/fs.h>
 #include <base/log.h>
 #include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
+#include <base/types.h>
 #include <base/vmath.h>
 
 #include <engine/console.h>
+#include <engine/map.h>
 #include <engine/message.h>
 #include <engine/server.h>
 #include <engine/server/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/packer.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/protocol_ex_msgs.h>
 #include <engine/storage.h>
@@ -25,6 +29,8 @@
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/component.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
@@ -38,6 +44,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <ctime>
 #include <iterator>
 #include <limits>
@@ -46,20 +53,14 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <cstdio>
-#include <engine/shared/packer.h>
-#include <engine/map.h>
-#include <base/fs.h>
-#include <base/types.h>
 
 void CGameContext::FoxNetTick()
 {
-	m_VoteMenu.Tick();
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnTick();
+
 	HandleEffects();
 	PowerUpSpawner();
-
-	// process async db account results
-	m_AccountManager.Tick();
 
 	if(g_Config.m_SvBanSyncing)
 		BanSync();
@@ -70,14 +71,25 @@ void CGameContext::FoxNetTick()
 
 	// Save all logged in accounts every 15 minutes
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
-	{
 		m_AccountManager.SaveAllAccounts();
-	}
 }
 
 void CGameContext::OnFoxNetConsoleInit()
 {
-	m_Scripting.OnConsoleInit(this);
+	m_vpComponents.insert(m_vpComponents.end(), {
+		&m_Scripting,
+		&m_VoteMenu,
+		&m_AccountManager,
+		&m_Shop,
+		&m_FakeSnap,
+	});
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->InitComponent(this);
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnConsoleInit();
+
 	RegisterFoxNetCommands();
 }
 
@@ -176,10 +188,8 @@ void CGameContext::UnloadMapsAll()
 
 void CGameContext::FoxNetInit()
 {
-	m_Scripting.OnInit(this);
-	m_AccountManager.Init(this, ((CServer *)Server())->DbPool());
-	m_VoteMenu.Init(this);
-	m_Shop.Init(this);
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnInit();
 	m_vPowerups.clear();
 
 	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
@@ -268,57 +278,15 @@ void CGameContext::HandleEffects()
 	}
 }
 
-void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap)
+void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 {
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnSnap(ClientId, GlobalSnap, RecordingDemo);
+
 	SnapDebuggedQuad(ClientId);
 
 	// Snap the Fake Player
-	for(auto pFakePlayer = m_vFakeSnapPlayers.begin(); pFakePlayer < m_vFakeSnapPlayers.end();)
-	{
-		if(auto *pClientInfo = Server()->SnapNewItem<CNetObj_ClientInfo>(pFakePlayer->m_ClientId))
-		{
-			StrToInts(pClientInfo->m_aName, std::size(pClientInfo->m_aName), pFakePlayer->m_aName);
-			StrToInts(pClientInfo->m_aClan, std::size(pClientInfo->m_aClan), pFakePlayer->m_aClan);
-			pClientInfo->m_Country = pFakePlayer->m_Country;
-			StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), pFakePlayer->m_aSkinName);
-			pClientInfo->m_UseCustomColor = pFakePlayer->m_CustomColors;
-			pClientInfo->m_ColorBody = pFakePlayer->m_ColorBody;
-			pClientInfo->m_ColorFeet = pFakePlayer->m_ColorFeet;
-		}
-
-		if(auto *pPlayerInfo = Server()->SnapNewItem<CNetObj_PlayerInfo>(pFakePlayer->m_ClientId))
-		{
-			pPlayerInfo->m_Latency = 0;
-			pPlayerInfo->m_Score = 0;
-			pPlayerInfo->m_Team = TEAM_SPECTATORS;
-			pPlayerInfo->m_Local = 0;
-			pPlayerInfo->m_ClientId = pFakePlayer->m_ClientId;
-		}
-		if(pFakePlayer->m_ClientId == -1)
-			pFakePlayer = m_vFakeSnapPlayers.erase(pFakePlayer);
-		else
-			pFakePlayer++;
-	}
-}
-
-void CGameContext::FoxNetPostGlobalSnap()
-{
-	for(auto pFakePlayer = m_vFakeSnapPlayers.begin(); pFakePlayer < m_vFakeSnapPlayers.end(); pFakePlayer++)
-	{
-		const int ClientId = pFakePlayer->m_ClientId;
-		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
-			continue;
-
-		CNetMsg_Sv_Chat Msg;
-		Msg.m_Team = 0;
-		Msg.m_ClientId = ClientId;
-		Msg.m_pMessage = pFakePlayer->m_aMessage;
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
-
-		log_info(pFakePlayer->m_aContext, "%d:%d:%s: %s", ClientId, Msg.m_Team, pFakePlayer->m_aName, pFakePlayer->m_aMessage);
-
-		pFakePlayer->m_ClientId = -1;
-	}
+	
 }
 
 void CGameContext::BanSync()
@@ -380,8 +348,9 @@ void CGameContext::ClearVotes(int ClientId)
 
 static bool TryingToBeFunny(const char *pMsg)
 {
-	const char *pFunsies[] = {"ddnet.org",
-		"tater", "tclient","t client", "t-client", "tclient.app", // TClient
+	const char *pFunsies[] = {
+		"ddnet.org",
+		"tater", "tclient", "t client", "t-client", "tclient.app", // TClient
 		"aiodob", "aidob", "a-client", "A Client", "A client", // AClient
 		"eclient", "e client", "entity client", "e-client", "entityclient", // EClient
 		"chiller", "cactus" // Chillerbot/Cactus
@@ -519,7 +488,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		}
 
 		// anti mass ping ad bot
-		if((str_find_nocase(pText, "stop being a noob") && str_find_nocase(pText, "get good with")) || 
+		if((str_find_nocase(pText, "stop being a noob") && str_find_nocase(pText, "get good with")) ||
 			(str_find_nocase(pText, "Think you could do better") && str_find_nocase(pText, "Not without")) ||
 			str_find_nocase(pText, "if I was cheating")) // mass ping advertising
 		{
@@ -1028,40 +997,6 @@ void CGameContext::QuadDebugIds(bool Clear)
 			Server()->SnapFreeId(m_vQuadDebugIds[i]);
 		m_vQuadDebugIds.clear();
 	}
-}
-
-bool CGameContext::AddFakeMessage(const char *pName, const char *pMessage, const char *pSkinName, bool CustomColor, int ColorBody, int ColorFeet)
-{
-	if(!pName[0] || !pMessage[0])
-		return false;
-
-	static int LastUsedId = -1;
-
-	int FreeId = -1;
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(!m_apPlayers[i] && Server()->ClientSlotEmpty(i) && LastUsedId != i)
-		{
-			FreeId = i;
-			break;
-		}
-	}
-	if(FreeId == -1)
-		return false; // no free visual slot
-	LastUsedId = FreeId;
-	CFakeSnapPlayer FakeSnap;
-	FakeSnap.m_ClientId = FreeId;
-	str_copy(FakeSnap.m_aName, pName);
-	FakeSnap.m_aClan[0] = '\0';
-	FakeSnap.m_Country = -1;
-	str_copy(FakeSnap.m_aSkinName, pSkinName ? pSkinName : "default");
-	FakeSnap.m_CustomColors = CustomColor;
-	FakeSnap.m_ColorBody = ColorBody;
-	FakeSnap.m_ColorFeet = ColorFeet;
-	str_copy(FakeSnap.m_aMessage, pMessage);
-
-	m_vFakeSnapPlayers.push_back(FakeSnap);
-	return true;
 }
 
 const char *GetMapName(const char *pCmd)

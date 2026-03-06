@@ -1,10 +1,10 @@
 ﻿// Made by qxdFox, heavily inspired by Fokkonauts implementation
+
 #include "votemenu.h"
 
-#include "accounts.h"
-#include "item_registry.h"
 #include "shop.h"
 
+#include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
 
@@ -18,6 +18,8 @@
 
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/voting.h>
@@ -28,7 +30,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <base/log.h>
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
@@ -84,7 +85,7 @@ constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
 
 constexpr const char *MAIL_MARK_ALL_READ = "✔ Mark all as read";
 constexpr const char *MAIL_CLAIM_ALL_REWARDS = "⬇️ Claim all Rewards";
-;
+
 constexpr const char *MAIL_DELETE_ALL_READ = "✘ Delete all read Mails";
 
 constexpr const char *MAIL_CLAIM_REWARD = "⬇️ Claim Reward";
@@ -106,12 +107,8 @@ constexpr const char *SERVER_INFO_CONTRIBUTE = "Have any Ideas?";
 
 constexpr const char *SERVER_INFO_SEND_LINK = "Double click here to send the link to chat";
 
-IServer *CVoteMenu::Server() const { return GameServer()->Server(); }
-
-void CVoteMenu::Init(CGameContext *pGameServer)
+void CVoteMenu::OnConsoleInit()
 {
-	m_pGameServer = pGameServer;
-
 	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ"); // Not shown
 
 	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
@@ -677,7 +674,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	return false;
 }
 
-void CVoteMenu::Tick()
+void CVoteMenu::OnTick()
 {
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
@@ -699,7 +696,7 @@ void CVoteMenu::Tick()
 	}
 }
 
-void CVoteMenu::OnClientDrop(int ClientId)
+void CVoteMenu::OnClientDrop(int ClientId, const char *pReason)
 {
 	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
 	Data.m_Page = PAGE_MAIN;
@@ -1598,7 +1595,6 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 			}
 		}
 		AddVoteText("╰────────────────────");
-
 
 		if(g_Config.m_SvDiscordLink[0] || g_Config.m_SvGithubRepo[0] || g_Config.m_SvAccounts)
 			AddVoteSeparator();

@@ -31,7 +31,7 @@
 #include <game/mapitems.h>
 #include <game/race_state.h>
 #include <game/server/entity.h>
-#include <game/server/foxnet/accounts.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
@@ -41,7 +41,7 @@
 #include <game/server/foxnet/entities/portal.h>
 #include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/item_registry.h>
-#include <game/server/foxnet/shop.h>
+#include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>

@@ -1,6 +1,8 @@
-﻿#ifndef GAME_SERVER_FOXNET_VOTEMENU_H
-#define GAME_SERVER_FOXNET_VOTEMENU_H
-#include "accounts.h"
+﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H
+#define GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H
+
+#include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/component.h>
 #include "shop.h"
 
 #include <engine/shared/protocol.h>
@@ -12,9 +14,6 @@
 #include <array>
 
 constexpr int MAX_VOTE_LENGTH = 60; // if a vote exceeds this and has a prefix, it will be truncated
-
-class CGameContext;
-class IServer;
 
 enum Pages
 {
@@ -129,12 +128,8 @@ public:
 	}
 };
 
-class CVoteMenu
+class CVoteMenu : public CServerComponent
 {
-	CGameContext *m_pGameServer;
-	CGameContext *GameServer() const { return m_pGameServer; }
-	IServer *Server() const;
-
 	std::array<char[64], NUM_PAGES> m_aPages;
 	struct ClientData
 	{
@@ -200,12 +195,13 @@ public:
 	int GetPage(int ClientId) const;
 	void SetPage(int ClientId, int Page);
 
-	void Tick();
-	void OnClientDrop(int ClientId);
-	void Init(CGameContext *pGameServer);
 	bool OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
 
 	bool IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
+
+	void OnClientDrop(int ClientId, const char *pReason) override;
+	void OnConsoleInit() override;
+	void OnTick() override;
 };
 
-#endif // GAME_SERVER_FOXNET_VOTEMENU_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H

@@ -1,4 +1,4 @@
-﻿#include "accounts.h"
+﻿
 #include "cosmetics/dot_trail.h"
 #include "cosmetics/epic_circle.h"
 #include "cosmetics/halo.h"
@@ -11,12 +11,12 @@
 #include "cosmetics/staff_ind.h"
 #include "entities/text/text.h"
 #include "item_registry.h"
-#include "shop.h"
 
 #include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
 
+#include <engine/map.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
@@ -24,6 +24,8 @@
 
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
@@ -34,7 +36,6 @@
 #include <iterator>
 #include <random>
 #include <string>
-#include <engine/map.h>
 #include <vector>
 
 CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId]; }
@@ -256,8 +257,8 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 			int m_ItemCount = 1;
 			std::vector<EItemRarity> m_AllowedRarities = {EItemRarity::Common};
 
-			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, std::vector<EItemRarity> AllowedRarities)
-				: m_Days(Days), m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
+			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, std::vector<EItemRarity> AllowedRarities) :
+				m_Days(Days), m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
 			CReward() = default;
 		};
 
@@ -323,7 +324,13 @@ bool CPlayer::CheckLevelUp(long Amount, bool Silent)
 		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
-			NewRewardMail(CReward(Days, 25000, 125000, 4, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic, EItemRarity::Mythic, }));
+			NewRewardMail(CReward(Days, 25000, 125000, 4, {
+									      EItemRarity::Common,
+									      EItemRarity::Uncommon,
+									      EItemRarity::Rare,
+									      EItemRarity::Epic,
+									      EItemRarity::Mythic,
+								      }));
 		}
 		else if(Acc()->m_Level % 50 == 0)
 		{
