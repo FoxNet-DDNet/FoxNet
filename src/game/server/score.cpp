@@ -44,7 +44,7 @@ void CScore::ExecPlayerThread(
 		return;
 	auto Tmp = std::make_unique<CSqlPlayerRequest>(pResult);
 	str_copy(Tmp->m_aName, pName, sizeof(Tmp->m_aName));
-	str_copy(Tmp->m_aMap, GameServer()->Map()->BaseName(), sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aMap, GameServer()->MapName(ClientId), sizeof(Tmp->m_aMap));
 	str_copy(Tmp->m_aServer, g_Config.m_SvSqlServerName, sizeof(Tmp->m_aServer));
 	str_copy(Tmp->m_aRequestingPlayer, Server()->ClientName(ClientId), sizeof(Tmp->m_aRequestingPlayer));
 	Tmp->m_Offset = Offset;
@@ -192,6 +192,7 @@ void CScore::SaveTeamScore(int Team, int *pClientIds, unsigned int Size, int Tim
 	CConsole *pCon = (CConsole *)GameServer()->Console();
 	if(pCon->Cheated())
 		return;
+	int OneClientId = pClientIds[0];
 	for(unsigned int i = 0; i < Size; i++)
 	{
 		if(GameServer()->m_apPlayers[pClientIds[i]]->m_NotEligibleForFinish)
@@ -207,7 +208,7 @@ void CScore::SaveTeamScore(int Team, int *pClientIds, unsigned int Size, int Tim
 	Tmp->m_Time = (float)TimeTicks / (float)Server()->TickSpeed();
 	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
 	FormatUuid(GameServer()->GameUuid(), Tmp->m_aGameUuid, sizeof(Tmp->m_aGameUuid));
-	str_copy(Tmp->m_aMap, GameServer()->Map()->BaseName(), sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aMap, GameServer()->MapName(OneClientId), sizeof(Tmp->m_aMap));
 	Tmp->m_TeamrankUuid = RandomUuid();
 
 	m_pPool->ExecuteWrite(CScoreWorker::SaveTeamScore, std::move(Tmp), "save team score");
@@ -332,7 +333,7 @@ void CScore::SaveTeam(int ClientId, const char *pCode, const char *pServer)
 
 	auto Tmp = std::make_unique<CSqlTeamSaveData>(SaveResult);
 	str_copy(Tmp->m_aCode, pCode, sizeof(Tmp->m_aCode));
-	str_copy(Tmp->m_aMap, GameServer()->Map()->BaseName(), sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aMap, GameServer()->MapName(ClientId), sizeof(Tmp->m_aMap));
 	str_copy(Tmp->m_aServer, pServer, sizeof(Tmp->m_aServer));
 	str_copy(Tmp->m_aClientName, this->Server()->ClientName(ClientId), sizeof(Tmp->m_aClientName));
 	Tmp->m_aGeneratedCode[0] = '\0';
@@ -389,7 +390,7 @@ void CScore::LoadTeam(const char *pCode, int ClientId)
 	pController->Teams().SetSaving(Team, SaveResult);
 	auto Tmp = std::make_unique<CSqlTeamLoadRequest>(SaveResult);
 	str_copy(Tmp->m_aCode, pCode, sizeof(Tmp->m_aCode));
-	str_copy(Tmp->m_aMap, GameServer()->Map()->BaseName(), sizeof(Tmp->m_aMap));
+	str_copy(Tmp->m_aMap, GameServer()->MapName(ClientId), sizeof(Tmp->m_aMap));
 	str_copy(Tmp->m_aRequestingPlayer, Server()->ClientName(ClientId), sizeof(Tmp->m_aRequestingPlayer));
 	Tmp->m_NumPlayer = 0;
 	for(int i = 0; i < MAX_CLIENTS; i++)
