@@ -4862,7 +4862,6 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	// <FoxNet
 	size_t MultiMapIdx = GameServer()->GetMultiMapIdx(ClientId);
 	const char *pMapName = GameServer()->Map(MultiMapIdx)->BaseName();
-	log_info("server", "%s", pMapName);
 	if(pMapName[0] != '\0')
 		SendMapByName(ClientId, pMapName);
 
@@ -5233,7 +5232,7 @@ bool CServer::SendMapByName(int ClientId, const char *pMapName)
 		// We already sent MAP_DETAILS / MAP_CHANGE above.
 	}
 
-	log_info("server", "SendMapByName: sent override map '%s' to cid=%d", pMapName, ClientId);
+	// log_info("server", "SendMapByName: sent override map '%s' to cid=%d", pMapName, ClientId);
 	return true;
 }
 
