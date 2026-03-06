@@ -66,7 +66,7 @@ void CGameContext::FoxNetTick()
 		BanSync();
 
 	// Set moving tiles time for quads with pos envelopes
-	for(int Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
+	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
 	{
 		Collision(Idx)->SetTime(m_pController->GetTime());
 		Collision(Idx)->UpdateQuadCache();
