@@ -2468,13 +2468,12 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 				{
 					if(str_startswith(aDesc, "│"))
 					{
-						size_t prefixLen = str_length("│");
-						size_t descLen = str_length(aDesc);
-						memmove(aDesc, aDesc + prefixLen, descLen - prefixLen + 1);
+						size_t PrefixLen = str_length("│");
+						size_t DescLen = str_length(aDesc);
+						memmove(aDesc, aDesc + PrefixLen, DescLen - PrefixLen + 1);
 
 						if(str_startswith(aDesc, " "))
 							memmove(aDesc, aDesc + 1, str_length(aDesc));
-						break;
 					}
 				}
 				str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientId), aDesc, aReason);
