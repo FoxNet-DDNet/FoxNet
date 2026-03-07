@@ -118,7 +118,7 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		}
 	}
 
-	std::unique_ptr<CMapOverride> pNewMap = std::make_unique<CMapOverride>();
+	std::unique_ptr<CMultiMaps> pNewMap = std::make_unique<CMultiMaps>();
 	pNewMap->m_pMap = CreateMap();
 
 	char aBuf[IO_MAX_PATH_LENGTH];

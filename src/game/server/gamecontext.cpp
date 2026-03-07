@@ -138,7 +138,7 @@ CGameContext::CGameContext(bool Resetting) :
 
 	if(!Resetting)
 	{
-		std::unique_ptr<CMapOverride> pNewMap = std::make_unique<CMapOverride>();
+		std::unique_ptr<CMultiMaps> pNewMap = std::make_unique<CMultiMaps>();
 		pNewMap->m_pMap = CreateMap();
 		m_vMultiMaps.push_back(std::move(pNewMap));
 
@@ -206,7 +206,7 @@ void CGameContext::Clear()
 
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnPreReset();
-	std::deque<std::unique_ptr<CMapOverride>> vMultiMaps = std::move(m_vMultiMaps);
+	std::deque<std::unique_ptr<CMultiMaps>> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
@@ -4306,7 +4306,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 
 	Console()->ExecuteFile(g_Config.m_SvResetFile, IConsole::CLIENT_ID_UNSPECIFIED);
 
-	LoadMapSettings();
+	LoadMapSettings(DefaultMapIndex);
 
 	m_MapBugs.Dump();
 
@@ -4746,9 +4746,12 @@ void CGameContext::OnShutdown(void *pPersistentData)
 	// FoxNet>
 }
 
-void CGameContext::LoadMapSettings()
+void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 {
-	IMap *pMap = Map();
+	if(MultiMapIdx >= m_vMultiMaps.size())
+		return;
+
+	IMap *pMap = Map(MultiMapIdx);
 	int Start, Num;
 	pMap->GetType(MAPITEMTYPE_INFO, &Start, &Num);
 	for(int i = Start; i < Start + Num; i++)

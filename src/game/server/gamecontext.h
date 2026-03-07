@@ -402,7 +402,7 @@ public:
 	void SendTuningParams(int ClientId, int Zone = 0);
 
 	//
-	void LoadMapSettings();
+	void LoadMapSettings(size_t MultiMapIdx);
 
 	// engine events
 	void OnInit(const void *pPersistentData) override;
@@ -734,7 +734,7 @@ public:
 
 	void ResetTuning();
 	// <FoxNet
-	class CMapOverride
+	class CMultiMaps
 	{
 	public:
 		std::unique_ptr<IMap> m_pMap;
@@ -762,9 +762,9 @@ public:
 			m_LoadedSwitchers = false;
 			m_CreatedEntities = false;
 		}
-		CMapOverride() = default;
+		CMultiMaps() = default;
 	};
-	std::deque<std::unique_ptr<CMapOverride>> m_vMultiMaps; // index 0 is default map
+	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
 
 	int GetMapIndexByType(EMapType MapType) const;
 	int GetMapIndexByMapName(const char *pMapName) const;
