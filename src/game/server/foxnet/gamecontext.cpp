@@ -75,6 +75,15 @@ void CGameContext::FoxNetTick()
 	// Save all logged in accounts every 15 minutes
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
 		m_AccountManager.SaveAllAccounts();
+
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+
+		SendConditionalCommands(ClientId);
+	}
 }
 
 void CGameContext::OnFoxNetConsoleInit()
@@ -94,6 +103,85 @@ void CGameContext::OnFoxNetConsoleInit()
 		pComponent->OnConsoleInit();
 
 	RegisterFoxNetCommands();
+}
+
+void CGameContext::SendConditionalCommands(int ClientId)
+{
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	auto CommandInfo = [this, pPlayer, ClientId](const char *pName, const char *pParams, const char *pHelp = "") {
+		for(const std::string &ReceivedName : pPlayer->m_vReceivedConditionals)
+		{
+			if(ReceivedName == pName)
+				return;
+		}
+
+		if(Server()->IsSixup(ClientId))
+		{
+			protocol7::CNetMsg_Sv_CommandInfo Msg;
+			Msg.m_pName = pName;
+			Msg.m_pArgsFormat = pParams;
+			Msg.m_pHelpText = pHelp;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+		else
+		{
+			CNetMsg_Sv_CommandInfo Msg;
+			Msg.m_pName = pName;
+			Msg.m_pArgsFormat = pParams;
+			Msg.m_pHelpText = pHelp;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+		pPlayer->m_vReceivedConditionals.push_back(pName);
+	};
+
+	auto CommandInfoRemove = [this, pPlayer, ClientId](const char *pName) {
+		const auto It = std::find(
+			pPlayer->m_vReceivedConditionals.begin(),
+			pPlayer->m_vReceivedConditionals.end(),
+			pName);
+
+		if(It == pPlayer->m_vReceivedConditionals.end())
+			return;
+
+		if(Server()->IsSixup(ClientId))
+		{
+			protocol7::CNetMsg_Sv_CommandInfoRemove Msg;
+			Msg.m_pName = pName;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+		else
+		{
+			CNetMsg_Sv_CommandInfoRemove Msg;
+			Msg.m_pName = pName;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+
+		pPlayer->m_vReceivedConditionals.erase(It);
+	};
+
+	for(const IConsole::ICommandInfo *pCmd = Console()->FirstCommandInfo(ClientId, CMDFLAG_CONDITIONAL);
+		pCmd; pCmd = Console()->NextCommandInfo(pCmd, ClientId, CMDFLAG_CONDITIONAL))
+	{
+		const char *pName = pCmd->Name();
+		if(!str_comp(pName, "casino"))
+		{
+			int Idx = GetMapIndexByType(EMapType::Casino);
+			if(Idx != -1 && pPlayer->MultiMapIdx() != Idx)
+				CommandInfo(pName, "", "Go to the casino");
+			else
+				CommandInfoRemove(pName);
+		}
+		else if(!str_comp(pName, "leave") || !str_comp(pName, "exit"))
+		{
+			if(pPlayer->MultiMapIdx() != DefaultMapIndex)
+				CommandInfo(pName, "", "Leave from the casino");
+			else
+				CommandInfoRemove(pName);
+		}
+	}
 }
 
 void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
@@ -1413,4 +1501,28 @@ bool CGameContext::SetPredictEventsFlag(int ClientId) const
 		return false;
 
 	return true;
+}
+
+bool CGameContext::CanUseCmd(int ClientId, const char *pCmd)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+
+	if(Server()->ClientSlotEmpty(ClientId))
+		return false;
+
+	const IConsole::ICommandInfo *pInfo = Console()->GetCommandInfo(pCmd);
+	if(!pInfo)
+		return false;
+
+	const IConsole::EAccessLevel Required = pInfo->GetAccessLevel();
+	IConsole::EAccessLevel ClientLevel = IConsole::EAccessLevel::USER;
+	switch(Server()->GetAuthedState(ClientId))
+	{
+	case AUTHED_ADMIN: ClientLevel = IConsole::EAccessLevel::ADMIN; break;
+	case AUTHED_MOD: ClientLevel = IConsole::EAccessLevel::MODERATOR; break;
+	case AUTHED_HELPER: ClientLevel = IConsole::EAccessLevel::HELPER; break;
+	default: ClientLevel = IConsole::EAccessLevel::USER; break;
+	}
+	return Required >= ClientLevel;
 }

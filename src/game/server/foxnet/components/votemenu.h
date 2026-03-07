@@ -181,8 +181,6 @@ class CVoteMenu : public CServerComponent
 
 	void UpdatePages(int ClientId);
 
-	bool CanUseCmd(int ClientId, const char *pCmd) const;
-
 	bool OwnsAnyOfType(int ClientId, EItemType ItemType) const;
 
 public:

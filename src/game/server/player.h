@@ -588,6 +588,8 @@ public:
 	bool SendToMap(int Idx);
 	int m_MultiMapIndex = DefaultMapIndex;
 	int MultiMapIdx() const { return m_MultiMapIndex; }
+
+	std::vector<std::string> m_vReceivedConditionals = {}; // conditional chat commands
 	// FoxNet>
 };
 #endif

@@ -1724,7 +1724,15 @@ void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+	int UserId = pResult->m_ClientId;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : UserId;
+	if(UserId >= 0 || UserId < MAX_CLIENTS)
+	{
+		if(!pSelf->CanUseCmd(UserId, pResult->GetCommand()))
+		{
+			Victim = UserId;
+		}
+	}
 
 	int Idx = pSelf->GetMapIndexByType(EMapType::Casino);
 
@@ -1745,14 +1753,41 @@ void CGameContext::ConCasino(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->SendToMap(Idx);
 }
 
+void CGameContext::ConMainMap(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int UserId = pResult->m_ClientId;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : UserId;
+	if(UserId >= 0 || UserId < MAX_CLIENTS)
+	{
+		if(!pSelf->CanUseCmd(UserId, pResult->GetCommand()))
+		{
+			Victim = UserId;
+		}
+	}
+	const int MainMapIdx = DefaultMapIndex; // might change in the future
+
+	if(!CheckClientId(Victim))
+		return;
+	if(pSelf->Server()->ClientSlotEmpty(Victim))
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+	if(!pPlayer)
+		return;
+
+	pPlayer->SendToMap(MainMapIdx);
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
 	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMap, this, "Load a map of type (leave empty for help text)");
 	Console()->Register("unload_map", "r[map-name]", CFGFLAG_SERVER, ConUnloadMap, this, "Unload a map by name");
 
-	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send players (id) to the casino map (if loaded)");
+	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send player to a different loaded map");
 
-	Console()->Register("casino", "?v[id]", CFGFLAG_SERVER, ConCasino, this, "Send players (id) to the casino map (if loaded)");
+	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
+	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Probably multipurpose in the future, for now just leaves if on a different map");
+	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Same^, handling for these shouldnt be here but whatever");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 

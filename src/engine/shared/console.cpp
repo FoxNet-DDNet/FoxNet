@@ -1201,6 +1201,17 @@ const IConsole::ICommandInfo *CConsole::GetCommandInfo(const char *pName, int Fl
 
 	return nullptr;
 }
+// <FoxNet
+const IConsole::ICommandInfo *CConsole::GetCommandInfo(const char *pName)
+{
+	for(CCommand *pCommand = m_pFirstCommand; pCommand; pCommand = pCommand->Next())
+	{
+		if(str_comp_nocase(pCommand->Name(), pName) == 0)
+			return pCommand;
+	}
+	return nullptr;
+}
+// FoxNet>
 
 std::unique_ptr<IConsole> CreateConsole(int FlagMask) { return std::make_unique<CConsole>(FlagMask); }
 

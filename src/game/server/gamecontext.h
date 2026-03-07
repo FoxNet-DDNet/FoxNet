@@ -802,6 +802,7 @@ private:
 	void FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo);
 	void RegisterFoxNetCommands();
 	void OnFoxNetConsoleInit();
+	void SendConditionalCommands(int ClientId);
 
 	// Multimaps
 	void LoadMapByName(const char *pMapName, EMapType Type);
@@ -952,6 +953,7 @@ private:
 	static void ConUnloadMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
+	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);
 	bool RandomMapVote();
 
 public:
@@ -1029,6 +1031,7 @@ public:
 	void OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStrength);
 
 	bool SetPredictEventsFlag(int ClientId) const;
+	bool CanUseCmd(int ClientId, const char *pCmd);
 	// FoxNet>
 };
 

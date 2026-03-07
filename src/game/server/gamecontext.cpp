@@ -1645,6 +1645,10 @@ void CGameContext::OnClientEnter(int ClientId)
 		pCmd; pCmd = Console()->NextCommandInfo(pCmd, ClientId, CFGFLAG_CHAT))
 	{
 		const char *pName = pCmd->Name();
+		// <FoxNet
+		if(pCmd->Flags() & CMDFLAG_CONDITIONAL)
+			continue; // skip conditional commands, they will be sent when the condition is met
+		// FoxNet>
 
 		if(Server()->IsSixup(ClientId))
 		{

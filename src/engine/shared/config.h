@@ -97,6 +97,10 @@ enum
 	CFGFLAG_COLALPHA = 1 << 12,
 	CFGFLAG_INSENSITIVE = 1 << 13,
 	CMDFLAG_PRACTICE = 1 << 14,
+
+	// FoxNet
+	// Command that gets added/removed when needed, e.g casino leave command, so that it doesn't show up in the command list when not needed.
+	CMDFLAG_CONDITIONAL = 1 << 15,
 };
 
 #ifdef CONF_DEBUG

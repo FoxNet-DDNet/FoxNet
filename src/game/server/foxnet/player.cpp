@@ -159,6 +159,8 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
+	m_vReceivedConditionals.clear();
+
 	m_MultiMapIndex = DefaultMapIndex;
 	m_LastReport = 0;
 
@@ -1193,7 +1195,6 @@ bool CPlayer::SendToMap(int Idx)
 	CCharacter *pChr = GetCharacter();
 	if(pChr)
 	{
-		m_PreviousDieTick = m_DieTick = Server()->Tick();
 		pChr->Die(-1, WEAPON_GAME);
 	}
 	return true;
