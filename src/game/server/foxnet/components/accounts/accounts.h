@@ -150,6 +150,8 @@ public:
 	int m_LoginTick = 0;
 	bool m_Disabled = false;
 
+	char m_aTimeoutCode[64] = "";
+
 	CMailBox m_MailBox;
 	long m_LastMailboxFetch = 0; // unix seconds of last successful fetch
 	bool m_MailboxFetchPending = false;

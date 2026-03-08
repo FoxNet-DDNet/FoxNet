@@ -407,7 +407,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
+		"Level, XP, Money, Disabled, TimeoutCode "
 		"FROM foxnet_accounts WHERE Username = ? AND Password = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -440,6 +440,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_XP = pSql->GetInt64(Param++);
 		pRes->m_Money = pSql->GetInt64(Param++);
 		pRes->m_Disabled = pSql->GetInt(Param++);
+		pSql->GetString(Param++, pRes->m_aTimeoutCode, sizeof(pRes->m_aTimeoutCode));
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 	}
@@ -528,7 +529,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		"SET LoggedIn = 0, Port = 0, ClientId = -1, "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"    Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ? "
+		"    Level = ?, XP = ?, Money = ?, TimeoutCode = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -540,6 +541,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	pSql->BindInt64(Param++, pReq->m_Level);
 	pSql->BindInt64(Param++, pReq->m_XP);
 	pSql->BindInt64(Param++, pReq->m_Money);
+	pSql->BindString(Param++, pReq->m_aTimeoutCode);
 	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
@@ -626,8 +628,8 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
-		"FROM foxnet_accounts WHERE LastPlayerName = ?"
+		"Level, XP, Money, Disabled, TimeoutCode "
+		"FROM foxnet_accounts WHERE LastPlayerName = ? "
 		"ORDER BY LastLogin DESC "
 		"LIMIT 1",
 		sizeof(aSql));
@@ -659,6 +661,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_XP = pSql->GetInt64(Param++);
 		pRes->m_Money = pSql->GetInt64(Param++);
 		pRes->m_Disabled = pSql->GetInt(Param++);
+		pSql->GetString(Param++, pRes->m_aTimeoutCode, sizeof(pRes->m_aTimeoutCode));
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
@@ -682,7 +685,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 	str_copy(aSql,
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
-		"Level, XP, Money, Disabled "
+		"Level, XP, Money, Disabled, TimeoutCode "
 		"FROM foxnet_accounts WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -713,6 +716,7 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_XP = pSql->GetInt64(Param++);
 		pRes->m_Money = pSql->GetInt64(Param++);
 		pRes->m_Disabled = pSql->GetInt(Param++);
+		pSql->GetString(Param++, pRes->m_aTimeoutCode, sizeof(pRes->m_aTimeoutCode));
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
