@@ -3044,10 +3044,10 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 
 	if(g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponOnDeath)
 	{
-		for(int iWeapon = NUM_WEAPONS; iWeapon < NUM_EXTRA_WEAPONS; iWeapon++)
+		for(int Weapon = NUM_WEAPONS; Weapon < NUM_EXTRA_WEAPONS; Weapon++)
 		{
-			if(GetWeaponGot(iWeapon))
-				DropWeapon(iWeapon, m_Core.m_Vel + random_direction() * 3);
+			if(GetWeaponGot(Weapon))
+				DropWeapon(Weapon, m_Core.m_Vel + random_direction() * 3);
 		}
 	}
 
