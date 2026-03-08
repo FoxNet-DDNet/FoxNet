@@ -1126,8 +1126,6 @@ void CPlayer::SendAreaMotd(int Area)
 
 void CPlayer::SetArea(int Area)
 {
-	if(HasImportantBroadcast())
-		return;
 	if(m_Area != AREA_GAME)
 		m_LastEnteredArea = m_Area;
 	SendAreaMotd(Area);

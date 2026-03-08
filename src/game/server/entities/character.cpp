@@ -3051,11 +3051,10 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 		}
 	}
 
-	if(m_Core.m_ActiveWeapon >= NUM_WEAPONS)
-		GetPlayer()->ClearBroadcast();
-
 	m_Snake.OnPlayerDeath();
 	m_Ufo.OnPlayerDeath();
+
+	GetPlayer()->ClearBroadcast();
 }
 
 CClientMask CCharacter::CosmeticMask(EItemType Type)

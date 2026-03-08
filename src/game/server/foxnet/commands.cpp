@@ -90,7 +90,6 @@ void CGameContext::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-
 	const int Amount = pResult->GetInteger(1);
 	pPlayer->PayMoney(pVictim, Amount);
 }
