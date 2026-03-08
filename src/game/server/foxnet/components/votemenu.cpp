@@ -30,8 +30,7 @@
 #include <optional>
 #include <string>
 #include <vector>
-
-// Font: https://fsymbols.com/generators/smallcaps/
+#include <game/server/foxnet/fontconvert.h>
 
 constexpr const char *RAINBOW_SPEED = "Rainbow Speed";
 
@@ -111,15 +110,15 @@ constexpr const char *SERVER_INFO_SEND_LINK = "Double click here to send the lin
 
 void CVoteMenu::OnConsoleInit()
 {
-	str_copy(m_aPages[PAGE_MAIN], "Mᴀɪɴ Mᴇɴᴜ"); // Not shown
+	str_copy(m_aPages[PAGE_MAIN], ConvertToSmallCaps("Main Menu")); // Not shown
 
-	str_copy(m_aPages[PAGE_SERVERINFO], "Sᴇʀᴠᴇʀ Iɴғᴏ");
-	str_copy(m_aPages[PAGE_SETTINGS], "Sᴇᴛᴛɪɴɢs");
-	str_copy(m_aPages[PAGE_MAILBOX], "Mᴀɪʟʙᴏx");
-	str_copy(m_aPages[PAGE_SHOP], "Sʜᴏᴘ");
-	str_copy(m_aPages[PAGE_INVENTORY], "Iɴᴠᴇɴᴛᴏʀʏ");
-	str_copy(m_aPages[PAGE_VOTES], "Vᴏᴛᴇs");
-	str_copy(m_aPages[PAGE_ADMIN], "Aᴅᴍɪɴ");
+	str_copy(m_aPages[PAGE_SERVERINFO], ConvertToSmallCaps("Server Info"));
+	str_copy(m_aPages[PAGE_SETTINGS], ConvertToSmallCaps("Settings"));
+	str_copy(m_aPages[PAGE_MAILBOX], ConvertToSmallCaps("Mailbox"));
+	str_copy(m_aPages[PAGE_SHOP], ConvertToSmallCaps("Shop"));
+	str_copy(m_aPages[PAGE_INVENTORY], ConvertToSmallCaps("Inventory"));
+	str_copy(m_aPages[PAGE_VOTES], ConvertToSmallCaps("Votes"));
+	str_copy(m_aPages[PAGE_ADMIN], ConvertToSmallCaps("Admin"));
 }
 
 bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
@@ -966,7 +965,7 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 		}
 		else
 		{
-			AddVoteText("╭─────────    Pʀᴏғɪʟᴇ");
+			AddVoteText(ConvertToSmallCaps("╭─────────    Profile"));
 			str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
 			AddVoteText(aBuf);
 			str_format(aBuf, sizeof(aBuf), "│ Last Ign: %s", pAcc->m_LastName);
@@ -981,7 +980,7 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 			{
 				AddVoteText("│ Register Date: n/a");
 			}
-			AddVoteText("├─────────   Sᴛᴀᴛs");
+			AddVoteText(ConvertToSmallCaps("├─────────   Stats"));
 			str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
 			AddVoteText(aBuf);
 			int CurXp = pAcc->m_XP;
@@ -994,7 +993,7 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 			AddVoteText(aBuf);
 			str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
 			AddVoteText(aBuf);
-			AddVoteText("├─────────   Bᴏᴏsᴛᴇʀs");
+			AddVoteText(ConvertToSmallCaps("├─────────   Boosters"));
 			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPlayer->StatMultiplier());
 			AddVoteText(aBuf);
 			AddVoteText("╰────────────────────");
@@ -1061,7 +1060,7 @@ void CVoteMenu::PrepareSettings(int ClientId)
 {
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
-	AddVoteText("Sᴇᴛᴛɪɴɢs:");
+	AddVoteText(ConvertToSmallCaps("Settings:"));
 	if(pAcc->m_LoggedIn)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
@@ -1069,7 +1068,7 @@ void CVoteMenu::PrepareSettings(int ClientId)
 
 	AddVoteSeparator();
 
-	AddVoteText("Sʜᴏᴡ Cᴏsᴍᴇᴛɪᴄs:");
+	AddVoteText(ConvertToSmallCaps("Show Cosmetics:"));
 	AddVoteCheckBox(SETTINGS_COSMETICS_ANY, pAcc->m_Configs.m_Cosmetics.m_ShowRainbow && pAcc->m_Configs.m_Cosmetics.m_ShowGuns && pAcc->m_Configs.m_Cosmetics.m_ShowIndicators && pAcc->m_Configs.m_Cosmetics.m_ShowDeaths && pAcc->m_Configs.m_Cosmetics.m_ShowTrails && pAcc->m_Configs.m_Cosmetics.m_ShowHats && pAcc->m_Configs.m_Cosmetics.m_ShowEffects);
 	AddVoteCheckBox(SETTINGS_COSMETICS_RAINBOW, pAcc->m_Configs.m_Cosmetics.m_ShowRainbow);
 	AddVoteCheckBox(SETTINGS_COSMETICS_GUNS, pAcc->m_Configs.m_Cosmetics.m_ShowGuns);
@@ -1084,7 +1083,7 @@ void CVoteMenu::PrepareSettings(int ClientId)
 	{
 		AddVoteSeparator();
 
-		AddVoteText("Hᴀᴛ Rᴏᴛᴀᴛɪᴏɴ:");
+		AddVoteText(ConvertToSmallCaps("Hat Rotation:"));
 		AddVoteCheckBox(SETTINGS_0_ROTATION, !pAcc->m_Configs.m_HatItemFlags);
 		AddVoteCheckBox(SETTINGS_90_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_ROTATE | PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
 		AddVoteCheckBox(SETTINGS_180_ROTATION, pAcc->m_Configs.m_HatItemFlags == (PICKUPFLAG_XFLIP | PICKUPFLAG_YFLIP));
@@ -1104,7 +1103,7 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 
 	if(SubPage == SUB_MAILBOX_MAIN)
 	{
-		AddVoteText("╭───────  Actions");
+		AddVoteText(ConvertToSmallCaps("╭───────  Actions"));
 		AddVoteText(MAIL_MARK_ALL_READ, EPrefix::LONG_LINE);
 		AddVoteText(MAIL_CLAIM_ALL_REWARDS, EPrefix::LONG_LINE);
 		AddVoteText(MAIL_DELETE_ALL_READ, EPrefix::LONG_LINE);
@@ -1117,11 +1116,11 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 			return;
 		}
 
-		AddVoteSubheader("Fɪʟᴛᴇʀs");
+		AddVoteSubheader(ConvertToSmallCaps("Filters"));
 		AddVoteCheckBox(MAIL_ONLY_UNREAD, Data.m_OnlyUnreadMails);
 		AddVoteSeparator();
 
-		AddVoteText("Mᴀɪʟs:");
+		AddVoteText(ConvertToSmallCaps("Mails:"));
 		int Idx = 0;
 
 		if(pAcc->m_MailBox.m_vMails.empty())
@@ -1175,7 +1174,7 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 
 		const bool HasReward = Mail.m_aCmdName[0] && Mail.m_aCmd[0];
 
-		AddVoteText("╭───────── Mᴀɪʟ Dᴇᴛᴀɪʟs");
+		AddVoteText(ConvertToSmallCaps("╭───────── Mail Details"));
 		if(!Mail.m_UsedCmd && HasReward)
 			AddVoteText(MAIL_CLAIM_REWARD, EPrefix::LONG_LINE);
 		AddVoteText(MAIL_DELETE, EPrefix::LONG_LINE);
@@ -1193,7 +1192,7 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 		if(HasReward)
 		{
 			AddVoteSeparator();
-			AddVoteSubheader("Rᴇᴡᴀʀᴅ");
+			AddVoteSubheader(ConvertToSmallCaps("Reward"));
 
 			str_copy(aUnescaped, Mail.m_aCmdName, sizeof(aUnescaped));
 			UnescapeNewlines(aUnescaped);
@@ -1232,7 +1231,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 	}
 
 	char aBuf[VOTE_DESC_LENGTH];
-	AddVoteText("╭─────── Aᴄᴄᴏᴜɴᴛ Iɴғᴏ");
+	AddVoteText(ConvertToSmallCaps("╭─────── Account Info"));
 	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
 	AddVoteText(aBuf);
 	AddVoteText("╰────────────");
@@ -1240,7 +1239,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 	if(SubPage != SUB_SHOP_ITEMINFO)
 	{
-		AddVoteSubheader("Fɪʟᴛᴇʀs");
+		AddVoteSubheader(ConvertToSmallCaps("Filters"));
 		AddVoteCheckBox(SHOP_ONLY_AFFORDABLE, Data.m_OnlyAffordable);
 		AddVoteSeparator();
 	}
@@ -1299,7 +1298,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			AddVoteText("No categories available with the current filters.");
 			return;
 		}
-		AddVoteText("╭───────── Cᴀᴛᴇɢᴏʀɪᴇs");
+		AddVoteText(ConvertToSmallCaps("╭───────── Categories"));
 		for(const auto &pCategory : AvailableCategories)
 			AddVoteText(pCategory.c_str(), Prefix);
 		AddVoteText("╰────────────");
@@ -1344,7 +1343,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 		const CItemConfig *pItem = Data.m_pLastItemInfo;
 
-		AddVoteText("╭─────── Iᴛᴇᴍ Iɴғᴏ");
+		AddVoteText(ConvertToSmallCaps("╭─────── Item Info"));
 		str_format(aBuf, sizeof(aBuf), "│ %s ⌬", pItem->m_pName);
 		AddVoteText(aBuf);
 
@@ -1355,7 +1354,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(const auto &Line : Lines)
 			AddVoteText(Line, EPrefix::LONG_LINE);
 
-		AddVoteText("├────── Rarity");
+		AddVoteText(ConvertToSmallCaps("├────── Rarity"));
 		str_format(aBuf, sizeof(aBuf), "│ %s %s", RarityToName(pItem->m_Rarity), StarsString(pItem->m_Stars).c_str());
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
@@ -1573,7 +1572,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
-		AddVoteText("╭───────    ʀᴜʟᴇꜱ");
+		AddVoteText(ConvertToSmallCaps("╭───────    Rules"));
 		if(g_Config.m_SvDDRaceRules)
 		{
 			AddVoteText("Be nice.", EPrefix::LONG_LINE);
@@ -1630,7 +1629,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 		if(!Lines.empty())
 		{
-			AddVoteText("╭───────    Dɪsᴄᴏʀᴅ");
+			AddVoteText(ConvertToSmallCaps("╭───────    Discord"));
 			for(const char *pLine : Lines)
 				AddVoteText(pLine, EPrefix::LONG_LINE);
 			AddVoteText("╰────────────────────");
@@ -1642,7 +1641,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
 	{
-		AddVoteText("╭───────    Aᴄᴄᴏᴜɴᴛs");
+		AddVoteText(ConvertToSmallCaps("╭───────    Accounts"));
 		AddVoteText("│ Accounts are used to save your");
 		AddVoteText("│ progress and earn rewards!");
 		AddVoteText("├───────────────");
@@ -1656,7 +1655,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 	}
 	else if(SubPage == SUB_SERVERINFO_LEVELING)
 	{
-		AddVoteText("╭───────    Lᴇᴠᴇʟɪɴɢ");
+		AddVoteText(ConvertToSmallCaps("╭───────    Leveling"));
 		AddVoteText("│ 1. You Earn XP passively every minute you're playing");
 		AddVoteText("│ 2. For Every finish, you get the amount of points as XP");
 		AddVoteText("│ 3. Powerups will randomly spawn around the map:");
@@ -1673,7 +1672,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 			return;
 		}
 
-		AddVoteText("╭───────    Cᴏɴᴛʀɪʙᴜᴛɪɴɢ");
+		AddVoteText(ConvertToSmallCaps("╭───────    Contributing"));
 		AddVoteText("│ Want to contribute to the server?");
 		AddVoteText("│ Or have an Idea for a feature?");
 		AddVoteText("│ Check out our GitHub page!");
@@ -1691,7 +1690,7 @@ void CVoteMenu::PrepareAdmin(int ClientId)
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 
-	AddVoteSubheader("Aᴅᴍɪɴ Pᴀɢᴇs");
+	AddVoteSubheader(ConvertToSmallCaps("Admin Pages"));
 	AddVoteText(ADMIN_UTIL, GetSubPage(ClientId) == SUB_ADMIN_UTIL ? EPrefix::BLACK_DIAMOND : EPrefix::WHITE_DIAMOND);
 	AddVoteText(ADMIN_MISC, GetSubPage(ClientId) == SUB_ADMIN_MISC ? EPrefix::BLACK_DIAMOND : EPrefix::WHITE_DIAMOND);
 	AddVoteSeparator();
@@ -1728,7 +1727,7 @@ void CVoteMenu::PrepareAdmin(int ClientId)
 	}
 	if(GetSubPage(ClientId) == SUB_ADMIN_MISC)
 	{
-		AddVoteSubheader("Mɪsᴄᴇʟʟᴀɴᴇᴏᴜs");
+		AddVoteSubheader(ConvertToSmallCaps("Miscellaneous"));
 		if(pChr)
 		{
 			if(GameServer()->CanUseCmd(ClientId, "snake"))

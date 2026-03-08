@@ -96,3 +96,54 @@ const char *FontConvert(const char *pMsg)
 
 	return s_DecodedMsg;
 }
+
+const char *ConvertToSmallCaps(const char *pMsg)
+{
+	static char s_SmallCapsMsg[512];
+	mem_zero(s_SmallCapsMsg, sizeof(s_SmallCapsMsg));
+
+	const char *c = pMsg;
+	char aLetter[8];
+	char aReplacement[8];
+
+	while(*c)
+	{
+		const char *pOld = c;
+		if(str_utf8_decode(&c) == 0)
+			break;
+
+		const int Len = c - pOld;
+		if(Len > 0 && Len < static_cast<int>(sizeof(aLetter)))
+		{
+			mem_copy(aLetter, pOld, Len);
+			aLetter[Len] = 0;
+
+			bool Replaced = false;
+
+			for(size_t i = 0; i < g_LetterSymbols.size(); ++i)
+			{
+				const auto SymbolsSpan = std::span(
+					g_LetterSymbols[i].data(),
+					g_LetterSymbolCounts[i]);
+
+				if(IsSymbolInArray(aLetter, SymbolsSpan))
+				{
+					const auto SmallCaps = g_SmallCaps[i];
+					if(SmallCaps.size() < sizeof(aReplacement))
+					{
+						mem_copy(aReplacement, SmallCaps.data(), SmallCaps.size());
+						aReplacement[SmallCaps.size()] = 0;
+						str_append(s_SmallCapsMsg, aReplacement, sizeof(s_SmallCapsMsg));
+						Replaced = true;
+					}
+					break;
+				}
+			}
+
+			if(!Replaced)
+				str_append(s_SmallCapsMsg, aLetter, sizeof(s_SmallCapsMsg));
+		}
+	}
+
+	return s_SmallCapsMsg;
+}

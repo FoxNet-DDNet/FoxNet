@@ -52,6 +52,13 @@ constexpr std::array<std::array<std::string_view, SYMBOLS_PER_NUMBER>, NUMBER_CO
 	{"9", "⁹", "𝟡", "➒", "９", "⑨"} // 9
 }};
 
+// ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘᴏ̨ʀsᴛᴜᴠᴡxʏᴢ
+constexpr std::array<std::string_view, LETTER_COUNT> g_SmallCaps = {
+	"ᴀ", "ʙ", "ᴄ", "ᴅ", "ᴇ", "ғ", "ɢ", "ʜ", "ɪ", "ᴊ", "ᴋ", "ʟ", "ᴍ",
+	"ɴ", "ᴏ", "ᴘ", "ǫ", "ʀ", "s", "ᴛ", "ᴜ", "ᴠ", "ᴡ", "x", "ʏ", "ᴢ"
+};
+
 const char *FontConvert(const char *pMsg);
+const char *ConvertToSmallCaps(const char *pMsg);
 
 #endif // GAME_SERVER_FOXNET_FONTCONVERT_H
