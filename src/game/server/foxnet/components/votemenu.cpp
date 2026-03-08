@@ -33,6 +33,8 @@
 
 // Font: https://fsymbols.com/generators/smallcaps/
 
+constexpr const char *RAINBOW_SPEED = "Rainbow Speed";
+
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
 constexpr const char *SETTINGS_FAST_INPUTS = "Using Fast Inputs?";
@@ -470,10 +472,13 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	{
 		if(!g_Config.m_SvAccounts)
 			return false;
-		if(IsOptionWithSuffix(pVote, "Rainbow Speed"))
+		if(IsOptionWithSuffix(pVote, RAINBOW_SPEED))
 		{
 			if(ReasonInt.has_value())
-				pPlayer->Cosmetics()->m_RainbowSpeed = ReasonInt.value();
+			{
+				int Val = std::clamp(ReasonInt.value(), 1, 20);
+				pPlayer->Cosmetics()->m_RainbowSpeed = Val;
+			}
 			else
 				GameServer()->SendChatTarget(ClientId, "Please specify the rainbow speed using the reason field");
 			return true;
@@ -1415,7 +1420,7 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			CVoteData Data;
 			Data.m_ItemType = Type;
 			Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
-			str_copy(Data.m_aVoteName, "Rainbow Speed");
+			str_copy(Data.m_aVoteName, RAINBOW_SPEED);
 			Data.m_Value = pPlayer->Cosmetics()->m_RainbowSpeed;
 			Data.m_Max = 20;
 			Votes.push_back(Data);
