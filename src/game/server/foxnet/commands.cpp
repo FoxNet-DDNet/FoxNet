@@ -48,6 +48,53 @@ void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->GiveMoney(Amount, false);
 }
 
+void CGameContext::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int UserId = pResult->m_ClientId;
+	const char *pName = pResult->GetString(0);
+	if(!CheckClientId(UserId))
+		return;
+
+	if(!g_Config.m_SvAccounts)
+		return;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[UserId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(UserId, "You need to be logged in for this.");
+		return;
+	}
+	int Victim = pSelf->ClientIdByName(pName);
+	if(!CheckClientId(Victim))
+	{
+		pSelf->SendChatTarget(UserId, "Player not found");
+		return;
+	}
+	CPlayer *pVictim = pSelf->m_apPlayers[Victim];
+	if(!pVictim)
+	{
+		pSelf->SendChatTarget(UserId, "Player not found");
+		return;
+	}
+	if(Victim == UserId)
+	{
+		pSelf->SendChatTarget(UserId, "You can't pay yourself");
+		return;
+	}
+	if(!pVictim->Acc()->m_LoggedIn)
+	{
+		pSelf->SendChatTarget(UserId, "Player isn't logged in");
+		return;
+	}
+
+
+	const int Amount = pResult->GetInteger(1);
+	pPlayer->PayMoney(pVictim, Amount);
+}
+
 void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1785,10 +1832,6 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send player to a different loaded map");
 
-	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
-	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Probably multipurpose in the future, for now just leaves if on a different map");
-	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Same^, handling for these shouldnt be here but whatever");
-
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 
 	Console()->Register("send_as", "v[id] r[message]", CFGFLAG_SERVER, ConSendAsPlayer, this, "Send a chat message as player (id)");
@@ -1895,22 +1938,27 @@ void CGameContext::RegisterFoxNetCommands()
 	// Account
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
-
-	Console()->Register("bet", "i[amount]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
-
-	Console()->Register("report", "s[player] r[message]", CFGFLAG_SERVER | CFGFLAG_CHAT, ConReport, this, "Report a player");
-	// Shop
 	
+	Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
+	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
+
+	// Casino/Map related
+	Console()->Register("bet", "i[amount]", CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
+	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
+	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Probably multipurpose in the future, for now just leaves if on a different map");
+	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "Same^, handling for these shouldnt be here but whatever");
+	
+	// Shop
 	Console()->Register("toggleitem", "s[item] ?i[value]", CFGFLAG_CHAT, ConToggleItem, this, "Toggle an Item, value is only needed for 2 items");
 	Console()->Register("dropweapon", "", CFGFLAG_CHAT, ConDropWeapon, this, "Drops the weapon you're currently holding");
 
 	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
-	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
+	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
 
-	Console()->Register("powerups", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConPowerups, this, "Hide/show powerups");
-	Console()->Register("cosmetics", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConCosmetics, this, "Hide/show all cosmetics");
+	Console()->Register("powerups", "", CFGFLAG_CHAT, ConPowerups, this, "Hide/show powerups");
+	Console()->Register("cosmetics", "", CFGFLAG_CHAT, ConCosmetics, this, "Hide/show all cosmetics");
 
 	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);

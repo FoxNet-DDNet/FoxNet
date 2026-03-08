@@ -501,6 +501,9 @@ public:
 	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
 	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
+	int64_t m_LastTransaction = 0;	
+	void PayMoney(CPlayer *pReceiver, long Amount);
+
 	long GetDiscountedPrice(long Price);
 
 	bool OwnsItem(const char *pItemName);

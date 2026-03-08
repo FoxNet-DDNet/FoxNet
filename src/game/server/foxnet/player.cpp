@@ -159,6 +159,7 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
+	m_LastTransaction = 0;
 	m_vReceivedConditionals.clear();
 
 	m_MultiMapIndex = DefaultMapIndex;
@@ -391,6 +392,40 @@ void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
+}
+
+void CPlayer::PayMoney(CPlayer *pReceiver, long Amount)
+{
+	if(!Acc()->m_LoggedIn || !pReceiver || !pReceiver->Acc()->m_LoggedIn)
+		return;
+	if(Amount <= 0)
+		return;
+	if(Acc()->m_Level < 10)
+	{
+		GameServer()->SendChatTarget(m_ClientId, "You need to be at least level 10 to do transactions.");
+		return;
+	}
+	if(Acc()->m_Money < Amount)
+	{
+		GameServer()->SendChatTarget(m_ClientId, "You don't have enough money to do this transaction.");	
+		return;
+	}
+	constexpr int Cooldown = 300; // 5 minutes cooldown between transactions to prevent abuse
+	if(m_LastTransaction != 0 && Server()->Tick() - m_LastTransaction < Server()->TickSpeed() * Cooldown)
+	{
+		GameServer()->SendChatTarget(m_ClientId, "You need to wait a bit before doing another transaction.");
+		return;
+	}
+	char aBuf[256];
+
+	TakeMoney(Amount, false);
+	pReceiver->GiveMoney(Amount, false, false);
+
+	str_format(aBuf, sizeof(aBuf), "You paid %s %ld%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
+	GameServer()->SendChatTarget(m_ClientId, aBuf);
+	str_format(aBuf, sizeof(aBuf), "You received %ld%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
+	GameServer()->SendChatTarget(pReceiver->GetCid(), aBuf);
+	m_LastTransaction = Server()->Tick();
 }
 
 long CPlayer::GetDiscountedPrice(long Price)

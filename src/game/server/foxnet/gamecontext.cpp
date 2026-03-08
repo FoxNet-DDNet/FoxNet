@@ -1526,3 +1526,15 @@ bool CGameContext::CanUseCmd(int ClientId, const char *pCmd)
 	}
 	return Required >= ClientLevel;
 }
+
+int CGameContext::ClientIdByName(const char *pName) const
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(Server()->ClientSlotEmpty(i))
+			continue;
+		if(str_comp(Server()->ClientName(i), pName) == 0)
+			return i;
+	}
+	return -1;
+}

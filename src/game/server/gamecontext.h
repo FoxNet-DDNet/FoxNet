@@ -916,6 +916,7 @@ private:
 	static void ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetSpazzing(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConPayMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
 
@@ -1032,6 +1033,8 @@ public:
 
 	bool SetPredictEventsFlag(int ClientId) const;
 	bool CanUseCmd(int ClientId, const char *pCmd);
+
+	int ClientIdByName(const char *pName) const;
 	// FoxNet>
 };
 
