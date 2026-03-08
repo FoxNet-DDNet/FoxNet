@@ -2049,6 +2049,7 @@ set_src(BASE GLOB_RECURSE src/base
   sphore.h
   str.cpp
   str.h
+  system.cpp
   system.h
   thread.cpp
   thread.h

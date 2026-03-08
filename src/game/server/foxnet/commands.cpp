@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
+#include <base/net.h>
 
 void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 {

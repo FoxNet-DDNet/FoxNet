@@ -454,7 +454,7 @@ void CScore::InsertPlayerRecord(int ClientId, const char *pName, const char *pMa
 	Tmp->m_Time = Time;
 
 	char aTimestamp[TIMESTAMP_STR_LENGTH];
-	str_timestamp_format(aTimestamp, sizeof(aTimestamp), FORMAT_SPACE);
+	str_timestamp_format(aTimestamp, sizeof(aTimestamp), TimestampFormat::SPACE);
 	str_copy(Tmp->m_aTimestamp, aTimestamp, sizeof(Tmp->m_aTimestamp));
 
 	for(int i = 0; i < NUM_CHECKPOINTS; i++)
