@@ -19,6 +19,7 @@ public:
 
 private:
 	CAccConfigs m_Configs;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 
 	bool m_Invisible;
 	bool m_Vanish;

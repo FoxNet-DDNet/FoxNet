@@ -194,6 +194,8 @@ void CPlayer::FoxNetReset()
 		delete GameServer()->m_apPersistentData[GetCid()];
 		GameServer()->m_apPersistentData[GetCid()] = nullptr;
 	}
+	if(!Acc()->m_LoggedIn)
+		GameServer()->m_AccountManager.ForceLogin(GetCid(), Acc()->m_aUsername, true, true);
 }
 
 void CPlayer::GivePlaytime(long Amount)

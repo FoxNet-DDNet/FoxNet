@@ -1709,7 +1709,8 @@ void CGameContext::OnClientEnter(int ClientId)
 	}
 
 	// <FoxNet
-	m_AccountManager.AutoLogin(ClientId);
+	if(!m_aAccounts[ClientId].m_LoggedIn)
+		m_AccountManager.AutoLogin(ClientId);
 	// FoxNet>
 
 	if(!Server()->ClientPrevIngame(ClientId))

@@ -2,10 +2,15 @@
 
 #include "game/server/player.h"
 #include <game/server/foxnet/components/accounts/accounts.h>
+#include <base/str.h>
 
 void CSavePlayerData::Save(CPlayer *pPlayer)
 {
 	m_Configs = pPlayer->Acc()->m_Configs;
+	if(pPlayer->Acc()->m_LoggedIn)
+		str_copy(m_aUsername, pPlayer->Acc()->m_aUsername, sizeof(m_aUsername));
+	else
+		m_aUsername[0] = '\0';
 
 	m_Invisible = pPlayer->m_Invisible;
 	m_Vanish = pPlayer->m_Vanish;
@@ -27,6 +32,10 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 bool CSavePlayerData::Load(CPlayer *pPlayer) const
 {
 	pPlayer->Acc()->m_Configs = m_Configs;
+	if(m_aUsername[0] != '\0')
+		str_copy(pPlayer->Acc()->m_aUsername, m_aUsername, sizeof(pPlayer->Acc()->m_aUsername));
+	else
+		pPlayer->Acc()->m_aUsername[0] = '\0';
 
 	pPlayer->m_Invisible = m_Invisible;
 	pPlayer->m_Vanish = m_Vanish;

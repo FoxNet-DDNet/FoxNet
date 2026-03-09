@@ -353,10 +353,11 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 		}
 		if(!Silent)
 		{
-			GameServer()->SendChatTarget(ClientId, "Logged in successfully");
+			if(Auto)
+				GameServer()->SendChatTarget(ClientId, "Automatically logged into your account");
+			else
+				GameServer()->SendChatTarget(ClientId, "Logged in successfully");
 		}
-		else if(Auto)
-			GameServer()->SendChatTarget(ClientId, "Automatically logged into your account");
 		OnLogin(ClientId, Res);
 	});
 	DbPool()->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
