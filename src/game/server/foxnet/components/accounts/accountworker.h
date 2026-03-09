@@ -38,7 +38,6 @@ struct CAccResult : ISqlResult
 	long m_XP = 0;
 	long m_Money = 0;
 	bool m_Disabled = false;
-	char m_aTimeoutCode[64] = "";
 	CInventory m_Inventory;
 	CMailBox m_MailBox;
 	CAccConfigs m_Configs;
@@ -110,7 +109,6 @@ struct CAccSaveInfo : ISqlData
 	long m_Level = 0;
 	long m_XP = 0;
 	long m_Money = 0;
-	char m_aTimeoutCode[64] = "";
 	CInventory m_Inventory;
 	CAccConfigs m_Configs;
 };

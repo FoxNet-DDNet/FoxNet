@@ -276,20 +276,6 @@ void CAccounts::OnClientDrop(int ClientId, const char *pReason)
 
 void CAccounts::OnTick()
 {
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
-	{
-		CPlayer *pPlayer = GetPlayer(ClientId);
-		if(!pPlayer)
-			continue;
-		if(pPlayer->m_AttemptedAutoLogin)
-			continue;
-		if(pPlayer->m_aTimeoutCode[0] == '\0')
-			continue;
-
-		pPlayer->m_AttemptedAutoLogin = true;
-		AutoLogin(ClientId);
-	}
-
 	if(m_vPending.empty())
 	{
 		FetchMailBox();
@@ -320,9 +306,6 @@ void CAccounts::AutoLogin(int ClientId)
 		return;
 	if(!g_Config.m_SvAccounts)
 		return;
-	if(GameServer()->Server()->ClientSlotEmpty(ClientId))
-		return;
-
 	const char *pName = Server()->ClientName(ClientId);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByLastName>(pRes);
@@ -332,18 +315,10 @@ void CAccounts::AutoLogin(int ClientId)
 			return;
 		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
 			return;
-		CPlayer *pPlayer = GetPlayer(ClientId);
-		if(!pPlayer)
-			return;
-		const char *pTimeOutCode = pPlayer->m_aTimeoutCode;
-		if(pTimeOutCode[0] && Res.m_aTimeoutCode[0] && str_comp(pTimeOutCode, Res.m_aTimeoutCode) != 0)
-			return;
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
 			return;
 		if(str_comp(Res.m_LastPlayerName, Name.c_str()) != 0)
-			return;
-		if(Res.m_Disabled)
 			return;
 		if(Res.m_LoggedIn || !Res.m_Configs.m_AutoLogin)
 			return;
@@ -368,6 +343,12 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 		{
 			if(!Silent)
 				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
+			return;
+		}
+		if(Res.m_Disabled && Auto)
+		{
+			if(!Silent)
+				GameServer()->SendChatTarget(ClientId, "Your account is disabled");
 			return;
 		}
 		if(!Silent)
@@ -538,8 +519,6 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	// Apply equipped items to player cosmetics
 	if(auto *pPlayer = GameServer()->m_apPlayers[ClientId])
 	{
-		str_copy(Acc.m_aTimeoutCode, pPlayer->m_aTimeoutCode, sizeof(Acc.m_aTimeoutCode));
-
 		for(const auto &kv : pPlayer->Inv()->m_Map)
 		{
 			CInventoryEntry Entry = kv.second;
@@ -580,22 +559,16 @@ void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
 {
 	if(!DbPool())
 		return;
-
-	CAccountSession SaveInfo = AccInfo;
-	if(CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId])
-		str_copy(SaveInfo.m_aTimeoutCode, pPlayer->m_aTimeoutCode, sizeof(SaveInfo.m_aTimeoutCode));
-
 	auto pReq = std::make_unique<CAccSaveInfo>();
-	str_copy(pReq->m_aUsername, SaveInfo.m_aUsername, sizeof(pReq->m_aUsername));
-	pReq->m_Playtime = SaveInfo.m_Playtime;
-	pReq->m_Deaths = SaveInfo.m_Deaths;
-	pReq->m_Kills = SaveInfo.m_Kills;
-	pReq->m_Level = SaveInfo.m_Level;
-	pReq->m_XP = SaveInfo.m_XP;
-	pReq->m_Money = SaveInfo.m_Money;
-	pReq->m_Inventory = SaveInfo.m_Inventory;
-	pReq->m_Configs = SaveInfo.m_Configs;
-	str_copy(pReq->m_aTimeoutCode, SaveInfo.m_aTimeoutCode, sizeof(pReq->m_aTimeoutCode));
+	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
+	pReq->m_Playtime = AccInfo.m_Playtime;
+	pReq->m_Deaths = AccInfo.m_Deaths;
+	pReq->m_Kills = AccInfo.m_Kills;
+	pReq->m_Level = AccInfo.m_Level;
+	pReq->m_XP = AccInfo.m_XP;
+	pReq->m_Money = AccInfo.m_Money;
+	pReq->m_Inventory = AccInfo.m_Inventory;
+	pReq->m_Configs = AccInfo.m_Configs;
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 

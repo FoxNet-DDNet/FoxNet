@@ -159,8 +159,6 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
-	m_AttemptedAutoLogin = false;
-
 	m_LastTransaction = 0;
 	m_vReceivedConditionals.clear();
 

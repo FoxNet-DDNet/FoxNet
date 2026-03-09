@@ -1708,6 +1708,10 @@ void CGameContext::OnClientEnter(int ClientId)
 			return; // kicked
 	}
 
+	// <FoxNet
+	m_AccountManager.AutoLogin(ClientId);
+	// FoxNet>
+
 	if(!Server()->ClientPrevIngame(ClientId))
 	{
 		if(g_Config.m_SvWelcome[0] != 0)
@@ -2382,8 +2386,9 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 			}
 			// m_apPlayers[ClientId] can be NULL, if the player used a
 			// timeout code and replaced another client.
-			if(g_Config.m_SvLogCommands)
-				log_info("command", "%d used %s", ClientId, pMsg->m_pMessage);
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "%d used %s", ClientId, pMsg->m_pMessage);
+			Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "chat-command", aBuf);
 
 			Console()->SetFlagMask(CFGFLAG_SERVER);
 		}

@@ -346,8 +346,6 @@ public:
 	bool m_Whispers;
 	int64_t m_FirstVoteTick;
 	char m_aTimeoutCode[64];
-	
-	bool m_AttemptedAutoLogin = false; // FoxNet
 
 	void ProcessPause();
 	int Pause(int State, bool Force);
