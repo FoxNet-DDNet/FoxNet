@@ -397,11 +397,11 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	AddPending(pRes, [this, ClientId](CAccResult &Res) {
 		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
 			return;
-		if(GameServer()->m_apPlayers[ClientId])
-			GameServer()->m_apPlayers[ClientId]->m_AccLoginAttempts++;
 		if(!Res.m_Success || !Res.m_Found)
 		{
 			GameServer()->SendChatTarget(ClientId, "Login failed");
+			if(GameServer()->m_apPlayers[ClientId])
+				GameServer()->m_apPlayers[ClientId]->m_AccLoginAttempts++;
 			return;
 		}
 		if(Res.m_Disabled)
