@@ -10,6 +10,8 @@
 #include "str.h"
 #include "time.h"
 #include "types.h"
+#include <string>
+#include <vector>
 
 #endif
 // <FoxNet

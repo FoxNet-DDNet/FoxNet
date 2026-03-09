@@ -1,3 +1,4 @@
+
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
@@ -1381,37 +1382,10 @@ UNIXSOCKET net_unix_create_unnamed()
 
 int net_unix_send(UNIXSOCKET sock, UNIXSOCKETADDR *addr, void *data, int size)
 {
-	if(Value)
-		Flags |= (1 << n);
-	else
-		Flags &= ~(1 << n);
+	return sendto(sock, data, size, 0, (sockaddr *)addr, sizeof(*addr));
 }
 
-bool IsFlagSet(uint32_t Flags, int n)
-{
-	return (Flags & (1 << n)) != 0;
-}
-
-std::string RandomUnicode(int length)
-{
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> dis(0x0400, 0x04FF);
-
-	std::string result;
-	result.reserve(length * 3);
-
-	for(int i = 0; i < length; ++i)
-	{
-		int codepoint = dis(gen);
-		char utf8[4] = {0};
-		int bytes = str_utf8_encode(utf8, codepoint);
-		result.append(utf8, bytes);
-	}
-	return result;
-}
-
-void StrToInts(int *pInts, size_t NumInts, const char *pStr)
+void net_unix_set_addr(UNIXSOCKETADDR *addr, const char *path)
 {
 	mem_zero(addr, sizeof(*addr));
 	addr->sun_family = AF_UNIX;

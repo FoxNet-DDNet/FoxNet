@@ -25,8 +25,6 @@
 
 #include "detect.h"
 
-#include <malloc.h>
-
 #include <cctype>
 #include <cerrno>
 #include <cinttypes>
@@ -39,6 +37,8 @@
 #error NOT IMPLEMENTED
 #endif
 #include <random>
+#include <string>
+#include <vector>
 
 // <FoxNet
 char str_lowercase(char c)
