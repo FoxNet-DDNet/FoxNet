@@ -45,6 +45,9 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 
 void CLaserDeath::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("laserdeath", "Reset");
 	for(int i = 0; i < MAX_PARTICLES; i++)
@@ -55,6 +58,9 @@ void CLaserDeath::Reset()
 
 void CLaserDeath::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(Server()->Tick() > m_EndTick + Server()->TickSpeed())
 	{
 		Reset();

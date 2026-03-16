@@ -40,6 +40,9 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 
 void CHeadItem::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("headitem", "Reset");
 
@@ -51,6 +54,9 @@ void CHeadItem::Reset()
 
 void CHeadItem::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer())
 	{
 		Reset();

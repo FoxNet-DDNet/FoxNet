@@ -31,6 +31,9 @@ CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CEpicCircle::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("epiccircle", "Reset");
 
@@ -42,6 +45,9 @@ void CEpicCircle::Reset()
 
 void CEpicCircle::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_EpicCircle)
 	{
 		Reset();

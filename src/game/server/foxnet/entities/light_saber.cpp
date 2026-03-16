@@ -34,6 +34,8 @@ CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLightSaber::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lightsaber", "Reset");
 
@@ -52,6 +54,8 @@ void CLightSaber::OnFire()
 
 void CLightSaber::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
 	CCharacter *pChr = GameServer()->GetPlayerChar(m_Owner);
 
 	if(!pChr)

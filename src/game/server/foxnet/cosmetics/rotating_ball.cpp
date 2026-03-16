@@ -38,6 +38,9 @@ CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CRotatingBall::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("rotatingball", "Reset");
 
@@ -48,6 +51,9 @@ void CRotatingBall::Reset()
 
 void CRotatingBall::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_RotatingBall)
 	{
 		Reset();

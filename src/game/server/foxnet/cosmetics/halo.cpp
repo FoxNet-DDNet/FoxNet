@@ -35,6 +35,9 @@ CHalo::CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CHalo::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("halo", "Reset");
 	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
@@ -44,6 +47,9 @@ void CHalo::Reset()
 
 void CHalo::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_Halo)
 	{
 		Reset();

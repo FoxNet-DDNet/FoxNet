@@ -53,6 +53,9 @@ CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CPortal::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("portal", "Reset");
 
@@ -78,6 +81,9 @@ inline static bool PointInCircle(vec2 pos, vec2 center, float radius)
 
 void CPortal::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	m_Lifetime--;
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 

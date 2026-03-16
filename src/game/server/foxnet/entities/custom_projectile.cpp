@@ -41,6 +41,9 @@ CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos
 
 void CCustomProjectile::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("custom-projectile", "Reset");
 
@@ -49,6 +52,9 @@ void CCustomProjectile::Reset()
 
 void CCustomProjectile::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(m_Owner >= 0 && !GetCharacter() && Config()->m_SvDestroyBulletsOnDeath)
 	{
 		Reset();

@@ -319,6 +319,9 @@ public:
 
 inline void CText::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("text", "Reset");
 
@@ -331,6 +334,9 @@ inline void CText::Reset()
 
 inline void CText::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(++m_CurTicks - m_StartTick > m_AliveTicks)
 		Reset();
 }

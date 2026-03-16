@@ -35,6 +35,9 @@ CStaffInd::CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CStaffInd::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("staffind", "Reset");
 
@@ -46,6 +49,9 @@ void CStaffInd::Reset()
 
 void CStaffInd::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_StaffInd)
 	{
 		Reset();

@@ -63,6 +63,9 @@ void CPowerUp::SetData()
 
 void CPowerUp::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("powerup", "Reset");
 
@@ -85,6 +88,9 @@ inline static bool PointInSquare(vec2 Point, vec2 Center, float Size)
 
 void CPowerUp::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	m_Lifetime--;
 	if(m_Lifetime <= 0)
 	{

@@ -34,6 +34,9 @@ CFlyingPoint::CFlyingPoint(CGameWorld *pGameWorld, int Owner, vec2 Pos, int To, 
 
 void CFlyingPoint::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("flyingpoint", "Reset");
 
@@ -49,6 +52,9 @@ void CFlyingPoint::Reset()
 
 void CFlyingPoint::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	vec2 ToPos = m_ToPos;
 
 	if(m_To != -1)

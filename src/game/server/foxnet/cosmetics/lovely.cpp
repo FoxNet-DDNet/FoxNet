@@ -27,6 +27,9 @@ CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 void CLovely::Reset()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lovely", "Reset");
 
@@ -38,6 +41,9 @@ void CLovely::Reset()
 
 void CLovely::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(!GetPlayer() || !GetPlayer()->Cosmetics()->m_Lovely)
 	{
 		Reset();

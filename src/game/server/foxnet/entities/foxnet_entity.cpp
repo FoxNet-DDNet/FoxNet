@@ -29,6 +29,8 @@ CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 
 
 bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 {
+	if(m_MarkedForDestroy)
+		return false;
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
 	

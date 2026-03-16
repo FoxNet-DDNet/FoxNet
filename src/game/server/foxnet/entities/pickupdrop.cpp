@@ -57,6 +57,9 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Te
 
 void CPickupDrop::Reset(bool PickedUp)
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("pickupdrop", "Reset");
 
@@ -90,6 +93,9 @@ bool CPickupDrop::IsSwitchActiveCb(int Number, void *pUser)
 
 void CPickupDrop::Tick()
 {
+	if(m_MarkedForDestroy)
+		return;
+
 	if(m_Owner >= 0 && (!GameServer()->m_apPlayers[m_Owner] && g_Config.m_SvResetDropsOnLeave))
 	{
 		Reset();
