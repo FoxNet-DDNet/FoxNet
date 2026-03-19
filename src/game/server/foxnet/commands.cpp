@@ -1840,21 +1840,21 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("projectiletext", "r[string]", CFGFLAG_SERVER, ConProjectileText, this, "projectile text");
 
 	Console()->Register("chat_string_add", "s[string] s[reason] i[should Ban] i[bantime] ?f[addition]", CFGFLAG_SERVER, ConAddChatDetectionString, this, "Add a string to the chat detection list");
-	Console()->Register("chat_string_remove", "s[name]", CFGFLAG_SERVER, ConRemoveChatDetectionString, this, "Remove a string from the chat detection list");
+	Console()->Register("chat_string_remove", "r[name]", CFGFLAG_SERVER, ConRemoveChatDetectionString, this, "Remove a string from the chat detection list");
 	Console()->Register("chat_strings_list", "", CFGFLAG_SERVER, ConListChatDetectionStrings, this, "List all strings on the list");
 	Console()->Register("chat_string_clear", "", CFGFLAG_SERVER, ConClearChatDetectionStrings, this, "Clear all strings on the list");
 
 	Console()->Register("name_string_add", "s[name] s[reason] i[bantime] ?i[exact name]", CFGFLAG_SERVER, ConAddNameDetectionString, this, "Add a string to the name detection list");
-	Console()->Register("name_string_remove", "s[name]", CFGFLAG_SERVER, ConRemoveNameDetectionString, this, "Remove a string from the name detection list");
+	Console()->Register("name_string_remove", "r[name]", CFGFLAG_SERVER, ConRemoveNameDetectionString, this, "Remove a string from the name detection list");
 	Console()->Register("name_strings_list", "", CFGFLAG_SERVER, ConListNameDetectionStrings, this, "List all strings on the list");
 	Console()->Register("name_string_clear", "", CFGFLAG_SERVER, ConClearNameDetectionStrings, this, "Clear all strings on the list");
 
 	Console()->Register("snake", "?v[id]", CFGFLAG_SERVER, ConSnake, this, "Makes a player (id) a Snake");
 	Console()->Register("ufo", "?v[id]", CFGFLAG_SERVER, ConSetUfo, this, "Puts player (id) into an UFO");
 
-	Console()->Register("set_name", "v[id] s[name]", CFGFLAG_SERVER, ConSetPlayerName, this, "Set a players (id) Name");
-	Console()->Register("set_clan", "v[id] s[clan]", CFGFLAG_SERVER, ConSetPlayerClan, this, "Set a players (id) Clan");
-	Console()->Register("set_skin", "v[id] s[skin]", CFGFLAG_SERVER, ConSetPlayerSkin, this, "Set a players (id) Skin");
+	Console()->Register("set_name", "v[id] r[name]", CFGFLAG_SERVER, ConSetPlayerName, this, "Set a players (id) Name");
+	Console()->Register("set_clan", "v[id] r[clan]", CFGFLAG_SERVER, ConSetPlayerClan, this, "Set a players (id) Clan");
+	Console()->Register("set_skin", "v[id] r[skin]", CFGFLAG_SERVER, ConSetPlayerSkin, this, "Set a players (id) Skin");
 	Console()->Register("set_custom_color", "v[id] i[int]", CFGFLAG_SERVER, ConSetPlayerCustomColor, this, "Whether a player (id) uses custom color (1 = true | 0 = false)");
 	Console()->Register("set_color_body", "v[id] i[color]", CFGFLAG_SERVER, ConSetPlayerColorBody, this, "Set a players (id) Body Color");
 	Console()->Register("set_color_feet", "v[id] i[color]", CFGFLAG_SERVER, ConSetPlayerColorFeet, this, "Set a players (id) Feet Color");
