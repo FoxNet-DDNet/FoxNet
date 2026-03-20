@@ -1377,8 +1377,34 @@ void CGameContext::OnTick()
 			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(PlayerModerating() &&
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
+				// <FoxNet
+				if(m_VoteCreator != -1 && m_VoteVictim != -1 && m_apPlayers[m_VoteCreator])
+				{
+					if(str_startswith(m_aVoteCommand, "ban "))
+					{
+						char aBanBuf[1024];
+						str_format(aBanBuf, sizeof(aBanBuf),
+							"`%s` [%s] was vote-kicked for %d minutes by `%s` [%s].\n"
+							"Reason: %s\n"
+							"ver: %s (%d) [%s]",
+							Server()->ClientName(m_VoteVictim),
+							Server()->ClientAddrString(m_VoteVictim, false),
+							g_Config.m_SvVoteKickBantime,
+							Server()->ClientName(m_VoteCreator),
+							Server()->ClientAddrString(m_VoteCreator, false),
+							m_aVoteReason,
+							Server()->GetCustomClient(m_VoteVictim),
+							GetClientVersion(m_VoteVictim),
+							GetClientVersionStr(m_VoteVictim));
+						char aTitle[32];
+						str_format(aTitle, sizeof(aTitle), "[BAN] - Vote kick (%d)", Server()->Port());
+						Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
+					}
+				}
+				// FoxNet>
+
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
-				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_VOTEKICK);
+				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
 				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed", -1, FLAG_SIX);
@@ -1389,7 +1415,7 @@ void CGameContext::OnTick()
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
-				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_VOTEKICK);
+				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
 				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed enforced by authorized player", -1, FLAG_SIX);
