@@ -329,7 +329,7 @@ void CItemRegistry::Init()
 		30});
 
 	// Roles (not toggleable)
-	add({EItemId::BOOSTER, EItemType::Role,
+	add({EItemId::Booster, EItemType::Role,
 		"Server Booster", "BOOST",
 		EItemFlag::None, EExclusiveGroup::None,
 		125000, 25, 2, EItemRarity::Epic, "Grants a 1.5x boost on XP/Money for everyone",

@@ -1174,7 +1174,7 @@ float CPlayer::StatMultiplier()
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer)
 			continue;
-		if(pPlayer->OwnsItem(EItemId::BOOSTER))
+		if(pPlayer->OwnsItem(EItemId::Booster))
 		{
 			Multiplier += 1.5f;
 			break;

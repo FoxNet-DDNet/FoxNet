@@ -44,7 +44,7 @@ enum class EItemId
 	Lovely,
 	RotatingBall,
 	Halo,
-	BOOSTER,
+	Booster,
 	VIP,
 	MVP,
 	LootCaseCommon,
