@@ -2030,73 +2030,73 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 	if(!CheckClientId(UserId) && UserId != IConsole::CLIENT_ID_FOXNET)
 		return;
 
-	if(g_Config.m_SvScriptPlayerBans[0])
+	if(!g_Config.m_SvScriptPlayerBans[0])
+		return;
+
+	// (un)ban ip minutes reason
+	char aScriptingArgs[256] = "";
+	NETADDR Addr;
+	char aAddrStr[NETADDR_MAXSTRSIZE] = "";
+	const char *pArg = GetParsedArgument(pStr, 1, false);
+	if(!pArg)
+		return;
+
+	if(str_startswith(pStr, "unban "))
 	{
-		// (un)ban ip minutes reason
-		char aScriptingArgs[256] = "";
-		NETADDR Addr;
-		char aAddrStr[NETADDR_MAXSTRSIZE] = "";
-		const char *pArg = GetParsedArgument(pStr, 1, false);
-		if(!pArg)
-			return;
-
-		if(str_startswith(pStr, "unban "))
+		if(str_isallnum(pArg))
 		{
-			if(str_isallnum(pArg))
-			{
-				int Index = str_toint(pArg);
-				const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(Index);
-				if(pTempAddr)
-					net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
-			}
-			else if(!net_addr_from_str(&Addr, pArg))
-				str_copy(aAddrStr, pArg, sizeof(aAddrStr));
-
-			if(aAddrStr[0])
-			{
-				str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s \"\" \"\"", aAddrStr);
-			}
+			int Index = str_toint(pArg);
+			const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(Index);
+			if(pTempAddr)
+				net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
 		}
-		else if(str_startswith(pStr, "ban ") || str_startswith(pStr, "ban_timestamp "))
+		else if(!net_addr_from_str(&Addr, pArg))
+			str_copy(aAddrStr, pArg, sizeof(aAddrStr));
+
+		if(aAddrStr[0])
 		{
-			if(str_isallnum(pArg))
-			{
-				int ClientId = str_toint(pArg);
-				if(ClientId == UserId)
-					return; // prevent self ban
-
-				const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(-1);
-				if(pTempAddr)
-					net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
-			}
-			else if(!net_addr_from_str(&Addr, pArg))
-				str_copy(aAddrStr, pArg, sizeof(aAddrStr));
-
-			if(UserId >= 0)
-			{
-				const char *pUserAddrStr = Server()->ClientAddrString(UserId, false);
-				if(!str_comp(aAddrStr, pUserAddrStr))
-					return; // prevent banning the user themselves
-			}
-
-			if(aAddrStr[0])
-			{
-				const char *pMinutesStr = GetParsedArgument(pStr, 2, false);
-				long Minutes = (pMinutesStr && str_isallnum(pMinutesStr)) ? (long)str_toint(pMinutesStr) : 5;
-				const char *pReason = GetParsedArgument(pStr, 3, true);
-				if(!pReason)
-					pReason = "No Reason Provided.";
-				str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld \"%s\"", aAddrStr, Minutes, pReason);
-			}
+			str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s \"\" \"\"", aAddrStr);
 		}
-
-		if(!aScriptingArgs[0])
-			return;
-
-		char aScriptingBuf[256];
-		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 	}
+	else if(str_startswith(pStr, "ban ") || str_startswith(pStr, "ban_timestamp "))
+	{
+		if(str_isallnum(pArg))
+		{
+			int ClientId = str_toint(pArg);
+			if(ClientId == UserId)
+				return; // prevent self ban
+
+			const NETADDR *pTempAddr = Server()->GetAddrFromBanIndex(-1);
+			if(pTempAddr)
+				net_addr_str(pTempAddr, aAddrStr, sizeof(aAddrStr), false);
+		}
+		else if(!net_addr_from_str(&Addr, pArg))
+			str_copy(aAddrStr, pArg, sizeof(aAddrStr));
+
+		if(UserId >= 0)
+		{
+			const char *pUserAddrStr = Server()->ClientAddrString(UserId, false);
+			if(!str_comp(aAddrStr, pUserAddrStr))
+				return; // prevent banning the user themselves
+		}
+
+		if(aAddrStr[0])
+		{
+			const char *pMinutesStr = GetParsedArgument(pStr, 2, false);
+			long Minutes = (pMinutesStr && str_isallnum(pMinutesStr)) ? (long)str_toint(pMinutesStr) : 5;
+			const char *pReason = GetParsedArgument(pStr, 3, true);
+			if(!pReason)
+				pReason = "No Reason Provided.";
+			str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld \"%s\"", aAddrStr, Minutes, pReason);
+		}
+	}
+
+	if(!aScriptingArgs[0])
+		return;
+
+	char aScriptingBuf[256];
+	str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
+	Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 }
 
 void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
