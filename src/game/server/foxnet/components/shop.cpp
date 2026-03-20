@@ -62,7 +62,7 @@ void CShop::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->GiveItem(ClientId, pItemName, -1, aFrom);
+	pSelf->GiveItem(ClientId, pItemName, -2, aFrom);
 }
 
 void CShop::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
@@ -100,7 +100,7 @@ void CShop::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->GiveItemForever(ClientId, pItemName, aFrom);
+	pSelf->GiveItem(ClientId, pItemName, ForeverDays, aFrom);
 }
 
 void CShop::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
@@ -267,7 +267,10 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
+	{
+		log_info("shop", "ClientId %d isn't logged in", ClientId);
 		return false;
+	}
 
 	auto &Entry = Acc.m_Inventory.Entry(pItem->m_pName);
 	const bool Owned = Acc.m_Inventory.Owns(pItem->m_pName);
@@ -279,7 +282,7 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 	if(HasFlag(pItem->m_Flags, EItemFlag::Consumable))
 	{
 		Entry.m_Quantity += 1;
-		Entry.m_ExpiresAt = -1;
+		Entry.m_ExpiresAt = ForeverDays;
 	}
 	else
 	{
@@ -289,6 +292,8 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 			Entry.m_ExpiresAt += Duration;
 		else
 			Entry.m_ExpiresAt = Now + Duration;
+		if(Days == ForeverDays)
+			Entry.m_ExpiresAt = ForeverDays;
 		Entry.m_Quantity = 1;
 	}
 
@@ -304,99 +309,44 @@ bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFro
 		return false;
 	}
 
-	const CItemConfig *Cfg = FindItem(pName);
-	if(!Cfg)
+	const CItemConfig *pCfg = FindItem(pName);
+	if(!pCfg)
+	{
+		log_info("shop", "Attempted to give non-existing item \"%s\" to ClientId %d", pName, ClientId);
 		return false;
+	}
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	if(!Acc.m_LoggedIn)
+	{
+		log_info("shop", "ClientId %d isn't logged in", ClientId);
 		return false;
+	}
 
-	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_pName);
-	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_pName);
+	auto &Entry = Acc.m_Inventory.Entry(pCfg->m_pName);
+	const bool Owned = Acc.m_Inventory.Owns(pCfg->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
 		Entry.m_AcquiredAt = Now;
 
-	if(HasFlag(Cfg->m_Flags, EItemFlag::Consumable))
+	if(HasFlag(pCfg->m_Flags, EItemFlag::Consumable))
 	{
 		Entry.m_Quantity += 1;
-		Entry.m_ExpiresAt = -1;
+		Entry.m_ExpiresAt = ForeverDays;
 	}
 	else
 	{
-		int EffectiveDays = (Days < 0) ? Cfg->m_DefaultDays : Days;
+		int EffectiveDays = (Days < 0) ? pCfg->m_DefaultDays : Days;
 		int64_t Duration = int64_t(EffectiveDays) * 86400;
 		if(Owned)
 			Entry.m_ExpiresAt += Duration;
 		else
 			Entry.m_ExpiresAt = Now + Duration;
+		if(Days == ForeverDays)
+			Entry.m_ExpiresAt = ForeverDays;
 		Entry.m_Quantity = 1;
 	}
-
-	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
-	return true;
-}
-
-bool CShop::GiveItemForever(int ClientId, const CItemConfig *pItem, const char *pFrom)
-{
-	if(!g_Config.m_SvAccounts)
-	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
-		return false;
-	}
-
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(!Acc.m_LoggedIn)
-		return false;
-
-	auto &Entry = Acc.m_Inventory.Entry(pItem->m_pName);
-	const bool Owned = Acc.m_Inventory.Owns(pItem->m_pName);
-
-	int64_t Now = time(0);
-	if(!Owned)
-		Entry.m_AcquiredAt = Now;
-
-	if(HasFlag(pItem->m_Flags, EItemFlag::Consumable))
-		Entry.m_Quantity += 1;
-	else
-		Entry.m_Quantity = 1;
-
-	Entry.m_ExpiresAt = -1;
-
-	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
-	return true;
-}
-
-bool CShop::GiveItemForever(int ClientId, const char *pName, const char *pFrom)
-{
-	if(!g_Config.m_SvAccounts)
-	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
-		return false;
-	}
-
-	const CItemConfig *Cfg = FindItem(pName);
-	if(!Cfg)
-		return false;
-
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(!Acc.m_LoggedIn)
-		return false;
-
-	auto &Entry = Acc.m_Inventory.Entry(Cfg->m_pName);
-	const bool Owned = Acc.m_Inventory.Owns(Cfg->m_pName);
-
-	int64_t Now = time(0);
-	if(!Owned)
-		Entry.m_AcquiredAt = Now;
-
-	if(HasFlag(Cfg->m_Flags, EItemFlag::Consumable))
-		Entry.m_Quantity += 1;
-	else
-		Entry.m_Quantity = 1;
-	Entry.m_ExpiresAt = -1;
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
 	return true;

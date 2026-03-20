@@ -40,9 +40,6 @@ public:
 	bool GiveItem(int ClientId, const CItemConfig *pItem, int Days = -1, const char *pFrom = "Server");
 	bool GiveItem(int ClientId, const char *pName, int Days = -1, const char *pFrom = "Server");
 
-	bool GiveItemForever(int ClientId, const CItemConfig *pItem, const char *pFrom = "Server");
-	bool GiveItemForever(int ClientId, const char *pName, const char *pFrom = "Server");
-
 	bool RemoveItem(int ClientId, const char *pName, const char *pBy = "Server");
 
 	const CItemConfig *RandomItemByRarity(EItemRarity Rarity, bool AllowAny);

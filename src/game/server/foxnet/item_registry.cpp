@@ -329,6 +329,12 @@ void CItemRegistry::Init()
 		30});
 
 	// Roles (not toggleable)
+	add({EItemId::SuperUser, EItemType::Role,
+		"Super User", "SU",
+		EItemFlag::None, EExclusiveGroup::None,
+		UnbuyablePrice, 0, 5, EItemRarity::Legendary, "Extra Permissions",
+		nullptr, nullptr, ForeverDays});
+
 	add({EItemId::Booster, EItemType::Role,
 		"Server Booster", "BOOST",
 		EItemFlag::None, EExclusiveGroup::None,

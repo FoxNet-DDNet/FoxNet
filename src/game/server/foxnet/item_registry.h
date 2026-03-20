@@ -8,6 +8,9 @@
 
 constexpr int MAX_ITEM_STARS = 5;
 
+constexpr int UnbuyablePrice = -1;
+constexpr int ForeverDays = -1;
+
 enum class EItemId
 {
 	RainbowFeet,
@@ -47,6 +50,7 @@ enum class EItemId
 	Booster,
 	VIP,
 	MVP,
+	SuperUser,
 	LootCaseCommon,
 	LootCaseUncommon,
 	LootCaseRare,

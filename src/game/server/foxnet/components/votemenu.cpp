@@ -443,7 +443,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				const CItemConfig &Item = kv.second;
 				if(IsOption(Item.m_pName, ""))
 					continue;
-				if(Item.m_Price == -1)
+				if(Item.m_Price == UnbuyablePrice)
 					continue;
 				const char *pVoteName = Item.m_pName;
 
@@ -500,7 +500,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOption(Item.m_pName, ""))
 				continue;
-			if(Item.m_Price == -1)
+			if(Item.m_Price == UnbuyablePrice)
 				continue;
 
 			if(IsOptionWithSuffix(pVote, Item.m_pName))
@@ -1250,7 +1250,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			const CItemConfig &Item = kv.second;
 			if(Item.m_Type != Type)
 				continue;
-			if(Item.m_Price == -1)
+			if(Item.m_Price == UnbuyablePrice)
 				continue;
 			return true;
 		}
@@ -1263,7 +1263,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			const CItemConfig &Item = kv.second;
 			if(Item.m_Type != Type)
 				continue;
-			if(Item.m_Price == -1)
+			if(Item.m_Price == UnbuyablePrice)
 				continue;
 			if(pPlayer->GetDiscountedPrice(Item.m_Price) <= pAcc->m_Money)
 				return true;
@@ -1320,7 +1320,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			if(str_comp(ItemTypeToName(Item.m_Type), pMeta) != 0)
 				continue;
 
-			if(Item.m_Price == -1)
+			if(Item.m_Price == UnbuyablePrice)
 				continue;
 
 			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(Item.m_Price) > pAcc->m_Money)
@@ -1436,8 +1436,6 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			if(Item.m_Type != Type)
 				continue;
 			if(!str_comp(pItemName, ""))
-				continue;
-			if(Item.m_Price == -1)
 				continue;
 			if(!(pPlayer->OwnsItem(pItemName)))
 				continue;

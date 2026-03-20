@@ -153,7 +153,7 @@ public:
 	int m_Quantity = 0;
 	int m_Value = 0;
 	int64_t m_AcquiredAt = 0;
-	int64_t m_ExpiresAt = -1;
+	int64_t m_ExpiresAt = ForeverDays;
 
 	bool operator==(const CInventoryEntry &Other) const
 	{

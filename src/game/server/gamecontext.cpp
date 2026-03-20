@@ -1378,7 +1378,7 @@ void CGameContext::OnTick()
 									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
 			{
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
-				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
+				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_VOTEKICK);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
 				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed", -1, FLAG_SIX);
@@ -1389,7 +1389,7 @@ void CGameContext::OnTick()
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
-				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
+				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_VOTEKICK);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
 				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed enforced by authorized player", -1, FLAG_SIX);
@@ -2596,11 +2596,13 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 		{
 			return;
 		}
+
 		int Authed = Server()->GetAuthedState(ClientId);
 		int KickedAuthed = Server()->GetAuthedState(KickId);
-		if(KickedAuthed > Authed)
+		bool SuperUser = m_apPlayers[ClientId]->OwnsItem(EItemId::SuperUser) && !Server()->IsRconAuthed(KickId);
+		if(KickedAuthed > Authed || SuperUser)
 		{
-			SendChatTarget(ClientId, "You can't kick authorized players");
+			SendChatTarget(ClientId, "You can't kick that player");
 			char aBufKick[128];
 			str_format(aBufKick, sizeof(aBufKick), "'%s' called for vote to kick you", Server()->ClientName(ClientId));
 			SendChatTarget(KickId, aBufKick);

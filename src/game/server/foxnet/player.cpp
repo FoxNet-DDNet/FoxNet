@@ -138,7 +138,7 @@ void CPlayer::ExpireItems()
 	for(auto &kv : Inv()->m_Map)
 	{
 		CInventoryEntry &Entry = kv.second;
-		if(Entry.m_ExpiresAt <= 0 || Entry.m_ExpiresAt == -1)
+		if(Entry.m_ExpiresAt <= 0 || Entry.m_ExpiresAt == ForeverDays)
 			continue;
 		if(Entry.m_ExpiresAt <= now)
 		{
