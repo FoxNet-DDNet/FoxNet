@@ -447,7 +447,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 					continue;
 				const char *pVoteName = Item.m_pName;
 
-				if(IsOption(pVote, pVoteName))
+				if(IsOptionWithSuffix(pVote, pVoteName))
 				{
 					Data.m_pLastItemInfo = &Item;
 					SetSubPage(ClientId, SUB_SHOP_ITEMINFO);
@@ -1326,7 +1326,10 @@ void CVoteMenu::PrepareShop(int ClientId)
 			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(Item.m_Price) > pAcc->m_Money)
 				continue;
 			AmountShown++;
-			AddVoteText(Item.m_pName, EPrefix::ARROWHEAD);
+			char aName[VOTE_DESC_LENGTH];
+			str_format(aName, sizeof(aName), "%s (%ld%s) [lvl %d]", Item.m_pName, pPlayer->GetDiscountedPrice(Item.m_Price), g_Config.m_SvCurrencyName, Item.m_MinLevel);
+
+			AddVoteText(aName, EPrefix::ARROWHEAD);
 		}
 		if(AmountShown == 0)
 		{
