@@ -48,10 +48,5 @@ CCharacter *CServerComponent::GetCharacter(int ClientId)
 
 CAccountSession *CServerComponent::GetAcc(int ClientId) const
 {
-	if(!CheckClientId(ClientId))
-		return nullptr;
-	if(!Server()->ClientIngame(ClientId))
-		return nullptr;
-
 	return &GameServer()->m_aAccounts[ClientId];
 }

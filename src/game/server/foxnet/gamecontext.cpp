@@ -376,9 +376,6 @@ void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 		pComponent->OnSnap(ClientId, GlobalSnap, RecordingDemo);
 
 	SnapDebuggedQuad(ClientId);
-
-	// Snap the Fake Player
-	
 }
 
 void CGameContext::BanSync()
