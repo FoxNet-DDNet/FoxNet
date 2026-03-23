@@ -1380,6 +1380,18 @@ void CGameContext::OnTick()
 				// <FoxNet
 				if(m_VoteCreator != -1 && m_VoteVictim != -1 && m_apPlayers[m_VoteCreator])
 				{
+					char VictimAddr[NETADDR_MAXSTRSIZE];
+					char CreatorAddr[NETADDR_MAXSTRSIZE];
+					if(Server()->ClientSlotEmpty(m_VoteVictim))
+						str_copy(VictimAddr, GetParsedArgument(m_aVoteCommand, 1, false), sizeof(VictimAddr));
+					else
+						str_copy(VictimAddr, Server()->ClientAddrString(m_VoteVictim, false), sizeof(VictimAddr));
+
+					if(Server()->ClientSlotEmpty(m_VoteCreator))
+						str_copy(CreatorAddr, "unknown", sizeof(CreatorAddr));
+					else
+						str_copy(CreatorAddr, Server()->ClientAddrString(m_VoteCreator, false), sizeof(CreatorAddr));
+
 					if(str_startswith(m_aVoteCommand, "ban "))
 					{
 						char aBanBuf[1024];
@@ -1388,10 +1400,10 @@ void CGameContext::OnTick()
 							"Reason: %s\n"
 							"ver: %s (%d) [%s]",
 							Server()->ClientName(m_VoteVictim),
-							Server()->ClientAddrString(m_VoteVictim, false),
+							VictimAddr,
 							g_Config.m_SvVoteKickBantime,
 							Server()->ClientName(m_VoteCreator),
-							Server()->ClientAddrString(m_VoteCreator, false),
+							CreatorAddr,
 							m_aVoteReason,
 							Server()->GetCustomClient(m_VoteVictim),
 							GetClientVersion(m_VoteVictim),
