@@ -163,7 +163,7 @@ void CPlayer::FoxNetReset()
 	m_vReceivedConditionals.clear();
 
 	m_MultiMapIndex = DefaultMapIndex;
-	m_LastReport = 0;
+	m_LastReport = Server()->Tick();
 
 	m_AccLoginAttempts = 0;
 	m_AccRegisters = 0;
