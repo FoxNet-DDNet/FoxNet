@@ -9,32 +9,8 @@ class IMap;
 class CMapItemGroup;
 class CMapItemLayer;
 class CMapItemLayerTilemap;
-
 // <FoxNet
 class CMapItemLayerQuads;
-enum QuadTypes
-{
-	// Follows order of ValidQuadNames
-	QUADTYPE_NONE = -1,
-	QUADTYPE_FREEZE,
-	QUADTYPE_UNFREEZE,
-	QUADTYPE_DEATH,
-	QUADTYPE_STOPA,
-	QUADTYPE_CFRM,
-	QUADTYPE_HOOKABLE,
-	QUADTYPE_UNHOOKABLE,
-	NUM_QUADTYPES
-};
-
-constexpr char ValidQuadNames[NUM_QUADTYPES][30] = {
-	"QFr",
-	"QUnFr",
-	"QDeath",
-	"QStopa",
-	"QCfrm",
-	"QHook",
-	"QUnHook"
-};
 // FoxNet>
 
 class CLayers

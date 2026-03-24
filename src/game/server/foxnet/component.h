@@ -11,6 +11,7 @@ class IConsole;
 class CPlayer;
 class CCharacter;
 class CAccountSession;
+class CMultiMaps;
 
 class CServerComponent
 {
@@ -28,6 +29,17 @@ public:
 	CPlayer *GetPlayer(int ClientId);
 	CCharacter *GetCharacter(int ClientId);
 	CAccountSession *GetAcc(int ClientId) const;
+
+	CMultiMaps *MultiMaps(size_t Idx) const;
+
+	/*
+	 * Called when a map gets loaded, MapIdx is the index of the map in the multi map array, starting with 0
+	*/
+	virtual void OnMapLoad(size_t MapIdx) {}
+	/*
+	 * Called when a map gets unloaded, MapIdx is the index of the map in the multi map array, starting with 0
+	*/
+	virtual void OnMapUnload(size_t MapIdx) {}
 
 	virtual void OnConsoleInit() {}
 	virtual void OnInit() {}

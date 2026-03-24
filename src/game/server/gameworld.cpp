@@ -434,6 +434,19 @@ std::vector<CEntity *> CGameWorld::FindEntitiesWithOwner(int Type, int Owner) co
 	return vEntities;
 }
 
+std::vector<CEntity *> CGameWorld::EntitiesOfType(int Type, const CEntity *pNotThis) const
+{
+	std::vector<CEntity *> vEntities;
+	CEntity *pEnt = m_apFirstEntityTypes[Type];
+	for(; pEnt; pEnt = pEnt->m_pNextTypeEntity)
+	{
+		if(pEnt == pNotThis)
+			continue;
+		vEntities.push_back(pEnt);
+	}
+	return vEntities;
+}
+
 CEntity *CGameWorld::FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotThis)
 {
 	CEntity *pEnt = m_apFirstEntityTypes[Type];

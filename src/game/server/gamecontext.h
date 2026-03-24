@@ -5,11 +5,13 @@
 
 #include "eventhandler.h"
 #include "foxnet/components/accounts/accounts.h"
+#include "foxnet/components/fake_snap.h"
+#include "foxnet/components/scripting/scripting.h"
 #include "foxnet/components/votemenu.h"
+#include "foxnet/components/zones/zonemanager.h"
 #include "foxnet/entities/powerup.h"
 #include "foxnet/entities/roulette.h"
 #include "foxnet/persistent_data.h"
-#include "foxnet/components/scripting/scripting.h"
 #include "gameworld.h"
 #include "teehistorian.h"
 
@@ -30,7 +32,6 @@
 #include <memory>
 #include <random>
 #include <string>
-#include "foxnet/components/fake_snap.h"
 
 /*
 	Tick
@@ -76,6 +77,38 @@ enum class EMapType
 {
 	None,
 	Casino,
+};
+
+
+	class CMultiMaps
+{
+public:
+	std::unique_ptr<IMap> m_pMap;
+	CLayers m_Layers;
+	CCollision m_Collision;
+
+	EMapType m_MapType = EMapType::None;
+
+	bool m_CreatedEntities = false;
+	bool m_LoadedSwitchers = false;
+
+	void Init()
+	{
+		m_Layers.Init(m_pMap.get(), false);
+		m_Collision.Init(&m_Layers);
+		m_Collision.InitQuads();
+	}
+	void Unload()
+	{
+		m_pMap.get()->Unload();
+		m_pMap.reset();
+		m_pMap = nullptr;
+		m_Layers.Unload();
+		m_Collision.Unload();
+		m_LoadedSwitchers = false;
+		m_CreatedEntities = false;
+	}
+	CMultiMaps() = default;
 };
 
 class CStringDetection
@@ -262,7 +295,7 @@ public:
 		return m_vMultiMaps[Idx]->m_pMap.get();
 	}
 	const IMap *Map(size_t Idx = 0) const override
-	{ 
+	{
 		if(Idx >= m_vMultiMaps.size())
 			return m_vMultiMaps[DefaultMapIndex]->m_pMap.get();
 		return m_vMultiMaps[Idx]->m_pMap.get();
@@ -734,44 +767,21 @@ public:
 
 	void ResetTuning();
 	// <FoxNet
-	class CMultiMaps
-	{
-	public:
-		std::unique_ptr<IMap> m_pMap;
-		CLayers m_Layers;
-		CCollision m_Collision;
-
-		EMapType m_MapType = EMapType::None;
-
-		bool m_CreatedEntities = false;
-		bool m_LoadedSwitchers = false;
-
-		void Init()
-		{
-			m_Layers.Init(m_pMap.get(), false);
-			m_Collision.Init(&m_Layers);
-			m_Collision.InitQuads();
-		}
-		void Unload()
-		{
-			m_pMap.get()->Unload();
-			m_pMap.reset();
-			m_pMap = nullptr;
-			m_Layers.Unload();
-			m_Collision.Unload();
-			m_LoadedSwitchers = false;
-			m_CreatedEntities = false;
-		}
-		CMultiMaps() = default;
-	};
-	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
+	CScripting m_Scripting;
+	CAccounts m_AccountManager;
+	CVoteMenu m_VoteMenu;
+	CShop m_Shop;
+	CFakeSnap m_FakeSnap;
+	CZoneManager m_ZoneManager;
 
 	int GetMapIndexByType(EMapType MapType) const;
 	int GetMapIndexByMapName(const char *pMapName) const;
 
 	const char *MapName(int ClientId);
 
+	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
 private:
+
 	std::vector<class CServerComponent *> m_vpComponents;
 
 	class CDamageIndEffects
@@ -989,12 +999,6 @@ public:
 	bool m_InitRandomMap = false;
 
 	CAccountSession m_aAccounts[MAX_CLIENTS];
-
-	CScripting m_Scripting;
-	CAccounts m_AccountManager;
-	CVoteMenu m_VoteMenu;
-	CShop m_Shop;
-	CFakeSnap m_FakeSnap;
 
 	void ClearVotes(int ClientId);
 

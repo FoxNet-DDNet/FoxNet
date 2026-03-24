@@ -124,12 +124,12 @@ public:
 
 	void ResetVelocity();
 	void SetVelocity(vec2 NewVelocity);
-	void SetRawVelocity(vec2 NewVelocity);
+	void SetRawVelocity(vec2 NewVelocity) override;
 	void AddVelocity(vec2 Addition);
-	vec2 GetVelocity() const { return m_Core.m_Vel; }
+	const vec2 &GetVelocity() const override { return m_Core.m_Vel; }
 
 	// <FoxNet
-	void ForceSetPos(vec2 NewPos);
+	void ForceSetPos(vec2 Pos) override;
 	// FoxNet>
 
 	void ApplyMoveRestrictions();
@@ -356,7 +356,8 @@ public:
 
 	bool HasLineOfSight(vec2 Pos);
 
-	bool m_InQuadFreeze = false;
+	void SetResendCore(bool Resend) { m_Core.m_ResendCore = Resend; }
+	bool m_InsideQuadFreeze = false;
 
 	bool m_SpawnSolo = false;
 	bool m_ShouldSolo = true;
@@ -390,9 +391,6 @@ private:
 	void HandleTelekinesis();
 	void HandleSpawnSolo();
 	void FoxNetSpawn();
-
-	void HandleQuads();
-	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR, bool GiveDj);
 	// FoxNet>
 };
 

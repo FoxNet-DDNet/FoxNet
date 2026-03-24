@@ -229,8 +229,10 @@ public:
 	// <FoxNet
 	void RemoveEntities(int Type);
 	std::vector<CEntity *> FindEntitiesWithOwner(int Type, int Owner) const;
+	std::vector<CEntity *> EntitiesOfType(int Type, const CEntity *pNotThis = nullptr) const;
 	CEntity *FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotThis = nullptr);
 	void DestroyEntitiesOfMap(int MultiMapIdx);
+
 	// FoxNet
 };
 

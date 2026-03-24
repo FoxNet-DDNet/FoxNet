@@ -4,6 +4,7 @@
 #include "game/server/entities/character.h"
 
 #include <base/log.h>
+#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
@@ -12,13 +13,13 @@
 
 #include <generated/protocol.h>
 
-#include <game/collision.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <iterator>
 
@@ -167,8 +168,8 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 		for(int i = 0; i < NumPoints; i++)
 		{
 			vec2 Center = vec2(0, 0);
-			Collision()->Rotate(Center, &HatFrom[i], 0.2f);
-			Collision()->Rotate(Center, &HatTo[i], 0.2f);
+			Rotate(Center, &HatFrom[i], 0.2f);
+			Rotate(Center, &HatTo[i], 0.2f);
 			HatFrom[i] += vec2(-1.5f, 3.5f);
 			HatTo[i] += vec2(-1.5f, 3.5f);
 		}
@@ -211,7 +212,7 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 	};
 
 	vec2 HatTo[NumPoints] = {
-		vec2(-12.5f, -44.0f),// top line
+		vec2(-12.5f, -44.0f), // top line
 		vec2(-12.5f, -20.0f), // right line down
 		vec2(14.5f, -20.0f), // left line down
 		vec2(-26.5f, -21.0f), // bottom line
@@ -220,8 +221,8 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 
 	int HatSnapTick[NumPoints] = {
 		Now - 5, // top line
-		Now - 5,// right line down
-		Now - 5,// left line down
+		Now - 5, // right line down
+		Now - 5, // left line down
 		Now - 4, // Long Bottom Line
 		Now - 4 // bottom dot
 	};
@@ -229,13 +230,13 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 	for(int i = 0; i < NumPoints; i++)
 	{
-		Collision()->Rotate(Center, &HatFrom[i], 0.2f);
-		Collision()->Rotate(Center, &HatTo[i], 0.2f);
+		Rotate(Center, &HatFrom[i], 0.2f);
+		Rotate(Center, &HatTo[i], 0.2f);
 
 		if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
 		{
-			Collision()->Rotate(Center, &HatFrom[i], 0.2f);
-			Collision()->Rotate(Center, &HatTo[i], 0.2f);
+			Rotate(Center, &HatFrom[i], 0.2f);
+			Rotate(Center, &HatTo[i], 0.2f);
 			HatFrom[i] += vec2(-1.5f, 3.5f);
 			HatTo[i] += vec2(-1.5f, 3.5f);
 		}

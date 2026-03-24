@@ -185,10 +185,14 @@ public: // TODO: Maybe make protected
 	int m_Layer;
 	
 	// <FoxNet
-	bool CheckMapIndex(int SnappingClient, int MapIdx) const;
-
-	void SetMapIndex(int MultiMapIdx) { m_MapIndex = MultiMapIdx; }
 	virtual int MultiMapIdx() const { return m_MapIndex; }
+	virtual const vec2 &GetVelocity() const { static vec2 ZeroVec; return ZeroVec; }
+	virtual void ForceSetPos(vec2 Pos) { m_Pos = Pos; }
+	virtual void SetRawVelocity(vec2 Vel) {}
+
+	int ObjectType() const { return m_ObjType; }
+	bool CheckMapIndex(int SnappingClient, int MapIdx) const;
+	void SetMapIndex(int MultiMapIdx) { m_MapIndex = MultiMapIdx; }
 
 private:
 	int m_MapIndex;

@@ -215,6 +215,36 @@ constexpr int intersect_line_circle(const vec2 LineStart, const vec2 LineEnd, co
 	}
 }
 
+inline bool InsideQuadrilateral(const vec2 &Point, const vec2 &A, const vec2 &B, const vec2 &C, const vec2 &D)
+{
+	// Ray-casting / crossing-number algorithm for a 4-vertex polygon.
+	const vec2 pts[4] = {A, B, C, D};
+	bool inside = false;
+	for(int i = 0, j = 3; i < 4; j = i++)
+	{
+		const vec2 &pi = pts[i], &pj = pts[j];
+		bool intersect = ((pi.y > Point.y) != (pj.y > Point.y)) &&
+				 (Point.x < (pj.x - pi.x) * (Point.y - pi.y) / (pj.y - pi.y) + pi.x);
+		if(intersect)
+			inside = !inside;
+	}
+	return inside;
+}
+
+inline bool InsideQuad(const vec2 &Pos, const vec2 Points[4], const vec2 &Size)
+{
+	// Check if the point is inside the quadrilateral using the winding number method
+	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))
+		return true;
+	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))
+		return true;
+	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y + Size.y), Points[0], Points[1], Points[2], Points[3]))
+		return true;
+	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y + Size.y), Points[0], Points[1], Points[2], Points[3]))
+		return true;
+	return false;
+}
+
 // ------------------------------------
 template<Numeric T>
 class vector3_base

@@ -7,6 +7,8 @@
 
 #include <engine/shared/protocol.h>
 
+#include <game/quad_data.h>
+
 #include <map>
 #include <vector>
 
@@ -21,20 +23,6 @@ class CDoorTile;
 // <FoxNet
 class CQuad;
 class CMapItemLayerQuads;
-class CQuadData
-{
-public:
-	CQuad *m_pQuad = nullptr;
-	CMapItemLayerQuads *m_pLayer = nullptr;
-	int m_Type = 0;
-	vec2 m_Pos[5] = {vec2(0, 0)}; // 4 corners + center
-	float m_Angle = 0.0f;
-
-	// Bounding box
-	// This does not include envelopes, just for rotation to have a rectangle bounding box.
-	vec2 m_TopLeft = vec2(0, 0);
-	vec2 m_BottomRight = vec2(0, 0);
-};
 // FoxNet>
 
 enum
@@ -57,10 +45,7 @@ public:
 	~CCollision();
 
 	void Init(CLayers *pLayers);
-	// <FoxNet
-	void InitQuads(); 
 	void InitSpawnCandidates();
-	// FoxNet>
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
@@ -187,46 +172,18 @@ private:
 	// TILE_TELEINEVIL, TILE_TELECHECK, TILE_TELECHECKIN, TILE_TELECHECKINEVIL
 	std::map<int, std::vector<vec2>> m_TeleOthers;
 
-	// <FoxNet
-	double m_Time;
-	struct SAnimationTransformCache
-	{
-		vec2 Position = vec2(0.0f, 0.f);
-		float Angle = 0;
-		int PosEnv = -1;
-		int PosEnvOffset = 0;
-	};
-	void GetAnimationTransform(float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 	std::vector<vec2> m_SpawnCandidates;
 
+	bool m_HasSolidQuads = false;
 	std::vector<CQuadData> m_vQuads;
 	std::vector<CQuadData> m_vNextQuads;
 
-	bool m_HasSolidQuads = false;
-
-	std::vector<uint8_t> m_UnfreezeQuadMask;
 public:
-	bool HasMovingQuads() const { return !m_vQuads.empty() && !m_vNextQuads.empty(); }
-
-	const std::vector<CQuadData> &QuadLayers() const { return m_vQuads; }
-
-	void UpdateSmallBoundingBox(CQuadData &QuadData) const;
-	void UpdateUnfreezeQuadMask();
-
-	void UpdateQuadCache();
-
-	std::vector<const CQuadData *> GetQuadsAt(vec2 Pos) const;
-
-	const CQuadData *GetQuad(vec2 Pos) const;
-	const CQuadData *GetQuad(vec2 Pos, vec2 Size) const;
-	const CQuadData *GetSolidQuad(vec2 Pos, vec2 Size = vec2(0, 0)) const;
-	int QuadTypeToTile(int QuadType) const;
-
-	void ClearQuadLayers();
-	void Rotate(vec2 Center, vec2 *pPoint, float Rotation) const;
-
-	void SetTime(double Time) { m_Time = Time; }
-	bool InsideQuad(vec2 Pos, vec2 Size, vec2 T0, vec2 T1, vec2 T2, vec2 T3) const;
+	void InitQuads();
+	void UpdateQuads(float Time);
+	void UnloadQuads();
+	const CQuadData *GetQuadAt(vec2 Pos) const;
+	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
 
 	void CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const;
 	int CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle = true) const;
@@ -239,7 +196,6 @@ public:
 	int PosToIndex(vec2 Pos) const;
 	vec2 IndexToPos(int Index) const;
 
-		
 	// FoxNet>
 };
 
