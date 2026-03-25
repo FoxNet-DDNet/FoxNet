@@ -1380,20 +1380,23 @@ void CGameContext::OnTick()
 				// <FoxNet
 				if(m_VoteCreator != -1 && m_VoteVictim != -1 && m_apPlayers[m_VoteCreator])
 				{
-					char VictimAddr[NETADDR_MAXSTRSIZE];
-					char CreatorAddr[NETADDR_MAXSTRSIZE];
-					if(Server()->ClientSlotEmpty(m_VoteVictim))
-						str_copy(VictimAddr, GetParsedArgument(m_aVoteCommand, 1, false), sizeof(VictimAddr));
-					else
-						str_copy(VictimAddr, Server()->ClientAddrString(m_VoteVictim, false), sizeof(VictimAddr));
-
-					if(Server()->ClientSlotEmpty(m_VoteCreator))
-						str_copy(CreatorAddr, "unknown", sizeof(CreatorAddr));
-					else
-						str_copy(CreatorAddr, Server()->ClientAddrString(m_VoteCreator, false), sizeof(CreatorAddr));
-
 					if(str_startswith(m_aVoteCommand, "ban "))
 					{
+						char VictimAddr[NETADDR_MAXSTRSIZE];
+						char CreatorAddr[NETADDR_MAXSTRSIZE];
+						const char *pParsedArg = GetParsedArgument(m_aVoteCommand, 1, false);
+						if(pParsedArg)
+							str_copy(VictimAddr, pParsedArg, sizeof(VictimAddr));
+						else if(!Server()->ClientSlotEmpty(m_VoteVictim))
+							str_copy(VictimAddr, Server()->ClientAddrString(m_VoteVictim, false), sizeof(VictimAddr));
+						else
+							str_copy(VictimAddr, "unknown, left game", sizeof(VictimAddr));
+
+						if(Server()->ClientSlotEmpty(m_VoteCreator))
+							str_copy(CreatorAddr, "unknown", sizeof(CreatorAddr));
+						else
+							str_copy(CreatorAddr, Server()->ClientAddrString(m_VoteCreator, false), sizeof(CreatorAddr));
+
 						char aBanBuf[1024];
 						str_format(aBanBuf, sizeof(aBanBuf),
 							"`%s` [%s] was vote-kicked for %d minutes by `%s` [%s].\n"
