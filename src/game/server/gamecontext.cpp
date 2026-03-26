@@ -169,6 +169,8 @@ CGameContext::~CGameContext()
 
 	if(!m_Resetting)
 	{
+		for(auto &pComponent : m_vpComponents)
+			pComponent->OnMapLoad(DefaultMapIndex);
 		m_vMultiMaps[DefaultMapIndex]->m_pMap->Unload();
 		m_vMultiMaps[DefaultMapIndex]->m_pMap = nullptr;
 
@@ -4305,6 +4307,8 @@ void CGameContext::OnInit(const void *pPersistentData)
 	// <FoxNet
 	Collision()->InitQuads();
 	Collision()->InitSpawnCandidates();
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnMapLoad(DefaultMapIndex);
 	// FoxNet>
 	m_World.Init(m_aTuningList);
 	m_World.InitSwitchers(Collision()->m_HighestSwitchNumber, DefaultMapIndex);

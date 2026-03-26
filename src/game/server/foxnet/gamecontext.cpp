@@ -56,6 +56,11 @@
 
 void CGameContext::FoxNetTick()
 {
+	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
+	{
+		Collision(Idx)->UpdateQuads(m_pController->GetTime());
+	}
+
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnTick();
 
@@ -64,13 +69,6 @@ void CGameContext::FoxNetTick()
 
 	if(g_Config.m_SvBanSyncing)
 		BanSync();
-
-	// Set moving tiles time for quads with pos envelopes
-	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
-	{
-		Collision(Idx)->SetTime(m_pController->GetTime());
-		Collision(Idx)->UpdateQuadCache();
-	}
 
 	// Save all logged in accounts every 15 minutes
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
@@ -89,12 +87,13 @@ void CGameContext::FoxNetTick()
 void CGameContext::OnFoxNetConsoleInit()
 {
 	m_vpComponents.insert(m_vpComponents.end(), {
-		&m_Scripting,
-		&m_VoteMenu,
-		&m_AccountManager,
-		&m_Shop,
-		&m_FakeSnap,
-	});
+							    &m_ZoneManager,
+							    &m_Scripting,
+							    &m_VoteMenu,
+							    &m_AccountManager,
+							    &m_Shop,
+							    &m_FakeSnap,
+						    });
 
 	for(auto &pComponent : m_vpComponents)
 		pComponent->InitComponent(this);
@@ -227,6 +226,9 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	pNewMap->m_CreatedEntities = false;
 	pNewMap->m_LoadedSwitchers = false;
 	m_vMultiMaps.push_back(std::move(pNewMap));
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnMapLoad(m_vMultiMaps.size() - 1);
 }
 void CGameContext::UnloadMapByName(const char *pMapName)
 {
@@ -251,6 +253,9 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 				continue;
 			pPlayer->SendToMap(DefaultMapIndex);
 		}
+
+		for(auto &pComponent : m_vpComponents)
+			pComponent->OnMapUnload(Idx);
 
 		log_info("multimap", "Map unloaded of type %d: %s", (int)(*it)->m_MapType, pMapName);
 		(*it)->Unload();
@@ -1043,7 +1048,7 @@ int CGameContext::GetWeaponType(int Weapon)
 
 void CGameContext::SnapDebuggedQuad(int ClientId)
 {
-	CPlayer *pPlayer = m_apPlayers[ClientId];
+	/*CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer || !g_Config.m_SvDebugQuadPos)
 		return;
 
@@ -1068,12 +1073,12 @@ void CGameContext::SnapDebuggedQuad(int ClientId)
 			pObj->m_Owner = -1;
 			pObj->m_Flags = LASERFLAG_NO_PREDICT;
 		}
-	}
+	}*/
 }
 
 void CGameContext::QuadDebugIds(bool Clear)
 {
-	if(Clear)
+	/*if(Clear)
 	{
 		m_vQuadDebugIds.clear();
 		const size_t size = Collision()->QuadLayers().size();
@@ -1088,7 +1093,7 @@ void CGameContext::QuadDebugIds(bool Clear)
 		for(int i = 0; i < (int)m_vQuadDebugIds.size(); i++)
 			Server()->SnapFreeId(m_vQuadDebugIds[i]);
 		m_vQuadDebugIds.clear();
-	}
+	}*/
 }
 
 const char *GetMapName(const char *pCmd)
@@ -1159,14 +1164,14 @@ bool CGameContext::SendServerAlert(const char *pMessage, int ClientId) const
 
 void CGameContext::SendMovingTilesInfo(int ClientId)
 {
-	if(Collision()->HasMovingQuads())
+	/*if(Collision()->HasMovingQuads())
 	{
 		const char *pWarn = "Turn off entities, this map uses Moving Tiles";
 
 		if(!SendServerAlert(pWarn, ClientId))
 			SendBroadcast(pWarn, ClientId);
 		SendChatTarget(ClientId, pWarn);
-	}
+	}*/
 }
 
 void CGameContext::OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)

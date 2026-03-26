@@ -30,19 +30,8 @@ void CLayers::Init(IMap *pMap, bool GameOnly)
 			// <FoxNet
 			if(pLayer->m_Type == LAYERTYPE_QUADS)
 			{
-				char aBuf[30];
 				CMapItemLayerQuads *pTilemap = reinterpret_cast<CMapItemLayerQuads *>(pLayer);
-				IntsToStr(pTilemap->m_aName, std::size(pTilemap->m_aName), aBuf, std::size(aBuf));
-
-				for(int i = 0; i < (int)std::size(ValidQuadNames); i++)
-				{
-					if(!str_comp(ValidQuadNames[i], aBuf))
-					{
-						// m_MovingQuads = true;
-						m_vQuadLayers.push_back(pTilemap);
-						break;
-					}
-				}
+				m_vQuadLayers.push_back(pTilemap);
 			}
 			// FoxNet>
 

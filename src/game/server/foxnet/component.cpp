@@ -50,3 +50,11 @@ CAccountSession *CServerComponent::GetAcc(int ClientId) const
 {
 	return &GameServer()->m_aAccounts[ClientId];
 }
+
+CMultiMaps *CServerComponent::MultiMaps(size_t Idx) const
+{
+	if(Idx >= GameServer()->m_vMultiMaps.size())
+		return nullptr;
+
+	return GameServer()->m_vMultiMaps[Idx].get();
+}

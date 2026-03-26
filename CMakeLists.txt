@@ -2876,6 +2876,20 @@ if(SERVER)
     foxnet/components/shop.h
     foxnet/components/votemenu.cpp
     foxnet/components/votemenu.h
+    foxnet/components/zones/checktele.cpp
+    foxnet/components/zones/checktele.h
+    foxnet/components/zones/collidable.cpp
+    foxnet/components/zones/collidable.h
+    foxnet/components/zones/death.cpp
+    foxnet/components/zones/death.h
+    foxnet/components/zones/freeze.cpp
+    foxnet/components/zones/freeze.h
+    foxnet/components/zones/unfreeze.cpp
+    foxnet/components/zones/unfreeze.h
+    foxnet/components/zones/zone.cpp
+    foxnet/components/zones/zone.h
+    foxnet/components/zones/zonemanager.cpp
+    foxnet/components/zones/zonemanager.h
     foxnet/cosmetics/dot_trail.cpp
     foxnet/cosmetics/dot_trail.h
     foxnet/cosmetics/epic_circle.cpp

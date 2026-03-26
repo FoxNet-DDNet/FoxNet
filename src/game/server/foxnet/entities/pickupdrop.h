@@ -30,8 +30,6 @@ class CPickupDrop : public CEntityOwned
 	bool IsGrounded();
 	void HandleSkippableTiles(int Index);
 	void HandleTiles(int Index);
-	void HandleQuads();
-	void HandleQuadStopa(const vec2 TL, const vec2 TR, const vec2 BL, const vec2 BR);
 	int m_TeleCheckpoint;
 	int m_TileIndex;
 	int m_TileFIndex;
@@ -51,9 +49,8 @@ public:
 	void TakeDamage(vec2 Force);
 
 	void SetRawVelocity(vec2 Vel) { m_Vel = Vel; }
-	vec2 GetVelocity() const { return m_Vel; }
-
-	void ForceSetPos(vec2 NewPos);
+	const vec2 &GetVelocity() const override { return m_Vel; }
+	void ForceSetPos(vec2 Pos) override;
 
 	CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 

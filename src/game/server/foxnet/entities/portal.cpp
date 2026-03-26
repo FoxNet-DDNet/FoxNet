@@ -1,7 +1,11 @@
 // Made by qxdFox
 #include "portal.h"
 
+#include "foxnet_entity.h"
+
 #include <base/log.h>
+#include <base/math.h>
+#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
@@ -21,8 +25,9 @@
 #include <game/teamscore.h>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <iterator>
-#include "foxnet_entity.h"
 
 constexpr float MaxPortalRad = 56.0f;
 constexpr float MinPortalRad = 15.0f;
@@ -349,8 +354,8 @@ void CPortal::Snap(int SnappingClient)
 			vec2 From = m_Snap[p].m_aFrom[i];
 
 			const float Spin = (Server()->Tick() / 30.0) + (p * pi);
-			Collision()->Rotate(vec2(0, 0), &To, Spin);
-			Collision()->Rotate(vec2(0, 0), &From, Spin);
+			Rotate(vec2(0, 0), &To, Spin);
+			Rotate(vec2(0, 0), &From, Spin);
 
 			To += m_aData[p].m_Pos;
 			From += m_aData[p].m_Pos;

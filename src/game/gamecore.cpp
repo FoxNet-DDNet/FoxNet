@@ -11,6 +11,7 @@
 #include <engine/shared/config.h>
 
 #include <limits>
+#include <game/server/foxnet/components/zones/zonemanager.h>
 
 const char *CTuningParams::ms_apNames[] =
 	{
@@ -428,10 +429,15 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 		// Update anchored hook head if grabbed to a moving quad
 		if(m_HookedPlayer == -1 && m_pHookedQuad)
 		{
-			const vec2 pivot = m_pHookedQuad->m_Pos[4];
-			const float ang = m_pHookedQuad->m_Angle;
-			m_HookPos = pivot + RotateVec(m_HookQuadLocal, ang);
+			m_pHookedQuad = m_pCollision->ResolveCurrentQuad(m_pHookedQuad);	
+			if(m_pHookedQuad)
+			{
+				const vec2 pivot = m_pHookedQuad->m_Pos[4];
+				const float ang = m_pHookedQuad->m_Angle;
+				m_HookPos = pivot + RotateVec(m_HookQuadLocal, ang);
+			}
 		}
+
 
 		// don't do this hook routine when we are already hooked to a player
 		if(m_HookedPlayer == -1 && distance(m_HookPos, m_Pos) > 46.0f)
