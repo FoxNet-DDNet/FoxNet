@@ -222,9 +222,9 @@ inline bool InsideQuadrilateral(const vec2 &Point, const vec2 &A, const vec2 &B,
 	bool inside = false;
 	for(int i = 0, j = 3; i < 4; j = i++)
 	{
-		const vec2 &pi = pts[i], &pj = pts[j];
-		bool intersect = ((pi.y > Point.y) != (pj.y > Point.y)) &&
-				 (Point.x < (pj.x - pi.x) * (Point.y - pi.y) / (pj.y - pi.y) + pi.x);
+		const vec2 &p = pts[i], &pj = pts[j];
+		bool intersect = ((p.y > Point.y) != (pj.y > Point.y)) &&
+				 (Point.x < (pj.x - p.x) * (Point.y - p.y) / (pj.y - p.y) + p.x);
 		if(intersect)
 			inside = !inside;
 	}

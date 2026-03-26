@@ -2232,6 +2232,7 @@ set_src(GAME_SHARED GLOB src/game
   mapitems_ex_types.h
   prng.cpp
   prng.h
+  quad_data.h
   race_state.h
   team_state.h
   teamscore.cpp

@@ -14,10 +14,10 @@ class CMapItemLayerQuads;
 
 class IZone
 {
-	size_t m_MultiMapIndex = 0;
 	std::vector<CQuadData> m_vQuads;
 	std::vector<CQuadData> m_vNextQuads;
 	CGameContext *m_pGameContext = nullptr;
+	size_t m_MultiMapIndex = 0;
 	EZoneType m_QuadType = EZoneType::Num;
 
 	class CAnimationTransformCache
@@ -31,8 +31,6 @@ class IZone
 	void GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 
 public:
-	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :
-		m_pGameContext(pGameContext), m_MultiMapIndex(MapIndex), m_QuadType(QuadType) {}
 	void Init(CMapItemLayerQuads *pQuadsLayer);
 
 	CGameContext *GameServer() const { return m_pGameContext; }
@@ -43,6 +41,10 @@ public:
 	[[nodiscard]] size_t MultiMapIndex() const { return m_MultiMapIndex; }
 
 	void UpdateCache();
+
+	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :
+		m_pGameContext(pGameContext), m_MultiMapIndex(MapIndex), m_QuadType(QuadType) {}
+	virtual ~IZone() = default;
 	virtual void OnTick() {}
 };
 

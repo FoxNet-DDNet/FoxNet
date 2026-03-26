@@ -48,7 +48,7 @@ public:
 
 	void TakeDamage(vec2 Force);
 
-	void SetRawVelocity(vec2 Vel) { m_Vel = Vel; }
+	void SetRawVelocity(vec2 Vel) override { m_Vel = Vel; }
 	const vec2 &GetVelocity() const override { return m_Vel; }
 	void ForceSetPos(vec2 Pos) override;
 

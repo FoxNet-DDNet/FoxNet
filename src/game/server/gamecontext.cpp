@@ -170,7 +170,8 @@ CGameContext::~CGameContext()
 	if(!m_Resetting)
 	{
 		for(auto &pComponent : m_vpComponents)
-			pComponent->OnMapLoad(DefaultMapIndex);
+			pComponent->OnMapUnload(DefaultMapIndex);
+
 		m_vMultiMaps[DefaultMapIndex]->m_pMap->Unload();
 		m_vMultiMaps[DefaultMapIndex]->m_pMap = nullptr;
 

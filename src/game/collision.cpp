@@ -1719,7 +1719,7 @@ void CCollision::UpdateQuads(float Time)
 	if(!g_Config.m_SvMovingTiles)
 		return;
 
-	auto GetAnimationTransform = [this](float Time, int Env, vec2 &Position, float &Angle) {
+	auto GetAnimationTransform = [this, Time](float Offset, int Env, vec2 &Position, float &Angle) {
 		Position.x = 0.0f;
 		Position.y = 0.0f;
 		Angle = 0.0f;
@@ -1756,7 +1756,7 @@ void CCollision::UpdateQuads(float Time)
 		const CEnvPoint *pLastPoint = EnvelopePoints.GetPoint(NumPoints - 1);
 
 		// Convert GlobalTime (seconds) to milliseconds like RenderEvalEnvelope logic
-		double GlobalMillis = (double)Time * 1000.0;
+		double GlobalMillis = (double)(Time + Offset) * 1000.0;
 		const int64_t LoopMillis = (int64_t)pLastPoint->m_Time.GetInternal();
 		if(LoopMillis > 0)
 			GlobalMillis = std::fmod(GlobalMillis, (double)LoopMillis);
@@ -1853,7 +1853,7 @@ void CCollision::UpdateQuads(float Time)
 	for(auto &QuadData : m_vNextQuads)
 	{
 		vec2 Position = vec2(0, 0);
-		GetAnimationTransform(Time + (QuadData.m_pQuad->m_PosEnvOffset / 1000.0), QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);
+		GetAnimationTransform(QuadData.m_pQuad->m_PosEnvOffset / 1000.0, QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);
 		for(int i = 0; i < 5; i++)
 			QuadData.m_Pos[i] = (Position + vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
 
@@ -1867,7 +1867,6 @@ void CCollision::UpdateQuads(float Time)
 
 const CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 {
-	CQuadData *pQuad = nullptr;
 	for(const CQuadData &Quad : m_vQuads)
 	{
 		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
