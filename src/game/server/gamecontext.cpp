@@ -4483,7 +4483,6 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 	const CTile *pTiles = pCollision->GameLayer();
 	const CTile *pFront = pCollision->FrontLayer();
 	const CSwitchTile *pSwitch = pCollision->SwitchLayer();
-	const CSpeedupTile *pSpeedup = pCollision->SpeedupLayer();
 
 	for(int y = 0; y < pCollision->GetHeight(); y++)
 	{
