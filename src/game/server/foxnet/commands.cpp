@@ -1971,6 +1971,8 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("ban", ConchainScriptingBan, this);
 	Console()->Chain("banid", ConchainScriptingBan, this);
 	Console()->Chain("ban_timestamp", ConchainScriptingBan, this);
+	Console()->Chain("ban_range", ConchainScriptingBan, this);
+	Console()->Chain("unban_range", ConchainScriptingBan, this);
 
 	Console()->Chain("sv_multimap", ConchainMultimap, this);
 }
@@ -2041,7 +2043,15 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 	if(!pArg)
 		return;
 
-	if(str_startswith(pStr, "unban "))
+	if(str_startswith_nocase(pStr, "ban_range "))
+	{
+		str_copy(aScriptingArgs, pStr, sizeof(aScriptingArgs));
+	}
+	else if(str_startswith_nocase(pStr, "unban_range "))
+	{
+		str_copy(aScriptingArgs, pStr, sizeof(aScriptingArgs));
+	}
+	else if(str_startswith_nocase(pStr, "unban "))
 	{
 		if(str_isallnum(pArg))
 		{
@@ -2055,10 +2065,10 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 
 		if(aAddrStr[0])
 		{
-			str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s \"\" \"\"", aAddrStr);
+			str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s", aAddrStr);
 		}
 	}
-	else if(str_startswith(pStr, "ban ") || str_startswith(pStr, "ban_timestamp "))
+	else if(str_startswith_nocase(pStr, "ban ") || str_startswith_nocase(pStr, "ban_timestamp "))
 	{
 		if(str_isallnum(pArg))
 		{
@@ -2087,7 +2097,7 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 			const char *pReason = GetParsedArgument(pStr, 3, true);
 			if(!pReason)
 				pReason = "No Reason Provided.";
-			str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld \"%s\"", aAddrStr, Minutes, pReason);
+			str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld %s", aAddrStr, Minutes, pReason);
 		}
 	}
 
