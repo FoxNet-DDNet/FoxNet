@@ -281,9 +281,17 @@ void CCharacter::SetDeepFrozen(bool Active)
 
 bool CCharacter::IsGrounded()
 {
-	if(Collision()->CheckPoint(m_Pos.x + GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5))
-		return true;
-	if(Collision()->CheckPoint(m_Pos.x - GetProximityRadius() / 2, m_Pos.y + GetProximityRadius() / 2 + 5))
+	const CQuadData *pHitQuad = nullptr;
+
+	float PosY = m_Pos.y + GetProximityRadius() / 2 + 5;
+	float OffsetX = GetProximityRadius() / 2 - 5;
+	bool Standing = false;
+	if(Collision()->CheckPoint(m_Pos.x + OffsetX, PosY, &pHitQuad))
+		Standing = true;
+	if(Collision()->CheckPoint(m_Pos.x - OffsetX, PosY, &pHitQuad))
+		Standing = true;
+
+	if(Standing && !pHitQuad)
 		return true;
 
 	int MoveRestrictionsBelow = Collision()->GetMoveRestrictions(m_Pos + vec2(0, GetProximityRadius() / 2 + 4), 0.0f);
