@@ -7,19 +7,19 @@
 #include "unfreeze.h"
 #include "zone.h"
 
-#include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
 
 #include <engine/map.h>
 
-#include <game/layers.h>
 #include <game/mapitems.h>
 #include <game/server/gamecontext.h>
 
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <game/quad_data.h>
+#include "roulette.h"
 
 void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 {
@@ -31,6 +31,16 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 	for(int GroupIndex = 0; GroupIndex < GroupsNum; GroupIndex++)
 	{
 		CMapItemGroup *pGroup = static_cast<CMapItemGroup *>(pMap->GetItem(GroupsStart + GroupIndex));
+		char aGroupName[30];
+		IntsToStr(pGroup->m_aName, std::size(pGroup->m_aName), aGroupName, std::size(aGroupName));
+
+		// Only create one casino zone per map
+		if(m_avpZones[(int)EZoneType::Roulette].empty() && !str_comp(aGroupName, "#Roulette"))
+		{
+			CRouletteZone *pZone = new CRouletteZone(GameServer(), MultiMapIdx);
+			m_avpZones[(int)EZoneType::Roulette].push_back(pZone);
+		}
+
 		for(int LayerIndex = 0; LayerIndex < pGroup->m_NumLayers; LayerIndex++)
 		{
 			CMapItemLayer *pLayer = static_cast<CMapItemLayer *>(pMap->GetItem(LayersStart + pGroup->m_StartLayer + LayerIndex));
@@ -42,7 +52,11 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			CMapItemLayerQuads *pTilemap = reinterpret_cast<CMapItemLayerQuads *>(pLayer);
 			IntsToStr(pTilemap->m_aName, std::size(pTilemap->m_aName), aLayerName, std::size(aLayerName));
 
-			if(!str_comp("QFr", aLayerName))
+			if(!str_comp(aGroupName, "#Roulette"))
+			{
+				m_avpZones[(int)EZoneType::Roulette].at(0)->Init(pTilemap);
+			}
+			else if(!str_comp("QFr", aLayerName))
 			{
 				CFreezeZone *pZone = new CFreezeZone(GameServer(), MultiMapIdx);
 				pZone->Init(pTilemap);

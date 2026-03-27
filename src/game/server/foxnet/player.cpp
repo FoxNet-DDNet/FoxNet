@@ -179,9 +179,9 @@ void CPlayer::FoxNetReset()
 	m_SpiderHook = false;
 	m_Spazzing = false;
 
-	m_Area = 0;
+	m_Area = EArea::Game;
+	m_LastArea = EArea::Game;
 	m_LastAreaMotd = 0;
-	m_LastEnteredArea = 0;
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 
@@ -1076,9 +1076,9 @@ void CPlayer::SendBroadcast(const char *pText)
 	GameServer()->SendBroadcast(pText, GetCid());
 }
 
-void CPlayer::SendAreaMotd(int Area)
+void CPlayer::SendAreaMotd(EArea Area)
 {
-	if(m_Area == Area)
+	if(m_LastArea == Area)
 		return;
 
 	CCharacter *pChr = GetCharacter();
@@ -1087,12 +1087,12 @@ void CPlayer::SendAreaMotd(int Area)
 	if(pChr->Team() != TEAM_FLOCK)
 		return;
 
-	if(Area == AREA_GAME)
+	if(Area == EArea::Game)
 	{
 		ClearBroadcast();
 		return;
 	}
-	if(m_LastEnteredArea == Area && m_LastAreaMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastAreaMotd > 0)
+	if(m_LastAreaMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastAreaMotd > 0)
 		return;
 	m_LastAreaMotd = Server()->Tick();
 
@@ -1100,7 +1100,7 @@ void CPlayer::SendAreaMotd(int Area)
 	Msg.m_pMessage = "";
 	switch(Area)
 	{
-	case AREA_ROULETTE:
+	case EArea::Roulette:
 		Msg.m_pMessage =
 			"\n"
 			"[Viewable in Server info Tab]\n"
@@ -1126,10 +1126,10 @@ void CPlayer::SendAreaMotd(int Area)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, GetCid());
 }
 
-void CPlayer::SetArea(int Area)
+void CPlayer::SetArea(EArea Area)
 {
-	if(m_Area != AREA_GAME)
-		m_LastEnteredArea = m_Area;
+	if(m_Area != EArea::Game)
+		m_LastArea = m_Area;
 	SendAreaMotd(Area);
 	m_Area = Area;
 }

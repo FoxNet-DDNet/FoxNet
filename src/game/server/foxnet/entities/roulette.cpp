@@ -85,7 +85,7 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 
-	if(pPlayer->GetArea() != AREA_ROULETTE)
+	if(pPlayer->m_Area != EArea::Roulette)
 		return false;
 
 	CCharacter *pChr = pPlayer->GetCharacter();
@@ -319,7 +319,7 @@ void CRoulette::SendBroadcast(int ClientId)
 	if(!pPlayer)
 		return;
 
-	if(pPlayer->GetArea() != AREA_ROULETTE)
+	if(pPlayer->m_Area != EArea::Roulette)
 		return;
 
 	CCharacter *pChr = pPlayer->GetCharacter();

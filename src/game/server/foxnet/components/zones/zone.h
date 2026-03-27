@@ -14,8 +14,6 @@ class CMapItemLayerQuads;
 
 class IZone
 {
-	std::vector<CQuadData> m_vQuads;
-	std::vector<CQuadData> m_vNextQuads;
 	CGameContext *m_pGameContext = nullptr;
 	size_t m_MultiMapIndex = 0;
 	EZoneType m_QuadType = EZoneType::Num;
@@ -31,21 +29,23 @@ class IZone
 	void GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 
 public:
-	void Init(CMapItemLayerQuads *pQuadsLayer);
+	std::vector<CQuadData> m_vQuads;
 
 	CGameContext *GameServer() const { return m_pGameContext; }
 	CCollision *Collision() const;
 
 	[[nodiscard]] const std::vector<CQuadData> &Quads() const { return m_vQuads; }
-	[[nodiscard]] const std::vector<CQuadData> &NextQuads() const { return m_vNextQuads; }
 	[[nodiscard]] size_t MultiMapIndex() const { return m_MultiMapIndex; }
 
 	void UpdateCache();
 
 	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :
 		m_pGameContext(pGameContext), m_MultiMapIndex(MapIndex), m_QuadType(QuadType) {}
-	virtual ~IZone() = default;
+
+	virtual void Init(CMapItemLayerQuads *pQuadsLayer);
 	virtual void OnTick() {}
+
+	virtual ~IZone() = default;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONE_H

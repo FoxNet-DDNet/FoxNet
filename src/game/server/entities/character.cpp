@@ -60,6 +60,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <game/quad_data.h>
+#include <game/server/foxnet/components/zones/roulette.h>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -2006,8 +2008,6 @@ void CCharacter::HandleTiles(int Index)
 	if(!m_Alive)
 		return;
 
-	ExtraTileHandle();
-
 	// freeze
 	if(((m_TileIndex == TILE_FREEZE) || (m_TileFIndex == TILE_FREEZE)) && !m_Core.m_Super && !m_Core.m_Invincible && !m_Core.m_DeepFrozen)
 	{
@@ -3035,7 +3035,7 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 	if(Acc()->m_LoggedIn)
 		Acc()->m_Deaths++;
 
-	GetPlayer()->SetArea(AREA_GAME); // Reset area on spawn
+	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
 	if(g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponOnDeath)
 	{
@@ -3135,7 +3135,7 @@ void CCharacter::FoxNetSpawn()
 	m_Ufo.OnSpawn(this);
 	m_PowerHookedId = -1;
 	m_TelekinesisId = -1;
-	GetPlayer()->SetArea(AREA_GAME); // Reset area on spawn
+	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
 	if(g_Config.m_SvSoloServer || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 		m_ShouldSolo = false;
@@ -3152,6 +3152,11 @@ void CCharacter::FoxNetSpawn()
 
 void CCharacter::RouletteTileHandle()
 {
+	if(!IsAlive())
+		return;
+	if(GetPlayer()->m_Area != EArea::Roulette)
+		return;
+
 	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
 	if(!pRoulette)
 		return;
@@ -3161,63 +3166,19 @@ void CCharacter::RouletteTileHandle()
 
 	vec2 CursorPos = GetCursorPos();
 
-	const int CurrentIndex = Collision()->GetMapIndex(CursorPos);
-	if(!Collision()->IsSpeedup(CurrentIndex))
+	if(GameServer()->m_ZoneManager.Zones(EZoneType::Roulette).empty())
 		return;
+	CRouletteZone *pRouletteZone = static_cast<CRouletteZone *>(GameServer()->m_ZoneManager.Zones(EZoneType::Roulette)[0]);
 
-	vec2 Direction = vec2(0, 0);
-	int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-	Collision()->GetSpeedup(CurrentIndex, &Direction, &Force, &MaxSpeed, &Type);
-
-	if(Type != TILE_EXTRA)
-		return;
-
-	Angle = GameServer()->DirectionToEditorDeg(Direction);
-
-	for(int i = 0; i < (int)std::size(RouletteOptions); i++)
+	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
 	{
-		if(Force == FORCE_ROULETTE && Angle == 0 && MaxSpeed == i + 2)
+		if(!InsideQuadrilateral(CursorPos, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]))
+			continue;
+
+		if(pRoulette->AddClient(ClientId, Bet, RouletteOptions[QuadData.m_BetOption]))
 		{
-			if(pRoulette->AddClient(ClientId, Bet, RouletteOptions[i]))
-			{
-				GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
-				return;
-			}
-		}
-	}
-}
-
-void CCharacter::ExtraTileHandle()
-{
-	const int CurrentIndex = Collision()->GetMapIndex(m_Pos);
-	const auto &&IsTile = [this](int Tile) {
-		return m_TileIndex == Tile || m_TileFIndex == Tile;
-	};
-
-	if(m_SpawnSolo)
-	{
-		if(IsTile(TILE_SOLO_DISABLE) || IsTile(TILE_SOLO_ENABLE))
-			UnSpawnSolo(false);
-	}
-
-	if(Collision()->IsSpeedup(CurrentIndex))
-	{
-		vec2 Direction = vec2(0, 0);
-		int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-		Collision()->GetSpeedup(CurrentIndex, &Direction, &Force, &MaxSpeed, &Type);
-
-		if(Type != TILE_EXTRA)
+			GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
 			return;
-
-		Angle = GameServer()->DirectionToEditorDeg(Direction);
-
-		if(Force == FORCE_NORMAL && Angle == 0 && MaxSpeed == 0)
-		{
-			GetPlayer()->SetArea(AREA_GAME);
-		}
-		else if(Force == FORCE_ROULETTE && Angle == 0 && MaxSpeed == 0)
-		{
-			GetPlayer()->SetArea(AREA_ROULETTE);
 		}
 	}
 }

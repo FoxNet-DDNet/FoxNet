@@ -978,8 +978,6 @@ public:
 
 	bool m_MapVoteLock = false;
 
-	int DirectionToEditorDeg(const vec2 &Dir);
-
 	int64_t m_PowerUpDelay;
 	std::vector<CPowerUp *> m_vPowerups;
 

@@ -2885,6 +2885,8 @@ if(SERVER)
     foxnet/components/zones/death.h
     foxnet/components/zones/freeze.cpp
     foxnet/components/zones/freeze.h
+    foxnet/components/zones/roulette.cpp
+    foxnet/components/zones/roulette.h
     foxnet/components/zones/unfreeze.cpp
     foxnet/components/zones/unfreeze.h
     foxnet/components/zones/zone.cpp

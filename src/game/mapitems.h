@@ -113,9 +113,6 @@ enum
 	// Doors
 	ENTITY_DOOR = 49,
 	// End Of Lower Tiles
-
-	ENTITY_ROULETTE = 50,
-
 	ENTITY_OFFSET = 255 - 16 * 4,
 };
 
@@ -209,15 +206,6 @@ enum
 	TILE_ENTITIES_OFF_2 = 191,
 	// End of higher tiles
 };
-// <FoxNet
-enum FoxNet
-{
-	TILE_EXTRA = 16,
-	FORCE_NORMAL = 1,
-	// Roulette
-	FORCE_ROULETTE = 2,
-};
-	// FoxNet>
 
 enum
 {

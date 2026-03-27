@@ -1447,7 +1447,7 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(pPlayer->GetArea() != AREA_ROULETTE)
+	if(pPlayer->m_Area == EArea::Game)
 	{
 		pSelf->SendChatTarget(ClientId, "You need to be in an area where you can place a bet");
 		return;

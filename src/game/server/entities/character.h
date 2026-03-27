@@ -385,8 +385,6 @@ private:
 
 	int m_VoteActionDelay;
 
-	void ExtraTileHandle();
-
 	void FoxNetTick();
 	void HandleTelekinesis();
 	void HandleSpawnSolo();

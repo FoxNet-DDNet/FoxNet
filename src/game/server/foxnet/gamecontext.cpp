@@ -1352,21 +1352,6 @@ bool CGameContext::IsWeekend() const
 	return lt.tm_wday == 5 || lt.tm_wday == 6 || lt.tm_wday == 0;
 }
 
-int CGameContext::DirectionToEditorDeg(const vec2 &Dir)
-{
-	// Protect against zero-length
-	if(fabsf(Dir.x) < 1e-6f && fabsf(Dir.y) < 1e-6f)
-		return 0;
-
-	float Rad = atan2(Dir.y, Dir.x); // range: [-pi, pi]
-	float Deg = Rad * 180.0f / pi; // convert to degrees
-	int Ideg = (int)lrintf(Deg); // round to nearest int
-	Ideg %= 360;
-	if(Ideg < 0)
-		Ideg += 360;
-	return Ideg; // 0..359
-}
-
 int CGameContext::NumPlayersInTeam(int Team) const
 {
 	CGameTeams &Teams = m_pController->Teams();

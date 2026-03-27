@@ -4524,24 +4524,6 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 					m_pController->OnEntity(GameIndex - ENTITY_OFFSET, x, y, LAYER_GAME, pTiles[Index].m_Flags, Initial, 0, MultiMapIdx);
 				}
 			}
-			// <FoxNet
-			if(pSpeedup)
-			{
-				const int MapIdx = y * m_vMultiMaps[MultiMapIdx]->m_Layers.GameLayer()->m_Width + x;
-				if(pCollision->IsSpeedup(MapIdx))
-				{
-					vec2 Direction = vec2(0, 0);
-					int Force = 0, Type = 0, MaxSpeed = 0, Angle = 0;
-					pCollision->GetSpeedup(MapIdx, &Direction, &Force, &MaxSpeed, &Type);
-					Angle = DirectionToEditorDeg(Direction);
-
-					if(Force == FORCE_ROULETTE && MaxSpeed == 1 && Angle == 0)
-					{
-						m_pController->OnEntity(ENTITY_ROULETTE, x, y, LAYER_SPEEDUP, 0, Initial, 0, MultiMapIdx);
-					}
-				}
-			}
-			// FoxNet>
 
 			if(pFront)
 			{

@@ -411,18 +411,6 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 	{
 		new CGun(&GameServer()->m_World, MultiMapIdx, Pos, false, false, Layer, Number);
 	}
-	else if(Index == ENTITY_ROULETTE)
-	{
-		if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx))
-		{
-			log_info("foxnet", "Roulette created at %.2f, %.2f on map %d", Pos.x, Pos.y, MultiMapIdx);
-			new CRoulette(&GameServer()->m_World, MultiMapIdx, Pos);
-		}
-		else
-		{
-			log_info("foxnet", "Roulette already exists on map %d, skipping creation at %.2f, %.2f", MultiMapIdx, Pos.x, Pos.y);
-		}
-	}
 
 	if(Type != -1) // NOLINT(clang-analyzer-unix.Malloc)
 	{

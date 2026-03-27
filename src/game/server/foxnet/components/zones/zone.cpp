@@ -149,7 +149,6 @@ void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 {
 	CQuad *pQuads = (CQuad *)GameServer()->Map(MultiMapIndex())->GetDataSwapped(pQuadsLayer->m_Data);
 	m_vQuads.reserve(pQuadsLayer->m_NumQuads);
-	m_vNextQuads.reserve(pQuadsLayer->m_NumQuads);
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
@@ -162,7 +161,6 @@ void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 		QuadData.m_MapIndex = m_MultiMapIndex;
 		m_vQuads.push_back(QuadData);
 	}
-	m_vNextQuads = m_vQuads;
 }
 
 CCollision *IZone::Collision() const
@@ -175,11 +173,12 @@ CCollision *IZone::Collision() const
 
 void IZone::UpdateCache()
 {
-	const double Time = GameServer()->m_pController->GetTime();
+	// const double Time = GameServer()->m_pController->GetTime();
+	const double Time = static_cast<double>(GameServer()->Server()->Tick() - GameServer()->m_pController->m_QuadStartTick) / GameServer()->Server()->TickSpeed();
 
-	std::swap(m_vQuads, m_vNextQuads);
+	// std::swap(m_vQuads, m_vNextQuads);
 
-	for(auto &QuadData : m_vNextQuads)
+	for(auto &QuadData : m_vQuads)
 	{
 		vec2 Position = vec2(0, 0);
 		GetAnimationTransform(QuadData.m_MapIndex, Time + (QuadData.m_pQuad->m_PosEnvOffset / 1000.0), QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);

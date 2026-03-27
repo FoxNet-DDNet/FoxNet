@@ -1,24 +1,16 @@
 #include "unfreeze.h"
 
-#include "zonemanager.h"
 
-#include <base/str.h>
 #include <base/vmath.h>
 
-#include <engine/shared/config.h>
 
-#include <generated/protocol.h>
 
-#include <game/envelopeaccess.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamecontroller.h>
 #include <game/server/player.h>
 
-#include <algorithm>
-#include <string>
-#include <utility>
-#include <vector>
+#include <engine/shared/protocol.h>
+#include <game/quad_data.h>
 
 void CUnfreezeZone::OnTick()
 {

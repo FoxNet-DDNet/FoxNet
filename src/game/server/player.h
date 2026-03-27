@@ -36,11 +36,11 @@ struct CScorePlayerResult;
 constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
 constexpr int DefaultMapIndex = 0;
 
-enum Areas
+enum class EArea
 {
-	AREA_GAME = 0,
-	AREA_ROULETTE = 1,
-	NUM_AREAS
+	Game,
+	Roulette,
+	Num
 };
 
 enum HookTypes
@@ -437,12 +437,6 @@ private:
 
 	void LootBoxTick();
 
-	// Excluding AREA_GAME
-	int m_LastEnteredArea = 0;
-	int64_t m_LastAreaMotd = 0;
-	int m_Area = 0;
-	void SendAreaMotd(int Area);
-
 	void SendBroadcast(const char *pText);
 
 	class CLootBoxData
@@ -464,13 +458,16 @@ private:
 	bool HasImportantBroadcast() const;
 
 public:
+	EArea m_Area = EArea::Game;
+	EArea m_LastArea = EArea::Game;
+	int64_t m_LastAreaMotd = 0;
+	void SetArea(EArea Area);
+	void SendAreaMotd(EArea Area);
+
 	int64_t m_LastReport = 0;
 
 	int m_BetAmount = -1;
 	int64_t m_LastBet = 0;
-
-	void SetArea(int Area);
-	int GetArea() const { return m_Area; }
 
 	bool m_WeaponIndicator = true;
 

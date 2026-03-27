@@ -15,6 +15,7 @@ enum class EZoneType
 	CFRM,
 	Hookable,
 	Unhookable,
+	Roulette,
 	Num,
 };
 
@@ -26,9 +27,9 @@ public:
 	CQuad *m_pQuad = nullptr;
 	CMapItemLayerQuads *m_pLayer = nullptr;
 	EZoneType m_Type = EZoneType::Num;
+	uint8_t m_SubType = 0;
 	vec2 m_Pos[5] = {vec2(0, 0)};
 	float m_Angle = 0.0f;
-
 };
 
 #endif
