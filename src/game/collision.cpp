@@ -583,44 +583,6 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	bool ReturnValue = false;
 
-	auto GetQuadContact = [](const CQuadData &QuadData, vec2 P, float Radius, float &MinPenetration, vec2 &BestInwardNormal, int &BestEdgeIdx, vec2 &BestEdgeVec) -> bool {
-		const vec2 TL = QuadData.m_Pos[0];
-		const vec2 TR = QuadData.m_Pos[1];
-		const vec2 BL = QuadData.m_Pos[2];
-		const vec2 BR = QuadData.m_Pos[3];
-
-		const vec2 aA[4] = {TL, TR, BR, BL};
-		const vec2 aB[4] = {TR, BR, BL, TL};
-
-		const float NoPenetration = 1e30f;
-		MinPenetration = NoPenetration;
-		BestInwardNormal = vec2(0.0f, 0.0f);
-		BestEdgeIdx = -1;
-		BestEdgeVec = vec2(0.0f, 0.0f);
-
-		for(int i = 0; i < 4; ++i)
-		{
-			vec2 E = aB[i] - aA[i];
-			const float Elen2 = dot(E, E);
-			if(Elen2 <= 1e-6f)
-				continue;
-
-			const vec2 NIn = normalize(vec2(-E.y, E.x));
-			const float d = dot(P - aA[i], NIn);
-			const float Penetration = d + Radius;
-
-			if(Penetration < MinPenetration)
-			{
-				MinPenetration = Penetration;
-				BestInwardNormal = NIn;
-				BestEdgeIdx = i;
-				BestEdgeVec = E;
-			}
-		}
-
-		return MinPenetration != NoPenetration;
-	};
-
 	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> vec2 {
 		vec2 Delta = vec2(0, 0);
 		if(!g_Config.m_SvMovingTiles)
@@ -634,22 +596,6 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		const CQuadData *pQuad = GetQuadAt(FeetPos);
 		if(!pQuad)
-			return Delta;
-
-		float MinPenetration;
-		vec2 BestInwardNormal;
-		int BestEdgeIdx;
-		vec2 BestEdgeVec;
-		if(!GetQuadContact(*pQuad, FeetPos, 0.0f, MinPenetration, BestInwardNormal, BestEdgeIdx, BestEdgeVec))
-			return Delta;
-
-		const float NormalThresh = 0.35f;
-		const float SlopeThresh = 0.60f;
-		const float EdgeLen = length(BestEdgeVec);
-		const float EdgeSlope = EdgeLen > 1e-6f ? absolute(BestEdgeVec.y) / EdgeLen : 1.0f;
-
-		// Only carry while standing on a floor-like quad.
-		if(BestInwardNormal.y < NormalThresh || EdgeSlope > SlopeThresh)
 			return Delta;
 
 		if(ppHitQuad)
@@ -671,90 +617,6 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 		Delta.x += (NextCenter.x - CurCenter.x) * StepFraction;
 		return Delta;
-	};
-
-	auto ResolveQuadCollision = [&](const CQuadData *pHitQuad, vec2 &InoutPos, vec2 &InoutVel) -> bool {
-		if(!pHitQuad)
-			return false;
-
-		float MinPenetration;
-		vec2 BestInwardNormal;
-		int BestEdgeIdx;
-		vec2 BestEdgeVec;
-		const float Radius = std::min(Size.x, Size.y) * 0.55f;
-
-		if(!GetQuadContact(*pHitQuad, InoutPos, Radius, MinPenetration, BestInwardNormal, BestEdgeIdx, BestEdgeVec))
-			return false;
-		if(MinPenetration <= 0.0f)
-			return false;
-
-		const vec2 Mtv = -BestInwardNormal * MinPenetration;
-
-		auto CanPlace = [&](const vec2 &TryPos) {
-			return !TestBox(TryPos, Size);
-		};
-
-		auto MoveAxis = [&](vec2 &MovePos, const vec2 &Delta) -> vec2 {
-			if(Delta.x == 0.0f && Delta.y == 0.0f)
-				return vec2(0.0f, 0.0f);
-
-			vec2 Target = MovePos + Delta;
-			if(CanPlace(Target))
-			{
-				MovePos = Target;
-				return Delta;
-			}
-
-			float Lo = 0.0f;
-			float Hi = 1.0f;
-			for(int i = 0; i < 10; ++i)
-			{
-				const float Mid = (Lo + Hi) * 0.5f;
-				const vec2 MidPos = MovePos + Delta * Mid;
-				if(CanPlace(MidPos))
-					Lo = Mid;
-				else
-					Hi = Mid;
-			}
-
-			if(Lo > 0.0f)
-			{
-				const vec2 Applied = Delta * Lo;
-				MovePos += Applied;
-				return Applied;
-			}
-			return vec2(0.0f, 0.0f);
-		};
-
-		const vec2 OldVel = InoutVel;
-		const vec2 AppliedX = MoveAxis(InoutPos, vec2(Mtv.x, 0.0f));
-		const vec2 AppliedY = MoveAxis(InoutPos, vec2(0.0f, Mtv.y));
-
-		const float VIn = dot(InoutVel, BestInwardNormal);
-		if(VIn > 0.0f)
-			InoutVel -= BestInwardNormal * VIn;
-
-		if(AppliedX.x == 0.0f && Mtv.x != 0.0f)
-			InoutVel.x = 0.0f;
-		if(AppliedY.y == 0.0f && Mtv.y != 0.0f)
-			InoutVel.y = 0.0f;
-
-		if(pGrounded && BestEdgeIdx >= 0)
-		{
-			const float NormalThresh = 0.35f;
-			const float SlopeThresh = 0.60f;
-			const float EdgeLen = length(BestEdgeVec);
-			const float EdgeSlope = EdgeLen > 1e-6f ? absolute(BestEdgeVec.y) / EdgeLen : 1.0f;
-			const bool IsFloorNormal = BestInwardNormal.y >= NormalThresh;
-			const bool IsFlatEnough = EdgeSlope <= SlopeThresh;
-			const bool PushedUp = AppliedY.y < 0.0f;
-			const bool WasFallingOrRest = OldVel.y >= 0.0f;
-
-			if(IsFloorNormal && IsFlatEnough && PushedUp && WasFallingOrRest)
-				*pGrounded = true;
-		}
-
-		return true;
 	};
 
 	const CQuadData *HitQuad = nullptr;
@@ -788,14 +650,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			if(TestBox(vec2(NewPos.x, NewPos.y), Size, &HitQuad))
 			{
 				if(HitQuad)
-				{
 					ReturnValue = true;
-					if(ResolveQuadCollision(HitQuad, NewPos, Vel))
-					{
-						Pos = NewPos;
-						continue;
-					}
-				}
 
 				int Hits = 0;
 				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuad))

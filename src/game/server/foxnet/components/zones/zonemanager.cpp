@@ -80,20 +80,16 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 				pZone->Init(pTilemap);
 				m_avpZones[(int)EZoneType::StopA].push_back(pZone);
 			}
-			// Solid tiles are handled in the collision code, so we don't need to create zones for them
-
-			//else if(!str_comp("QHook", aLayerName))
-			//{
-			//	CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, QUADTYPE_HOOKABLE, true);
-			//	pZone->Init(pTilemap);
-			//	m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
-			//}
-			//else if(!str_comp("QUnHook", aLayerName))
-			//{
-			//	CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, QUADTYPE_UNHOOKABLE, true);
-			//	pZone->Init(pTilemap);
-			//	m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
-			//}
+			if(!str_comp("QHook", aLayerName))
+			{
+				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
+			}
+			else if(!str_comp("QUnHook", aLayerName))
+			{
+				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
+			}
 			else if(!str_comp("QCfrm", aLayerName))
 			{
 				CCheckpointFromZone *pZone = new CCheckpointFromZone(GameServer(), MultiMapIdx);

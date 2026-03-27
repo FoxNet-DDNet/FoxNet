@@ -179,6 +179,8 @@ private:
 	std::vector<CQuadData> m_vNextQuads;
 
 public:
+	const std::vector<CQuadData> &Quads() const { return m_vQuads; }
+
 	void InitQuads();
 	void UpdateQuads(float Time);
 	void UnloadQuads();

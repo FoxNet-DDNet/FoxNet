@@ -10,18 +10,18 @@ class CQuadData;
 
 class CCollidableZone : public IZone
 {
-	bool m_AlwaysGivesJump;
-
 	void CollidableImpl(const CQuadData &QuadData, CEntity *pEnt);
 
 	void HandleCharacters();
 	void HandlePickups();
 
+	bool m_Solid = false;
+
 public:
-	CCollidableZone(CGameContext *pGameContext, size_t MapIndex, bool AlwaysGivesJump) :
+	CCollidableZone(CGameContext *pGameContext, size_t MapIndex, bool Solid) :
 		IZone(pGameContext, MapIndex)
 	{
-		m_AlwaysGivesJump = AlwaysGivesJump;
+		m_Solid = Solid;
 	}
 	void OnTick() override;
 };

@@ -128,7 +128,7 @@ void CCollidableZone::CollidableImpl(const CQuadData &QuadData, CEntity *pEnt)
 				return;
 
 			bool GiveJump = false;
-			if(m_AlwaysGivesJump)
+			if(m_Solid)
 				GiveJump = true;
 			else
 				GiveJump = g_Config.m_SvQStopaGivesDj;
@@ -166,14 +166,30 @@ void CCollidableZone::HandleCharacters()
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr->IsAlive())
 			continue;
-		for(const CQuadData &QuadData : Quads())
-		{
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
-			if(!InsideQuad(pChr->GetPos(), Points, Size * 0.55f))
-				continue;
 
-			CollidableImpl(QuadData, pChr);
+		if(!Quads().empty())
+		{
+			for(const CQuadData &QuadData : Quads())
+			{
+				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+				vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
+				if(!InsideQuad(pChr->GetPos(), Points, Size * 0.55f))
+					continue;
+
+				CollidableImpl(QuadData, pChr);
+			}
+		}
+		else
+		{
+			for(const CQuadData &QuadData : Collision()->Quads())
+			{
+				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+				vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
+				if(!InsideQuad(pChr->GetPos(), Points, Size * 0.55f))
+					continue;
+
+				CollidableImpl(QuadData, pChr);
+			}
 		}
 	}
 }
@@ -187,14 +203,29 @@ void CCollidableZone::HandlePickups()
 		if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
 			continue;
 
-		for(const CQuadData &QuadData : Quads())
+		if(!Quads().empty())
 		{
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
-			if(!InsideQuad(pEnt->GetPos(), Points, Size * 0.55f))
-				continue;
+			for(const CQuadData &QuadData : Quads())
+			{
+				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+				vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
+				if(!InsideQuad(pEnt->GetPos(), Points, Size * 0.55f))
+					continue;
 
-			CollidableImpl(QuadData, pEnt);
+				CollidableImpl(QuadData, pEnt);
+			}
+		}
+		else
+		{
+			for(const CQuadData &QuadData : Collision()->Quads())
+			{
+				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+				vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
+				if(!InsideQuad(pEnt->GetPos(), Points, Size * 0.55f))
+					continue;
+
+				CollidableImpl(QuadData, pEnt);
+			}
 		}
 	}
 }
