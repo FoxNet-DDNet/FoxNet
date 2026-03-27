@@ -5289,7 +5289,7 @@ void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const c
 		return;
 
 	const std::string Username = EscapeJsonString(pUsername ? pUsername : "");
-	const std::string Content = EscapeJsonString(pMessage);
+	const std::string Content = EscapeJsonString(SanitizeMessage(pMessage).c_str());
 	const std::string AvatarUrl = EscapeJsonString(pAvatarURL ? pAvatarURL : "");
 
 	std::string Json =

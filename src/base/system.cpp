@@ -526,4 +526,21 @@ void Rotate(vec2 Center, vec2 *pPoint, float Rotation)
 	pPoint->y = (x * sinf(Rotation) + y * cosf(Rotation) + Center.y);
 }
 
+std::string SanitizeMessage(const char *pMessage)
+{
+	std::string Out;
+	const char *p = pMessage;
+	while(*p)
+	{
+		// replace @ with # to prevent unwanted pings in webhooks
+		if(*p == '@')
+			Out += '#';
+		else
+			Out += *p;
+		++p;
+	}
+
+	return Out;
+}
+
 // FoxNet>

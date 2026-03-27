@@ -1136,7 +1136,7 @@ void CPlayer::SetArea(EArea Area)
 
 bool CPlayer::CanReport()
 {
-	if(Acc()->m_LoggedIn)
+	if(!Acc()->m_LoggedIn)
 		return false;
 
 	if(OwnsItem(EItemId::SuperUser))
