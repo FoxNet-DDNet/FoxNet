@@ -466,6 +466,8 @@ public:
 
 	int64_t m_LastReport = 0;
 
+	bool CanReport();
+
 	int m_BetAmount = -1;
 	int64_t m_LastBet = 0;
 

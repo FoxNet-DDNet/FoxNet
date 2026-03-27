@@ -136,6 +136,10 @@ MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER, "Force ski
 // Discord Webhooks
 MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook reports get sent to")
 MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook automated-bans get sent to")
+
+MACRO_CONFIG_INT(SvReportMinAccountAge, sv_report_min_account_age, 30, 0, 1000, CFGFLAG_SERVER, "Minimum account age in Minutes required to report")
+
+
 // Logging
 MACRO_CONFIG_INT(SvLogWhispers, sv_log_whispers, 0, 0, 1, CFGFLAG_SERVER, "Whether to enable logging of whispers")
 MACRO_CONFIG_INT(SvLogExtra, sv_log_extra, 0, 0, 2, CFGFLAG_SERVER, "Whether to enable extra logging")

@@ -1511,15 +1511,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int MinRegisterTime = 600; // 10 minutes
-	int64_t Now = time(0);
-	if(pPlayer->Acc()->m_RegisterDate + MinRegisterTime > Now)
-	{
-		pSelf->SendChatTarget(ClientId, "You need to wait a bit until you can report.");
-		return;
-	}
-
-	if(pPlayer->m_LastReport > 0 && pPlayer->m_LastReport + pSelf->Server()->TickSpeed() * 60 > pSelf->Server()->Tick())
+	if(!pPlayer->CanReport())
 	{
 		pSelf->SendChatTarget(ClientId, "You need to wait a bit until you can report.");
 		return;

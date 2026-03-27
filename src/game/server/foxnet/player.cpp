@@ -1134,6 +1134,22 @@ void CPlayer::SetArea(EArea Area)
 	m_Area = Area;
 }
 
+bool CPlayer::CanReport()
+{
+	if(Acc()->m_LoggedIn)
+		return false;
+	if(m_LastReport + Server()->TickSpeed() * 60 > Server()->Tick())
+		return false; // 1 minute cooldown between reports
+
+	const int MinRegisterTime = g_Config.m_SvReportMinAccountAge * 60;
+	int64_t Now = time(0);
+	const int PlaytimeHours = Acc()->m_Playtime / 60;
+	if(Acc()->m_RegisterDate + MinRegisterTime > Now && PlaytimeHours < 25)
+		return false;
+
+	return true;
+}
+
 float CPlayer::GetClientPred()
 {
 	float Ping = (m_Latency.m_Min) / 10.0f - 0.8f;
