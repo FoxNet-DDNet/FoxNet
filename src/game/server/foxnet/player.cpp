@@ -1138,13 +1138,23 @@ bool CPlayer::CanReport()
 {
 	if(Acc()->m_LoggedIn)
 		return false;
-	if(m_LastReport + Server()->TickSpeed() * 60 > Server()->Tick())
-		return false; // 1 minute cooldown between reports
 
-	const int MinRegisterTime = g_Config.m_SvReportMinAccountAge * 60;
-	int64_t Now = time(0);
+	if(OwnsItem(EItemId::SuperUser))
+		return true;
+
 	const int PlaytimeHours = Acc()->m_Playtime / 60;
-	if(Acc()->m_RegisterDate + MinRegisterTime > Now && PlaytimeHours < 25)
+	bool HasPlayedEnough = PlaytimeHours >= g_Config.m_SvReportsMinPlaytimeForBypass && g_Config.m_SvReportsPlaytimeBypass;
+
+	int ReportDelay = g_Config.m_SvReportsDelay;
+	if(HasPlayedEnough)
+		ReportDelay *= 0.5f; // reduce cooldown
+
+	if(m_LastReport + Server()->TickSpeed() * ReportDelay > Server()->Tick())
+		return false; // cooldown between reports
+
+	const int MinRegisterTime = g_Config.m_SvReportsMinAccountAge * 60;
+	int64_t Now = time(0);
+	if(Acc()->m_RegisterDate + MinRegisterTime > Now && !HasPlayedEnough)
 		return false;
 
 	return true;

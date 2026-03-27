@@ -758,7 +758,7 @@ void CGameContext::OnLogin(int ClientId)
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
-	pPlayer->m_LastReport = Server()->Tick() + Server()->TickSpeed() * 240;
+	pPlayer->m_LastReport = Server()->Tick();
 
 	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() == TEAM_SPECTATORS)
 	{

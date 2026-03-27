@@ -137,8 +137,10 @@ MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER, "Force ski
 MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook reports get sent to")
 MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook automated-bans get sent to")
 
-MACRO_CONFIG_INT(SvReportMinAccountAge, sv_report_min_account_age, 30, 0, 1000, CFGFLAG_SERVER, "Minimum account age in Minutes required to report")
-
+MACRO_CONFIG_INT(SvReportsMinAccountAge, sv_reports_min_account_age, 30, 0, 1000, CFGFLAG_SERVER, "Minimum account age in Minutes required to report")
+MACRO_CONFIG_INT(SvReportsDelay, sv_reports_delay, 60, 0, 10000, CFGFLAG_SERVER, "Minimum account age in Seconds required to report")
+MACRO_CONFIG_INT(SvReportsPlaytimeBypass, sv_reports_playtime_bypass, 1, 0, 1, CFGFLAG_SERVER, "Whether to bypass playtime requirement for reporting")
+MACRO_CONFIG_INT(SvReportsMinPlaytimeForBypass, sv_reports_min_playtime_for_bypass, 1, 0, 1000, CFGFLAG_SERVER, "Minimum playtime required to bypass reporting in Hours")
 
 // Logging
 MACRO_CONFIG_INT(SvLogWhispers, sv_log_whispers, 0, 0, 1, CFGFLAG_SERVER, "Whether to enable logging of whispers")
