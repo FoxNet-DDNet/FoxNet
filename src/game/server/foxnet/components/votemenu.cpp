@@ -103,7 +103,7 @@ constexpr const char *BACKPAGE = "↩ Back ↩";
 // Server Info Page
 
 constexpr const char *SERVER_INFO_DISCORD = "Discord:";
-constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribue:";
+constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribute:";
 
 constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
 constexpr const char *SERVER_INFO_LEVELING = "Leveling";
