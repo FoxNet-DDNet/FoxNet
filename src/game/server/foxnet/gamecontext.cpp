@@ -1309,7 +1309,7 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) con
 	if(!pPlayer->Acc()->m_LoggedIn && !HidePowerUps)
 	{
 		SendChatTarget(ClientId, "You need to be logged in to collect Powerups");
-		SendChatTarget(ClientId, "/register <name> <pw> <pw>");
+		SendChatTarget(ClientId, "/register <name> <pw>");
 		pPlayer->SetHidePowerUps(true); // Only show powerups once
 		return;
 	}
