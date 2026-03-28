@@ -233,7 +233,6 @@ inline bool InsideQuadrilateral(const vec2 &Point, const vec2 &A, const vec2 &B,
 
 inline bool InsideQuad(const vec2 &Pos, const vec2 Points[4], const vec2 &Size)
 {
-	// Check if the point is inside the quadrilateral using the winding number method
 	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))
 		return true;
 	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))

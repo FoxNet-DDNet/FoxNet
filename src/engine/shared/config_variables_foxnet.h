@@ -20,7 +20,6 @@ MACRO_CONFIG_INT(SvRandomMapVoteOnStart, sv_random_map_vote_on_start, 0, 0, 1, C
 MACRO_CONFIG_INT(SvVoteSkipPrefix, sv_vote_skip_prefix, 1, 0, 1, CFGFLAG_SERVER , "Skips Prefixes for the vote message when calling a vote")
 
 MACRO_CONFIG_INT(SvCustomVoteMenu, sv_custom_vote_menu, 1, 0, 1, CFGFLAG_SERVER, "Whether to use the custom vote menu or just show votes")
-MACRO_CONFIG_STR(SvVoteMenuDiscordMessage, sv_vote_menu_discord_message, 1024, "Our Discord server allows you to submit feature ideas, report bugs, or appeal your ban.", CFGFLAG_SERVER, "What it says as message in the discord server info tab")
 
 // Accounts & Currency
 MACRO_CONFIG_INT(SvAccounts, sv_accounts, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Enable player accounts")
@@ -128,7 +127,7 @@ MACRO_CONFIG_INT(SvLissajousA, sv_lissajous_a, 2, 0, 15, CFGFLAG_SERVER, "Lissaj
 MACRO_CONFIG_INT(SvLissajousB, sv_lissajous_b, 3, 0, 15, CFGFLAG_SERVER, "Lissajous B")
 
 // Social
-MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "https://github.com/FoxNet-DDNet/FoxNet", CFGFLAG_SERVER, "GitHub repository URL")
+MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "github.com/FoxNet-DDNet/FoxNet", CFGFLAG_SERVER, "GitHub repository URL")
 MACRO_CONFIG_STR(SvDiscordLink, sv_discord_link, 128, "", CFGFLAG_SERVER, "Discord Server Link")
 // Force
 MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER, "Force skin for all players (Leave empty to disable)")

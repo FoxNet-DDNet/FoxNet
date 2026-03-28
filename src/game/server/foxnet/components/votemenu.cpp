@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include <game/server/foxnet/fontconvert.h>
+#include <game/version.h>
 
 constexpr const char *RAINBOW_SPEED = "Rainbow Speed";
 
@@ -101,12 +102,11 @@ constexpr const char *BACKPAGE = "↩ Back ↩";
 
 // Server Info Page
 
-constexpr const char *SERVER_INFO_DISCORD = "Discord";
+constexpr const char *SERVER_INFO_DISCORD = "Discord:";
+constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribue:";
+
 constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
 constexpr const char *SERVER_INFO_LEVELING = "Leveling";
-constexpr const char *SERVER_INFO_CONTRIBUTE = "Have any Ideas?";
-
-constexpr const char *SERVER_INFO_SEND_LINK = "Double click here to send the link to chat";
 
 void CVoteMenu::OnConsoleInit()
 {
@@ -525,27 +525,14 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				return true;
 			}
 		}
-		if(IsOption(pVote, SERVER_INFO_DISCORD))
+		if(IsOptionWithSuffix(pVote, SERVER_INFO_CONTRIBUTE))
 		{
-			SetSubPage(ClientId, SUB_SERVERINFO_DISCORD);
-			return true;
-		}
-		if(IsOption(pVote, SERVER_INFO_CONTRIBUTE))
-		{
-			SetSubPage(ClientId, SUB_SERVERINFO_CONTRIBUTE);
-			return true;
-		}
-		if(IsOption(pVote, SERVER_INFO_SEND_LINK))
-		{
-			if(SubPage == SUB_SERVERINFO_CONTRIBUTE)
 				GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
-			else if(SubPage == SUB_SERVERINFO_DISCORD)
-				GameServer()->SendChatTarget(ClientId, g_Config.m_SvDiscordLink);
-			else
-			{
-				SetSubPage(ClientId, SUB_SERVERINFO_MAIN);
-				GameServer()->SendChatTarget(ClientId, "Unknown Page");
-			}
+				return true;
+		}
+		else if(IsOptionWithSuffix(pVote, SERVER_INFO_DISCORD))
+		{
+			GameServer()->SendChatTarget(ClientId, g_Config.m_SvDiscordLink);
 			return true;
 		}
 	}
@@ -1573,7 +1560,21 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
-		AddVoteText(ConvertToSmallCaps("╭───────    Rules"));
+
+		AddVoteText(ConvertToSmallCaps("╭───────    Info"));
+		AddVoteText("Version: " FOXNET_VERSION, EPrefix::LONG_LINE);
+		char aBuf[VOTE_DESC_LENGTH] = "";
+		if(g_Config.m_SvDiscordLink[0])
+			str_format(aBuf, sizeof(aBuf), "%s %s", SERVER_INFO_DISCORD, g_Config.m_SvDiscordLink);
+		else
+			str_format(aBuf, sizeof(aBuf), "%s Not set up", SERVER_INFO_DISCORD);
+		AddVoteText(aBuf, EPrefix::LONG_LINE);
+		if(g_Config.m_SvGithubRepo[0])
+			str_format(aBuf, sizeof(aBuf), "%s %s", SERVER_INFO_CONTRIBUTE, g_Config.m_SvGithubRepo);
+		else
+			str_format(aBuf, sizeof(aBuf), "%s Not set up", SERVER_INFO_CONTRIBUTE);
+		AddVoteText(aBuf, EPrefix::LONG_LINE);
+		AddVoteText(ConvertToSmallCaps("├───────    Rules"));
 		if(g_Config.m_SvDDRaceRules)
 		{
 			AddVoteText("Be nice.", EPrefix::LONG_LINE);
@@ -1601,44 +1602,12 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		}
 		AddVoteText("╰────────────────────");
 
-		if(g_Config.m_SvDiscordLink[0] || g_Config.m_SvGithubRepo[0] || g_Config.m_SvAccounts)
-			AddVoteSeparator();
-
-		if(g_Config.m_SvDiscordLink[0])
-			AddVoteText(SERVER_INFO_DISCORD, EPrefix::ARROWHEAD);
 		if(g_Config.m_SvAccounts)
 		{
+			AddVoteSeparator();
 			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::ARROWHEAD);
 			AddVoteText(SERVER_INFO_LEVELING, EPrefix::ARROWHEAD);
 		}
-		if(g_Config.m_SvGithubRepo[0])
-			AddVoteText(SERVER_INFO_CONTRIBUTE, EPrefix::ARROWHEAD);
-	}
-	else if(SubPage == SUB_SERVERINFO_DISCORD)
-	{
-		if(!g_Config.m_SvDiscordLink[0])
-		{
-			AddVoteText("Discord link not set up by the server admin.");
-			return;
-		}
-
-		char aMsg[1024] = "";
-		str_copy(aMsg, g_Config.m_SvVoteMenuDiscordMessage, sizeof(aMsg));
-		UnescapeNewlines(aMsg);
-		StrNewlineExceedLength(aMsg, MAX_VOTE_LENGTH);
-		std::vector<const char *> Lines = StrSplit(aMsg, '\n');
-
-		if(!Lines.empty())
-		{
-			AddVoteText(ConvertToSmallCaps("╭───────    Discord"));
-			for(const char *pLine : Lines)
-				AddVoteText(pLine, EPrefix::LONG_LINE);
-			AddVoteText("╰────────────────────");
-		}
-
-		AddVoteSeparator();
-
-		AddVoteText(SERVER_INFO_SEND_LINK, EPrefix::ARROWHEAD);
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
 	{
@@ -1664,25 +1633,6 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		AddVoteText("├───────────────");
 		AddVoteText("│ On weekends there is a global 2x multiplier on Money and XP");
 		AddVoteText("╰────────────────────");
-	}
-	else if(SubPage == SUB_SERVERINFO_CONTRIBUTE)
-	{
-		if(!g_Config.m_SvGithubRepo[0])
-		{
-			AddVoteText("GitHub repository not set up by the server admin.");
-			return;
-		}
-
-		AddVoteText(ConvertToSmallCaps("╭───────    Contributing"));
-		AddVoteText("│ Want to contribute to the server?");
-		AddVoteText("│ Or have an Idea for a feature?");
-		AddVoteText("│ Check out our GitHub page!");
-		AddVoteText("╰────────────────────");
-
-		AddVoteSeparator();
-
-		// AddVoteText(g_Config.m_SvGithubRepo, EPrefix::LONG_LINE);
-		AddVoteText(SERVER_INFO_SEND_LINK, EPrefix::ARROWHEAD);
 	}
 }
 
