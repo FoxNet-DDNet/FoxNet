@@ -101,7 +101,6 @@ constexpr const char *MAIN_MENU_PAGE = "↩ Main Menu ↩";
 constexpr const char *BACKPAGE = "↩ Back ↩";
 
 // Server Info Page
-
 constexpr const char *SERVER_INFO_DISCORD = "Discord:";
 constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribute:";
 

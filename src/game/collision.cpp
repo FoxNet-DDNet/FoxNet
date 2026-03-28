@@ -592,7 +592,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
 			return Delta;
 
-		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y);
+		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.55f);
 
 		const CQuadData *pQuad = GetQuadAt(FeetPos);
 		if(!pQuad)
