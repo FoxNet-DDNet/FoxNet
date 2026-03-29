@@ -110,7 +110,7 @@ CGraphics_Threaded::CGraphics_Threaded()
 	m_State.m_ClipW = 0;
 	m_State.m_ClipH = 0;
 	m_State.m_Texture = -1;
-	m_State.m_BlendMode = EBlendMode::NONE;
+	m_State.m_BlendMode = EBlendMode::ALPHA;
 	m_State.m_WrapMode = EWrapMode::REPEAT;
 
 	m_CurrentCommandBuffer = 0;
@@ -2920,6 +2920,11 @@ const char *CGraphics_Threaded::GetVersionString()
 const char *CGraphics_Threaded::GetRendererString()
 {
 	return m_pBackend->GetRendererString();
+}
+
+const char *CGraphics_Threaded::GetFatalError() const
+{
+	return m_pBackend == nullptr ? "" : m_pBackend->GetFatalError();
 }
 
 TGLBackendReadPresentedImageData &CGraphics_Threaded::GetReadPresentedImageDataFuncUnsafe()

@@ -1337,11 +1337,9 @@ void CMenus::RenderLanguageSettings(CUIRect MainView)
 	CreditsScroll.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 5.0f);
 
 	static CScrollRegion s_CreditsScrollRegion;
-	vec2 ScrollOffset(0.0f, 0.0f);
 	CScrollRegionParams ScrollParams;
 	ScrollParams.m_ScrollUnit = CreditsFontSize;
-	s_CreditsScrollRegion.Begin(&CreditsScroll, &ScrollOffset, &ScrollParams);
-	CreditsScroll.y += ScrollOffset.y;
+	s_CreditsScrollRegion.Begin(&CreditsScroll, &ScrollParams);
 
 	CTextCursor Cursor;
 	Cursor.m_FontSize = CreditsFontSize;
@@ -2514,7 +2512,6 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		// Render unhookable tile
 		Graphics()->TextureClear();
 		Graphics()->TextureSet(GameClient()->m_MapImages.GetEntities(MAP_IMAGE_ENTITY_LAYER_TYPE_ALL_EXCEPT_SWITCH));
-		Graphics()->BlendNormal();
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 		RenderMap()->RenderTile(NoHookTileRect.x, NoHookTileRect.y, TILE_NOHOOK, TileScale, ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -2533,7 +2530,6 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		// Render hookable tile
 		Graphics()->TextureClear();
 		Graphics()->TextureSet(GameClient()->m_MapImages.GetEntities(MAP_IMAGE_ENTITY_LAYER_TYPE_ALL_EXCEPT_SWITCH));
-		Graphics()->BlendNormal();
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 		RenderMap()->RenderTile(HookTileRect.x, HookTileRect.y, TILE_SOLID, TileScale, ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
 

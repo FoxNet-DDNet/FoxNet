@@ -75,6 +75,7 @@
 #include <game/client/projectile_data.h>
 #include <game/localization.h>
 #include <game/mapitems.h>
+#include <game/teamscore.h>
 #include <game/version.h>
 
 #include <chrono>
@@ -1124,7 +1125,7 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 		for(i = 0; i < MAX_CLIENTS; i++)
 		{
 			const int Team = pUnpacker->GetInt();
-			if(!pUnpacker->Error() && Team >= TEAM_FLOCK && Team <= TEAM_SUPER)
+			if(!pUnpacker->Error() && Team >= TEAM_FLOCK && Team < NUM_DDRACE_TEAMS)
 				m_Teams.Team(i, Team);
 			else
 			{
@@ -1995,7 +1996,9 @@ void CGameClient::OnNewSnapshot()
 					continue;
 				}
 				const CNetObj_SwitchState *pSwitchStateData = (const CNetObj_SwitchState *)Item.m_pData;
-				int Team = std::clamp(Item.m_Id, (int)TEAM_FLOCK, (int)TEAM_SUPER - 1);
+				// TODO: use NUM_DDRACE_TEAMS-1 instead of hardcoding 63
+				//       once https://github.com/ddnet/ddnet/pull/11232 is resolved
+				int Team = std::clamp(Item.m_Id, (int)TEAM_FLOCK, 63);
 
 				int HighestSwitchNumber = std::clamp(pSwitchStateData->m_HighestSwitchNumber, 0, 255);
 				if(HighestSwitchNumber != maximum(0, (int)Switchers().size() - 1))
@@ -2154,7 +2157,7 @@ void CGameClient::OnNewSnapshot()
 
 	// sort player infos by DDRace Team (and score between)
 	int Index = 0;
-	for(int Team = TEAM_FLOCK; Team <= TEAM_SUPER; ++Team)
+	for(int Team = TEAM_FLOCK; Team < NUM_DDRACE_TEAMS; ++Team)
 	{
 		for(int i = 0; i < MAX_CLIENTS && Index < MAX_CLIENTS; ++i)
 		{
@@ -2165,7 +2168,7 @@ void CGameClient::OnNewSnapshot()
 
 	// sort player infos by DDRace Team (and name between)
 	Index = 0;
-	for(int Team = TEAM_FLOCK; Team <= TEAM_SUPER; ++Team)
+	for(int Team = TEAM_FLOCK; Team < NUM_DDRACE_TEAMS; ++Team)
 	{
 		for(int i = 0; i < MAX_CLIENTS && Index < MAX_CLIENTS; ++i)
 		{
@@ -2366,7 +2369,12 @@ void CGameClient::OnNewSnapshot()
 				if(IsOtherTeam(i))
 					Alpha = g_Config.m_ClShowOthersAlpha / 100.0f;
 				const float Volume = 1.0f; // TODO snd_game_volume_others
-				m_Effects.AirJump(Pos, Alpha, Volume);
+
+				const bool Grounded = Collision()->IsOnGround(vec2(m_Snap.m_aCharacters[i].m_Prev.m_X, m_Snap.m_aCharacters[i].m_Prev.m_Y), CCharacterCore::PhysicalSize());
+				if(!Grounded)
+				{
+					m_Effects.AirJump(Pos, Alpha, Volume);
+				}
 			}
 		}
 	}
@@ -3398,13 +3406,13 @@ void CGameClient::UpdateLocalTuning()
 				m_aExpectingTuningForZone[g_Config.m_ClDummy] = -1;
 				m_aExpectingTuningSince[g_Config.m_ClDummy] = 0;
 				m_aReceivedTuning[g_Config.m_ClDummy] = false;
-				dbg_msg("tunezone", "the tuning was missed");
+				log_debug("tunezone", "the tuning was missed");
 			}
 			else
 			{
 				// if we are expecting tuning and have not received one yet.
 				// do not update any tuning, so we don't apply it to the wrong tunezone.
-				dbg_msg("tunezone", "waiting for tuning for zone %d", m_aExpectingTuningForZone[g_Config.m_ClDummy]);
+				log_debug("tunezone", "waiting for tuning for zone %d", m_aExpectingTuningForZone[g_Config.m_ClDummy]);
 				m_aExpectingTuningSince[g_Config.m_ClDummy]++;
 			}
 		}

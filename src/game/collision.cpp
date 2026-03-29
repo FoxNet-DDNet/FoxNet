@@ -572,6 +572,16 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size, const CQuadData **ppHitQuad) const
 	return false;
 }
 
+bool CCollision::IsOnGround(vec2 Pos, float Size) const
+{
+	if(CheckPoint(Pos.x + Size / 2, Pos.y + Size / 2 + 5))
+		return true;
+	if(CheckPoint(Pos.x - Size / 2, Pos.y + Size / 2 + 5))
+		return true;
+
+	return false;
+}
+
 bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded) const
 {
 	// do the move
@@ -695,6 +705,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	return ReturnValue;
 }
+
 // DDRace
 int CCollision::IsSolid(int x, int y, const CQuadData **ppHitQuad) const
 {

@@ -13,6 +13,7 @@
 #include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
+#include <base/time.h>
 
 #include <engine/antibot.h>
 #include <engine/console.h>
@@ -281,6 +282,8 @@ void CCharacter::SetDeepFrozen(bool Active)
 
 bool CCharacter::IsGrounded()
 {
+	// if(Collision()->IsOnGround(m_Pos, GetProximityRadius()))
+	// 		return true;
 	const CQuadData *pHitQuad = nullptr;
 
 	float PosY = m_Pos.y + GetProximityRadius() / 2 + 5;
@@ -800,7 +803,8 @@ void CCharacter::FireWeapon()
 
 	m_AttackTick = Server()->Tick();
 
-	if(!m_ReloadTimer)
+	// -1 is no weapon, handled here so pain sound still plays when firing in freeze
+	if(!m_ReloadTimer && m_Core.m_ActiveWeapon != -1)
 	{
 		// <FoxNet
 		float FireDelay;
@@ -1281,7 +1285,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 void CCharacter::SendDeathMessageIfNotInLockedTeam(int Killer, int Weapon, int ModeSpecial)
 {
-	if((Team() == TEAM_FLOCK || Teams()->TeamFlock(Team()) || Teams()->Count(Team()) == 1 || Teams()->GetTeamState(Team()) == ETeamState::OPEN || !Teams()->TeamLocked(Team())))
+	if((Team() == TEAM_FLOCK || Teams()->TeamFlock(Team()) || Teams()->TeamSize(Team()) == 1 || Teams()->GetTeamState(Team()) == ETeamState::OPEN || !Teams()->TeamLocked(Team())))
 	{
 		CNetMsg_Sv_KillMsg Msg;
 		Msg.m_Killer = Killer;
