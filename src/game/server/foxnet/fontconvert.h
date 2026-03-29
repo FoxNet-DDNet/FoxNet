@@ -1,4 +1,4 @@
-﻿// Co-authored-by: ByFox <byfox213@gmail.com>
+// Co-authored-by: ByFox <byfox213@gmail.com>
 #ifndef GAME_SERVER_FOXNET_FONTCONVERT_H
 #define GAME_SERVER_FOXNET_FONTCONVERT_H
 
@@ -55,8 +55,7 @@ constexpr std::array<std::array<std::string_view, SYMBOLS_PER_NUMBER>, NUMBER_CO
 // ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘᴏ̨ʀsᴛᴜᴠᴡxʏᴢ
 constexpr std::array<std::string_view, LETTER_COUNT> g_SmallCaps = {
 	"ᴀ", "ʙ", "ᴄ", "ᴅ", "ᴇ", "ғ", "ɢ", "ʜ", "ɪ", "ᴊ", "ᴋ", "ʟ", "ᴍ",
-	"ɴ", "ᴏ", "ᴘ", "ǫ", "ʀ", "s", "ᴛ", "ᴜ", "ᴠ", "ᴡ", "x", "ʏ", "ᴢ"
-};
+	"ɴ", "ᴏ", "ᴘ", "ǫ", "ʀ", "s", "ᴛ", "ᴜ", "ᴠ", "ᴡ", "x", "ʏ", "ᴢ"};
 
 const char *FontConvert(const char *pMsg);
 const char *ConvertToSmallCaps(const char *pMsg);

@@ -1,4 +1,4 @@
-﻿/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "player.h"
 
@@ -927,7 +927,7 @@ void CPlayer::SpectatePlayerName(const char *pName)
 
 void CPlayer::SetSpectatorId(int Id)
 {
-	CPlayer *pSpectator = GameServer()->m_apPlayers[Id];
+	CPlayer *pSpectator = Id >= 0 ? GameServer()->m_apPlayers[Id] : nullptr;
 	if(pSpectator && !Server()->IsRconAuthed(GetCid()))
 	{
 		if(pSpectator->m_Vanish && !m_Vanish)

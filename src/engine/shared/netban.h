@@ -7,7 +7,6 @@
 #include <base/time.h>
 
 #include <engine/console.h>
-
 #include <engine/shared/config.h>
 
 inline int NetComp(const NETADDR *pAddr1, const NETADDR *pAddr2)

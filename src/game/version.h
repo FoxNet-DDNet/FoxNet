@@ -23,4 +23,3 @@ extern const char *GIT_SHORTREV_HASH;
 #define FOXNET_VERSION_NUMBER 3020
 
 #endif
-	

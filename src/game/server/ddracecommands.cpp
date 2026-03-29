@@ -14,6 +14,7 @@
 #include <game/server/player.h>
 #include <game/server/save.h>
 #include <game/server/teams.h>
+
 #include <algorithm>
 // <FoxNet
 #include <game/gamecore.h>
@@ -311,7 +312,7 @@ void CGameContext::ConJetpack(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConEndlessJump(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments()? pResult->GetVictim() : pResult->m_ClientId;
+	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
 	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
 	if(pChr)
 		pChr->SetEndlessJump(true);

@@ -1,4 +1,4 @@
-﻿#include "shop.h"
+#include "shop.h"
 
 #include <base/log.h>
 #include <base/str.h>

@@ -22,7 +22,7 @@ class CScripting : public CServerComponent
 	std::unique_ptr<CScriptRunner, CScriptRunnerDeleter> m_pRunner;
 
 public:
-	~CScripting();
+	~CScripting() override;
 	void SetGameServer(CGameContext *pGameServer);
 	void ExecScript(const char *pFilename, const char *pArgs);
 	void OnInit() override;

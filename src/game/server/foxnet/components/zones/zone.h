@@ -1,12 +1,14 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONE_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONE_H
 
 #include <base/vmath.h>
-#include <utility>
-#include <vector>
+
 #include <game/collision.h>
 #include <game/layers.h>
 #include <game/quad_data.h>
+
+#include <utility>
+#include <vector>
 
 class CGameContext;
 class CQuad;
@@ -21,10 +23,10 @@ class IZone
 	class CAnimationTransformCache
 	{
 	public:
-		vec2 Position = vec2(0.0f, 0.f);
-		float Angle = 0;
-		int PosEnv = -1;
-		int PosEnvOffset = 0;
+		vec2 m_Position = vec2(0.0f, 0.f);
+		float m_Angle = 0;
+		int m_PosEnv = -1;
+		int m_PosEnvOffset = 0;
 	};
 	void GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 

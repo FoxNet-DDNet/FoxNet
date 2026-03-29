@@ -214,7 +214,7 @@ void CGameContext::Clear()
 	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
-	std::vector<CServerComponent * > vComponents = m_vpComponents;
+	std::vector<CServerComponent *> vComponents = m_vpComponents;
 	// FoxNet>
 
 	m_Resetting = true;
@@ -1145,7 +1145,6 @@ void CGameContext::SendTuningParams(int ClientId, int Zone)
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "Invalid ClientId: %d", ClientId);
 	dbg_assert(m_apPlayers[ClientId], "client %d without player", ClientId);
 
-
 	CCharacter *pCharacter = m_apPlayers[ClientId]->GetCharacter();
 	int NeededFakeTuning = pCharacter ? pCharacter->NeededFaketuning() : 0;
 
@@ -1246,16 +1245,16 @@ void CGameContext::OnTick()
 
 	m_pController->Tick();
 
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(CPlayer *pPlayer : m_apPlayers)
 	{
-		if(m_apPlayers[i])
+		if(pPlayer)
 		{
-			m_apPlayers[i]->Tick();
-			m_apPlayers[i]->PostTick();
+			pPlayer->Tick();
+			pPlayer->PostTick();
 		}
 	}
 
-	for(auto &pPlayer : m_apPlayers)
+	for(CPlayer *pPlayer : m_apPlayers)
 	{
 		if(pPlayer)
 			pPlayer->PostPostTick();
@@ -1950,7 +1949,7 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 	if(Spec || g_Config.m_SvTournamentMode || g_Config.m_SvAccountsForced)
 		StartTeam = TEAM_SPECTATORS;
 	// FoxNet>
-	
+
 	CreatePlayer(ClientId, StartTeam, Afk, LastWhisperTo);
 
 	SendMotd(ClientId);
@@ -2981,10 +2980,10 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 			str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientId));
 			SendChat(-1, TEAM_ALL, aChatText);
 
-		// reload scores
-		Score()->PlayerData(ClientId)->Reset();
-		Server()->SetClientScore(ClientId, std::nullopt);
-		Score()->LoadPlayerData(ClientId);
+			// reload scores
+			Score()->PlayerData(ClientId)->Reset();
+			Server()->SetClientScore(ClientId, std::nullopt);
+			Score()->LoadPlayerData(ClientId);
 
 			SixupNeedsUpdate = true;
 
@@ -4530,9 +4529,9 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 
 	for(int y = 0; y < pCollision->GetHeight(); y++)
 	{
-		for(int x = 0; x <pCollision->GetWidth(); x++)
+		for(int x = 0; x < pCollision->GetWidth(); x++)
 		{
-			const int Index = y *pCollision->GetWidth() + x;
+			const int Index = y * pCollision->GetWidth() + x;
 
 			// Game layer
 			{
@@ -4782,7 +4781,7 @@ void CGameContext::OnShutdown(void *pPersistentData)
 		{
 			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i]->m_pMap->BaseName());
 			m_vMultiMaps[i]->Unload();
-			m_vMultiMaps[i]->m_pMap = nullptr;	
+			m_vMultiMaps[i]->m_pMap = nullptr;
 		}
 
 		if(g_Config.m_SvScriptShutdown[0])
@@ -5398,7 +5397,7 @@ void CGameContext::WhisperId(int ClientId, int VictimId, const char *pMessage)
 {
 	dbg_assert(CheckClientId(ClientId) && m_apPlayers[ClientId] != nullptr, "ClientId invalid");
 	dbg_assert(CheckClientId(VictimId) && m_apPlayers[VictimId] != nullptr, "VictimId invalid");
-	
+
 	if(m_apPlayers[VictimId]->m_Vanish && (!Server()->IsRconAuthed(ClientId) || m_apPlayers[ClientId]->m_Vanish))
 	{
 		SendChatTarget(ClientId, "Invalid whisper");

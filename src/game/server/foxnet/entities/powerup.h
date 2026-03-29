@@ -17,7 +17,6 @@ enum class EPowerUp
 	NUM_TYPES
 };
 
-
 class CPowerupData
 {
 public:
@@ -67,9 +66,9 @@ public:
 
 	void OnFire();
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
-#endif // GAME_SERVER_FOXNET_ENTITIES_PORTAL_H
+#endif // GAME_SERVER_FOXNET_ENTITIES_POWERUP_H

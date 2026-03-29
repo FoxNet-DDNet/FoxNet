@@ -4,6 +4,7 @@
 #include "snap_id_pool.h"
 
 #include <base/system.h>
+
 #include <engine/shared/config.h>
 
 CSnapIdPool::CSnapIdPool()

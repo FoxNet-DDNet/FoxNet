@@ -78,11 +78,56 @@
 #undef main
 #endif
 
+#include "checksum.h"
+#include "enums.h"
+#include "smooth_time.h"
+#include "updater.h"
+
+#include <base/color.h>
+#include <base/dbg.h>
+#include <base/detect.h>
+#include <base/mem.h>
+#include <base/net.h>
+#include <base/types.h>
+
+#include <engine/client.h>
+#include <engine/demo.h>
+#include <engine/external/md5/md5.h>
+#include <engine/friends.h>
+#include <engine/ghost.h>
+#include <engine/http.h>
+#include <engine/kernel.h>
+#include <engine/message.h>
+#include <engine/shared/jobs.h>
+#include <engine/shared/protocol_ex_msgs.h>
+#include <engine/shared/video.h>
+#include <engine/warning.h>
+
+#include <SDL_error.h>
+#include <SDL_hints.h>
+#include <SDL_version.h>
+
+#include <algorithm>
 #include <chrono>
+#include <cinttypes>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <iterator>
 #include <limits>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <stack>
+#include <string>
 #include <thread>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -4655,6 +4700,7 @@ int SDL_main(int argc, char *argv2[])
 #else
 int main(int argc, const char **argv)
 #endif
+try
 {
 	const int64_t MainStart = time_get();
 
@@ -5118,7 +5164,18 @@ int main(int argc, const char **argv)
 
 	return 0;
 }
-
+catch(const std::exception &Exception)
+{
+	log_error("client", "Unhandled exception: %s", Exception.what());
+	ShowMessageBoxWithoutGraphics({.m_pTitle = "Unhandled Exception", .m_pMessage = Exception.what()});
+	return -1;
+}
+catch(...)
+{
+	log_error("client", "Unhandled unknown exception");
+	ShowMessageBoxWithoutGraphics({.m_pTitle = "Unhandled Exception", .m_pMessage = "An unknown exception occurred."});
+	return -1;
+}
 // DDRace
 
 void CClient::RaceRecord_Start(const char *pFilename)

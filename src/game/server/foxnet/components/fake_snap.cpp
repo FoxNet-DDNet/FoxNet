@@ -1,4 +1,4 @@
-﻿#include "fake_snap.h"
+#include "fake_snap.h"
 
 #include <base/log.h>
 #include <base/str.h>

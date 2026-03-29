@@ -176,13 +176,13 @@ public:
 
 	bool Has(const std::string &Name) const
 	{
-		return m_Map.find(Name) != m_Map.end();
+		return m_Map.contains(Name);
 	}
 
 	bool Owns(const char *pName) const
 	{
-		auto it = m_Map.find(std::string(pName));
-		return it != m_Map.end() && it->second.m_Quantity > 0;
+		auto It = m_Map.find(std::string(pName));
+		return It != m_Map.end() && It->second.m_Quantity > 0;
 	}
 
 	CInventoryEntry &Entry(const std::string &Name) { return m_Map[Name]; }
@@ -190,7 +190,7 @@ public:
 	void SetValue(const char *pName, int Equipped) { Entry(pName).m_Value = Equipped; }
 	void SetAcquiredAt(const char *pName, int64_t AcquiredAt) { Entry(pName).m_AcquiredAt = AcquiredAt; }
 	void SetExpiresAt(const char *pName, int64_t ExpiredAt) { Entry(pName).m_ExpiresAt = ExpiredAt; }
-	void AddToExpiry(const char *pName, int64_t delta) { Entry(pName).m_ExpiresAt += delta; }
+	void AddToExpiry(const char *pName, int64_t Delta) { Entry(pName).m_ExpiresAt += Delta; }
 
 	void Reset()
 	{
@@ -502,23 +502,23 @@ public:
 	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
 	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
-	int64_t m_LastTransaction = 0;	
+	int64_t m_LastTransaction = 0;
 	void PayMoney(CPlayer *pReceiver, long Amount);
 
 	long GetDiscountedPrice(long Price);
 
 	bool OwnsItem(const char *pItemName);
-	bool OwnsItem(const EItemId ItemId);
+	bool OwnsItem(EItemId ItemId);
 
 	void UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept);
 	bool UseItem(const char *pName, int OverrideValue, bool Force = false);
 
-	bool ReachedItemLimit(const CItemConfig *Cfg);
+	bool ReachedItemLimit(const CItemConfig *pCfg);
 
 	bool ItemEnabled(const char *pItemName);
 
 	void HookPower(int Extra);
-	void SetEmoticonGun(int Type);
+	void SetEmoticonGun(int EmoteType);
 	void SetIgnoreGameLayer(bool Active);
 	void SetObfuscated(bool Active);
 	void SetInvisible(bool Active);
@@ -526,8 +526,8 @@ public:
 	void SetAbility(int Type);
 
 	// Player Settings
-	// void SetHideCosmetics(bool Set);
-	void SetHidePowerUps(bool Set);
+	// void SetHideCosmetics(bool Active);
+	void SetHidePowerUps(bool Active);
 
 	// Death Effect
 	void SetDeathEffect(int Type);
@@ -573,12 +573,12 @@ public:
 	} m_BroadcastData;
 
 	int NumDDraceHudRows();
-	void SendBroadcastHud(std::vector<std::string> pMessages, int Offset = -1);
-	void ClearBroadcast() { return SendBroadcast(""); }
+	void SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset = -1);
+	void ClearBroadcast() { SendBroadcast(""); }
 
 	float m_PredMargin;
 	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; }
-	float GetClientPred();
+	float GetClientPred() const;
 
 	int GetSubPage();
 	int GetPage();
@@ -593,7 +593,7 @@ public:
 	int m_MultiMapIndex = DefaultMapIndex;
 	int MultiMapIdx() const { return m_MultiMapIndex; }
 
-	std::vector<std::string> m_vReceivedConditionals = {}; // conditional chat commands
+	std::vector<std::string> m_vReceivedConditionals; // conditional chat commands
 	// FoxNet>
 };
 #endif

@@ -29,4 +29,4 @@ public:
 	void Snap(int SnappingClient) override;
 };
 
-#endif // GAME_SERVER_FOXNET_ENTITIES_ROTATING_BALL_H
+#endif // GAME_SERVER_FOXNET_COSMETICS_ROTATING_BALL_H

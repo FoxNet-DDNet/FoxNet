@@ -327,7 +327,7 @@ bool CMysqlConnection::ConnectImpl()
 			!PrepareAndExecuteStatement(aCreateMailbox) ||
 			!PrepareAndExecuteStatement(aCreateAccountConfig)
 			// FoxNet>
-			) 
+		)
 		{
 			return false;
 		}

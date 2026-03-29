@@ -1,6 +1,7 @@
-﻿#include "entities/pickupdrop.h"
+#include "entities/pickupdrop.h"
 
 #include <base/log.h>
+#include <base/net.h>
 #include <base/str.h>
 #include <base/system.h>
 #include <base/time.h>
@@ -27,7 +28,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
-#include <base/net.h>
 
 void CGameContext::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 {
@@ -172,11 +172,11 @@ void CGameContext::RemoveChatDetectionString(const char *pString)
 		return;
 	}
 
-	for(auto it = m_vChatDetection.begin(); it != m_vChatDetection.end(); ++it)
+	for(auto It = m_vChatDetection.begin(); It != m_vChatDetection.end(); ++It)
 	{
-		if(!str_comp_nocase(it->String(), pString))
+		if(!str_comp_nocase(It->String(), pString))
 		{
-			m_vChatDetection.erase(it);
+			m_vChatDetection.erase(It);
 			log_info("chat-detection", "Removed \"%s\" from the Chat Detection List", pString);
 			return;
 		}
@@ -263,11 +263,11 @@ void CGameContext::RemoveNameDetectionString(const char *pString)
 		return;
 	}
 
-	for(auto it = m_vNameDetection.begin(); it != m_vNameDetection.end(); ++it)
+	for(auto It = m_vNameDetection.begin(); It != m_vNameDetection.end(); ++It)
 	{
-		if(!str_comp(it->String(), pString))
+		if(!str_comp(It->String(), pString))
 		{
-			m_vNameDetection.erase(it);
+			m_vNameDetection.erase(It);
 			log_info("name-detection", "Removed \"%s\" from the Name Detection List", pString);
 			return;
 		}
@@ -934,7 +934,7 @@ void CGameContext::ConSetVanish(IConsole::IResult *pResult, void *pUserData)
 		int ClientVersion = pSelf->Server()->GetClientVersion(Victim);
 		if(ClientVersion >= 0)
 			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", pSelf->Server()->GetCustomClient(Victim), ClientVersion);
-		else	
+		else
 			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s)", pSelf->Server()->GetCustomClient(Victim));
 
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", pSelf->Server()->ClientName(Victim), pSelf->m_pController->GetTeamName(pPlayer->GetTeam()), PlayerInfo);
@@ -1374,7 +1374,7 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 
 	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
 
-	new CPickupDrop(&pSelf->m_World, pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type);
+	new CPickupDrop(&pSelf->m_World, pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type); // NOLINT(clang-analyzer-unix.Malloc)
 }
 
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
@@ -1575,7 +1575,7 @@ void CGameContext::ConLaserText(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pText = pResult->NumArguments() ? pResult->GetString(0) : "noob";
 
-	new CLaserText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText);
+	new CLaserText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText); // NOLINT(clang-analyzer-unix.Malloc)
 }
 
 void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData)
@@ -1592,7 +1592,7 @@ void CGameContext::ConProjectileText(IConsole::IResult *pResult, void *pUserData
 
 	const vec2 Pos = pChr->m_Pos + vec2(0, -60);
 	const char *pText = pResult->GetString(0);
-	new CProjectileText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText, WEAPON_HAMMER);
+	new CProjectileText(&pSelf->m_World, pChr->MultiMapIdx(), ClientId, Pos, 250, pText, WEAPON_HAMMER); // NOLINT(clang-analyzer-unix.Malloc)
 }
 
 void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
@@ -1712,7 +1712,7 @@ void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserDat
 	pSelf->CreateSoundGlobal(Sound);
 }
 
-void CGameContext::ConLoadMulitMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConLoadMultiMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(pResult->NumArguments() != 2)
@@ -1731,7 +1731,7 @@ void CGameContext::ConLoadMulitMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->LoadMapByName(pMapName, Type);
 }
 
-void CGameContext::ConUnloadMulitMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConUnloadMultiMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	char aMapName[IO_MAX_PATH_LENGTH];
@@ -1753,7 +1753,7 @@ void CGameContext::ConUnloadMulitMap(IConsole::IResult *pResult, void *pUserData
 	pSelf->UnloadMapByName(aMapName);
 }
 
-void CGameContext::ConReloadMulitMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConReloadMultiMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	char aMapName[IO_MAX_PATH_LENGTH];
@@ -1785,11 +1785,11 @@ void CGameContext::ConListMultiMaps(IConsole::IResult *pResult, void *pUserData)
 	{
 		const char *pMapName = MultiMap->m_pMap->BaseName();
 		log_info("multimap", "%d: %s (Type: %d)", Idx, pMapName, (int)MultiMap->m_MapType);
-		Idx++;	
+		Idx++;
 	}
 }
 
-void CGameContext::ConSendToMulitMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConSendToMultiMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
@@ -1878,7 +1878,7 @@ void CGameContext::ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int UserId = pResult->m_ClientId;
 	const char *pName = pResult->GetString(0);
-	
+
 	if(!CheckClientId(UserId))
 		return;
 	if(pSelf->Server()->ClientSlotEmpty(UserId))
@@ -1909,13 +1909,13 @@ void CGameContext::ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::RegisterFoxNetCommands()
 {
 	// MultiMaps
-	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMulitMap, this, "Load a map of type (leave empty for help text)");
-	Console()->Register("unload_map", "?r[map-name]", CFGFLAG_SERVER, ConUnloadMulitMap, this, "Unload a map by name");
-	Console()->Register("reload_map", "?r[map-name]", CFGFLAG_SERVER, ConReloadMulitMap, this, "Reload a map by name");
+	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMultiMap, this, "Load a map of type (leave empty for help text)");
+	Console()->Register("unload_map", "?r[map-name]", CFGFLAG_SERVER, ConUnloadMultiMap, this, "Unload a map by name");
+	Console()->Register("reload_map", "?r[map-name]", CFGFLAG_SERVER, ConReloadMultiMap, this, "Reload a map by name");
 	Console()->Register("list_maps", "", CFGFLAG_SERVER, ConListMultiMaps, this, "Reload a map by name");
-	
+
 	Console()->Register("send_to_main_map", "?v[id]", CFGFLAG_SERVER, ConMainMap, this, "Send player to the main map");
-	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMulitMap, this, "Send player to a different loaded map");
+	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMultiMap, this, "Send player to a different loaded map");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 
@@ -2023,7 +2023,7 @@ void CGameContext::RegisterFoxNetCommands()
 	// Account
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
-	
+
 	Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
 
@@ -2033,7 +2033,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
 	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
 	Console()->Register("join_map", "s[name]", CFGFLAG_CHAT, ConJoinNameOnMap, this, "Join a map by player name");
-	
+
 	// Shop
 	Console()->Register("toggleitem", "s[item] ?i[value]", CFGFLAG_CHAT, ConToggleItem, this, "Toggle an Item, value is only needed for 2 items");
 	Console()->Register("dropweapon", "", CFGFLAG_CHAT, ConDropWeapon, this, "Drops the weapon you're currently holding");

@@ -1,20 +1,19 @@
 // Made by qxdFox
 #include "ufo.h"
 
-#include "game/server/entities/character.h"
-
+#include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
 #include <engine/shared/config.h>
 
+#include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
 #include <algorithm>
 #include <iterator>
-#include <base/log.h>
 
 CGameContext *CVUfo::GameServer() const { return m_pCharacter->GameServer(); }
 IServer *CVUfo::Server() const { return GameServer()->Server(); }
@@ -93,25 +92,25 @@ void CVUfo::Reset()
 void CVUfo::SetUfoVisual()
 {
 	// right dome
-	m_Visual.m_From[0] = vec2(32.0f, -15.0f);
-	m_Visual.m_From[1] = vec2(20.0f, -30.0f);
+	m_Visual.m_aFrom[0] = vec2(32.0f, -15.0f);
+	m_Visual.m_aFrom[1] = vec2(20.0f, -30.0f);
 	// middle
-	m_Visual.m_From[2] = vec2(0, -37.0f);
+	m_Visual.m_aFrom[2] = vec2(0, -37.0f);
 	// left dome
-	m_Visual.m_From[3] = vec2(-20.0f, -30.0f);
-	m_Visual.m_From[4] = vec2(-32.0f, -15.0f);
+	m_Visual.m_aFrom[3] = vec2(-20.0f, -30.0f);
+	m_Visual.m_aFrom[4] = vec2(-32.0f, -15.0f);
 
-	m_Visual.m_From[5] = vec2(-50.0f, -10.0f);
+	m_Visual.m_aFrom[5] = vec2(-50.0f, -10.0f);
 
-	m_Visual.m_From[6] = vec2(-60.0f, 0.0f);
-	m_Visual.m_From[7] = vec2(-50.0f, 10.0f);
-	m_Visual.m_From[8] = vec2(0.0f, 12.0f);
+	m_Visual.m_aFrom[6] = vec2(-60.0f, 0.0f);
+	m_Visual.m_aFrom[7] = vec2(-50.0f, 10.0f);
+	m_Visual.m_aFrom[8] = vec2(0.0f, 12.0f);
 
-	m_Visual.m_From[9] = vec2(50.0f, 10.0f);
-	m_Visual.m_From[10] = vec2(60.0f, 0.0f);
+	m_Visual.m_aFrom[9] = vec2(50.0f, 10.0f);
+	m_Visual.m_aFrom[10] = vec2(60.0f, 0.0f);
 
-	m_Visual.m_From[11] = vec2(50.0f, -10.0f);
-	m_Visual.m_From[12] = m_Visual.m_To[12] = vec2(50.0f, -10.0f);
+	m_Visual.m_aFrom[11] = vec2(50.0f, -10.0f);
+	m_Visual.m_aFrom[12] = m_Visual.m_aTo[12] = vec2(50.0f, -10.0f);
 
 	for(int i = 0; i < NUM_PARTS; i++)
 	{
@@ -121,7 +120,7 @@ void CVUfo::SetUfoVisual()
 		if(i == NUM_PARTS - 1)
 			continue;
 
-		m_Visual.m_To[i] = m_Visual.m_From[i - Offset];
+		m_Visual.m_aTo[i] = m_Visual.m_aFrom[i - Offset];
 	}
 }
 
@@ -162,8 +161,8 @@ void CVUfo::Snap(int SnappingClient)
 		CNetObj_DDNetLaser *pLaser = Server()->SnapNewItem<CNetObj_DDNetLaser>(m_Visual.m_aIds[i]);
 		if(!pLaser)
 			return;
-		vec2 From = PredPos + m_Visual.m_From[i];
-		vec2 To = PredPos + m_Visual.m_To[i];
+		vec2 From = PredPos + m_Visual.m_aFrom[i];
+		vec2 To = PredPos + m_Visual.m_aTo[i];
 
 		pLaser->m_FromX = round_to_int(From.x);
 		pLaser->m_FromY = round_to_int(From.y);

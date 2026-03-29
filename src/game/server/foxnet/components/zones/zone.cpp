@@ -1,20 +1,22 @@
 #include "zone.h"
 
+#include <base/math.h>
+#include <base/system.h>
+#include <base/vmath.h>
+
+#include <engine/map.h>
+
+#include <game/collision.h>
 #include <game/envelopeaccess.h>
+#include <game/mapitems.h>
+#include <game/quad_data.h>
 #include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
 
 #include <algorithm>
-#include <vector>
-#include <game/server/gamecontroller.h>
 #include <cmath>
 #include <cstdint>
-#include <base/math.h>
-#include <base/vmath.h>
-#include <engine/map.h>
-#include <game/collision.h>
-#include <game/mapitems.h>
-#include <base/system.h>
-#include <game/quad_data.h>
+#include <vector>
 
 void IZone::GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const
 {

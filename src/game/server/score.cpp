@@ -421,8 +421,8 @@ void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const cha
 	str_copy(Tmp->m_aMap, pMapName, sizeof(Tmp->m_aMap));
 	str_copy(Tmp->m_aServer, pServer, sizeof(Tmp->m_aServer));
 	str_copy(Tmp->m_aMapper, pMapper, sizeof(Tmp->m_aMapper));
-	Tmp->Points = Points;
-	Tmp->Stars = Stars;
+	Tmp->m_Points = Points;
+	Tmp->m_Stars = Stars;
 	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
 
 	m_pPool->ExecuteWrite(CScoreWorker::InsertMapEntry, std::move(Tmp), "insert map entry");
@@ -457,8 +457,8 @@ void CScore::InsertPlayerRecord(int ClientId, const char *pName, const char *pMa
 	str_timestamp_format(aTimestamp, sizeof(aTimestamp), TimestampFormat::SPACE);
 	str_copy(Tmp->m_aTimestamp, aTimestamp, sizeof(Tmp->m_aTimestamp));
 
-	for(int i = 0; i < NUM_CHECKPOINTS; i++)
-		Tmp->m_aCurrentTimeCp[i] = 0.0f;
+	for(float &TimeCp : Tmp->m_aCurrentTimeCp)
+		TimeCp = 0.0f;
 
 	m_pPool->ExecuteWrite(CScoreWorker::SaveScore, std::move(Tmp), "save score");
 }
@@ -500,7 +500,7 @@ void CScore::RemoveAllPlayerRecords(const char *pName)
 
 void CScore::CacheMapInfo()
 {
-	GameServer()->m_MapInfoCache = CGameContext::CachedMapInfo();
+	GameServer()->m_MapInfoCache = CGameContext::CCachedMapInfo();
 
 	auto pResult = std::make_shared<CScorePlayerResult>();
 	auto Tmp = std::make_unique<CSqlMapCacheRequest>(pResult);

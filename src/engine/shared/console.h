@@ -127,7 +127,7 @@ class CConsole : public IConsole
 		void SetVictimAddrStr(const char *pAddrStr) override;
 		const char *GetVictimAddrStr() const override;
 		// FoxNet>
-		
+
 		// DDRace
 
 		enum

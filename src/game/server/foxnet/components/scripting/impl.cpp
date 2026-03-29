@@ -10,6 +10,7 @@
 #define CHAISCRIPT_NO_THREADS
 #define CHAISCRIPT_NO_THREADS_WARNING
 #include <base/math.h>
+#include <base/str.h>
 
 #include <algorithm>
 #include <chaiscript.hpp>
@@ -20,7 +21,6 @@
 #include <new> // for placement new
 #include <string>
 #include <vector>
-#include <base/str.h>
 
 static const auto NAMESPACE_RE = [](chaiscript::Namespace &Re) {
 	Re["compile"] = chaiscript::var(chaiscript::fun([](const std::string &s) {

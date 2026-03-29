@@ -257,7 +257,6 @@ int CNetBan::BanTimestamp(T *pBanPool, const typename T::CDataType *pData, int64
 	else
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban failed (full banlist)");
 	return -1;
-
 }
 
 template<class T>
@@ -340,7 +339,7 @@ void CNetBan::Init(IConsole *pConsole, IStorage *pStorage)
 
 	net_host_lookup("localhost", &m_LocalhostIpV4, NETTYPE_IPV4);
 	net_host_lookup("localhost", &m_LocalhostIpV6, NETTYPE_IPV6);
-	
+
 	// <FoxNet
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBanTimestamp, this, "Ban ip until an absolute UNIX timestamp");
 	Console()->Register("ban_range_timestamp", "s[first ip] s[last ip] i[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_MASTER | CFGFLAG_STORE, ConBanRangeTimestamp, this, "Ban ip range until an absolute UNIX timestamp");

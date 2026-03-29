@@ -30,8 +30,8 @@
 
 #include <map>
 #include <memory>
-#include <random>
 #include <optional>
+#include <random>
 #include <string>
 
 /*
@@ -104,7 +104,7 @@ public:
 	}
 	void Unload()
 	{
-		m_pMap.get()->Unload();
+		m_pMap->Unload();
 		m_pMap.reset();
 		m_pMap = nullptr;
 		m_Layers.Unload();
@@ -319,14 +319,14 @@ public:
 		return &m_vMultiMaps[MultiMapIdx]->m_Collision;
 	}
 
-	CTuningParams *GlobalTuning(size_t MultiMapIdx) 
+	CTuningParams *GlobalTuning(size_t MultiMapIdx)
 	{
 		if(MultiMapIdx >= m_vMultiMaps.size())
 			return &m_vMultiMaps[DefaultMapIndex]->m_aTuningList[0];
 		return &m_vMultiMaps[MultiMapIdx]->m_aTuningList[0];
 	}
 	CTuningParams *TuningList(size_t MultiMapIdx)
-	{ 
+	{
 		if(MultiMapIdx >= m_vMultiMaps.size())
 			return &m_vMultiMaps[DefaultMapIndex]->m_aTuningList[0];
 		return &m_vMultiMaps[MultiMapIdx]->m_aTuningList[0];
@@ -803,7 +803,6 @@ public:
 
 	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
 private:
-
 	std::vector<class CServerComponent *> m_vpComponents;
 
 	class CDamageIndEffects
@@ -984,12 +983,12 @@ private:
 
 	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConLoadMulitMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConUnloadMulitMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConReloadMulitMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConLoadMultiMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConUnloadMultiMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConReloadMultiMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConListMultiMaps(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConSendToMulitMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConSendToMultiMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData);
@@ -1013,8 +1012,9 @@ public:
 
 	bool IsWeekend() const;
 
-	struct CachedMapInfo
+	class CCachedMapInfo
 	{
+	public:
 		char m_aServer[64] = "UNK";
 		char m_aMapper[128] = "Unknown";
 		int m_Points = 0;
@@ -1052,7 +1052,7 @@ public:
 	int GetWeaponType(int Weapon);
 	std::optional<vec2> GetRandomAccessiblePos();
 
-	int RandGeometric(std::mt19937 &rng, int Min, int Max, double p);
+	int RandGeometric(std::mt19937 &Rng, int Min, int Max, double P);
 
 	CSavePlayerData *m_apPersistentData[MAX_CLIENTS];
 

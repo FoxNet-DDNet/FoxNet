@@ -1,7 +1,8 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_CHECKTELE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_CHECKTELE_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_CHECKTELE_H
 
 #include "zone.h"
+
 #include <game/gamecore.h>
 #include <game/server/gamecontext.h>
 

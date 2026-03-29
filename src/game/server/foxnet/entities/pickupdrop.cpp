@@ -1,6 +1,8 @@
 // Made by qxdFox
 #include "pickupdrop.h"
 
+#include "foxnet_entity.h"
+
 #include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
@@ -30,7 +32,6 @@
 #include <iterator>
 #include <limits>
 #include <vector>
-#include "foxnet_entity.h"
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntityOwned(pGameWorld, LastOwner, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)

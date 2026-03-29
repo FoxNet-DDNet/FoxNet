@@ -1,11 +1,13 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
+#include "envelopeaccess.h"
+
 #include <base/vmath.h>
 
 #include <engine/shared/datafile.h>
 #include <engine/shared/map.h>
-#include "envelopeaccess.h"
+
 #include <game/mapitems.h>
 #include <game/mapitems_ex.h>
 
@@ -135,7 +137,6 @@ const CEnvPointBezier *CMapBasedEnvelopePointAccess::GetBezier(int Index) const
 	return nullptr;
 }
 
-
 float SolveBezier(float x, float p0, float p1, float p2, float p3)
 {
 	const double x3 = -p0 + 3.0 * p1 - 3.0 * p2 + p3;
@@ -209,7 +210,6 @@ float SolveBezier(float x, float p0, float p1, float p2, float p3)
 		}
 		else
 		{
-
 			// Casus irreducibilis ... ,_,
 			const double Phi = std::acos(-q / std::sqrt(-(p * p * p))) / 3.0;
 			const double s = 2.0 * std::sqrt(-p);

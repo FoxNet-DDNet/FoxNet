@@ -1,8 +1,8 @@
-﻿#include "persistent_data.h"
+#include "persistent_data.h"
 
-#include "game/server/player.h"
-#include <game/server/foxnet/components/accounts/accounts.h>
 #include <base/str.h>
+
+#include <game/server/player.h>
 
 void CSavePlayerData::Save(CPlayer *pPlayer)
 {

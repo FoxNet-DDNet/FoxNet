@@ -178,6 +178,7 @@ private:
 	bool m_HasSolidQuads = false;
 	std::vector<CQuadData> m_vQuads;
 	std::vector<CQuadData> m_vNextQuads;
+
 public:
 	const std::vector<CQuadData> &Quads() const { return m_vQuads; }
 
@@ -192,7 +193,7 @@ public:
 	bool HasSolidInRadius(vec2 Pos, int TileRadius, int MinCount = 1, bool Circle = true) const;
 
 	void BuildSpawnCandidates();
-	bool TryPickCachedCandidate(vec2 &out) const;
+	bool TryPickCachedCandidate(vec2 &Out) const;
 	size_t SpawnCandidateCount() const { return m_SpawnCandidates.size(); }
 
 	int PosToIndex(vec2 Pos) const;

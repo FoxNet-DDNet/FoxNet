@@ -2,6 +2,7 @@
 #include "powerup.h"
 
 #include <base/log.h>
+#include <base/net.h>
 #include <base/system.h>
 #include <base/vmath.h>
 
@@ -23,7 +24,6 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
-#include <base/net.h>
 
 static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
 

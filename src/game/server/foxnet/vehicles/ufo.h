@@ -1,6 +1,6 @@
 // Made by qxdFox
-#ifndef GAME_SERVER_VEHICLES_UFO_H
-#define GAME_SERVER_VEHICLES_UFO_H
+#ifndef GAME_SERVER_FOXNET_VEHICLES_UFO_H
+#define GAME_SERVER_FOXNET_VEHICLES_UFO_H
 
 #include <game/server/entity.h>
 
@@ -17,13 +17,14 @@ class CVUfo
 		NUM_PARTS = 13
 	};
 
-	struct VUfoVisual
+	class CUfoVisual
 	{
+	public:
 		int m_aIds[NUM_PARTS];
-		vec2 m_From[NUM_PARTS];
-		vec2 m_To[NUM_PARTS];
+		vec2 m_aFrom[NUM_PARTS];
+		vec2 m_aTo[NUM_PARTS];
 	};
-	VUfoVisual m_Visual;
+	CUfoVisual m_Visual;
 
 	CNetObj_PlayerInput m_Input;
 
@@ -53,4 +54,4 @@ public:
 	void OnInput(CNetObj_PlayerInput pNewInput);
 };
 
-#endif // GAME_SERVER_VEHICLES_UFO_H
+#endif // GAME_SERVER_FOXNET_VEHICLES_UFO_H

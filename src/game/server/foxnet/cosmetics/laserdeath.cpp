@@ -9,14 +9,14 @@
 
 #include <generated/protocol.h>
 
+#include <game/collision.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
 #include <random>
-#include <game/collision.h>
-#include <game/server/foxnet/entities/foxnet_entity.h>
 
 CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LASERDEATH, Pos)

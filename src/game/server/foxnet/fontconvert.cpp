@@ -1,8 +1,10 @@
-﻿// Co-authored-by: ByFox <byfox213@gmail.com>
-#include <base/system.h>
+// Co-authored-by: ByFox <byfox213@gmail.com>
 #include "fontconvert.h"
-#include <span>
+
+#include <base/system.h>
+
 #include <algorithm>
+#include <span>
 
 constexpr std::array<size_t, LETTER_COUNT> g_LetterSymbolCounts = []() {
 	std::array<size_t, LETTER_COUNT> Counts{};

@@ -1,14 +1,14 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H
 #define GAME_SERVER_FOXNET_COMPONENTS_VOTEMENU_H
 
-#include <game/server/foxnet/components/accounts/accounts.h>
-#include <game/server/foxnet/component.h>
 #include "shop.h"
 
 #include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
+#include <game/server/foxnet/component.h>
+#include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/player.h>
 
 #include <array>
@@ -20,14 +20,14 @@ enum Pages
 	PAGE_NONE = -1,
 
 	PAGE_MAIN = 0,
-	PAGE_SERVERINFO,
-	PAGE_SETTINGS,
-	PAGE_MAILBOX,
-	PAGE_SHOP,
-	PAGE_INVENTORY,
-	PAGE_VOTES,
-	PAGE_ADMIN,
-	NUM_PAGES,
+	PAGE_SERVERINFO = 1,
+	PAGE_SETTINGS = 2,
+	PAGE_MAILBOX = 3,
+	PAGE_SHOP = 4,
+	PAGE_INVENTORY = 5,
+	PAGE_VOTES = 6,
+	PAGE_ADMIN = 7,
+	NUM_PAGES = 8,
 };
 
 enum AdminSubPages
@@ -129,10 +129,11 @@ public:
 class CVoteMenu : public CServerComponent
 {
 	std::array<char[64], NUM_PAGES> m_aPages;
-	struct ClientData
+	class CClientData
 	{
+	public:
 		int m_Page = PAGE_MAIN;
-		int m_SubPage[NUM_PAGES] = {0};
+		int m_aSubPage[NUM_PAGES] = {0};
 
 		// Comparison data for auto updates
 		CAccountSession m_Account = CAccountSession();
@@ -147,7 +148,7 @@ class CVoteMenu : public CServerComponent
 		// After executing a file with a bunch of votes, we need to resend after some ticks
 		int64_t m_RetryTick = -1;
 	};
-	ClientData m_aClientData[MAX_CLIENTS];
+	CClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
 
 	bool IsPageAllowed(int ClientId, int Page) const;
@@ -156,8 +157,8 @@ class CVoteMenu : public CServerComponent
 	bool IsOption(const char *pDesc, const char *pWantedOption) { return !str_comp(pDesc, pWantedOption); }
 
 	void SendVotes(int ClientId, const std::vector<std::string> &vDescriptions);
-	
-	void ExecMailCmd(int ClientId, const CMailBox::CMail Mail);
+
+	void ExecMailCmd(int ClientId, CMailBox::CMail &Mail);
 	const char *FormatItemVote(long Price);
 
 	void AddVoteImpl(const char *pDesc);

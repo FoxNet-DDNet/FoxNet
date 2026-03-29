@@ -1,11 +1,14 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
 
 #include "zone.h"
-#include <cstdint>
+
 #include <base/vmath.h>
+
 #include <game/mapitems.h>
 #include <game/server/gamecontext.h>
+
+#include <cstdint>
 #include <vector>
 
 enum class ESubType : uint8_t

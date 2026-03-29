@@ -1,4 +1,4 @@
-﻿#include "text.h"
+#include "text.h"
 
 #include <base/math.h>
 #include <base/str.h>
@@ -40,13 +40,13 @@ void CLaserText::Snap(int SnappingClient)
 	if(!m_Mask.test(SnappingClient))
 		return;
 
-	for(auto *pData : m_pData)
+	for(const auto &Data : m_vData)
 	{
-		vec2 Pos = pData->m_Pos - vec2(m_CenterX, 0);
+		vec2 Pos = Data.m_Pos - vec2(m_CenterX, 0);
 		if(NetworkClipped(SnappingClient, Pos))
 			continue;
 
-		CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(pData->m_Id);
+		CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(Data.m_Id);
 		if(!pObj)
 			return;
 

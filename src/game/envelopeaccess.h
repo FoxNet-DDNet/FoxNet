@@ -1,5 +1,5 @@
-#ifndef GAME_SERVER_FOXNET_ENVELOPEACCESS_H
-#define GAME_SERVER_FOXNET_ENVELOPEACCESS_H
+#ifndef GAME_ENVELOPEACCESS_H
+#define GAME_ENVELOPEACCESS_H
 
 #include <base/vmath.h>
 
@@ -38,4 +38,4 @@ public:
 };
 
 float SolveBezier(float x, float p0, float p1, float p2, float p3);
-#endif // GAME_SERVER_FOXNET_ENVELOPEACCESS_H
+#endif // GAME_ENVELOPEACCESS_H

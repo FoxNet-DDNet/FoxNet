@@ -1,4 +1,4 @@
-﻿#include "text.h"
+#include "text.h"
 
 #include <base/math.h>
 #include <base/str.h>
@@ -40,23 +40,23 @@ void CProjectileText::Snap(int SnappingClient)
 {
 	if(!m_Mask.test(SnappingClient))
 		return;
-	const int tickParity = Server()->Tick() & 1;
+	const int TickParity = Server()->Tick() & 1;
 
-	size_t NumIds = m_pData.size();
+	size_t NumIds = m_vData.size();
 
 	int Idx = 0;
-	for(auto *pData : m_pData)
+	for(const auto &Data : m_vData)
 	{
-		vec2 Pos = pData->m_Pos - vec2(m_CenterX, 0);
+		vec2 Pos = Data.m_Pos - vec2(m_CenterX, 0);
 		if(NetworkClipped(SnappingClient, Pos))
 			continue;
-		if(NumIds >= 135 && ((Idx + tickParity) & 1) != 0)
+		if(NumIds >= 135 && ((Idx + TickParity) & 1) != 0)
 		{
 			Idx++;
 			continue;
 		}
 
-		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(pData->m_Id);
+		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(Data.m_Id);
 		if(!pProj)
 		{
 			Idx++;

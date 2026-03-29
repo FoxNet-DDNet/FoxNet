@@ -10,12 +10,11 @@
 #include "str.h"
 #include "time.h"
 #include "types.h"
-#include <string>
-#include <vector>
 #include "vmath.h"
 
-#endif
-// <FoxNet
+#include <string>
+#include <vector>
+
 char str_lowercase(char c);
 void str_lower(char *pOut);
 
@@ -40,4 +39,5 @@ const char *GetParsedArgument(const char *pStr, int Index, bool Rest);
 
 void Rotate(vec2 Center, vec2 *pPoint, float Rotation);
 std::string SanitizeMessage(const char *pMessage);
-// FoxNet>
+
+#endif

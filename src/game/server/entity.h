@@ -54,7 +54,7 @@ public: // TODO: Maybe make protected
 	int GetId() const { return m_Id; }
 
 	/* Constructor */
-	CEntity(CGameWorld *pGameWorld, int MapIdx, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
+	CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
 	/* Destructor */
 	virtual ~CEntity();
@@ -183,20 +183,24 @@ public: // TODO: Maybe make protected
 
 	int m_Number;
 	int m_Layer;
-	
+
 	// <FoxNet
-	virtual int MultiMapIdx() const { return m_MapIndex; }
-	virtual const vec2 &GetVelocity() const { static vec2 ZeroVec; return ZeroVec; }
+	virtual int MultiMapIdx() const { return m_MultiMapIndex; }
+	virtual const vec2 &GetVelocity() const
+	{
+		static vec2 s_ZeroVec;
+		return s_ZeroVec;
+	}
 	virtual void ForceSetPos(vec2 Pos) { m_Pos = Pos; }
 	virtual void SetRawVelocity(vec2 Vel) {}
 	virtual int TuneZone() const { return 0; }
-		 
+
 	int ObjectType() const { return m_ObjType; }
-	bool CheckMapIndex(int SnappingClient, int MapIdx) const;
-	void SetMapIndex(int MultiMapIdx) { m_MapIndex = MultiMapIdx; }
+	bool CheckMultiMapIdx(int SnappingClient, int MultiMapIndex) const;
+	void SetMultiMapIdx(int MultiMapIndex) { m_MultiMapIndex = MultiMapIndex; }
 
 private:
-	int m_MapIndex;
+	int m_MultiMapIndex;
 	// FoxNet>
 };
 

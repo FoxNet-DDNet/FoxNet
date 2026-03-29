@@ -4,6 +4,7 @@
 #include "collidable.h"
 #include "death.h"
 #include "freeze.h"
+#include "roulette.h"
 #include "unfreeze.h"
 #include "zone.h"
 
@@ -13,13 +14,12 @@
 #include <engine/map.h>
 
 #include <game/mapitems.h>
+#include <game/quad_data.h>
 #include <game/server/gamecontext.h>
 
 #include <algorithm>
 #include <iterator>
 #include <vector>
-#include <game/quad_data.h>
-#include "roulette.h"
 
 void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 {

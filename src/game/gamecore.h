@@ -5,6 +5,7 @@
 
 #include "prng.h"
 
+#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/shared/protocol.h>
@@ -25,10 +26,10 @@ enum ExtraWeapons
 {
 	WEAPON_NONE = -1,
 	WEAPON_TELEKINESIS = NUM_WEAPONS,
-	WEAPON_HEARTGUN,
-	WEAPON_LIGHTSABER,
-	WEAPON_PORTALGUN,
-	NUM_EXTRA_WEAPONS,
+	WEAPON_HEARTGUN = WEAPON_TELEKINESIS + 1,
+	WEAPON_LIGHTSABER = WEAPON_HEARTGUN + 1,
+	WEAPON_PORTALGUN = WEAPON_LIGHTSABER + 1,
+	NUM_EXTRA_WEAPONS = WEAPON_PORTALGUN + 1,
 };
 // FoxNet>
 
@@ -199,7 +200,7 @@ public:
 
 	bool m_ResendCore;
 	const CQuadData *m_pHookedQuad = nullptr;
-	vec2 m_HookQuadLocal = vec2(0, 0);  
+	vec2 m_HookQuadLocal = vec2(0, 0);
 
 	vec2 m_HookPos;
 	vec2 m_HookDir;

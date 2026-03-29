@@ -5,7 +5,9 @@
 #include "mapitems.h"
 
 #include <base/system.h>
+
 #include <engine/map.h>
+
 #include <iterator>
 
 CLayers::CLayers()

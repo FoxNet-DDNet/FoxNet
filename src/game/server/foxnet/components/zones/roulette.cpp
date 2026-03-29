@@ -1,22 +1,23 @@
 #include "roulette.h"
 
+#include <base/log.h>
+#include <base/math.h>
+#include <base/str.h>
+#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/shared/protocol.h>
 
+#include <game/mapitems.h>
 #include <game/quad_data.h>
 #include <game/server/entities/character.h>
-#include <game/server/gamecontext.h>
-#include <game/server/player.h>
-#include <game/mapitems.h>
-#include <iterator>
-#include <base/math.h>
-#include <base/system.h>
-#include <base/str.h>
-#include <base/log.h>
-#include <cstdint>
 #include <game/server/foxnet/entities/roulette.h>
+#include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
+#include <game/server/player.h>
+
+#include <cstdint>
+#include <iterator>
 
 void CRouletteZone::OnTick()
 {
@@ -112,7 +113,7 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 			const char *pBetOptionStr = aLayerName + str_length("Bet_");
 			if(!pBetOptionStr[0])
 				continue;
-	
+
 			for(size_t Type = 0; Type < std::size(RouletteOptions); Type++)
 			{
 				if(!str_comp(pBetOptionStr, RouletteOptions[Type]))
@@ -127,8 +128,6 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 					break;
 				}
 			}
-
 		}
-
 	}
 }

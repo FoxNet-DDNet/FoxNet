@@ -2,13 +2,15 @@
 #ifndef GAME_SERVER_FOXNET_ENTITIES_CUSTOM_PROJECTILE_H
 #define GAME_SERVER_FOXNET_ENTITIES_CUSTOM_PROJECTILE_H
 
+#include <base/vmath.h>
+
 #include <engine/shared/protocol.h>
 
+#include <generated/protocol.h>
+
+#include <game/collision.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
-#include <generated/protocol.h>
-#include <base/vmath.h>
-#include <game/collision.h>
 #include <game/server/gameworld.h>
 
 enum
@@ -24,9 +26,9 @@ public:
 	CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 		bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime = 6.0f, float Accel = 1.0f, float Speed = 10.0f);
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 
 private:
 	vec2 m_Core;

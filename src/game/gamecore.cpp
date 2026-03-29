@@ -10,13 +10,15 @@
 
 #include <engine/shared/config.h>
 
-#include <limits>
 #include <game/server/foxnet/components/zones/zonemanager.h>
+
+#include <limits>
 
 const char *CTuningParams::ms_apNames[] =
 	{
 #define MACRO_TUNING_PARAM(Name, ScriptName, Value, Description) #ScriptName,
 #include "tuning.h"
+
 #include <generated/protocol.h>
 #undef MACRO_TUNING_PARAM
 };
@@ -371,10 +373,10 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				if(pHitQuad)
 				{
 					m_pHookedQuad = pHitQuad;
-					const vec2 pivot = pHitQuad->m_Pos[4];
-					const float ang = pHitQuad->m_Angle;
+					const vec2 Pivot = pHitQuad->m_Pos[4];
+					const float Ang = pHitQuad->m_Angle;
 					// local = R(-ang) * (world_hit - pivot)
-					m_HookQuadLocal = RotateVec(NewPos - pivot, -ang);
+					m_HookQuadLocal = RotateVec(NewPos - Pivot, -Ang);
 				}
 				else
 				{
@@ -429,15 +431,14 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 		// Update anchored hook head if grabbed to a moving quad
 		if(m_HookedPlayer == -1 && m_pHookedQuad)
 		{
-			m_pHookedQuad = m_pCollision->ResolveCurrentQuad(m_pHookedQuad);	
+			m_pHookedQuad = m_pCollision->ResolveCurrentQuad(m_pHookedQuad);
 			if(m_pHookedQuad)
 			{
-				const vec2 pivot = m_pHookedQuad->m_Pos[4];
-				const float ang = m_pHookedQuad->m_Angle;
-				m_HookPos = pivot + RotateVec(m_HookQuadLocal, ang);
+				const vec2 Pivot = m_pHookedQuad->m_Pos[4];
+				const float Ang = m_pHookedQuad->m_Angle;
+				m_HookPos = Pivot + RotateVec(m_HookQuadLocal, Ang);
 			}
 		}
-
 
 		// don't do this hook routine when we are already hooked to a player
 		if(m_HookedPlayer == -1 && distance(m_HookPos, m_Pos) > 46.0f)
@@ -486,7 +487,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 void CCharacterCore::TickDeferred()
 {
 	if(m_pWorld)
-	{ 
+	{
 		// <FoxNet
 		CTuningParams Tuning = m_Tuning;
 		if(m_FakeTuned)

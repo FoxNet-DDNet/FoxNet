@@ -1,4 +1,4 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H
 
 #include "zone.h"
@@ -21,7 +21,7 @@ class CZoneManager : public CServerComponent
 	std::vector<IZone *> m_avpZones[(int)EZoneType::Num];
 
 public:
-	const std::vector<IZone *> Zones(EZoneType Type) const { return m_avpZones[(int)Type]; }
+	std::vector<IZone *> Zones(EZoneType Type) const { return m_avpZones[(int)Type]; }
 
 	void OnMapLoad(size_t MapIdx) override;
 	void OnMapUnload(size_t MapIdx) override;

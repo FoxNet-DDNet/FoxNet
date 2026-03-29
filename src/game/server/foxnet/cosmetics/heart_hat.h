@@ -1,6 +1,6 @@
 // Made by qxdFox
-#ifndef GAME_SERVER_FOXNET_COSMETICS_HEARTHAT_H
-#define GAME_SERVER_FOXNET_COSMETICS_HEARTHAT_H
+#ifndef GAME_SERVER_FOXNET_COSMETICS_HEART_HAT_H
+#define GAME_SERVER_FOXNET_COSMETICS_HEART_HAT_H
 
 #include <base/vmath.h>
 
@@ -16,7 +16,7 @@ class CHeartHat : public CEntityOwned
 
 	int m_aIds[NUM_HEARTS];
 	float m_Dist;
-	bool m_switch;
+	bool m_Switch;
 
 public:
 	CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos);
@@ -26,4 +26,4 @@ public:
 	void Snap(int SnappingClient) override;
 };
 
-#endif // GAME_SERVER_FOXNET_COSMETICS_HEARTHAT_H
+#endif // GAME_SERVER_FOXNET_COSMETICS_HEART_HAT_H

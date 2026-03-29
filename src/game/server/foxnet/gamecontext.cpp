@@ -1,4 +1,4 @@
-﻿
+
 #include "entities/pickupdrop.h"
 #include "entities/powerup.h"
 #include "fontconvert.h"
@@ -59,16 +59,16 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 	// Global tuning = m_aTuningList[0]
 	// Tune zones = anything above index 0
 
-	for(int i = 0; i < TuneZone::NUM; i++)
+	for(auto &Tune : m_aTuningList)
 	{
-		m_aTuningList[i] = CTuningParams::DEFAULT;
-		m_aTuningList[i].Set("gun_curvature", 0);
-		m_aTuningList[i].Set("gun_speed", 1400);
-		m_aTuningList[i].Set("shotgun_curvature", 0);
-		m_aTuningList[i].Set("shotgun_speed", 500);
-		m_aTuningList[i].Set("shotgun_speeddiff", 0);
-	} 
-	
+		Tune = CTuningParams::DEFAULT;
+		Tune.Set("gun_curvature", 0);
+		Tune.Set("gun_speed", 1400);
+		Tune.Set("shotgun_curvature", 0);
+		Tune.Set("shotgun_speed", 500);
+		Tune.Set("shotgun_speeddiff", 0);
+	}
+
 	// Reset Tuning
 	if(g_Config.m_SvTuneReset)
 	{
@@ -88,10 +88,10 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 		m_aTuningList[0].Set("player_collision", 0);
 		m_aTuningList[0].Set("player_hooking", 0);
 
-		for(int i = 0; i < TuneZone::NUM; i++)
+		for(auto &Tune : m_aTuningList)
 		{
-			m_aTuningList[i].Set("player_collision", 0);
-			m_aTuningList[i].Set("player_hooking", 0);
+			Tune.Set("player_collision", 0);
+			Tune.Set("player_hooking", 0);
 		}
 	}
 }
@@ -175,7 +175,7 @@ void CGameContext::SendConditionalCommands(int ClientId)
 			Msg.m_pHelpText = pHelp;
 			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
 		}
-		pPlayer->m_vReceivedConditionals.push_back(pName);
+		pPlayer->m_vReceivedConditionals.emplace_back(pName);
 	};
 
 	auto CommandInfoRemove = [this, pPlayer, ClientId](const char *pName) {
@@ -233,14 +233,14 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		return;
 	}
 
-	for(size_t idx = 1; idx < m_vMultiMaps.size(); ++idx)
+	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)
 	{
-		if(str_comp(m_vMultiMaps[idx]->m_pMap->BaseName(), pMapName) == 0)
+		if(str_comp(m_vMultiMaps[Idx]->m_pMap->BaseName(), pMapName) == 0)
 		{
 			log_error("multimap", "Failed to load map '%s': already loaded", pMapName);
 			return;
 		}
-		else if(Type != EMapType::None && Type == m_vMultiMaps[idx]->m_MapType)
+		else if(Type != EMapType::None && Type == m_vMultiMaps[Idx]->m_MapType)
 		{
 			log_error("multimap", "Failed to load map '%s': a map of type %" PRIzu " is already loaded", pMapName, (size_t)Type);
 			return;
@@ -257,7 +257,7 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
 		return;
 	}
-	if(!pNewMap->m_pMap.get()->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
+	if(!pNewMap->m_pMap->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
 	{
 		log_error("multimap", "Failed to load map '%s'", aBuf);
 		return;
@@ -270,7 +270,6 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	pNewMap->m_LoadedSwitchers = false;
 	m_vMultiMaps.push_back(std::move(pNewMap));
 
-	
 	LoadMapSettings(m_vMultiMaps.size() - 1);
 
 	for(auto &pComponent : m_vpComponents)
@@ -279,12 +278,12 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 
 void CGameContext::UnloadMapByName(const char *pMapName)
 {
-	auto it = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const auto &pMapOverride) {
+	auto It = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const auto &pMapOverride) {
 		return pMapOverride && pMapOverride->m_pMap && str_comp(pMapOverride->m_pMap->BaseName(), pMapName) == 0;
 	});
-	if(it != m_vMultiMaps.end())
+	if(It != m_vMultiMaps.end())
 	{
-		int Idx = std::distance(m_vMultiMaps.begin(), it);
+		int Idx = std::distance(m_vMultiMaps.begin(), It);
 		if(Idx == DefaultMapIndex)
 		{
 			log_error("multimap", "Failed to unload map '%s': cannot unload default map", pMapName);
@@ -293,9 +292,8 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 		m_pController->ClearSpawnPoints(Idx);
 		m_World.DestroyEntitiesOfMap(Idx);
 
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		for(CPlayer *pPlayer : m_apPlayers)
 		{
-			CPlayer *pPlayer = m_apPlayers[ClientId];
 			if(!pPlayer)
 				continue;
 			if(pPlayer->MultiMapIdx() != Idx)
@@ -306,9 +304,9 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 		for(auto &pComponent : m_vpComponents)
 			pComponent->OnMapUnload(Idx);
 
-		log_info("multimap", "Map unloaded of type %d: %s", (int)(*it)->m_MapType, pMapName);
-		(*it)->Unload();
-		m_vMultiMaps.erase(it);
+		log_info("multimap", "Map unloaded of type %d: %s", (int)(*It)->m_MapType, pMapName);
+		(*It)->Unload();
+		m_vMultiMaps.erase(It);
 	}
 	else
 		log_error("multimap", "Failed to unload map '%s': not found", pMapName);
@@ -412,9 +410,8 @@ void CGameContext::UnloadMapsAll()
 		m_vMultiMaps[Idx]->Unload();
 		m_pController->ClearSpawnPoints(Idx);
 		m_World.DestroyEntitiesOfMap(Idx);
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		for(CPlayer *pPlayer : m_apPlayers)
 		{
-			CPlayer *pPlayer = m_apPlayers[ClientId];
 			if(!pPlayer)
 				continue;
 			pPlayer->SendToMap(DefaultMapIndex);
@@ -447,16 +444,16 @@ void CGameContext::FoxNetInit()
 	}
 }
 
-int CGameContext::RandGeometric(std::mt19937 &rng, int Min, int Max, double p)
+int CGameContext::RandGeometric(std::mt19937 &Rng, int Min, int Max, double P)
 {
 	if(Max < Min)
 		std::swap(Min, Max);
-	p = std::clamp(p, 1e-9, 1.0 - 1e-9);
-	std::geometric_distribution<int> geo(p);
-	int range = Max - Min;
-	int k = geo(rng);
-	if(k > range)
-		k = range;
+	P = std::clamp(P, 1e-9, 1.0 - 1e-9);
+	std::geometric_distribution<int> Geo(P);
+	int Range = Max - Min;
+	int k = Geo(Rng);
+	if(k > Range)
+		k = Range;
 	return Min + k;
 }
 
@@ -480,9 +477,9 @@ void CGameContext::PowerUpSpawner()
 		return;
 	}
 
-	std::mt19937 rng{std::random_device{}()};
-	std::uniform_int_distribution<int> dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
-	EPowerUp Type = (EPowerUp)dist(rng);
+	std::mt19937 Rng{std::random_device{}()};
+	std::uniform_int_distribution<int> Dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
+	EPowerUp Type = (EPowerUp)Dist(Rng);
 	CPowerUp *NewPowerUp = new CPowerUp(&m_World, DefaultMapIndex, *RandomPos, Type);
 
 	m_vPowerups.push_back(NewPowerUp);
@@ -492,26 +489,25 @@ void CGameContext::PowerUpSpawner()
 void CGameContext::HandleEffects()
 {
 	// Handle DamageInd effect
-	for(auto it = m_vDamageIndEffects.begin(); it != m_vDamageIndEffects.end();)
+	for(auto It = m_vDamageIndEffects.begin(); It != m_vDamageIndEffects.end();)
 	{
-		if(it->m_Remaining > 0 && Server()->Tick() >= it->m_NextTick)
+		if(It->m_Remaining > 0 && Server()->Tick() >= It->m_NextTick)
 		{
-			int Angles = it->m_vAngles.size() - it->m_Remaining;
+			int Angles = It->m_vAngles.size() - It->m_Remaining;
 			if(Angles < 0)
 				Angles = 0;
-			int Positions = it->m_vPos.size() - it->m_Remaining;
+			int Positions = It->m_vPos.size() - It->m_Remaining;
 			if(Positions < 0)
 				Positions = 0;
 
-			CreateDamageInd(it->m_vPos.at(Positions), it->m_vAngles.at(Angles), 1, it->m_Mask);
-
-			it->m_Remaining--;
-			it->m_NextTick = Server()->Tick() + it->m_Delay;
+			CreateDamageInd(It->m_vPos.at(Positions), It->m_vAngles.at(Angles), 1, It->m_Mask);
+			It->m_Remaining--;
+			It->m_NextTick = Server()->Tick() + It->m_Delay;
 		}
-		if(it->m_Remaining <= 0)
-			it = m_vDamageIndEffects.erase(it);
+		if(It->m_Remaining <= 0)
+			It = m_vDamageIndEffects.erase(It);
 		else
-			++it;
+			++It;
 	}
 }
 
@@ -525,19 +521,19 @@ void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 
 void CGameContext::BanSync()
 {
-	static int64_t ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
+	static int64_t s_ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
 	if(m_BanSaveDelay < Server()->Tick())
 	{
-		static bool ExecBans = false;
+		static bool s_ExecBans = false;
 
 		if(Storage()->FileExists("Bans.cfg", IStorage::TYPE_ALL))
 		{
-			if(!ExecBans)
+			if(!s_ExecBans)
 			{
 				Server()->SetQuietBan(true);
 				Console()->ExecuteBansFile();
-				ExecBans = true;
-				ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
+				s_ExecBans = true;
+				s_ExecSaveDelay = Server()->Tick() + Server()->TickSpeed();
 			}
 		}
 		else
@@ -549,14 +545,14 @@ void CGameContext::BanSync()
 				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "fs_ban_syncing set to 0");
 		}
 
-		if(ExecSaveDelay < Server()->Tick() && ExecBans)
+		if(s_ExecSaveDelay < Server()->Tick() && s_ExecBans)
 		{
 			Console()->ExecuteLine("bans_save \"Bans.cfg\"", IConsole::CLIENT_ID_UNSPECIFIED);
 
 			// Info Message
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "ban-sync", "Saved Bans");
 
-			ExecBans = false;
+			s_ExecBans = false;
 			m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
 		}
 	}
@@ -590,12 +586,9 @@ static bool TryingToBeFunny(const char *pMsg)
 		"chiller", "cactus" // Chillerbot/Cactus
 	}; // Other
 
-	for(const char *pFun : pFunsies)
-	{
-		if(str_find_nocase(pMsg, pFun))
-			return true;
-	}
-	return false;
+	return std::any_of(std::begin(pFunsies), std::end(pFunsies), [pMsg](const char *pFun) {
+		return str_find_nocase(pMsg, pFun);
+	});
 }
 
 int CGameContext::GetMapIndexByType(EMapType MapType) const
@@ -654,7 +647,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			return false;
 	}
 
-	float count = 0; // amount of flagged strings (some strings may count more than others)
+	float Count = 0; // amount of flagged strings (some strings may count more than others)
 	int BanDuration = 0;
 	char Reason[64] = "Chat Detection Auto Ban";
 	bool IsBan = false;
@@ -679,11 +672,10 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 
 		if(str_find_nocase(pText, Entry.String()))
 		{
-			FoundStrings.push_back(Entry.String());
+			FoundStrings.emplace_back(Entry.String());
 			Times.push_back(Entry.Time());
 
-			count += Entry.Addition();
-			BanDuration = Entry.Time();
+			Count += Entry.Addition();
 
 			if(!IsBan) // if one of the strings is a ban string, then we set IsBan to true
 				IsBan = Entry.IsBan();
@@ -696,12 +688,12 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		BanDuration = *std::max_element(Times.begin(), Times.end());
 
 	char InfoMsg[256] = "";
-	if(FoundStrings.size() > 0)
+	if(!FoundStrings.empty())
 	{
-		for(const auto &str : FoundStrings)
+		for(const auto &Str : FoundStrings)
 		{
-			str_append(InfoMsg, str.c_str());
-			if(&str != &FoundStrings.back())
+			str_append(InfoMsg, Str.c_str());
+			if(&Str != &FoundStrings.back())
 				str_append(InfoMsg, ", ");
 		}
 		log_info("chat-detection", "Name: %s | Strings Found: %s", ClientName, InfoMsg);
@@ -716,7 +708,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			{
 				str_copy(Reason, "Bot Client Message");
 				IsBan = true;
-				count += 2;
+				Count += 2;
 				BanDuration = 1000;
 			}
 		}
@@ -732,13 +724,13 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				if(!TryingToBeFunny(pText))
 				{
 					IsBan = true;
-					count += 2;
+					Count += 2;
 					BanDuration = 1200;
 				}
 				if(str_find(pText, " ")) // This is the little white space it uses between some letters
 				{
 					IsBan = true;
-					count += 2;
+					Count += 2;
 					BanDuration = 1200;
 				}
 				str_copy(Reason, "Bot Client Message");
@@ -748,7 +740,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 			str_copy(InfoMsg, "Bot Client Message");
 	}
 
-	if(count >= 2.0 && BanDuration > 0)
+	if(Count >= 2.0 && BanDuration > 0)
 	{
 		if(IsBan)
 		{
@@ -833,10 +825,8 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 
 		if(FoundEntry)
 		{
-			FoundStrings.push_back(Entry.String());
+			FoundStrings.emplace_back(Entry.String());
 			Times.push_back(Entry.Time());
-
-			BanDuration = Entry.Time();
 
 			if(str_comp(Entry.Reason(), "") != 0)
 				str_copy(Reason, Entry.Reason());
@@ -848,19 +838,16 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 	else
 		BanDuration = 0;
 
-	if(FoundStrings.size() > 0)
+	if(!FoundStrings.empty())
 	{
 		char InfoMsg[256] = "";
-		if(FoundStrings.size() > 0)
+		for(const auto &Str : FoundStrings)
 		{
-			for(const auto &str : FoundStrings)
-			{
-				str_append(InfoMsg, str.c_str());
-				if(&str != &FoundStrings.back())
-					str_append(InfoMsg, ", ");
-			}
-			log_info("name-detection", "Name: %s | Strings Found: %s", ClientName, InfoMsg);
+			str_append(InfoMsg, Str.c_str());
+			if(&Str != &FoundStrings.back())
+				str_append(InfoMsg, ", ");
 		}
+		log_info("name-detection", "Name: %s | Strings Found: %s", ClientName, InfoMsg);
 
 		if(!PreventNameChange && BanDuration > 0)
 		{
@@ -910,7 +897,7 @@ void CGameContext::OnLogin(int ClientId)
 
 	// pPlayer->m_AccLoginAttempts = 0; // reset login attempts on successful login
 
-	if(pPlayer->Acc()->m_LastName[0] == '\0')
+	if(pPlayer->Acc()->m_aLastName[0] == '\0')
 	{
 		SendChatTarget(ClientId, "This seems to be your first Login, welcome!");
 		SendChatTarget(ClientId, "Most special features are accessible trough the vote menu");
@@ -969,23 +956,23 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 	float StarDistance = 0.18f;
 	float Angle = -std::atan2(Direction.x, Direction.y);
 
-	CDamageIndEffects effect;
-	effect.m_Mask = Mask;
+	CDamageIndEffects Effect;
+	Effect.m_Mask = Mask;
 	if(Type >= INDTYPE_CLOCKWISE && Type <= INDTYPE_COUNTERWISE)
 	{
 		AngleOffset = 0.80f;
-		effect.m_Remaining = 10;
-		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
+		Effect.m_Remaining = 10;
+		for(int Remaining = 0; Remaining < Effect.m_Remaining; Remaining++)
 		{
 			if(Type == INDTYPE_CLOCKWISE)
-				effect.m_vAngles.push_back(Angle - AngleOffset + (Remaining * StarDistance));
+				Effect.m_vAngles.push_back(Angle - AngleOffset + (Remaining * StarDistance));
 			else
-				effect.m_vAngles.push_back(Angle + AngleOffset - (Remaining * StarDistance));
+				Effect.m_vAngles.push_back(Angle + AngleOffset - (Remaining * StarDistance));
 		}
-		effect.m_vPos.push_back(Pos);
-		effect.m_Delay = 1;
-		effect.m_NextTick = Server()->Tick();
-		m_vDamageIndEffects.push_back(effect);
+		Effect.m_vPos.push_back(Pos);
+		Effect.m_Delay = 1;
+		Effect.m_NextTick = Server()->Tick();
+		m_vDamageIndEffects.push_back(Effect);
 	}
 	else if(Type == INDTYPE_INWARD)
 	{
@@ -993,18 +980,18 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 
 		for(int i = 0; i < 2; i++)
 		{
-			effect.m_Remaining = 5;
-			for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
+			Effect.m_Remaining = 5;
+			for(int Remaining = 0; Remaining < Effect.m_Remaining; Remaining++)
 			{
 				if(i == 0)
-					effect.m_vAngles.push_back(Angle + AngleOffset + (Remaining * StarDistance));
+					Effect.m_vAngles.push_back(Angle + AngleOffset + (Remaining * StarDistance));
 				else
-					effect.m_vAngles.push_back(Angle - AngleOffset - (Remaining * StarDistance));
+					Effect.m_vAngles.push_back(Angle - AngleOffset - (Remaining * StarDistance));
 			}
-			effect.m_vPos.push_back(Pos);
-			effect.m_Delay = 2;
-			effect.m_NextTick = Server()->Tick();
-			m_vDamageIndEffects.push_back(effect);
+			Effect.m_vPos.push_back(Pos);
+			Effect.m_Delay = 2;
+			Effect.m_NextTick = Server()->Tick();
+			m_vDamageIndEffects.push_back(Effect);
 		}
 	}
 	else if(Type == INDTYPE_OUTWARD)
@@ -1013,42 +1000,42 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 
 		for(int i = 0; i < 2; i++)
 		{
-			effect.m_Remaining = 5;
-			for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
+			Effect.m_Remaining = 5;
+			for(int Remaining = 0; Remaining < Effect.m_Remaining; Remaining++)
 			{
 				if(i == 0)
-					effect.m_vAngles.push_back(Angle - AngleOffset - (Remaining * StarDistance));
+					Effect.m_vAngles.push_back(Angle - AngleOffset - (Remaining * StarDistance));
 				else
-					effect.m_vAngles.push_back(Angle + AngleOffset + (Remaining * StarDistance));
+					Effect.m_vAngles.push_back(Angle + AngleOffset + (Remaining * StarDistance));
 			}
-			effect.m_vPos.push_back(Pos);
-			effect.m_Delay = 2;
-			effect.m_NextTick = Server()->Tick();
-			m_vDamageIndEffects.push_back(effect);
+			Effect.m_vPos.push_back(Pos);
+			Effect.m_Delay = 2;
+			Effect.m_NextTick = Server()->Tick();
+			m_vDamageIndEffects.push_back(Effect);
 		}
 	}
 	else if(Type == INDTYPE_LINE)
 	{
-		effect.m_Remaining = 6;
-		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
+		Effect.m_Remaining = 6;
+		for(int Remaining = 0; Remaining < Effect.m_Remaining; Remaining++)
 		{
 			float Offset = Remaining * 15.0f;
 			vec2 CalcPos = Pos - Direction * 25.0f + Direction * Offset;
-			effect.m_vPos.push_back(CalcPos);
+			Effect.m_vPos.push_back(CalcPos);
 		}
-		effect.m_vAngles.push_back(Angle - AngleOffset);
+		Effect.m_vAngles.push_back(Angle - AngleOffset);
 
-		effect.m_Delay = 1;
-		effect.m_NextTick = Server()->Tick();
-		m_vDamageIndEffects.push_back(effect);
+		Effect.m_Delay = 1;
+		Effect.m_NextTick = Server()->Tick();
+		m_vDamageIndEffects.push_back(Effect);
 	}
 	else if(Type == INDTYPE_CRISSCROSS)
 	{
-		effect.m_Remaining = 3;
-		for(int Remaining = 0; Remaining < effect.m_Remaining; Remaining++)
+		Effect.m_Remaining = 3;
+		for(int Remaining = 0; Remaining < Effect.m_Remaining; Remaining++)
 		{
 			vec2 CalcPos;
-			float perpAngle = 0.0f;
+			float PerpAngle = 0.0f;
 
 			float GetAngle = angle(Direction);
 			if(GetAngle < 0.0f)
@@ -1056,28 +1043,28 @@ void CGameContext::CreateIndEffect(int Type, vec2 Pos, vec2 Direction, CClientMa
 
 			if(Remaining == 0)
 			{
-				perpAngle = GetAngle - AngleOffset + pi / 2;
-				effect.m_vAngles.push_back(Angle - AngleOffset - 0.85f);
-				CalcPos = Pos + vec2(cosf(perpAngle), sinf(perpAngle)) * 25.0f;
+				PerpAngle = GetAngle - AngleOffset + pi / 2;
+				Effect.m_vAngles.push_back(Angle - AngleOffset - 0.85f);
+				CalcPos = Pos + vec2(cosf(PerpAngle), sinf(PerpAngle)) * 25.0f;
 			}
 			else if(Remaining == 1)
 			{
 				CalcPos = Pos - Direction * 15.0f;
-				effect.m_vAngles.push_back(Angle - AngleOffset);
+				Effect.m_vAngles.push_back(Angle - AngleOffset);
 			}
 			else
 			{
-				perpAngle = GetAngle - AngleOffset - pi / 2;
-				effect.m_vAngles.push_back(Angle - AngleOffset + 0.85f);
-				CalcPos = Pos + vec2(cosf(perpAngle), sinf(perpAngle)) * 25.0f;
+				PerpAngle = GetAngle - AngleOffset - pi / 2;
+				Effect.m_vAngles.push_back(Angle - AngleOffset + 0.85f);
+				CalcPos = Pos + vec2(cosf(PerpAngle), sinf(PerpAngle)) * 25.0f;
 			}
 
-			effect.m_vPos.push_back(CalcPos);
+			Effect.m_vPos.push_back(CalcPos);
 		}
 
-		effect.m_Delay = 1;
-		effect.m_NextTick = Server()->Tick();
-		m_vDamageIndEffects.push_back(effect);
+		Effect.m_Delay = 1;
+		Effect.m_NextTick = Server()->Tick();
+		m_vDamageIndEffects.push_back(Effect);
 	}
 	else
 	{
@@ -1236,22 +1223,22 @@ void CGameContext::QuadDebugIds(bool Clear)
 	}*/
 }
 
-const char *GetMapName(const char *pCmd)
+static const char *GetMapName(const char *pCmd)
 {
 	const char *pChangeMap = str_find(pCmd, "change_map ");
 	if(pChangeMap)
 	{
 		pChangeMap += str_length("change_map ");
 		// Copy until space, semicolon, or end
-		static char aMapName[64] = {0};
+		static char s_aMapName[64] = {0};
 		int i = 0;
-		while(pChangeMap[i] && pChangeMap[i] != ' ' && pChangeMap[i] != ';' && i < (int)sizeof(aMapName) - 1)
+		while(pChangeMap[i] && pChangeMap[i] != ' ' && pChangeMap[i] != ';' && i < (int)sizeof(s_aMapName) - 1)
 		{
-			aMapName[i] = pChangeMap[i];
+			s_aMapName[i] = pChangeMap[i];
 			i++;
 		}
-		aMapName[i] = 0;
-		return aMapName;
+		s_aMapName[i] = 0;
+		return s_aMapName;
 	}
 	return "";
 }
@@ -1275,9 +1262,9 @@ bool CGameContext::RandomMapVote()
 	if(MapVotes.empty())
 		return false;
 
-	std::random_device rd;
-	std::uniform_int_distribution<int> dist(0, (int)MapVotes.size() - 1);
-	int Random = dist(rd);
+	std::random_device Rd;
+	std::uniform_int_distribution<int> Dist(0, (int)MapVotes.size() - 1);
+	int Random = Dist(Rd);
 
 	Console()->ExecuteLine(MapVotes[Random], IConsole::CLIENT_ID_UNSPECIFIED);
 	return true;
@@ -1372,9 +1359,9 @@ void CGameContext::OnPreReload()
 std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 {
 	const auto Dist2 = [](const vec2 &a, const vec2 &b) {
-		const float dx = a.x - b.x;
-		const float dy = a.y - b.y;
-		return dx * dx + dy * dy;
+		const float DistX = a.x - b.x;
+		const float DistY = a.y - b.y;
+		return DistX * DistX + DistY * DistY;
 	};
 
 	constexpr float TileSize = 32.0f;
@@ -1387,9 +1374,9 @@ std::optional<vec2> CGameContext::GetRandomAccessiblePos()
 			return std::nullopt;
 
 		CEntity *apEnts[64] = {0};
-		const int num = m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
+		const int Num = m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
 		bool NearPlayer = false;
-		for(int i = 0; i < num; ++i)
+		for(int i = 0; i < Num; ++i)
 		{
 			auto *pChr = static_cast<CCharacter *>(apEnts[i]);
 			if(pChr && pChr->IsAlive())
@@ -1478,18 +1465,18 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) con
 bool CGameContext::IsWeekend() const
 {
 	using namespace std::chrono;
-	auto now = system_clock::now();
-	std::time_t t = system_clock::to_time_t(now);
-	std::tm lt{};
+	auto Now = system_clock::now();
+	std::time_t t = system_clock::to_time_t(Now);
+	std::tm Tm{};
 #if defined(_WIN32)
-	const errno_t Err = localtime_s(&lt, &t);
+	const errno_t Err = localtime_s(&Tm, &t);
 	if(Err != 0)
 		return false;
 #else
-	if(localtime_r(&t, &lt) == nullptr)
+	if(localtime_r(&t, &Tm) == nullptr)
 		return false;
 #endif
-	return lt.tm_wday == 5 || lt.tm_wday == 6 || lt.tm_wday == 0;
+	return Tm.tm_wday == 5 || Tm.tm_wday == 6 || Tm.tm_wday == 0;
 }
 
 int CGameContext::NumPlayersInTeam(int Team) const

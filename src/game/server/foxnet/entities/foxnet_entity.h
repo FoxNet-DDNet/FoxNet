@@ -1,11 +1,13 @@
 // Made by qxdFox
-#ifndef GAME_SERVER_FOXNET_COSMETICS_FOXNET_ENTITY_H
-#define GAME_SERVER_FOXNET_COSMETICS_FOXNET_ENTITY_H
+#ifndef GAME_SERVER_FOXNET_ENTITIES_FOXNET_ENTITY_H
+#define GAME_SERVER_FOXNET_ENTITIES_FOXNET_ENTITY_H
 
-#include <game/server/entity.h>
 #include <base/vmath.h>
+
 #include <engine/shared/protocol.h>
+
 #include <game/collision.h>
+#include <game/server/entity.h>
 #include <game/server/foxnet/item_registry.h>
 
 class CGameWorld;
@@ -27,7 +29,7 @@ public:
 	// Gets the actual collision of the map thats loaded
 	CCollision *GetCollision();
 
-	CClientMask CosmeticMask(const EItemType ItemType);
+	CClientMask CosmeticMask(EItemType ItemType);
 	CClientMask TeamMask();
 
 	void Reset() override {}
@@ -37,4 +39,4 @@ public:
 	void Snap(int SnappingClient) override {}
 };
 
-#endif // GAME_SERVER_FOXNET_COSMETICS_FOXNET_ENTITY_H
+#endif // GAME_SERVER_FOXNET_ENTITIES_FOXNET_ENTITY_H

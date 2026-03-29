@@ -1,8 +1,9 @@
-﻿#include "accountworker.h"
+#include "accountworker.h"
 
 #include "accounts.h"
 #include "accountworker.h"
 
+#include <base/log.h>
 #include <base/system.h>
 
 #include <engine/server/databases/connection.h>
@@ -10,7 +11,6 @@
 #include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-#include <base/log.h>
 
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
@@ -53,17 +53,17 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 {
 	struct SEquip
 	{
-		const char *Name;
+		const char *pName;
 		int Val;
 	};
 	struct SQty
 	{
-		const char *Name;
+		const char *pName;
 		int Qty;
 	};
 	struct STime
 	{
-		const char *Name;
+		const char *pName;
 		int64_t Acq;
 		int64_t Exp;
 	};
@@ -72,10 +72,10 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	std::vector<SQty> vQty;
 	std::vector<STime> vTime;
 
-	for(const auto &kv : Inv.m_Map)
+	for(const auto &Item : Inv.m_Map)
 	{
-		const std::string &Name = kv.first;
-		const CInventoryEntry &Entry = kv.second;
+		const std::string &Name = Item.first;
+		const CInventoryEntry &Entry = Item.second;
 
 		vQty.push_back({Name.c_str(), Entry.m_Quantity});
 		vEquip.push_back({Name.c_str(), Entry.m_Value});
@@ -138,24 +138,24 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	// Bind Value cases
 	for(const auto &e : vEquip)
 	{
-		pSql->BindString(Bind++, e.Name);
+		pSql->BindString(Bind++, e.pName);
 		pSql->BindInt(Bind++, e.Val);
 	}
 	// Bind Quantity cases
 	for(const auto &q : vQty)
 	{
-		pSql->BindString(Bind++, q.Name);
+		pSql->BindString(Bind++, q.pName);
 		pSql->BindInt(Bind++, q.Qty);
 	}
 	// Bind times
 	for(const auto &t : vTime)
 	{
-		pSql->BindString(Bind++, t.Name);
+		pSql->BindString(Bind++, t.pName);
 		pSql->BindInt64(Bind++, t.Acq);
 	}
 	for(const auto &t : vTime)
 	{
-		pSql->BindString(Bind++, t.Name);
+		pSql->BindString(Bind++, t.pName);
 		pSql->BindInt64(Bind++, t.Exp);
 	}
 

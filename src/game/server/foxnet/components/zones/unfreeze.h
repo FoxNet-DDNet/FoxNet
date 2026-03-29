@@ -1,11 +1,14 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_FREEZE_H
-#define GAME_SERVER_FOXNET_COMPONENTS_ZONES_FREEZE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_UNFREEZE_H
+#define GAME_SERVER_FOXNET_COMPONENTS_ZONES_UNFREEZE_H
+
+#include "zone.h"
 
 #include <base/vmath.h>
+
+#include <game/collision.h>
+
 #include <utility>
 #include <vector>
-#include <game/collision.h>
-#include "zone.h"
 
 class CUnfreezeZone : public IZone
 {
@@ -15,4 +18,4 @@ public:
 	void OnTick() override;
 };
 
-#endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_FREEZE_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_UNFREEZE_H

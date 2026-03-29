@@ -1,6 +1,8 @@
 // made by fokkonaut
 #include "custom_projectile.h"
 
+#include "foxnet_entity.h"
+
 #include <base/log.h>
 #include <base/vmath.h>
 
@@ -15,7 +17,6 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
-#include "foxnet_entity.h"
 
 CCustomProjectile::CCustomProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir,
 	bool Explosive, bool Freeze, bool Unfreeze, int Type, float Lifetime, float Accel, float Speed) :

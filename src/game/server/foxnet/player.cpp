@@ -1,4 +1,3 @@
-﻿
 #include "cosmetics/dot_trail.h"
 #include "cosmetics/epic_circle.h"
 #include "cosmetics/halo.h"
@@ -134,25 +133,25 @@ void CPlayer::ExpireItems()
 {
 	if(!Acc()->m_LoggedIn)
 		return;
-	int64_t now = time(0);
-	for(auto &kv : Inv()->m_Map)
+	int64_t Now = time(0);
+	for(auto &Item : Inv()->m_Map)
 	{
-		CInventoryEntry &Entry = kv.second;
-		if(Entry.m_ExpiresAt <= 0 || Entry.m_ExpiresAt == ForeverDays)
+		CInventoryEntry &Entry = Item.second;
+		if(Entry.m_ExpiresAt <= 0) // || Entry.m_ExpiresAt == ForeverDays)
 			continue;
-		if(Entry.m_ExpiresAt <= now)
+		if(Entry.m_ExpiresAt <= Now)
 		{
-			const char *name = kv.first.c_str();
+			const char *pName = Item.first.c_str();
 			if(Entry.m_Value != 0)
 			{
-				const CItemConfig *cfg = GameServer()->m_Shop.FindItem(name);
-				if(cfg && cfg->m_Remove)
-					cfg->m_Remove(*this, *cfg, -1);
+				const CItemConfig *pCfg = GameServer()->m_Shop.FindItem(pName);
+				if(pCfg && pCfg->m_Remove)
+					pCfg->m_Remove(*this, *pCfg, -1);
 			}
 			Entry = CInventoryEntry();
 			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", name);
-			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, name);
+			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", pName);
+			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, pName);
 			GameServer()->SendChatTarget(GetCid(), aBuf);
 		}
 	}
@@ -262,39 +261,39 @@ bool CPlayer::CheckLevelUp(bool Silent)
 			int m_ItemCount = 1;
 			std::vector<EItemRarity> m_AllowedRarities = {EItemRarity::Common};
 
-			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, std::vector<EItemRarity> AllowedRarities) :
+			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, const std::vector<EItemRarity> &AllowedRarities) :
 				m_Days(Days), m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
 			CReward() = default;
 		};
 
 		auto NewRewardMail = [this](CReward Reward) {
-			static std::mt19937 gen(std::random_device{}());
+			static std::mt19937 s_Gen(std::random_device{}());
 			char aCmd[256] = "";
 			char aCmdName[128] = "";
 			char aSubject[128] = "";
 			char aMessage[128] = "";
 
 			std::vector<const CItemConfig *> Items;
-			for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+			for(const auto &Item : GameServer()->m_Shop.Registry().Map())
 			{
-				const CItemConfig &Item = kv.second;
-				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), Item.m_Rarity) != Reward.m_AllowedRarities.end() && Item.m_Price > 0)
-					Items.push_back(&Item);
+				const CItemConfig &pCfg = Item.second;
+				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), pCfg.m_Rarity) != Reward.m_AllowedRarities.end() && pCfg.m_Price > 0)
+					Items.push_back(&pCfg);
 			}
 
 			if(!Items.empty())
 			{
-				std::uniform_int_distribution<int> dis(0, Items.size() - 1);
+				std::uniform_int_distribution<int> Dis(0, Items.size() - 1);
 
 				std::vector<const CItemConfig *> pItems;
 				for(int i = 0; i < Reward.m_ItemCount; i++)
 				{
-					const CItemConfig *pItem = Items[dis(gen)];
+					const CItemConfig *pItem = Items[Dis(s_Gen)];
 					pItems.push_back(pItem);
 				}
 
-				std::uniform_int_distribution<> moneyDis(Reward.m_MinMoney * 0.01f, Reward.m_MaxMoney * 0.01f);
-				int MoneyReward = moneyDis(gen) * 100; // Between 1.000 and 25.000
+				std::uniform_int_distribution<> MoneyDis(Reward.m_MinMoney * 0.01f, Reward.m_MaxMoney * 0.01f);
+				int MoneyReward = MoneyDis(s_Gen) * 100; // Between 1.000 and 25.000
 				// Three commands with a literal %d placeholder each
 				// str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_item_days %s %d %s;give_money %s %d", "%d", MoneyReward);
 				// str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %s for %d days\n %d%s", Reward->m_pName, Days, Reward2->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
@@ -352,12 +351,12 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		str_format(aBuf, sizeof(aBuf), "You are now level %ld!", Acc()->m_Level);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 		{
-			if(GameServer()->m_apPlayers[i] && i != m_ClientId)
+			if(GameServer()->m_apPlayers[ClientId] && ClientId != m_ClientId)
 			{
 				str_format(aBuf, sizeof(aBuf), "'%s' leveled up to level %ld!", Server()->ClientName(m_ClientId), Acc()->m_Level);
-				GameServer()->SendChatTarget(i, aBuf);
+				GameServer()->SendChatTarget(ClientId, aBuf);
 			}
 		}
 
@@ -383,12 +382,12 @@ void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
 	const char PlusMinus = Amount >= 0 ? '+' : '-';
 
 	CCharacter *pChr = GetCharacter();
-	if(!Silent && pChr)
+	if(pChr && !Silent)
 	{
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
 		str_format(aText, sizeof(aText), "%c%ld", PlusMinus, std::abs(Amount));
-		new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER);
+		new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER); // NOLINT(clang-analyzer-unix.Malloc)
 		if(Amount >= 0)
 			pChr->SetEmote(Amount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
@@ -409,7 +408,7 @@ void CPlayer::PayMoney(CPlayer *pReceiver, long Amount)
 	}
 	if(Acc()->m_Money < Amount)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "You don't have enough money to do this transaction.");	
+		GameServer()->SendChatTarget(m_ClientId, "You don't have enough money to do this transaction.");
 		return;
 	}
 	constexpr int Cooldown = 300; // 5 minutes cooldown between transactions to prevent abuse
@@ -466,35 +465,35 @@ bool CPlayer::OwnsItem(EItemId ItemId)
 	if(!Acc()->m_LoggedIn)
 		return false;
 
-	const CItemConfig *cfg = GameServer()->m_Shop.Registry().FindById(ItemId);
-	return cfg && Acc()->m_Inventory.Owns(cfg->m_pName);
+	const CItemConfig *pCfg = GameServer()->m_Shop.Registry().FindById(ItemId);
+	return pCfg && Acc()->m_Inventory.Owns(pCfg->m_pName);
 }
 
 bool CPlayer::ItemEnabled(const char *pItemName)
 {
 	if(!Acc()->m_LoggedIn)
 		return false;
-	auto it = Inv()->m_Map.find(std::string(pItemName));
-	return it != Inv()->m_Map.end() && it->second.m_Value != 0;
+	auto It = Inv()->m_Map.find(std::string(pItemName));
+	return It != Inv()->m_Map.end() && It->second.m_Value != 0;
 }
 
-bool CPlayer::ReachedItemLimit(const CItemConfig *Cfg)
+bool CPlayer::ReachedItemLimit(const CItemConfig *pCfg)
 {
-	if(Server()->GetAuthedState(GetCid()) >= AUTHED_MOD || !Cfg)
+	if(Server()->GetAuthedState(GetCid()) >= AUTHED_MOD || !pCfg)
 		return false;
 	int Amount = 0;
-	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+	for(const auto &Item : GameServer()->m_Shop.Registry().Map())
 	{
-		const CItemConfig &Other = kv.second;
-		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == Cfg->m_Group)
+		const CItemConfig &Other = Item.second;
+		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == pCfg->m_Group)
 			continue;
 		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
 			continue;
-		if(Cfg == &Other)
+		if(pCfg == &Other)
 			continue;
 
-		auto mit = Inv()->m_Map.find(Other.m_pName);
-		if(mit != Inv()->m_Map.end() && mit->second.m_Value > 0)
+		auto Mit = Inv()->m_Map.find(Other.m_pName);
+		if(Mit != Inv()->m_Map.end() && Mit->second.m_Value > 0)
 			Amount++;
 	}
 
@@ -510,10 +509,10 @@ void CPlayer::UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pE
 	GameServer()->m_Shop.Registry().ForEachInGroup(Group, [&](const CItemConfig &Other) {
 		if(pExcept && &Other == pExcept)
 			return;
-		auto it = Inv()->m_Map.find(Other.m_pName);
-		if(it == Inv()->m_Map.end())
+		auto It = Inv()->m_Map.find(Other.m_pName);
+		if(It == Inv()->m_Map.end())
 			return;
-		CInventoryEntry &Entry = it->second;
+		CInventoryEntry &Entry = It->second;
 		if(Entry.m_Value <= 0)
 			return;
 		if(Other.m_Remove)
@@ -524,46 +523,46 @@ void CPlayer::UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pE
 
 bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 {
-	const CItemConfig *cfg = GameServer()->m_Shop.Registry().FindByName(pName);
-	if(!cfg)
+	const CItemConfig *pCfg = GameServer()->m_Shop.Registry().FindByName(pName);
+	if(!pCfg)
 		return false;
 	if(!Acc()->m_LoggedIn && !Force)
 		return false;
 
 	// Consumables (loot cases)
-	if(HasFlag(cfg->m_Flags, EItemFlag::LootCase))
+	if(HasFlag(pCfg->m_Flags, EItemFlag::LootCase))
 	{
-		OpenLootCase(*cfg);
+		OpenLootCase(*pCfg);
 		return true;
 	}
 
-	CInventoryEntry &Entry = Inv()->Entry(cfg->m_pName);
+	CInventoryEntry &Entry = Inv()->Entry(pCfg->m_pName);
 	const bool CurrentlyEquipped = Entry.m_Value;
 
 	int Equip = OverrideValue >= 0 ? OverrideValue : !CurrentlyEquipped;
 
-	if(ReachedItemLimit(cfg) && Equip != 0 && !Force)
+	if(ReachedItemLimit(pCfg) && Equip != 0 && !Force)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You have reached the limit of equipped cosmetics. Unequip some other items first.");
 		return false;
 	}
 
-	if(Equip != 0 && cfg->m_Group != EExclusiveGroup::None)
+	if(Equip != 0 && pCfg->m_Group != EExclusiveGroup::None)
 	{
 		if(!CurrentlyEquipped)
-			UnequipExclusiveGroup(cfg->m_Group, cfg);
+			UnequipExclusiveGroup(pCfg->m_Group, pCfg);
 	}
 
 	if(Equip != 0)
 	{
-		if(cfg->m_Apply)
-			cfg->m_Apply(*this, *cfg, OverrideValue);
+		if(pCfg->m_Apply)
+			pCfg->m_Apply(*this, *pCfg, OverrideValue);
 		Entry.m_Value = Equip;
 	}
 	else
 	{
-		if(CurrentlyEquipped && cfg->m_Remove)
-			cfg->m_Remove(*this, *cfg, OverrideValue);
+		if(CurrentlyEquipped && pCfg->m_Remove)
+			pCfg->m_Remove(*this, *pCfg, OverrideValue);
 		Entry.m_Value = 0;
 	}
 	return true;
@@ -584,16 +583,16 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 
 	std::vector<const CItemConfig *> vCandidates;
 	int MaxStars = 1;
-	for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+	for(const auto &Item : GameServer()->m_Shop.Registry().Map())
 	{
-		const CItemConfig &Other = kv.second;
+		const CItemConfig &Other = Item.second;
 		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
 			continue;
 
 		if(!AllowAny && Other.m_Rarity != CaseRarity)
 			continue;
 
-		vCandidates.push_back(&kv.second); // pointer to registry-owned item
+		vCandidates.push_back(&Item.second); // pointer to registry-owned item
 		MaxStars = std::max(MaxStars, Other.m_Stars);
 	}
 	if(vCandidates.empty())
@@ -616,20 +615,20 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 		if(!AllowAny)
 			return 1;
 
-		int idx = 0;
+		int Idx = 0;
 		for(size_t i = 0; i < RarityLevels.size(); i++)
 		{
 			if(RarityLevels[i] == r)
 			{
-				idx = (int)i;
+				Idx = (int)i;
 				break;
 			}
 		}
-		if(idx == EpicIdx || idx == MythicIdx)
+		if(Idx == EpicIdx || Idx == MythicIdx)
 			return 5;
-		if(idx == LastIdx)
+		if(Idx == LastIdx)
 			return 3;
-		if(idx == 1)
+		if(Idx == 1)
 			return 2;
 		return 1;
 	};
@@ -647,9 +646,9 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 		TotalWeight += W;
 	}
 
-	std::random_device rd;
+	std::random_device Rd;
 	std::uniform_int_distribution<int> DistItem(1, std::max(TotalWeight, 1));
-	int Pick = DistItem(rd);
+	int Pick = DistItem(Rd);
 
 	const CItemConfig *pSelectedItem = nullptr;
 	for(size_t i = 0; i < vCandidates.size(); i++)
@@ -664,13 +663,13 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 	if(!pSelectedItem)
 		return false;
 
-	auto it = Inv()->m_Map.find(CaseCfg.m_pName);
-	if(it == Inv()->m_Map.end() || it->second.m_Quantity <= 0)
+	auto It = Inv()->m_Map.find(CaseCfg.m_pName);
+	if(It == Inv()->m_Map.end() || It->second.m_Quantity <= 0)
 	{
 		GameServer()->SendChatTarget(GetCid(), "You don't own this loot case.");
 		return false;
 	}
-	it->second.m_Quantity = std::max(0, it->second.m_Quantity - 1);
+	It->second.m_Quantity = std::max(0, It->second.m_Quantity - 1);
 
 	struct SDayWeight
 	{
@@ -687,7 +686,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 	for(const auto &d : aDayTable)
 		DayTotal += d.m_Weight;
 	std::uniform_int_distribution<int> DistDay(1, std::max(DayTotal, 1));
-	int DayPick = DistDay(rd);
+	int DayPick = DistDay(Rd);
 	int RewardDays = 14;
 	for(const auto &d : aDayTable)
 	{
@@ -759,11 +758,11 @@ void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 {
 	if(m_Obfuscated)
 	{
-		constexpr int maxBytes = sizeof(pClientInfo->m_aName);
-		std::string obfStr = RandomUnicode(maxBytes / 3);
-		if(obfStr.size() >= maxBytes)
-			obfStr.resize(maxBytes - 1);
-		const char *pObf = obfStr.c_str();
+		constexpr int MaxBytes = sizeof(pClientInfo->m_aName);
+		std::string ObfStr = RandomUnicode(MaxBytes / 3);
+		if(ObfStr.size() >= MaxBytes)
+			ObfStr.resize(MaxBytes - 1);
+		const char *pObf = ObfStr.c_str();
 
 		StrToInts(pClientInfo->m_aName, std::size(pClientInfo->m_aName), pObf);
 		StrToInts(pClientInfo->m_aClan, std::size(pClientInfo->m_aClan), " ");
@@ -804,6 +803,7 @@ void CPlayer::SetBloody(bool Active)
 	Cosmetics()->m_StrongBloody = false;
 }
 
+// NOLINTBEGIN(clang-analyzer-unix.Malloc)
 void CPlayer::SetRotatingBall(bool Active)
 {
 	if(Cosmetics()->m_RotatingBall == Active)
@@ -904,6 +904,7 @@ void CPlayer::SetHatType(EHatType Type)
 	if(Cosmetics()->m_HatType != EHatType::None && PrevType == EHatType::None)
 		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
 }
+// NOLINTEND(clang-analyzer-unix.Malloc)
 
 void CPlayer::SetDeathEffect(int Type)
 {
@@ -941,9 +942,9 @@ void CPlayer::SetPhaseGun(bool Active)
 	Cosmetics()->m_PhaseGun = Active;
 }
 
-void CPlayer::SetConfettiGun(bool Set)
+void CPlayer::SetConfettiGun(bool Active)
 {
-	Cosmetics()->m_ConfettiGun = Set;
+	Cosmetics()->m_ConfettiGun = Active;
 }
 
 void CPlayer::SetInvisible(bool Active)
@@ -951,14 +952,14 @@ void CPlayer::SetInvisible(bool Active)
 	m_Invisible = Active;
 }
 
-void CPlayer::SetIgnoreGameLayer(bool Set)
+void CPlayer::SetIgnoreGameLayer(bool Active)
 {
-	m_IgnoreGamelayer = Set;
+	m_IgnoreGamelayer = Active;
 }
 
-void CPlayer::SetObfuscated(bool Set)
+void CPlayer::SetObfuscated(bool Active)
 {
-	m_Obfuscated = Set;
+	m_Obfuscated = Active;
 }
 
 void CPlayer::SetTelekinesisImmunity(bool Active)
@@ -966,9 +967,9 @@ void CPlayer::SetTelekinesisImmunity(bool Active)
 	m_TelekinesisImmunity = Active;
 }
 
-void CPlayer::SetHidePowerUps(bool Set)
+void CPlayer::SetHidePowerUps(bool Active)
 {
-	Acc()->m_Configs.m_HidePowerUps = Set;
+	Acc()->m_Configs.m_HidePowerUps = Active;
 }
 
 static const char *GetAbilityName(int Type)
@@ -1039,7 +1040,7 @@ bool CPlayer::HasImportantBroadcast() const
 	return m_LootBoxData.m_Opening;
 }
 
-void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
+void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset)
 {
 	if(pMessages.empty())
 		return;
@@ -1052,9 +1053,9 @@ void CPlayer::SendBroadcastHud(std::vector<std::string> pMessages, int Offset)
 	for(int i = 0; i < NextLines; i++)
 		str_append(aBuf, "\n", sizeof(aBuf));
 
-	for(std::string pMessage : pMessages)
+	for(const std::string &Message : pMessages)
 	{
-		str_append(aBuf, pMessage.c_str(), sizeof(aBuf));
+		str_append(aBuf, Message.c_str(), sizeof(aBuf));
 		str_append(aBuf, "\n", sizeof(aBuf));
 	}
 
@@ -1160,7 +1161,7 @@ bool CPlayer::CanReport()
 	return true;
 }
 
-float CPlayer::GetClientPred()
+float CPlayer::GetClientPred() const
 {
 	float Ping = (m_Latency.m_Min) / 10.0f - 0.8f;
 	return std::max(Ping + m_PredMargin, 2.2f);
@@ -1269,7 +1270,7 @@ bool CPlayer::SendToMap(int Idx)
 		pChr->Die(-1, WEAPON_GAME);
 	}
 
-	GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");	
+	GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");
 
 	return true;
 }

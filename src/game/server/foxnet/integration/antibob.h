@@ -1,7 +1,7 @@
-#ifndef INSTA_SERVER_ANTIBOB_H
-#define INSTA_SERVER_ANTIBOB_H
+#ifndef GAME_SERVER_FOXNET_INTEGRATION_ANTIBOB_H
+#define GAME_SERVER_FOXNET_INTEGRATION_ANTIBOB_H
 
-#include <base/dynamic.h> 
+#include <base/dynamic.h>
 
 class IConsole;
 

@@ -101,9 +101,9 @@ public:
 	bool AddClient(int ClientId, int BetAmount, const char *pBetOption);
 	RStates State() const { return m_State; }
 
-	virtual void Reset() override;
-	virtual void Tick() override;
-	virtual void Snap(int SnappingClient) override;
+	void Reset() override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif // GAME_SERVER_FOXNET_ENTITIES_ROULETTE_H

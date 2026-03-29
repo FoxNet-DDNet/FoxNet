@@ -213,7 +213,6 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 
 		if(GameServer()->IsWeekend())
 			GameServer()->SendChatTarget(ClientId, "2x XP/Money weekend");
-
 	}
 	GameServer()->SendMovingTilesInfo(ClientId);
 	// FoxNet>

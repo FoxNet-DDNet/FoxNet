@@ -18,12 +18,12 @@
 //////////////////////////////////////////////////
 // Entity
 //////////////////////////////////////////////////
-CEntity::CEntity(CGameWorld *pGameWorld, int MapIdx, int ObjType, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, vec2 Pos, int ProximityRadius)
 {
 	m_pGameWorld = pGameWorld;
-	m_MapIndex = MapIdx;
-	m_pCCollision = GameServer()->Collision(m_MapIndex);
-	
+	m_MultiMapIndex = MultiMapIdx;
+	m_pCCollision = GameServer()->Collision(m_MultiMapIndex);
+
 	m_ObjType = ObjType;
 	m_Pos = Pos;
 	m_ProximityRadius = ProximityRadius;
@@ -48,7 +48,7 @@ CCollision *CEntity::Collision()
 
 bool CEntity::NetworkClipped(int SnappingClient) const
 {
-	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
 	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, m_Pos);
@@ -56,7 +56,7 @@ bool CEntity::NetworkClipped(int SnappingClient) const
 
 bool CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos) const
 {
-	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
 	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, CheckPos);
@@ -64,7 +64,7 @@ bool CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos) const
 
 bool CEntity::NetworkClippedLine(int SnappingClient, vec2 StartPos, vec2 EndPos) const
 {
-	if(!CheckMapIndex(SnappingClient, MultiMapIdx()))
+	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
 	return ::NetworkClippedLine(m_pGameWorld->GameServer(), SnappingClient, StartPos, EndPos);
@@ -113,19 +113,18 @@ bool CEntity::GetNearestAirPosPlayer(vec2 PlayerPos, vec2 *pOutPos)
 }
 
 // <FoxNet
-bool CEntity::CheckMapIndex(int SnappingClient, int MapIdx) const
-{
-	return ::CheckMapIndex(m_pGameWorld->GameServer(), SnappingClient, MapIdx);
-}
-
-bool CheckMapIndex(const CGameContext *pGameServer, int SnappingClient, int MapIdx)
+bool CheckMultiMapIdx(const CGameContext *pGameServer, int SnappingClient, int MultiMapIndex)
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
 	if(g_Config.m_SvMultimapShowOthers || g_Config.m_SvMultimapAllowInteraction)
 		return true;
 
-	return MapIdx == pGameServer->m_apPlayers[SnappingClient]->MultiMapIdx();
+	return MultiMapIndex == pGameServer->m_apPlayers[SnappingClient]->MultiMapIdx();
+}
+bool CEntity::CheckMultiMapIdx(int SnappingClient, int MultiMapIndex) const
+{
+	return ::CheckMultiMapIdx(m_pGameWorld->GameServer(), SnappingClient, MultiMapIndex);
 }
 // FoxNet>
 

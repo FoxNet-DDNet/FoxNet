@@ -1,5 +1,5 @@
-#ifndef GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H
-#define GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_ACCOUNTS_H
+#define GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_ACCOUNTS_H
 
 #include <base/system.h>
 
@@ -130,14 +130,14 @@ class CAccountSession
 public:
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	long m_RegisterDate = 0;
-	char m_pName[MAX_NAME_LENGTH] = "";
-	char m_LastName[MAX_NAME_LENGTH] = "";
-	char CurrentIp[128] = "";
-	char LastIp[128] = "";
+	char m_aName[MAX_NAME_LENGTH] = "";
+	char m_aLastName[MAX_NAME_LENGTH] = "";
+	char m_aCurrentIp[NETADDR_MAXSTRSIZE] = "";
+	char m_aLastIp[NETADDR_MAXSTRSIZE] = "";
 	bool m_LoggedIn = false;
 	long m_LastLogin = 0;
 	int m_Port = 0;
-	int ClientId = -1;
+	int m_ClientId = -1;
 	long m_Playtime = 0; // Minutes
 	long m_Deaths = 0;
 	long m_Kills = 0;
@@ -200,10 +200,10 @@ public:
 	void Login(int ClientId, const char *pUsername, const char *pPassword);
 	bool Logout(int ClientId); // immediate
 
-	void OnLogin(int ClientId, const struct CAccResult &Res);
-	void OnLogout(int ClientId, const CAccountSession AccInfo);
+	void OnLogin(int ClientId, struct CAccResult &Res);
+	void OnLogout(int ClientId, CAccountSession &AccInfo);
 
-	void SaveAccountsInfo(int ClientId, const CAccountSession AccInfo);
+	void SaveAccountsInfo(int ClientId, CAccountSession &AccInfo);
 	void DisableAccount(const char *pUsername, bool Disable);
 
 	void LogoutAllAccountsPort(int Port);
@@ -242,4 +242,4 @@ public:
 	void OnTick() override;
 };
 
-#endif // GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_ACCOUNTS_H

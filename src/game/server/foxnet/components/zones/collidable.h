@@ -1,10 +1,11 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_COLLIDABLE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_COLLIDABLE_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_COLLIDABLE_H
 
 #include "zone.h"
+
 #include <game/gamecore.h>
-#include <game/server/gamecontext.h>
 #include <game/server/entity.h>
+#include <game/server/gamecontext.h>
 
 class CQuadData;
 

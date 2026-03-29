@@ -3,11 +3,11 @@
 
 #include <base/color.h>
 
+#include <game/envelopeaccess.h>
 #include <game/map/render_interfaces.h>
 #include <game/mapitems.h>
 
 #include <chrono>
-#include <game/envelopeaccess.h>
 
 enum
 {

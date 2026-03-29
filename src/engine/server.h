@@ -417,7 +417,7 @@ public:
 
 	// <FoxNet
 	virtual void OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId) = 0;
-	virtual void OnPreReload() = 0;	
+	virtual void OnPreReload() = 0;
 	virtual bool IncludedInServerInfo(int ClientId) = 0;
 	virtual void OnPreShutdown() = 0;
 	// FoxNet>

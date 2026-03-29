@@ -3,15 +3,12 @@
 #include <base/log.h>
 #include <base/system.h>
 
-#include <game/server/gamecontext.h>
-
 #include <engine/server/databases/connection.h>
 #include <engine/server/databases/connection_pool.h>
 #include <engine/server/sql_string_helpers.h>
 #include <engine/shared/config.h>
 
-#include <base/log.h>
-#include <base/system.h>
+#include <game/server/gamecontext.h>
 
 #include <cmath>
 
@@ -1966,8 +1963,8 @@ bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 	pSqlServer->BindString(1, pData->m_aMap);
 	pSqlServer->BindString(2, pData->m_aServer);
 	pSqlServer->BindString(3, pData->m_aMapper);
-	pSqlServer->BindInt(4, pData->Points);
-	pSqlServer->BindInt(5, pData->Stars);
+	pSqlServer->BindInt(4, pData->m_Points);
+	pSqlServer->BindInt(5, pData->m_Stars);
 	pSqlServer->BindString(6, pData->m_aTimestamp);
 	pSqlServer->Print();
 

@@ -7,8 +7,8 @@
 
 #include <game/client/prediction/entity.h>
 #include <game/gamecore.h>
-#include <game/race_state.h>
 #include <game/mapitems.h>
+#include <game/race_state.h>
 
 enum
 {

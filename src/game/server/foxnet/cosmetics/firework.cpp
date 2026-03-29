@@ -1,8 +1,6 @@
 // Made by qxdFox
 #include "firework.h"
 
-#include "game/server/entities/character.h"
-
 #include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
@@ -12,6 +10,7 @@
 #include <generated/protocol.h>
 
 #include <game/collision.h>
+#include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>

@@ -13,6 +13,7 @@
 #include <base/logger.h>
 #include <base/math.h>
 #include <base/secure.h>
+#include <base/system.h>
 
 #include <engine/config.h>
 #include <engine/console.h>
@@ -49,7 +50,6 @@
 
 #include <chrono>
 #include <vector>
-#include <base/system.h>
 
 using namespace std::chrono_literals;
 
@@ -66,7 +66,7 @@ void CServerBan::InitServerBan(IConsole *pConsole, IStorage *pStorage, CServer *
 	// overwrites base command, todo: improve this
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanTimestampExt, this, "Ban ip/client id until an absolute UNIX timestamp");
 	Console()->Register("banid", "v[id] i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanClientId, this, "Ban player with ip/client id for x minutes for any reason");
-	
+
 	Console()->Register("ban", "s[ip|id] ?i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanExt, this, "Ban player with ip/client id for x minutes for any reason");
 	Console()->Register("ban_region", "s[region] s[ip|id] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegion, this, "Ban player in a region");
 	Console()->Register("ban_region_range", "s[region] s[first ip] s[last ip] ?i[minutes] r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRegionRange, this, "Ban range in a region");
@@ -1173,7 +1173,7 @@ void CServer::DoSnapshot()
 			if(IsSixup(i))
 				continue;
 			if(!m_aClients[i].m_HighBandwidth)
-			continue;
+				continue;
 			// FoxNet>
 		}
 
@@ -2164,7 +2164,7 @@ void CServer::OnNetMsgInfo(int ClientId, const char *pVersion, const char *pPass
 		m_NetServer.Drop(ClientId, "Wrong password");
 		return;
 	}
-	
+
 	// <FoxNet
 	if(Config()->m_SvQuietJoin && Config()->m_SvQuietJoinPassword[0] != 0 && !str_comp(Config()->m_SvQuietJoinPassword, pPassword))
 	{
@@ -2187,7 +2187,7 @@ void CServer::OnNetMsgInfo(int ClientId, const char *pVersion, const char *pPass
 		m_NetServer.Drop(ClientId, "This server is full");
 		return;
 	}
-	
+
 	// <FoxNet
 	SendFoxnetInfo(ClientId);
 	// FoxNet>
@@ -4858,7 +4858,7 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	{
 		return false;
 	}
-	
+
 	// The login was on the current conn, logout should also be on the current conn
 	if(IsRconAuthed(OrigId))
 	{

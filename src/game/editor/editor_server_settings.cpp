@@ -1,4 +1,4 @@
-﻿#include "editor_server_settings.h"
+#include "editor_server_settings.h"
 
 #include "editor.h"
 

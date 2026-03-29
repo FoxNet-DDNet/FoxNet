@@ -1,4 +1,4 @@
-﻿#include "foxnet_entity.h"
+#include "foxnet_entity.h"
 
 #include <base/dbg.h>
 #include <base/vmath.h>
@@ -24,7 +24,7 @@ CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 
 	if(GetCharacter())
 		m_StartTeamMask = TeamMask();
 	if(GetPlayer())
-		SetMapIndex(GetPlayer()->MultiMapIdx());
+		SetMultiMapIdx(GetPlayer()->MultiMapIdx());
 }
 
 bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
@@ -33,7 +33,7 @@ bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 		return false;
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
-	
+
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
 	if(!pSnapPlayer || !GetCharacter())
@@ -76,10 +76,8 @@ CCharacter *CEntityOwned::GetCharacter()
 	CPlayer *pPlayer = GetPlayer();
 	if(!pPlayer)
 		return nullptr;
-
 	if(MultiMapIdx() != pPlayer->MultiMapIdx())
-		SetMapIndex(pPlayer->MultiMapIdx());
-
+		SetMultiMapIdx(pPlayer->MultiMapIdx());
 	return pPlayer->GetCharacter();
 }
 
@@ -95,7 +93,7 @@ CCollision *CEntityOwned::GetCollision()
 	return GameServer()->Collision(pPlayer->MultiMapIdx());
 }
 
-CClientMask CEntityOwned::CosmeticMask(const EItemType ItemType)
+CClientMask CEntityOwned::CosmeticMask(EItemType ItemType)
 {
 	CCharacter *pCharacter = GetCharacter();
 	if(!pCharacter)

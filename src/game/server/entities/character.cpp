@@ -12,8 +12,8 @@
 #include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
-#include <base/vmath.h>
 #include <base/time.h>
+#include <base/vmath.h>
 
 #include <engine/antibot.h>
 #include <engine/console.h>
@@ -30,9 +30,12 @@
 #include <game/gamecore.h>
 #include <game/layers.h>
 #include <game/mapitems.h>
+#include <game/quad_data.h>
 #include <game/race_state.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/components/shop.h>
+#include <game/server/foxnet/components/zones/roulette.h>
 #include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
@@ -42,7 +45,6 @@
 #include <game/server/foxnet/entities/portal.h>
 #include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/item_registry.h>
-#include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
@@ -61,8 +63,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <game/quad_data.h>
-#include <game/server/foxnet/components/zones/roulette.h>
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -412,7 +412,7 @@ void CCharacter::HandleNinja()
 					continue;
 				if(pChr && !pChr->Core()->m_Hittable)
 					continue;
-				if(MultiMapIdx() != pChr->MultiMapIdx()&& !g_Config.m_SvMultimapAllowInteraction)
+				if(MultiMapIdx() != pChr->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 					continue;
 				// FoxNet>
 				// make sure we haven't Hit this object before
@@ -1642,7 +1642,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	// OVERRIDE_NONE is the default value, SnapNewItem zeroes the object, so it would incorrectly become 0
 	// pDDNetCharacter->m_TuneZoneOverride = TuneZone::OVERRIDE_NONE;
-	
+
 	// <FoxNet
 	pDDNetCharacter->m_TuneZoneOverride = m_TuneZoneOverride;
 

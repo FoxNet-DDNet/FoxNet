@@ -1,20 +1,21 @@
 #include "rotating_ball.h"
 
-#include "game/server/entities/character.h"
-
 #include <base/log.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
 
+#include <generated/protocol.h>
+
+#include <game/collision.h>
+#include <game/server/entities/character.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
+
 #include <cstdlib>
-#include <generated/protocol.h>
-#include <game/collision.h>
-#include <game/server/foxnet/entities/foxnet_entity.h>
 
 CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_ROTATING_BALL, Pos)
@@ -95,7 +96,6 @@ void CRotatingBall::Snap(int SnappingClient)
 
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
-
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);

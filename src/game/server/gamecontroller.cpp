@@ -22,9 +22,10 @@
 #include <game/teamscore.h>
 
 // <FoxNet
+#include <base/log.h>
+
 #include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/integration/antibob.h>
-#include <base/log.h>
 
 IGameController::IGameController(class CGameContext *pGameServer) :
 	m_Teams(pGameServer), m_pLoadBestTimeResult(nullptr)
@@ -110,7 +111,6 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int ClientI
 
 void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType, int ClientId)
 {
-
 	bool PlayerCollisionDisabled = false;
 	CCharacter *pPlayerCharacter = GameServer()->GetPlayerChar(ClientId);
 	if(pPlayerCharacter)
@@ -849,9 +849,9 @@ int IGameController::TileFlagsToPickupFlags(int TileFlags) const
 
 void IGameController::ClearSpawnPoints(int MultiMapIdx)
 {
-	for(int i = 0; i < NUM_SPAWNTYPES; i++)
+	for(auto &SpawnPoint : m_avvSpawnPoints)
 	{
-		if((size_t)MultiMapIdx < m_avvSpawnPoints[i].size())
-			m_avvSpawnPoints[i][MultiMapIdx].clear();
+		if((size_t)MultiMapIdx < SpawnPoint.size())
+			SpawnPoint[MultiMapIdx].clear();
 	}
 }

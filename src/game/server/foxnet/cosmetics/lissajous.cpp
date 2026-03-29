@@ -1,8 +1,6 @@
 // Made by qxdFox
 #include "lissajous.h"
 
-#include "game/server/entities/character.h"
-
 #include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
@@ -11,6 +9,7 @@
 
 #include <generated/protocol.h>
 
+#include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>

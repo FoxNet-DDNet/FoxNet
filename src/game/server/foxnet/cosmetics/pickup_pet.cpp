@@ -1,8 +1,6 @@
 // Made by qxdFox
 #include "pickup_pet.h"
 
-#include "game/server/entities/character.h"
-
 #include <base/log.h>
 #include <base/math.h>
 #include <base/vmath.h>
@@ -13,6 +11,7 @@
 
 #include <game/collision.h>
 #include <game/gamecore.h>
+#include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gamecontext.h>

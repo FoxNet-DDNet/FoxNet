@@ -1,4 +1,4 @@
-﻿// Made by qxdFox, heavily inspired by Fokkonauts implementation
+// Made by qxdFox, heavily inspired by Fokkonauts implementation
 
 #include "votemenu.h"
 
@@ -19,9 +19,11 @@
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
+#include <game/server/foxnet/fontconvert.h>
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/version.h>
 #include <game/voting.h>
 
 #include <algorithm>
@@ -30,8 +32,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <game/server/foxnet/fontconvert.h>
-#include <game/version.h>
 
 constexpr const char *RAINBOW_SPEED = "Rainbow Speed";
 
@@ -152,9 +152,9 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 
 bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 {
-	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	CVoteMenu::CClientData &Data = m_aClientData[ClientId];
 	const int Page = Data.m_Page;
-	const int SubPage = Data.m_SubPage[Page];
+	const int SubPage = Data.m_aSubPage[Page];
 	const char *pVote = str_skip_voting_menu_prefixes(pMsg->m_pValue);
 	const char *pReason = pMsg->m_pReason;
 
@@ -526,8 +526,8 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		if(IsOptionWithSuffix(pVote, SERVER_INFO_CONTRIBUTE))
 		{
-				GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
-				return true;
+			GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
+			return true;
 		}
 		else if(IsOptionWithSuffix(pVote, SERVER_INFO_DISCORD))
 		{
@@ -688,10 +688,10 @@ void CVoteMenu::OnTick()
 
 void CVoteMenu::OnClientDrop(int ClientId, const char *pReason)
 {
-	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	CVoteMenu::CClientData &Data = m_aClientData[ClientId];
 	Data.m_Page = PAGE_MAIN;
 	for(int i = 0; i < NUM_PAGES; i++)
-		Data.m_SubPage[i] = 0;
+		Data.m_aSubPage[i] = 0;
 	Data.m_pLastItemInfo = nullptr;
 	Data.m_OnlyAffordable = true;
 }
@@ -793,8 +793,8 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 	if(Page == PAGE_MAIN || Page == PAGE_SERVERINFO || Page == PAGE_SETTINGS || Page == PAGE_VOTES)
 		return true;
 
-	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) < AUTHED_MOD) // Allow Mod Access
-		return false;
+	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) >= AUTHED_MOD) // Allow Mod Access
+		return true;
 
 	if(!pAcc->m_LoggedIn)
 		return false;
@@ -908,7 +908,7 @@ int CVoteMenu::GetSubPage(int ClientId) const
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return 0;
 	const int Page = m_aClientData[ClientId].m_Page;
-	return m_aClientData[ClientId].m_SubPage[Page];
+	return m_aClientData[ClientId].m_aSubPage[Page];
 }
 
 void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
@@ -919,7 +919,7 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 	if(Page < 0 || Page >= NUM_PAGES)
 		return;
 
-	m_aClientData[ClientId].m_SubPage[Page] = SubPage;
+	m_aClientData[ClientId].m_aSubPage[Page] = SubPage;
 	if(SendVotes)
 		GameServer()->ClearVotes(ClientId);
 }
@@ -954,7 +954,7 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 			AddVoteText(ConvertToSmallCaps("╭─────────    Profile"));
 			str_format(aBuf, sizeof(aBuf), "│ Account Name: %s", pAcc->m_aUsername);
 			AddVoteText(aBuf);
-			str_format(aBuf, sizeof(aBuf), "│ Last Ign: %s", pAcc->m_LastName);
+			str_format(aBuf, sizeof(aBuf), "│ Last Ign: %s", pAcc->m_aLastName);
 			AddVoteText(aBuf);
 			// Register Date
 			if(pAcc->m_RegisterDate > 0)
@@ -1082,7 +1082,7 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
 
-	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	CVoteMenu::CClientData &Data = m_aClientData[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	const int SubPage = GetSubPage(ClientId);
@@ -1202,7 +1202,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 	}
 
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	CVoteMenu::ClientData &Data = m_aClientData[ClientId];
+	CVoteMenu::CClientData &Data = m_aClientData[ClientId];
 	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
 
 	const int SubPage = GetSubPage(ClientId);
@@ -1559,7 +1559,6 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 	if(SubPage == SUB_SERVERINFO_MAIN)
 	{
-
 		AddVoteText(ConvertToSmallCaps("╭───────    Info"));
 		AddVoteText("Version: " FOXNET_VERSION, EPrefix::LONG_LINE);
 		char aBuf[VOTE_DESC_LENGTH] = "";
@@ -1731,7 +1730,7 @@ const char *CVoteMenu::FormatItemVote(long Price)
 	return aBuf;
 }
 
-void CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail Mail)
+void CVoteMenu::ExecMailCmd(int ClientId, CMailBox::CMail &Mail)
 {
 	const char *pTemplate = Mail.m_aCmd;
 	char aCmd[256] = "";

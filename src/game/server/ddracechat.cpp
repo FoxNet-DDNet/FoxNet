@@ -544,7 +544,7 @@ void CGameContext::ConMapInfo(IConsole::IResult *pResult, void *pUserData)
 	if(pResult->NumArguments() > 0)
 		pSelf->Score()->MapInfo(pResult->m_ClientId, pResult->GetString(0));
 	else
-		pSelf->Score()->MapInfo(pResult->m_ClientId, pSelf->Map()->BaseName());
+		pSelf->Score()->MapInfo(pResult->m_ClientId, pSelf->MapName(pResult->m_ClientId));
 }
 
 void CGameContext::ConTimeout(IConsole::IResult *pResult, void *pUserData)

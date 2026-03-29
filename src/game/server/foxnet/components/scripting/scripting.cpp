@@ -121,7 +121,7 @@ public:
 		else if(Str == "acc_last_login") // unix timestamp
 			return m_pGameServer->m_aAccounts[ClientId].m_LastLogin;
 		else if(Str == "acc_last_name")
-			return m_pGameServer->m_aAccounts[ClientId].m_LastName;
+			return m_pGameServer->m_aAccounts[ClientId].m_aLastName;
 		else if(Str == "acc_level")
 			return m_pGameServer->m_aAccounts[ClientId].m_Level;
 		else if(Str == "acc_xp")

@@ -1,4 +1,4 @@
-﻿#include "accounts.h"
+#include "accounts.h"
 
 #include "accountworker.h"
 
@@ -11,6 +11,7 @@
 #include <engine/server.h>
 #include <engine/server/databases/connection.h>
 #include <engine/server/databases/connection_pool.h>
+#include <engine/server/server.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
@@ -29,7 +30,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <engine/server/server.h>
 
 void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 {
@@ -45,7 +45,7 @@ void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientId, "Account registration is disabled");
 		return;
 	}
-	
+
 	if(pSelf->GetAcc(ClientId)->m_LoggedIn)
 	{
 		pSelf->SendChatTarget(ClientId, "You are already logged in");
@@ -477,7 +477,7 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	return true;
 }
 
-void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
+void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 {
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 
@@ -488,14 +488,14 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 
 	str_copy(Acc.m_aUsername, Res.m_aUsername);
 	Acc.m_RegisterDate = Res.m_RegisterDate;
-	str_copy(Acc.m_pName, Res.m_PlayerName);
-	str_copy(Acc.m_LastName, Res.m_LastPlayerName);
-	str_copy(Acc.CurrentIp, Server()->ClientAddrString(ClientId, false));
-	str_copy(Acc.LastIp, Res.m_LastIP);
+	str_copy(Acc.m_aName, Res.m_PlayerName);
+	str_copy(Acc.m_aLastName, Res.m_LastPlayerName);
+	str_copy(Acc.m_aCurrentIp, Server()->ClientAddrString(ClientId, false));
+	str_copy(Acc.m_aLastIp, Res.m_LastIP);
 	Acc.m_LoggedIn = true;
 	Acc.m_LastLogin = Now;
 	Acc.m_Port = Server()->Port();
-	Acc.ClientId = ClientId;
+	Acc.m_ClientId = ClientId;
 	Acc.m_Playtime = Res.m_Playtime;
 	Acc.m_Deaths = Res.m_Deaths;
 	Acc.m_Kills = Res.m_Kills;
@@ -520,17 +520,17 @@ void CAccounts::OnLogin(int ClientId, const CAccResult &Res)
 	// Apply equipped items to player cosmetics
 	if(auto *pPlayer = GameServer()->m_apPlayers[ClientId])
 	{
-		for(const auto &kv : pPlayer->Inv()->m_Map)
+		for(const auto &Item : pPlayer->Inv()->m_Map)
 		{
-			CInventoryEntry Entry = kv.second;
-			const CItemConfig *Cfg = GameServer()->m_Shop.FindItem(kv.first.c_str());
-			if(!Cfg)
+			CInventoryEntry Entry = Item.second;
+			const CItemConfig *pCfg = GameServer()->m_Shop.FindItem(Item.first.c_str());
+			if(!pCfg)
 				continue;
 			const int Val = Entry.m_Value;
 			if(Val <= 0)
 				continue;
 
-			pPlayer->UseItem(kv.first.c_str(), Val, true);
+			pPlayer->UseItem(Item.first.c_str(), Val, true);
 		}
 	}
 
@@ -556,7 +556,7 @@ bool CAccounts::Logout(int ClientId)
 	return false;
 }
 
-void CAccounts::OnLogout(int ClientId, const CAccountSession AccInfo)
+void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo)
 {
 	if(!DbPool())
 		return;
@@ -748,7 +748,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 	DbPool()->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name (profile)");
 }
 
-void CAccounts::SaveAccountsInfo(int ClientId, const CAccountSession AccInfo)
+void CAccounts::SaveAccountsInfo(int ClientId, CAccountSession &AccInfo)
 {
 	if(!DbPool())
 		return;

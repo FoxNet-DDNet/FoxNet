@@ -222,7 +222,7 @@ public:
 		char m_aCustomClient[24];
 		bool m_QuietJoin;
 		bool m_HighBandwidth;
-		// FoxNet>	
+		// FoxNet>
 	};
 
 	IConsole::EAccessLevel ConsoleAccessLevel(int ClientId) const;
@@ -546,7 +546,6 @@ public:
 
 	void SetLoggers(std::shared_ptr<ILogger> &&pFileLogger, std::shared_ptr<ILogger> &&pStdoutLogger);
 
-
 #ifdef CONF_FAMILY_UNIX
 	enum CONN_LOGGING_CMD
 	{
@@ -579,6 +578,7 @@ public:
 	class CSystemCall : public IJob // For ChaiScript system calls
 	{
 		void Run() override;
+
 	public:
 		CSystemCall(const char *pCommand) { str_copy(m_aCommand, pCommand, sizeof(m_aCommand)); }
 		char m_aCommand[1024];

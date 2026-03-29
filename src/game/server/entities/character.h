@@ -3,13 +3,13 @@
 #ifndef GAME_SERVER_ENTITIES_CHARACTER_H
 #define GAME_SERVER_ENTITIES_CHARACTER_H
 
+#include <game/mapitems.h>
 #include <game/race_state.h>
 #include <game/server/entity.h>
-#include <game/server/save.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
-#include <game/server/foxnet/vehicles/ufo.h>
 #include <game/server/foxnet/vehicles/snake.h>
-#include <game/mapitems.h>
+#include <game/server/foxnet/vehicles/ufo.h>
+#include <game/server/save.h>
 
 class CGameTeams;
 class CGameWorld;
@@ -346,7 +346,7 @@ public:
 	bool IsWeaponIndicator();
 	int64_t m_LastWeaponIndTick = 0;
 
-	CNetObj_PlayerInput *Input() { return &m_Input; };
+	CNetObj_PlayerInput *Input() { return &m_Input; }
 	CLightSaber *m_pLightSaber = nullptr;
 	CPortal *m_pPortal = nullptr;
 	void SetReloadTimer(int Timer) { m_ReloadTimer = Timer; }

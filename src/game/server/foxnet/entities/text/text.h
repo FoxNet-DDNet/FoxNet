@@ -1,5 +1,5 @@
-﻿#ifndef GAME_SERVER_FOXNET_ENTITY_TEXT_TEXT_H
-#define GAME_SERVER_FOXNET_ENTITY_TEXT_TEXT_H
+#ifndef GAME_SERVER_FOXNET_ENTITIES_TEXT_TEXT_H
+#define GAME_SERVER_FOXNET_ENTITIES_TEXT_TEXT_H
 
 #include <base/log.h>
 #include <base/vmath.h>
@@ -60,9 +60,9 @@ static const bool asciiTable[256][GlyphH][GlyphW] = {
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 33 !
 	{{false, true, true, false, false}, {false, true, true, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}}, // 34 "
 	{{false, true, false, true, false}, {true, true, true, true, true}, {false, true, false, true, false}, {true, true, true, true, true}, {false, true, false, true, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}}, // 35 #
-	EMPTY_GLYPH, // 92, // 36 $
-	EMPTY_GLYPH, // 92, // 37 %
-	EMPTY_GLYPH, // 92, // 38 &
+	EMPTY_GLYPH, // 36 $
+	EMPTY_GLYPH, // 37 %
+	EMPTY_GLYPH, // 38 &
 	{{false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}}, // 39 '
 	{{false, false, true, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, false, true, false, false}}, // 40 (
 	{{false, false, true, false, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, true, false, false}}, // 41 )
@@ -78,10 +78,10 @@ static const bool asciiTable[256][GlyphH][GlyphW] = {
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 50 2
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 51 3
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, false, false}}, // 52 4
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 53 5 
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 53 5
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, true, true, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 54 6
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 55 7
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 56 8 
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 56 8
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, true, false, true, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 57 9
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 58 :
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, false, true, false, false}, {false, false, true, false, false}}, // 59 ;
@@ -99,7 +99,7 @@ static const bool asciiTable[256][GlyphH][GlyphW] = {
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {true, false, false, false, false}, {true, false, true, true, false}, {true, false, false, true, false}, {true, true, true, true, false}, {false, false, false, false, false}}, // 71 G
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, true, true, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 72 H
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 73 I
-	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 74 J
+	{{false, false, false, false, false}, {true, true, true, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 74 J
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, true, false, false}, {true, true, false, false, false}, {true, false, true, false, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 75 K
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 76 L
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, true, false, true, true}, {true, false, true, false, true}, {true, false, false, false, true}, {true, false, false, false, true}, {false, false, false, false, false}}, // 77 M
@@ -116,38 +116,38 @@ static const bool asciiTable[256][GlyphH][GlyphW] = {
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, true, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, false, false, false}}, // 88 X
 	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, false, true, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 89 Y
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, false, true, false, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 90 Z
-	{{true, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}}, // 91 [ 
+	{{true, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}}, // 91 [
 	{{false, true, false, false, false}, {false, true, false, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, false, false}}, // 92 "\"
 	{{false, false, true, true, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, true, true, true}}, // 93 ]
 	{{false, false, true, false, false}, {false, true, false, true, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}}, // 94 ^
 	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}}, // 95 _
 	{{false, true, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}}, // 96 `
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {false, false, false, false, true}, {false, true, true, true, true}, {true, false, false, false, true}, {false, true, true, true, true}}, // 97 a
-	{{true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, true, true, false, false}}, // 98 b
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {false, true, true, true, false}}, // 99 c
-	{{false, false, false, false, true}, {false, false, false, false, true}, {false, false, false, false, true}, {false, false, true, true, true}, {false, true, false, false, true}, {false, true, false, false, true}, {false, true, false, false, true}, {false, false, true, true, true}}, // 100 d
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, false, true}, {true, true, true, true, true}, {true, false, false, false, false}, {false, true, true, true, true}}, // 101 e 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {true, false, false, false, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}}, // 102 f
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, true}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, true, true, true}, {false, false, false, false, true}, {true, true, true, true, false}}, // 103 g
-	{{false, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}}, // 106 h
-	{{false, false, false, false, false}, {false, false, true, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, true, true, true, false}}, // 105 i
-	{{false, false, true, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, true, false, false, false}}, // 104 j
-	{{true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, true, false}, {true, true, true, false, false}, {true, true, false, false, false}, {true, false, true, false, false}, {true, false, false, true, false}}, // 107 k
-	{{true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {false, true, true, true, false}}, // 108 l
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, true, false, true, false}, {true, false, true, false, true}, {true, false, true, false, true}, {true, false, true, false, true}, {true, false, true, false, true}}, // 109 m
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {true, false, false, false, true}, {true, false, false, false, true}, {true, false, false, false, true}, {true, false, false, false, true}}, // 110 n
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, false, true}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, true, true, false}}, // 111 o 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {true, false, false, false, true}, {true, false, false, false, true}, {true, true, true, true, false}, {true, false, false, false, false}, {true, false, false, false, false}}, // 112 p 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, false, false, true, false}}, // 113 q
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, false, true}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}}, // 114 r 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, true}, {true, false, false, false, false}, {false, true, true, true, false}, {false, false, false, false, true}, {true, true, true, true, false}}, // 115 s
-	{{false, false, false, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, true, true, true, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, true, false}}, // 116 t 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, false, false, true}, {false, true, false, false, true}, {false, true, false, false, true}, {false, true, false, false, true}, {false, true, true, true, true}}, // 117 u 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, true, false, false}}, // 118 v 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {true, false, true, false, true}, {true, false, true, false, true}, {false, true, false, true, false}}, // 119 w 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, true, false, false}, {false, true, false, true, false}, {false, true, false, true, false}}, // 120 x
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, true, true, true, false}, {false, false, false, true, false}, {true, true, true, false, false}}, // 121 y 
-	{{false, false, false, false, false}, {false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {false, false, false, true, false}, {false, false, true, false, false}, {false, true, false, false, false}, {true, true, true, true, false}}, // 122 z 
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {true, false, false, true, false}, {true, true, true, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 65 a
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 66 b
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 67 c
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 68 d
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 69 e
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {false, false, false, false, false}}, // 70 f
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {true, false, false, false, false}, {true, false, true, true, false}, {true, false, false, true, false}, {true, true, true, true, false}, {false, false, false, false, false}}, // 71 g
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, true, true, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 72 h
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 73 i
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, false}, {false, false, false, true, false}, {false, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 74 j
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, true, false, false}, {true, true, false, false, false}, {true, false, true, false, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 75 k
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 76 l
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, true, false, true, true}, {true, false, true, false, true}, {true, false, false, false, true}, {true, false, false, false, true}, {false, false, false, false, false}}, // 77 m
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, true, false, true, false}, {true, false, true, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 78 n
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 79 o
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, true, true, false, false}, {true, false, false, false, false}, {true, false, false, false, false}, {false, false, false, false, false}}, // 80 p
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, true, false}}, // 81 q
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, true, true, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, false, false, false, false}}, // 82 r
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {true, false, false, false, false}, {false, true, true, false, false}, {false, false, false, true, false}, {true, true, true, false, false}, {false, false, false, false, false}}, // 83 s
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, true, true, true, true}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 84 t
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {true, false, false, true, false}, {false, true, true, false, false}, {false, false, false, false, false}}, // 85 u
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 86 v
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {true, false, true, false, true}, {true, false, true, false, true}, {false, true, false, true, false}, {false, false, false, false, false}}, // 87 w
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, true, false, false}, {false, true, false, true, false}, {false, true, false, true, false}, {false, false, false, false, false}}, // 88 x
+	{{false, false, false, false, false}, {false, false, false, false, false}, {true, false, false, false, true}, {true, false, false, false, true}, {false, true, false, true, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, false, false, false}}, // 89 y
+	{{false, false, false, false, false}, {false, false, false, false, false}, {false, true, true, true, false}, {false, false, false, true, false}, {false, false, true, false, false}, {false, true, false, false, false}, {false, true, true, true, false}, {false, false, false, false, false}}, // 90 z
 	{{false, false, true, true, false}, {false, true, false, false, false}, {false, true, false, false, false}, {true, true, false, false, false}, {true, true, false, false, false}, {false, true, false, false, false}, {false, true, false, false, false}, {false, false, true, true, false}}, // 123 {
 	{{false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}, {false, false, true, false, false}}, // 124 |
 	{{false, true, true, false, false}, {false, false, false, true, false}, {false, false, false, true, false}, {false, false, false, true, true}, {false, false, false, true, true}, {false, false, false, true, false}, {false, false, false, true, false}, {false, true, true, false, false}}, // 125 }
@@ -301,21 +301,32 @@ public:
 
 	CClientMask m_Mask;
 
-	std::vector<CTextData *> m_pData;
+	std::vector<CTextData> m_vData;
 
 	float m_CenterX;
 
 	char m_aText[MAX_TEXT_LEN];
 
 	void SetData(float Cell);
+	void ClearData(bool FreeSnapIds);
 
 	CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType);
 
 	void Reset() override;
 	void Tick() override;
-	void Snap(int SnappingClient) override;
-	virtual void DoSnap(int SnappingClient) {}
+	void Snap(int SnappingClient) override {}
 };
+
+inline void CText::ClearData(bool FreeSnapIds)
+{
+	if(FreeSnapIds)
+	{
+		for(const auto &Data : m_vData)
+			Server()->SnapFreeId(Data.m_Id);
+	}
+
+	m_vData.clear();
+}
 
 inline void CText::Reset()
 {
@@ -325,9 +336,7 @@ inline void CText::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("text", "Reset");
 
-
-	for(auto *pData : m_pData)
-		Server()->SnapFreeId(pData->m_Id);
+	ClearData(true);
 
 	m_MarkedForDestroy = true;
 }
@@ -341,30 +350,33 @@ inline void CText::Tick()
 		Reset();
 }
 
-inline void CText::Snap(int SnappingClient)
+inline float GlyphYOffset(unsigned char c)
 {
-	DoSnap(SnappingClient);
-}
-
-inline float GlyphYOffset(unsigned char ch)
-{
-	switch(ch)
+	switch(c)
 	{
-	case 'g':
-	case 'p':
-	case 'q':
-	case 'j':
-	case 'f':
-		return 0.85f;
+	case '{':
+	case '}':
+	case '\\':
+	case '/':
+	case '[':
+	case ']':
+		return 0.45f;
+
+	//case 'g':
+	//case 'p':
+	//case 'q':
+	//case 'j':
+	//case 'f':
+	//	return 0.85f;
 	default:
 		return 0.0f;
 	}
 }
 
 // Horizontal gap per glyph (in columns)
-inline float GlyphXGap(unsigned char ch)
+inline float GlyphXGap(unsigned char c)
 {
-	switch(ch)
+	switch(c)
 	{
 	case ' ':
 		return 1.65f; // bigger gap for space
@@ -379,67 +391,63 @@ inline void CText::SetData(float Cell)
 	int Len = str_length(m_aText);
 
 	// Horizontal cursor measured in columns
-	float xCursorCols = 0;
+	float CursorColsX = 0;
 
-	for(int ci = 0; ci < Len && ci < MAX_TEXT_LEN; ++ci)
+	for(int Ci = 0; Ci < Len && Ci < MAX_TEXT_LEN; ++Ci)
 	{
-		unsigned char ch = (unsigned char)m_aText[ci];
+		unsigned char Ch = (unsigned char)m_aText[Ci];
 
 		// Find tight horizontal bounds for the glyph: [minC, maxC]
-		int minC = GlyphW; // first column with a pixel
-		int maxC = -1; // last column with a pixel
+		int MinC = GlyphW; // first column with a pixel
+		int MaxC = -1; // last column with a pixel
 
 		for(int r = 0; r < GlyphH; ++r)
 		{
 			for(int c = 0; c < GlyphW; ++c)
 			{
-				if(asciiTable[ch][r][c])
+				if(asciiTable[Ch][r][c])
 				{
-					if(c < minC)
-						minC = c;
-					if(c > maxC)
-						maxC = c;
+					if(c < MinC)
+						MinC = c;
+					if(c > MaxC)
+						MaxC = c;
 				}
 			}
 		}
 
 		// Handle empty glyphs (no pixels): width 0, but still add gap
-		float TightWidth = (maxC >= minC) ? (float)(maxC - minC + 1) : 0.0f;
+		float TightWidth = (MaxC >= MinC) ? (float)(MaxC - MinC + 1) : 0.0f;
 
 		// Compute vertical offset in cells for this glyph
-		const float yOffCells = GlyphYOffset(ch) - 2.0f;
+		const float OffCellsY = GlyphYOffset(Ch) - 2.0f;
 
 		// Render only the tight columns
 		if(TightWidth > 0.0f)
 		{
 			for(int r = 0; r < GlyphH; ++r)
 			{
-				for(int c = minC; c <= maxC; ++c)
+				for(int c = MinC; c <= MaxC; ++c)
 				{
-					if(!asciiTable[ch][r][c])
+					if(!asciiTable[Ch][r][c])
 						continue;
 
 					// Use cell offsets first, then scale
-					const float heightCells = (float)r;
-					const float widthCells = (float)(c - minC);
+					const float HeightCells = (float)r;
+					const float WidthCells = (float)(c - MinC);
 
-					vec2 P = Base + vec2((xCursorCols + widthCells) * Cell * 0.70f,
-								(heightCells + yOffCells) * Cell * 0.70f);
-
+					vec2 P = Base + vec2((CursorColsX + WidthCells) * Cell * 0.70f,
+								(HeightCells + OffCellsY) * Cell * 0.70f);
 					int Id = Server()->SnapNewId();
 
-					CTextData *pD = new CTextData();
-					pD->m_Id = Id;
-					pD->m_Pos = P;
-					m_pData.push_back(pD);
+					m_vData.push_back({Id, P});
 				}
 			}
 		}
 
 		// Advance cursor by tight glyph width + per-glyph gap (in columns), then scale uniformly
-		xCursorCols += TightWidth + GlyphXGap(ch);
+		CursorColsX += TightWidth + GlyphXGap(Ch);
 	}
-	m_CenterX = (xCursorCols * Cell * 0.70f) / 2.0f;
+	m_CenterX = (CursorColsX * Cell * 0.70f) / 2.0f;
 }
 
 inline CText::CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType) :
@@ -470,4 +478,4 @@ public:
 	void Snap(int SnappingClient) override;
 };
 
-#endif // GAME_SERVER_FOXNET_ENTITY_TEXT_TEXT_H
+#endif // GAME_SERVER_FOXNET_ENTITIES_TEXT_TEXT_H

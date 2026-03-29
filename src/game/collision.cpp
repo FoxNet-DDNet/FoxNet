@@ -1,4 +1,4 @@
-﻿/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "gamecore.h"
 
@@ -661,7 +661,6 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			{
 				if(HitQuad)
 					ReturnValue = true;
-
 				int Hits = 0;
 				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuad))
 				{
@@ -725,8 +724,8 @@ int CCollision::IsSolid(int x, int y, const CQuadData **ppHitQuad) const
 				return TILE_NOHOOK;
 		}
 	}
-	int index = GetTile(x, y);
-	return index == TILE_SOLID || index == TILE_NOHOOK;
+	int Index = GetTile(x, y);
+	return Index == TILE_SOLID || Index == TILE_NOHOOK;
 }
 
 bool CCollision::IsThrough(int x, int y, int OffsetX, int OffsetY, vec2 Pos0, vec2 Pos1) const
@@ -1502,35 +1501,35 @@ void CCollision::CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const
 	}
 }
 
-int CCollision::CountSolidTilesInRadius(vec2 pos, int tileRadius, bool circle) const
+int CCollision::CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle) const
 {
-	if(tileRadius < 0)
+	if(TileRadius < 0)
 		return 0;
 
 	const int W = GetWidth();
 	const int H = GetHeight();
 
-	const int cx = std::clamp((int)std::floor(pos.x / 32.0f), 0, W - 1);
-	const int cy = std::clamp((int)std::floor(pos.y / 32.0f), 0, H - 1);
+	const int Cx = std::clamp((int)std::floor(Pos.x / 32.0f), 0, W - 1);
+	const int Cy = std::clamp((int)std::floor(Pos.y / 32.0f), 0, H - 1);
 
-	const int r2 = tileRadius * tileRadius;
+	const int RadiusSquared = TileRadius * TileRadius;
 	int Count = 0;
 
-	for(int dy = -tileRadius; dy <= tileRadius; ++dy)
+	for(int Dy = -TileRadius; Dy <= TileRadius; ++Dy)
 	{
-		for(int dx = -tileRadius; dx <= tileRadius; ++dx)
+		for(int Dx = -TileRadius; Dx <= TileRadius; ++Dx)
 		{
-			if(circle && (dx * dx + dy * dy) > r2)
+			if(Circle && (Dx * Dx + Dy * Dy) > RadiusSquared)
 				continue;
 
-			const int tx = cx + dx;
-			const int ty = cy + dy;
-			if(tx < 0 || ty < 0 || tx >= W || ty >= H)
+			const int Tx = Cx + Dx;
+			const int Ty = Cy + Dy;
+			if(Tx < 0 || Ty < 0 || Tx >= W || Ty >= H)
 				continue;
 
-			const int px = tx * 32 + 16;
-			const int py = ty * 32 + 16;
-			if(IsSolid(px, py))
+			const int Px = Tx * 32 + 16;
+			const int Py = Ty * 32 + 16;
+			if(IsSolid(Px, Py))
 				++Count;
 		}
 	}
@@ -1542,12 +1541,11 @@ bool CCollision::HasSolidInRadius(vec2 Pos, int TileRadius, int MinCount, bool C
 	return CountSolidTilesInRadius(Pos, TileRadius, Circle) >= MinCount;
 }
 
-
 void CCollision::InitQuads()
 {
 	dbg_assert(m_pLayers, "m_pLayers must be valid");
 
-	for(const auto pQuadLayers : m_pLayers->QuadLayers())
+	for(auto *const pQuadLayers : m_pLayers->QuadLayers())
 	{
 		CQuad *pQuads = (CQuad *)m_pLayers->Map()->GetDataSwapped(pQuadLayers->m_Data);
 		for(int i = 0; i < pQuadLayers->m_NumQuads; i++)
@@ -1566,7 +1564,7 @@ void CCollision::InitQuads()
 				continue;
 			m_HasSolidQuads = true;
 			for(int j = 0; j < 5; j++)
-				QuadData.m_Pos[j] = (vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y)));
+				QuadData.m_Pos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
 
 			m_vNextQuads.push_back(QuadData);
 		}
@@ -1581,7 +1579,7 @@ void CCollision::UnloadQuads()
 }
 
 void CCollision::UpdateQuads(float Time)
-{	
+{
 	//if(!g_Config.m_SvMovingTiles)
 	//	return;
 
@@ -1665,7 +1663,7 @@ void CCollision::UpdateQuads(float Time)
 			a = 1.0f - a * a * a;
 			break;
 		case CURVETYPE_SMOOTH:
-			a = -2.0f * a * a * a + 3.0f * a * a; // Hermite smoothstep
+			a = -2.0f * a * a * a + 3.0f * a * a;
 			break;
 		case CURVETYPE_BEZIER:
 		{
@@ -1702,15 +1700,15 @@ void CCollision::UpdateQuads(float Time)
 		}
 
 		// Linear interpolation (or shaped 'a')
-		const float x0 = fx2f(pCur->m_aValues[0]);
-		const float x1 = fx2f(pNext->m_aValues[0]);
-		const float y0 = fx2f(pCur->m_aValues[1]);
-		const float y1 = fx2f(pNext->m_aValues[1]);
-		const float r0 = fx2f(pCur->m_aValues[2]);
-		const float r1 = fx2f(pNext->m_aValues[2]);
-		Position.x = x0 + (x1 - x0) * a;
-		Position.y = y0 + (y1 - y0) * a;
-		Angle = (r0 + (r1 - r0) * a) / 360.0f * pi * 2.0f;
+		const float X0 = fx2f(pCur->m_aValues[0]);
+		const float X1 = fx2f(pNext->m_aValues[0]);
+		const float Y0 = fx2f(pCur->m_aValues[1]);
+		const float Y1 = fx2f(pNext->m_aValues[1]);
+		const float R0 = fx2f(pCur->m_aValues[2]);
+		const float R1 = fx2f(pNext->m_aValues[2]);
+		Position.x = X0 + (X1 - X0) * a;
+		Position.y = Y0 + (Y1 - Y0) * a;
+		Angle = (R0 + (R1 - R0) * a) / 360.0f * pi * 2.0f;
 	};
 
 	//m_vQuads = m_vNextQuads;
@@ -1721,7 +1719,7 @@ void CCollision::UpdateQuads(float Time)
 		vec2 Position = vec2(0, 0);
 		GetAnimationTransform(QuadData.m_pQuad->m_PosEnvOffset / 1000.0, QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);
 		for(int i = 0; i < 5; i++)
-			QuadData.m_Pos[i] = (Position + vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
+			QuadData.m_Pos[i] = Position + vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y));
 
 		if(QuadData.m_Angle != 0)
 		{
@@ -1736,12 +1734,9 @@ const CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 	for(const CQuadData &Quad : m_vQuads)
 	{
 		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
-		{
 			return &Quad;
-			break;
-		}
 	}
-	return nullptr;	
+	return nullptr;
 }
 
 const CQuadData *CCollision::ResolveCurrentQuad(const CQuadData *pQuad) const
@@ -1755,9 +1750,7 @@ const CQuadData *CCollision::ResolveCurrentQuad(const CQuadData *pQuad) const
 			continue;
 
 		if(QuadData.m_pQuad == pQuad->m_pQuad)
-		{
 			return &QuadData;
-		}
 	}
 
 	return nullptr;
@@ -1767,63 +1760,63 @@ void CCollision::BuildSpawnCandidates()
 {
 	m_SpawnCandidates.clear();
 
-	std::vector<vec2> seeds;
-	CollectMapSpawnPoints(seeds);
-	if(seeds.empty())
+	std::vector<vec2> Seeds;
+	CollectMapSpawnPoints(Seeds);
+	if(Seeds.empty())
 		return;
 
 	const int W = GetWidth();
 	const int H = GetHeight();
 
-	const auto ToIndex = [&](int x, int y) { return y * W + x; };
-	const auto InBounds = [&](int x, int y) { return x >= 0 && x < W && y >= 0 && y < H; };
+	const auto ToIndex = [&](int X, int Y) { return Y * W + X; };
+	const auto InBounds = [&](int X, int Y) { return X >= 0 && X < W && Y >= 0 && Y < H; };
 
 	// Detect whether the map contains any start tiles at all (game or front layer).
 	bool HasAnyStartTiles = false;
-	for(int y = 0; y < H && !HasAnyStartTiles; ++y)
+	for(int Y = 0; Y < H && !HasAnyStartTiles; ++Y)
 	{
-		for(int x = 0; x < W && !HasAnyStartTiles; ++x)
+		for(int X = 0; X < W && !HasAnyStartTiles; ++X)
 		{
-			const int Idx = ToIndex(x, y);
+			const int Idx = ToIndex(X, Y);
 			if(GetTileIndex(Idx) == TILE_START || GetFrontTileIndex(Idx) == TILE_START)
 				HasAnyStartTiles = true;
 		}
 	}
 
-	const auto IsAirAt = [&](int tx, int ty) -> bool {
-		if(!InBounds(tx, ty))
+	const auto IsAirAt = [&](int Tx, int Ty) -> bool {
+		if(!InBounds(Tx, Ty))
 			return false;
-		const int Idx = ToIndex(tx, ty);
+		const int Idx = ToIndex(Tx, Ty);
 		return GetTileIndex(Idx) == TILE_AIR && GetFrontTileIndex(Idx) == TILE_AIR;
 	};
 
-	const auto SurroundedByAir = [&](int cx, int cy, int radiusTiles = 1) -> bool {
-		for(int oy = -radiusTiles; oy <= radiusTiles; ++oy)
+	const auto SurroundedByAir = [&](int Cx, int Cy, int RadiusTiles = 1) -> bool {
+		for(int OutY = -RadiusTiles; OutY <= RadiusTiles; ++OutY)
 		{
-			for(int ox = -radiusTiles; ox <= radiusTiles; ++ox)
+			for(int OutX = -RadiusTiles; OutX <= RadiusTiles; ++OutX)
 			{
-				if(!IsAirAt(cx + ox, cy + oy))
+				if(!IsAirAt(Cx + OutX, Cy + OutY))
 					return false;
 			}
 		}
 		return true;
 	};
 
-	const auto IsTeleTileAt = [&](int tx, int ty) -> bool {
-		if(!m_pTele || !InBounds(tx, ty))
+	const auto IsTeleTileAt = [&](int Tx, int Ty) -> bool {
+		if(!m_pTele || !InBounds(Tx, Ty))
 			return false;
-		const int Idx = ToIndex(tx, ty);
+		const int Idx = ToIndex(Tx, Ty);
 		return m_pTele[Idx].m_Type != 0;
 	};
 
 	const auto IsFreezeLikeAtIndex = [&](int Idx) -> bool {
-			const int Game = GetTileIndex(Idx);
-			const int Front = GetFrontTileIndex(Idx);
-			const int Sw = GetSwitchType(Idx);
-			return Game == TILE_FREEZE || Game == TILE_DFREEZE || Game == TILE_LFREEZE ||
-			       Front == TILE_FREEZE || Front == TILE_DFREEZE || Front == TILE_LFREEZE ||
-			       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
-		};
+		const int Game = GetTileIndex(Idx);
+		const int Front = GetFrontTileIndex(Idx);
+		const int Sw = GetSwitchType(Idx);
+		return Game == TILE_FREEZE || Game == TILE_DFREEZE || Game == TILE_LFREEZE ||
+		       Front == TILE_FREEZE || Front == TILE_DFREEZE || Front == TILE_LFREEZE ||
+		       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
+	};
 
 	const auto IsUnfreezeLikeAtIndex = [&](int Idx) -> bool {
 		const int Game = GetTileIndex(Idx);
@@ -1838,10 +1831,10 @@ void CCollision::BuildSpawnCandidates()
 		       QuadUnfreeze;
 	};
 
-	const auto IsBlockedForSpawnNav = [&](int tx, int ty) -> bool {
-		if(!InBounds(tx, ty))
+	const auto IsBlockedForSpawnNav = [&](int Tx, int Ty) -> bool {
+		if(!InBounds(Tx, Ty))
 			return true;
-		const int Idx = ToIndex(tx, ty);
+		const int Idx = ToIndex(Tx, Ty);
 		const int Game = GetTileIndex(Idx);
 		const int Front = GetFrontTileIndex(Idx);
 		const bool Solid = Game == TILE_SOLID || Game == TILE_NOHOOK;
@@ -1858,11 +1851,11 @@ void CCollision::BuildSpawnCandidates()
 	};
 
 	// Tele helpers
-	const auto IsTeleInRegular = [](unsigned char t) {
-		return t == TILE_TELEIN || t == TILE_TELEINEVIL;
+	const auto IsTeleInRegular = [](unsigned char Type) {
+		return Type == TILE_TELEIN || Type == TILE_TELEINEVIL;
 	};
-	const auto IsTeleInCheckpoint = [](unsigned char t) {
-		return t == TILE_TELECHECKIN || t == TILE_TELECHECKINEVIL;
+	const auto IsTeleInCheckpoint = [](unsigned char Type) {
+		return Type == TILE_TELECHECKIN || Type == TILE_TELECHECKINEVIL;
 	};
 	const auto TeleCheckpointAtIndex = [&](int Idx) -> int {
 		if(!m_pTele || Idx < 0)
@@ -1873,39 +1866,39 @@ void CCollision::BuildSpawnCandidates()
 	};
 
 	// Freeze -> Unfreeze "skip" search window
-	constexpr int kUnfreezeRadiusX = 13;
-	constexpr int kUnfreezeRadiusUp = 7;
-	constexpr int kUnfreezeRadiusDown = 50;
+	constexpr int UnfreezeRadiusX = 13;
+	constexpr int UnfreezeRadiusUp = 7;
+	constexpr int UnfreezeRadiusDown = 50;
 
 	// Returns true and outputs (outIdx) if an unfreeze-like tile is found near (tx,ty).
 	// Prefers the closest one (Manhattan distance) inside that rectangle.
-	const auto FindNearbyUnfreezeIndex = [&](int tx, int ty, const std::vector<uint8_t> &Visited, int &outIdx) -> bool {
-		if(!InBounds(tx, ty))
+	const auto FindNearbyUnfreezeIndex = [&](int Tx, int Ty, const std::vector<uint8_t> &Visited, int &OutIdx) -> bool {
+		if(!InBounds(Tx, Ty))
 			return false;
 
-		const int minX = std::max(0, tx - kUnfreezeRadiusX);
-		const int maxX = std::min(W - 1, tx + kUnfreezeRadiusX);
-		const int minY = std::max(0, ty - kUnfreezeRadiusUp);
-		const int maxY = std::min(H - 1, ty + kUnfreezeRadiusDown);
+		const int MinX = std::max(0, Tx - UnfreezeRadiusX);
+		const int MaxX = std::min(W - 1, Tx + UnfreezeRadiusX);
+		const int MinY = std::max(0, Ty - UnfreezeRadiusUp);
+		const int MaxY = std::min(H - 1, Ty + UnfreezeRadiusDown);
 
 		bool Found = false;
 		int BestIdx = -1;
 
-		for(int y = minY; y <= maxY; ++y)
+		for(int Y = MinY; Y <= MaxY; ++Y)
 		{
-			for(int x = minX; x <= maxX; ++x)
+			for(int X = MinX; X <= MaxX; ++X)
 			{
-				const int Idx = ToIndex(x, y);
+				const int Idx = ToIndex(X, Y);
 				if(!IsUnfreezeLikeAtIndex(Idx))
 					continue;
 
-				if(IsBlockedForSpawnNav(x, y))
+				if(IsBlockedForSpawnNav(X, Y))
 					continue;
 
 				const bool CandidateUnvisited = !Visited[Idx];
-				const bool CandidateBelow = y >= ty;
-				const int Dy = std::abs(y - ty);
-				const int Dx = std::abs(x - tx);
+				const bool CandidateBelow = Y >= Ty;
+				const int Dy = std::abs(Y - Ty);
+				const int Dx = std::abs(X - Tx);
 
 				if(!Found)
 				{
@@ -1914,13 +1907,13 @@ void CCollision::BuildSpawnCandidates()
 					continue;
 				}
 
-				const int bx = BestIdx % W;
-				const int by = BestIdx / W;
+				const int BestX = BestIdx % W;
+				const int BestY = BestIdx / W;
 
 				const bool BestUnvisited = !Visited[BestIdx];
-				const bool BestBelow = by >= ty;
-				const int BestDy = std::abs(by - ty);
-				const int BestDx = std::abs(bx - tx);
+				const bool BestBelow = BestY >= Ty;
+				const int BestDy = std::abs(BestY - Ty);
+				const int BestDx = std::abs(BestX - Tx);
 
 				// Compare (unvisited desc, below desc, dy asc, dx asc)
 				if(CandidateUnvisited != BestUnvisited)
@@ -1949,229 +1942,223 @@ void CCollision::BuildSpawnCandidates()
 		if(!Found)
 			return false;
 
-		outIdx = BestIdx;
+		OutIdx = BestIdx;
 		return true;
 	};
 
 	// Helper: enqueue all valid destinations for a given tele number and type (regular tele outs)
-	auto EnqueueTeleDestinationsByTeleNum = [&](int teleNumMinusOne, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, int cp, bool crossedStart) {
-		auto it = m_TeleOuts.find(teleNumMinusOne);
-		if(it != m_TeleOuts.end())
+	auto EnqueueTeleDestinationsByTeleNum = [&](int TeleNumMinusOne, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &Q, int Cp, bool CrossedStart) {
+		auto It = m_TeleOuts.find(TeleNumMinusOne);
+		if(It != m_TeleOuts.end())
 		{
-			for(const vec2 &outPos : it->second)
+			for(const vec2 &OutPos : It->second)
 			{
-				const int ox = std::clamp((int)std::floor(outPos.x / 32.0f), 0, W - 1);
-				const int oy = std::clamp((int)std::floor(outPos.y / 32.0f), 0, H - 1);
-				const int oIdx = ToIndex(ox, oy);
-				if(Visited[oIdx])
+				const int OutX = std::clamp((int)std::floor(OutPos.x / 32.0f), 0, W - 1);
+				const int OutY = std::clamp((int)std::floor(OutPos.y / 32.0f), 0, H - 1);
+				const int OutIdx = ToIndex(OutX, OutY);
+				if(Visited[OutIdx])
 					continue;
-				if(!IsBlockedForSpawnNav(ox, oy))
+				if(!IsBlockedForSpawnNav(OutX, OutY))
 				{
-					Visited[oIdx] = 1;
-					const bool nextCrossedStart = crossedStart || IsStartAtIndex(oIdx);
-					q.emplace_back(ox, oy, cp, nextCrossedStart);
+					Visited[OutIdx] = 1;
+					const bool NextCrossedStart = CrossedStart || IsStartAtIndex(OutIdx);
+					Q.emplace_back(OutX, OutY, Cp, NextCrossedStart);
 				}
 			}
 		}
 	};
 
 	// Helper: enqueue all valid checkpoint destinations using current cp number (checkpoint tele outs)
-	auto EnqueueTeleCheckpointDestinationsByCp = [&](int cpNumber, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &q, bool crossedStart) {
-		if(cpNumber <= 0)
+	auto EnqueueTeleCheckpointDestinationsByCp = [&](int CpNumber, std::vector<uint8_t> &Visited, std::deque<std::tuple<int, int, int, bool>> &Q, bool CrossedStart) {
+		if(CpNumber <= 0)
 			return;
-		const int key = cpNumber;
-		auto it = m_TeleCheckOuts.find(key);
-		if(it != m_TeleCheckOuts.end())
+		const int Key = CpNumber;
+		auto It = m_TeleCheckOuts.find(Key);
+		if(It != m_TeleCheckOuts.end())
 		{
-			for(const vec2 &outPos : it->second)
+			for(const vec2 &OutPos : It->second)
 			{
-				const int ox = std::clamp((int)std::floor(outPos.x / 32.0f), 0, W - 1);
-				const int oy = std::clamp((int)std::floor(outPos.y / 32.0f), 0, H - 1);
-				const int oIdx = ToIndex(ox, oy);
-				if(Visited[oIdx])
+				const int OutX = std::clamp((int)std::floor(OutPos.x / 32.0f), 0, W - 1);
+				const int OutY = std::clamp((int)std::floor(OutPos.y / 32.0f), 0, H - 1);
+				const int OutIdx = ToIndex(OutX, OutY);
+				if(Visited[OutIdx])
 					continue;
-				if(!IsBlockedForSpawnNav(ox, oy))
+				if(!IsBlockedForSpawnNav(OutX, OutY))
 				{
-					Visited[oIdx] = 1;
-					const bool nextCrossedStart = crossedStart || IsStartAtIndex(oIdx);
-					q.emplace_back(ox, oy, cpNumber, nextCrossedStart);
+					Visited[OutIdx] = 1;
+					const bool NextCrossedStart = CrossedStart || IsStartAtIndex(OutIdx);
+					Q.emplace_back(OutX, OutY, CpNumber, NextCrossedStart);
 				}
 			}
 		}
 	};
 
 	// BFS carrying checkpoint number (cp) and whether we've crossed start line
-	std::deque<std::tuple<int, int, int, bool>> q; // x, y, cp, crossedStart
+	std::deque<std::tuple<int, int, int, bool>> Q; // x, y, cp, crossedStart
 	std::vector<uint8_t> Visited((size_t)W * H, 0);
 
-	for(const vec2 &s : seeds)
+	for(const vec2 &Seed : Seeds)
 	{
-		const int sx = std::clamp((int)std::floor(s.x / 32.0f), 0, W - 1);
-		const int sy = std::clamp((int)std::floor(s.y / 32.0f), 0, H - 1);
-		const int si = ToIndex(sx, sy);
-		if(!Visited[si])
+		const int SeedX = std::clamp((int)std::floor(Seed.x / 32.0f), 0, W - 1);
+		const int SeedY = std::clamp((int)std::floor(Seed.y / 32.0f), 0, H - 1);
+		const int SeedIdx = ToIndex(SeedX, SeedY);
+		if(!Visited[SeedIdx])
 		{
-			Visited[si] = 1;
-			const bool initialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(si) : true;
-			q.emplace_back(sx, sy, 0, initialCrossedStart);
+			Visited[SeedIdx] = 1;
+			const bool InitialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(SeedIdx) : true;
+			Q.emplace_back(SeedX, SeedY, 0, InitialCrossedStart);
 		}
 	}
 
-	constexpr int kSolidRadius = 6;
-	const int dx[4] = {1, -1, 0, 0};
-	const int dy[4] = {0, 0, 1, -1};
+	constexpr int SolidRadius = 6;
+	const int DirX[4] = {1, -1, 0, 0};
+	const int DirY[4] = {0, 0, 1, -1};
 
-	while(!q.empty())
+	while(!Q.empty())
 	{
-		auto [x, y, cp, crossedStart] = q.front();
-		q.pop_front();
+		auto [X, Y, Cp, CrossedStart] = Q.front();
+		Q.pop_front();
 
-		const int curIdx = ToIndex(x, y);
+		const int CurIdx = ToIndex(X, Y);
 		if(m_pTele)
 		{
-			const int cpHere = TeleCheckpointAtIndex(curIdx);
-			if(cpHere > 0)
-				cp = cpHere;
+			const int CpHere = TeleCheckpointAtIndex(CurIdx);
+			if(CpHere > 0)
+				Cp = CpHere;
 		}
-		if(IsStartAtIndex(curIdx))
-			crossedStart = true;
+		if(IsStartAtIndex(CurIdx))
+			CrossedStart = true;
 
-		const bool allowCandidateNow = crossedStart || !HasAnyStartTiles;
+		const bool AllowCandidateNow = CrossedStart || !HasAnyStartTiles;
 
-		if(allowCandidateNow && SurroundedByAir(x, y, 1) && !IsTeleTileAt(x, y))
+		if(AllowCandidateNow && SurroundedByAir(X, Y, 1) && !IsTeleTileAt(X, Y))
 		{
-			const vec2 pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-			if(HasSolidInRadius(pos, kSolidRadius, 1, true))
-				m_SpawnCandidates.push_back(pos);
+			const vec2 Pos(X * 32.0f + 16.0f, Y * 32.0f + 16.0f);
+			if(HasSolidInRadius(Pos, SolidRadius, 1, true))
+				m_SpawnCandidates.push_back(Pos);
 		}
 
 		for(int k = 0; k < 4; ++k)
 		{
-			const int nx = x + dx[k], ny = y + dy[k];
-			if(!InBounds(nx, ny))
+			const int NextX = X + DirX[k], NextY = Y + DirY[k];
+			if(!InBounds(NextX, NextY))
 				continue;
 
-			const int nIdx = ToIndex(nx, ny);
-			if(Visited[nIdx])
+			const int NextIdx = ToIndex(NextX, NextY);
+			if(Visited[NextIdx])
 				continue;
 
-			int nextCp = cp;
-			bool nextCrossedStart = crossedStart;
-
+			int NextCp = Cp;
+			bool NextCrossedStart = CrossedStart;
 			if(m_pTele)
 			{
-				const int cpNext = TeleCheckpointAtIndex(nIdx);
-				if(cpNext > 0)
-					nextCp = cpNext;
+				const int CpNext = TeleCheckpointAtIndex(NextIdx);
+				if(CpNext > 0)
+					NextCp = CpNext;
 
-				const unsigned char nType = m_pTele[nIdx].m_Type;
-				const unsigned char nNum = m_pTele[nIdx].m_Number;
+				const unsigned char NextType = m_pTele[NextIdx].m_Type;
+				const unsigned char NextNum = m_pTele[NextIdx].m_Number;
 
-				if(nNum > 0 && (IsTeleInRegular(nType) || IsTeleInCheckpoint(nType)))
+				if(NextNum > 0 && (IsTeleInRegular(NextType) || IsTeleInCheckpoint(NextType)))
 				{
-					Visited[nIdx] = 1; // we don't stay on tele-in tiles
-					if(IsTeleInCheckpoint(nType))
+					Visited[NextIdx] = 1; // we don't stay on tele-in tiles
+					if(IsTeleInCheckpoint(NextType))
 					{
-						if(nextCp > 0)
-							EnqueueTeleCheckpointDestinationsByCp(nextCp, Visited, q, nextCrossedStart);
+						if(NextCp > 0)
+							EnqueueTeleCheckpointDestinationsByCp(NextCp, Visited, Q, NextCrossedStart);
 					}
 					else
 					{
-						EnqueueTeleDestinationsByTeleNum(nNum - 1, Visited, q, nextCp, nextCrossedStart);
+						EnqueueTeleDestinationsByTeleNum(NextNum - 1, Visited, Q, NextCp, NextCrossedStart);
 					}
 					continue;
 				}
 			}
 
-			if(IsBlockedForSpawnNav(nx, ny))
+			if(IsBlockedForSpawnNav(NextX, NextY))
 				continue;
 
 			// If we would step into freeze, try to "skip" to a nearby unfreeze.
-			if(IsFreezeLikeAtIndex(nIdx))
+			if(IsFreezeLikeAtIndex(NextIdx))
 			{
 				int UnfreezeIdx = -1;
-				if(!FindNearbyUnfreezeIndex(nx, ny, Visited, UnfreezeIdx))
+				if(!FindNearbyUnfreezeIndex(NextX, NextY, Visited, UnfreezeIdx))
 					continue;
 
-				const int ux = UnfreezeIdx % W;
-				const int uy = UnfreezeIdx / W;
+				const int UnfreezeX = UnfreezeIdx % W;
+				const int UnfreezeY = UnfreezeIdx / W;
 
 				if(!Visited[UnfreezeIdx])
 				{
 					Visited[UnfreezeIdx] = 1;
-					const bool unfreezeCrossedStart = nextCrossedStart || IsStartAtIndex(UnfreezeIdx);
-					q.emplace_back(ux, uy, nextCp, unfreezeCrossedStart);
+					const bool UnfreezeCrossedStart = NextCrossedStart || IsStartAtIndex(UnfreezeIdx);
+					Q.emplace_back(UnfreezeX, UnfreezeY, NextCp, UnfreezeCrossedStart);
 				}
 				continue;
 			}
 
-			Visited[nIdx] = 1;
-			nextCrossedStart = nextCrossedStart || IsStartAtIndex(nIdx);
-			q.emplace_back(nx, ny, nextCp, nextCrossedStart);
+			Visited[NextIdx] = 1;
+			NextCrossedStart = NextCrossedStart || IsStartAtIndex(NextIdx);
+			Q.emplace_back(NextX, NextY, NextCp, NextCrossedStart);
 		}
 
 		// Also process tele-in at current tile (if we happen to be standing on one)
 		if(m_pTele)
 		{
-			const unsigned char tType = m_pTele[curIdx].m_Type;
-			const unsigned char tNum = m_pTele[curIdx].m_Number;
-			if(tNum > 0 && (IsTeleInRegular(tType) || IsTeleInCheckpoint(tType)))
+			const unsigned char TeleType = m_pTele[CurIdx].m_Type;
+			const unsigned char TeleNum = m_pTele[CurIdx].m_Number;
+			if(TeleNum > 0 && (IsTeleInRegular(TeleType) || IsTeleInCheckpoint(TeleType)))
 			{
-				if(IsTeleInCheckpoint(tType))
+				if(IsTeleInCheckpoint(TeleType))
 				{
-					if(cp > 0)
-						EnqueueTeleCheckpointDestinationsByCp(cp, Visited, q, crossedStart);
+					if(Cp > 0)
+						EnqueueTeleCheckpointDestinationsByCp(Cp, Visited, Q, CrossedStart);
 				}
 				else
 				{
-					EnqueueTeleDestinationsByTeleNum(tNum - 1, Visited, q, cp, crossedStart);
+					EnqueueTeleDestinationsByTeleNum(TeleNum - 1, Visited, Q, Cp, CrossedStart);
 				}
 			}
 		}
 	}
 
-	constexpr int kSpawnExclusionRadiusTiles = 42;
-	const float exclusionRadiusPx = kSpawnExclusionRadiusTiles * 32.0f;
+	constexpr int SpawnExclusionRadiusTiles = 42;
+	const float ExclusionRadiusPx = SpawnExclusionRadiusTiles * 32.0f;
 
-	if(!seeds.empty() && !m_SpawnCandidates.empty())
+	if(!Seeds.empty() && !m_SpawnCandidates.empty())
 	{
-		std::erase_if(m_SpawnCandidates, [&](const vec2 &pos) {
-			for(const vec2 &seed : seeds)
-			{
-				if(distance(pos, seed) <= exclusionRadiusPx)
-					return true;
-			}
-			return false;
+		std::erase_if(m_SpawnCandidates, [&](const vec2 &Pos) {
+			return std::ranges::any_of(Seeds, [&](const vec2 &Seed) {
+				return distance(Pos, Seed) <= ExclusionRadiusPx;
+			});
 		});
 	}
 }
 
-bool CCollision::TryPickCachedCandidate(vec2 &out) const
+bool CCollision::TryPickCachedCandidate(vec2 &Out) const
 {
 	if(m_SpawnCandidates.empty())
 		return false;
-	static thread_local std::mt19937 rng{std::random_device{}()};
-	std::uniform_int_distribution<size_t> pick(0, m_SpawnCandidates.size() - 1);
-	out = m_SpawnCandidates[pick(rng)];
+	static thread_local std::mt19937 s_rng{std::random_device{}()};
+	std::uniform_int_distribution<size_t> Pick(0, m_SpawnCandidates.size() - 1);
+	Out = m_SpawnCandidates[Pick(s_rng)];
 	return true;
 }
 
-
 int CCollision::PosToIndex(vec2 Pos) const
 {
-	const int x = (int)(Pos.x / 32.0f);
-	const int y = (int)(Pos.y / 32.0f);
-	if(x < 0 || x >= GetWidth() || y < 0 || y >= GetHeight())
+	const int X = (int)(Pos.x / 32.0f);
+	const int Y = (int)(Pos.y / 32.0f);
+	if(X < 0 || X >= GetWidth() || Y < 0 || Y >= GetHeight())
 		return -1;
-	return y * GetWidth() + x;
+	return Y * GetWidth() + X;
 }
 
 vec2 CCollision::IndexToPos(int Index) const
 {
 	const int W = GetWidth();
-	const int x = Index % W;
-	const int y = Index / W;
-	return vec2(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
+	const int X = Index % W;
+	const int Y = Index / W;
+	return vec2(X * 32.0f + 16.0f, Y * 32.0f + 16.0f);
 }
-
 // FoxNet>

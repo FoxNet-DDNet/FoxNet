@@ -1,6 +1,7 @@
-﻿// Made by qxdFox
+// Made by qxdFox
 #include "roulette.h"
 
+#include <base/log.h>
 #include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
@@ -23,7 +24,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include <base/log.h>
 
 CRoulette::CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_ROULETTE, Pos, 54)

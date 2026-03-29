@@ -14,9 +14,9 @@
 
 #include <generated/client_data.h>
 
+#include <game/envelopeaccess.h>
 #include <game/mapitems.h>
 #include <game/mapitems_ex.h>
-#include <game/envelopeaccess.h>
 
 #include <chrono>
 #include <cmath>

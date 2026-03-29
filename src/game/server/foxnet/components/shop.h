@@ -1,10 +1,10 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_SHOP_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_SHOP_H
 #define GAME_SERVER_FOXNET_COMPONENTS_SHOP_H
 
-
-#include <game/server/foxnet/item_registry.h>
-#include <game/server/foxnet/component.h>
 #include <engine/console.h>
+
+#include <game/server/foxnet/component.h>
+#include <game/server/foxnet/item_registry.h>
 
 class CGameContext;
 class IServer;
@@ -23,8 +23,8 @@ class CShop : public CServerComponent
 	static void ConRemoveItem(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConBuyItem(IConsole::IResult *pResult, void *pUserData);
-public:
 
+public:
 	const CItemRegistry &Registry() const { return m_Registry; }
 
 	void AddItems();

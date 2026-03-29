@@ -1,10 +1,10 @@
-﻿#ifndef GAME_SERVER_FOXNET_COMPONENTS_FAKE_SNAP_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_FAKE_SNAP_H
 #define GAME_SERVER_FOXNET_COMPONENTS_FAKE_SNAP_H
 
-
-#include <game/server/foxnet/item_registry.h>
-#include <game/server/foxnet/component.h>
 #include <engine/console.h>
+
+#include <game/server/foxnet/component.h>
+#include <game/server/foxnet/item_registry.h>
 
 class CGameContext;
 class IServer;

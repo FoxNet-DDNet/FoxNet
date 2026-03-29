@@ -311,8 +311,8 @@ struct CSqlNewMapEntry : ISqlData
 	char m_aMap[MAX_MAP_LENGTH];
 	char m_aServer[32];
 	char m_aMapper[128];
-	int Points;
-	int Stars;
+	int m_Points;
+	int m_Stars;
 	char m_aTimestamp[32];
 };
 

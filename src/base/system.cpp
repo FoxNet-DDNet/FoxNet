@@ -36,10 +36,11 @@
 #else
 #error NOT IMPLEMENTED
 #endif
+#include "vmath.h"
+
 #include <random>
 #include <string>
 #include <vector>
-#include "vmath.h"
 
 // <FoxNet
 char str_lowercase(char c)

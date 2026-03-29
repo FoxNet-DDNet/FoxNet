@@ -1,16 +1,13 @@
 #include "unfreeze.h"
 
-
 #include <base/vmath.h>
 
+#include <engine/shared/protocol.h>
 
-
+#include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-
-#include <engine/shared/protocol.h>
-#include <game/quad_data.h>
 
 void CUnfreezeZone::OnTick()
 {

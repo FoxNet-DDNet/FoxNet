@@ -2,7 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef GAME_LAYERS_H
 #define GAME_LAYERS_H
-#include<vector>
+#include <vector>
 
 class IMap;
 

@@ -1,5 +1,5 @@
-#ifndef GAME_SERVER_FOXNET_COMPONENTS_COMPONENT_H
-#define GAME_SERVER_FOXNET_COMPONENTS_COMPONENT_H
+#ifndef GAME_SERVER_FOXNET_COMPONENT_H
+#define GAME_SERVER_FOXNET_COMPONENT_H
 
 #include <base/system.h>
 
@@ -7,7 +7,7 @@
 
 class CGameContext;
 class IServer;
-class IConsole;	
+class IConsole;
 class CPlayer;
 class CCharacter;
 class CAccountSession;
@@ -18,10 +18,11 @@ class CServerComponent
 	CGameContext *m_pGameServer;
 
 public:
+	virtual ~CServerComponent() = default;
 	virtual void InitComponent(CGameContext *pGameServer);
 
 	virtual void SendChatTarget(int ClientId, const char *pMessage);
-	
+
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 	IConsole *Console() const;
@@ -34,11 +35,11 @@ public:
 
 	/*
 	 * Called when a map gets loaded, MapIdx is the index of the map in the multi map array, starting with 0
-	*/
+	 */
 	virtual void OnMapLoad(size_t MapIdx) {}
 	/*
 	 * Called when a map gets unloaded, MapIdx is the index of the map in the multi map array, starting with 0
-	*/
+	 */
 	virtual void OnMapUnload(size_t MapIdx) {}
 
 	virtual void OnConsoleInit() {}
@@ -48,8 +49,8 @@ public:
 	 */
 	virtual void OnPreReset() {}
 	/*
-	* Called before ~CGameContext() in CGameContext::Clear()
-	*/
+	 * Called before ~CGameContext() in CGameContext::Clear()
+	 */
 	virtual void OnReset() {}
 	virtual void OnShutdown(void *pPersistentData) {}
 	virtual void OnTick() {}
@@ -59,4 +60,4 @@ public:
 	virtual void OnClientDrop(int ClientId, const char *pReason) {}
 };
 
-#endif // GAME_SERVER_FOXNET_COMPONENTS_COMPONENT_H
+#endif // GAME_SERVER_FOXNET_COMPONENT_H

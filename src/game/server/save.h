@@ -7,8 +7,8 @@
 
 #include <generated/protocol.h>
 
-#include <game/team_state.h>
 #include <game/gamecore.h>
+#include <game/team_state.h>
 
 #include <optional>
 

@@ -27,9 +27,9 @@ const CEnvPoint *CEnvelope::CEnvelopePointAccess::GetPoint(int Index) const
 
 const CEnvPointBezier *CEnvelope::CEnvelopePointAccess::GetBezier(int Index) const
 {
-		if(Index < 0 || (size_t)Index >= m_pvPoints->size())
-			return nullptr;
-		return &m_pvPoints->at(Index).m_Bezier;
+	if(Index < 0 || (size_t)Index >= m_pvPoints->size())
+		return nullptr;
+	return &m_pvPoints->at(Index).m_Bezier;
 }
 
 //const CEnvPointBezier *CEnvelope::CEnvelopePointAccess::GetBezier(int Index) const

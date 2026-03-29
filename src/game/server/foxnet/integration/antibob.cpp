@@ -22,5 +22,4 @@ void AntibobRcon(const char *pLine)
 	}
 	g_AntibobContext.m_pConsole->ExecuteLine(pLine, IConsole::CLIENT_ID_FOXNET);
 }
-
 }

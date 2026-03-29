@@ -3,9 +3,9 @@
 
 #include <base/vmath.h>
 
-#include <game/server/gameworld.h>
 #include <game/collision.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
+#include <game/server/gameworld.h>
 
 class CStaffInd : public CEntityOwned
 {

@@ -1,10 +1,10 @@
-﻿#ifndef GAME_SERVER_FOXNET_ITEM_REGISTRY_H
+#ifndef GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 #define GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 
 #include <functional>
 #include <string>
-#include <unordered_map>
 #include <type_traits>
+#include <unordered_map>
 
 constexpr int MAX_ITEM_STARS = 5;
 
@@ -89,16 +89,16 @@ enum class EItemFlag
 	LootCase = 1 << 2
 };
 
-inline constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
+constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
 {
 	using U = std::underlying_type_t<EItemFlag>;
 	return static_cast<EItemFlag>(static_cast<U>(a) | static_cast<U>(b));
 }
 
-inline constexpr bool HasFlag(EItemFlag f, EItemFlag test)
+constexpr bool HasFlag(EItemFlag f, EItemFlag Test)
 {
 	using U = std::underlying_type_t<EItemFlag>;
-	return (static_cast<U>(f) & static_cast<U>(test)) != 0;
+	return (static_cast<U>(f) & static_cast<U>(Test)) != 0;
 }
 
 inline std::string StarsString(int Stars)
@@ -191,11 +191,7 @@ public:
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
 		int DefaultDays = 30) :
-		m_Id(Id), m_Type(Type),
-		m_pName(pName), m_pShortcut(pShortcut),
-		m_Flags(Flags), m_Group(Group),
-		m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription),
-		m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}
+		m_Id(Id), m_Type(Type), m_pName(pName), m_pShortcut(pShortcut), m_Flags(Flags), m_Group(Group), m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription), m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}
 };
 
 class CItemRegistry
@@ -217,9 +213,9 @@ public:
 	{
 		if(Group == EExclusiveGroup::None)
 			return;
-		for(const auto &kv : m_Map)
+		for(const auto &Item : m_Map)
 		{
-			const CItemConfig &Cfg = kv.second;
+			const CItemConfig &Cfg = Item.second;
 			if(Cfg.m_Group == Group)
 				f(Cfg);
 		}
