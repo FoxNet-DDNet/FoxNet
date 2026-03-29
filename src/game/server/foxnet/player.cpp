@@ -1253,10 +1253,23 @@ bool CPlayer::SendToMap(int Idx)
 		m_MultiMapIndex = DefaultMapIndex;
 	}
 
+	SetSpectatorId(-1);
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		if(Server()->ClientSlotEmpty(ClientId))
+			continue;
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(pPlayer && pPlayer->SpectatorId() == GetCid())
+			pPlayer->SetSpectatorId(-1);
+	}
+
 	CCharacter *pChr = GetCharacter();
 	if(pChr)
 	{
 		pChr->Die(-1, WEAPON_GAME);
 	}
+
+	GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");	
+
 	return true;
 }

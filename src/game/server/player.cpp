@@ -933,6 +933,22 @@ void CPlayer::SpectatePlayerName(const char *pName)
 
 void CPlayer::SetSpectatorId(int Id)
 {
+	CPlayer *pSpectator = GameServer()->m_apPlayers[Id];
+	if(pSpectator && !Server()->IsRconAuthed(GetCid()))
+	{
+		if(pSpectator->m_Vanish && !m_Vanish)
+		{
+			GameServer()->SendChatTarget(GetCid(), "Invalid spectator id used");
+			return;
+		}
+		else if(pSpectator->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
+		{
+			GameServer()->SendChatTarget(GetCid(), "You can't spectate players on different maps");
+			GameServer()->SendChatTarget(GetCid(), "use /join_map <name> to join their map");
+			return;
+		}
+	}
+
 	m_SpectatorId = Id;
 }
 

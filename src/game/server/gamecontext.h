@@ -986,6 +986,7 @@ private:
 	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData);
 	bool RandomMapVote();
 
 public:
