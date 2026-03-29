@@ -194,7 +194,6 @@ void CGameContext::Clear()
 	CVoteOptionServer *pVoteOptionFirst = m_pVoteOptionFirst;
 	CVoteOptionServer *pVoteOptionLast = m_pVoteOptionLast;
 	int NumVoteOptions = m_NumVoteOptions;
-	CTuningParams Tuning = m_aTuningList[0];
 	CMutes Mutes = m_Mutes;
 	CMutes VoteMutes = m_VoteMutes;
 	std::unique_ptr<IMap> pMap;
@@ -226,7 +225,6 @@ void CGameContext::Clear()
 	m_pVoteOptionFirst = pVoteOptionFirst;
 	m_pVoteOptionLast = pVoteOptionLast;
 	m_NumVoteOptions = NumVoteOptions;
-	m_aTuningList[0] = Tuning;
 	m_Mutes = Mutes;
 	m_VoteMutes = VoteMutes;
 	// std::swap(pMap, m_pMap);
@@ -389,9 +387,9 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		l = 1 - std::clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
 		float Strength;
 		if(Owner == -1 || !m_apPlayers[Owner] || !m_apPlayers[Owner]->m_TuneZone)
-			Strength = GlobalTuning()->m_ExplosionStrength;
+			Strength = GlobalTuning(MultiMapIdx)->m_ExplosionStrength;
 		else
-			Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+			Strength = TuningList(MultiMapIdx)[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
 
 		float Dmg = Strength * l;
 		if(!(int)Dmg)
@@ -1079,10 +1077,10 @@ void CGameContext::CheckPureTuning()
 		str_comp(m_pController->m_pGameType, "TDM") == 0 ||
 		str_comp(m_pController->m_pGameType, "CTF") == 0)
 	{
-		if(mem_comp(&CTuningParams::DEFAULT, &m_aTuningList[0], sizeof(CTuningParams)) != 0)
+		if(mem_comp(&CTuningParams::DEFAULT, GlobalTuning(DefaultMapIndex), sizeof(CTuningParams)) != 0)
 		{
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "resetting tuning due to pure server");
-			m_aTuningList[0] = CTuningParams::DEFAULT;
+			*GlobalTuning(DefaultMapIndex) = CTuningParams::DEFAULT;
 		}
 	}
 }
@@ -1114,10 +1112,11 @@ void CGameContext::SendTuningParams(int ClientId, int Zone)
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "Invalid ClientId: %d", ClientId);
 	dbg_assert(m_apPlayers[ClientId], "client %d without player", ClientId);
 
-	CTuningParams Params = m_aTuningList[Zone];
 
 	CCharacter *pCharacter = m_apPlayers[ClientId]->GetCharacter();
 	int NeededFakeTuning = pCharacter ? pCharacter->NeededFaketuning() : 0;
+
+	CTuningParams Params = TuningList(m_apPlayers[ClientId]->MultiMapIdx())[Zone];
 
 	if(NeededFakeTuning & FAKETUNE_SOLO)
 	{
@@ -1208,7 +1207,6 @@ void CGameContext::OnTick()
 	}
 
 	// copy tuning
-	*m_World.GetTuning(0) = m_aTuningList[0];
 	m_World.Tick();
 
 	UpdatePlayerMaps();
@@ -3226,14 +3224,19 @@ void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pParamName = pResult->GetString(0);
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 
 	char aBuf[256];
 	if(pResult->NumArguments() == 2)
 	{
 		float NewValue = pResult->GetFloat(1);
-		if(pSelf->GlobalTuning()->Set(pParamName, NewValue) && pSelf->GlobalTuning()->Get(pParamName, &NewValue))
+		if(pSelf->GlobalTuning(MultiMapIndex)->Set(pParamName, NewValue) && pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &NewValue))
 		{
-			str_format(aBuf, sizeof(aBuf), "%s changed to %.2f", pParamName, NewValue);
+			str_format(aBuf, sizeof(aBuf), "%s changed to %.2f (MapIdx=%d)", pParamName, NewValue, MultiMapIndex);
 			pSelf->SendTuningParams(-1);
 		}
 		else
@@ -3244,9 +3247,9 @@ void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		float Value;
-		if(pSelf->GlobalTuning()->Get(pParamName, &Value))
+		if(pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &Value))
 		{
-			str_format(aBuf, sizeof(aBuf), "%s %.2f", pParamName, Value);
+			str_format(aBuf, sizeof(aBuf), "%s %.2f (MapIdx=%d)", pParamName, Value, MultiMapIndex);
 		}
 		else
 		{
@@ -3260,10 +3263,15 @@ void CGameContext::ConToggleTuneParam(IConsole::IResult *pResult, void *pUserDat
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pParamName = pResult->GetString(0);
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	float OldValue;
 
 	char aBuf[256];
-	if(!pSelf->GlobalTuning()->Get(pParamName, &OldValue))
+	if(!pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &OldValue))
 	{
 		str_format(aBuf, sizeof(aBuf), "No such tuning parameter: %s", pParamName);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
@@ -3272,10 +3280,10 @@ void CGameContext::ConToggleTuneParam(IConsole::IResult *pResult, void *pUserDat
 
 	float NewValue = absolute(OldValue - pResult->GetFloat(1)) < 0.0001f ? pResult->GetFloat(2) : pResult->GetFloat(1);
 
-	pSelf->GlobalTuning()->Set(pParamName, NewValue);
-	pSelf->GlobalTuning()->Get(pParamName, &NewValue);
+	pSelf->GlobalTuning(MultiMapIndex)->Set(pParamName, NewValue);
+	pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &NewValue);
 
-	str_format(aBuf, sizeof(aBuf), "%s changed to %.2f", pParamName, NewValue);
+	str_format(aBuf, sizeof(aBuf), "%s changed to %.2f (MapIdx=%d)", pParamName, NewValue, MultiMapIndex);
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
 	pSelf->SendTuningParams(-1);
 }
@@ -3283,15 +3291,20 @@ void CGameContext::ConToggleTuneParam(IConsole::IResult *pResult, void *pUserDat
 void CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	if(pResult->NumArguments())
 	{
 		const char *pParamName = pResult->GetString(0);
 		float DefaultValue = 0.0f;
 		char aBuf[256];
 
-		if(CTuningParams::DEFAULT.Get(pParamName, &DefaultValue) && pSelf->GlobalTuning()->Set(pParamName, DefaultValue) && pSelf->GlobalTuning()->Get(pParamName, &DefaultValue))
+		if(CTuningParams::DEFAULT.Get(pParamName, &DefaultValue) && pSelf->GlobalTuning(MultiMapIndex)->Set(pParamName, DefaultValue) && pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &DefaultValue))
 		{
-			str_format(aBuf, sizeof(aBuf), "%s reset to %.2f", pParamName, DefaultValue);
+			str_format(aBuf, sizeof(aBuf), "%s reset to %.2f (MapIdx=%d)", pParamName, DefaultValue, MultiMapIndex);
 			pSelf->SendTuningParams(-1);
 		}
 		else
@@ -3302,7 +3315,7 @@ void CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		pSelf->ResetTuning();
+		pSelf->ResetTuning(MultiMapIndex);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "Tuning reset");
 	}
 }
@@ -3310,12 +3323,17 @@ void CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConTunes(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	char aBuf[256];
 	for(int i = 0; i < CTuningParams::Num(); i++)
 	{
 		float Value;
-		pSelf->GlobalTuning()->Get(i, &Value);
-		str_format(aBuf, sizeof(aBuf), "%s %.2f", CTuningParams::Name(i), Value);
+		pSelf->GlobalTuning(MultiMapIndex)->Get(i, &Value);
+		str_format(aBuf, sizeof(aBuf), "%s %.2f (MapIdx=%d)", CTuningParams::Name(i), Value, MultiMapIndex);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
 	}
 }
@@ -3326,13 +3344,18 @@ void CGameContext::ConTuneZone(IConsole::IResult *pResult, void *pUserData)
 	int List = pResult->GetInteger(0);
 	const char *pParamName = pResult->GetString(1);
 	float NewValue = pResult->GetFloat(2);
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 
 	if(List >= 0 && List < TuneZone::NUM)
 	{
 		char aBuf[256];
-		if(pSelf->TuningList()[List].Set(pParamName, NewValue) && pSelf->TuningList()[List].Get(pParamName, &NewValue))
+		if(pSelf->TuningList(MultiMapIndex)[List].Set(pParamName, NewValue) && pSelf->TuningList(MultiMapIndex)[List].Get(pParamName, &NewValue))
 		{
-			str_format(aBuf, sizeof(aBuf), "%s in zone %d changed to %.2f", pParamName, List, NewValue);
+			str_format(aBuf, sizeof(aBuf), "%s in zone %d changed to %.2f (MapIdx=%d)", pParamName, List, NewValue, MultiMapIndex);
 			pSelf->SendTuningParams(-1, List);
 		}
 		else
@@ -3347,14 +3370,19 @@ void CGameContext::ConTuneDumpZone(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int List = pResult->GetInteger(0);
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	char aBuf[256];
 	if(List >= 0 && List < TuneZone::NUM)
 	{
 		for(int i = 0; i < CTuningParams::Num(); i++)
 		{
 			float Value;
-			pSelf->TuningList()[List].Get(i, &Value);
-			str_format(aBuf, sizeof(aBuf), "zone %d: %s %.2f", List, CTuningParams::Name(i), Value);
+			pSelf->TuningList(MultiMapIndex)[List].Get(i, &Value);
+			str_format(aBuf, sizeof(aBuf), "zone %d: %s %.2f (MapIdx=%d)", List, CTuningParams::Name(i), Value, MultiMapIndex);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
 		}
 	}
@@ -3363,12 +3391,17 @@ void CGameContext::ConTuneDumpZone(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConTuneResetZone(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	if(pResult->NumArguments())
 	{
 		int List = pResult->GetInteger(0);
 		if(List >= 0 && List < TuneZone::NUM)
 		{
-			pSelf->TuningList()[List] = CTuningParams::DEFAULT;
+			pSelf->TuningList(MultiMapIndex)[List] = CTuningParams::DEFAULT;
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "Tunezone %d reset", List);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
@@ -3379,7 +3412,7 @@ void CGameContext::ConTuneResetZone(IConsole::IResult *pResult, void *pUserData)
 	{
 		for(int i = 0; i < TuneZone::NUM; i++)
 		{
-			*(pSelf->TuningList() + i) = CTuningParams::DEFAULT;
+			*(pSelf->TuningList(MultiMapIndex) + i) = CTuningParams::DEFAULT;
 			pSelf->SendTuningParams(-1, i);
 		}
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "All Tunezones reset");
@@ -3389,6 +3422,11 @@ void CGameContext::ConTuneResetZone(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	//int MultiMapIndex = pResult->GetMultiMapIndex();
+	//if(MultiMapIndex < 0)
+	//	MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	if(pResult->NumArguments())
 	{
 		int List = pResult->GetInteger(0);
@@ -3442,11 +3480,14 @@ void CGameContext::ConSwitchOpen(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Switch = pResult->GetInteger(0);
-	int MapIdx = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : 0;
-
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 	if(in_range(Switch, (int)pSelf->Switchers().size() - 1))
 	{
-		pSelf->Switchers()[MapIdx][Switch].m_Initial = false;
+		pSelf->Switchers()[MultiMapIndex][Switch].m_Initial = false;
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "switch %d opened by default", Switch);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
@@ -4057,7 +4098,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_zone_enter", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgEnter, this, "Which message to display on zone enter; use 0 for normal area");
 	Console()->Register("tune_zone_leave", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgLeave, this, "Which message to display on zone leave; use 0 for normal area");
 	Console()->Register("mapbug", "s[mapbug]", CFGFLAG_SERVER | CFGFLAG_GAME, ConMapbug, this, "Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)");
-	Console()->Register("switch_open", "i[switch] ?i[MapIdx]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
+	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
 	Console()->Register("random_map", "?i[stars] ?i[max stars]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map");
@@ -4308,43 +4349,19 @@ void CGameContext::OnInit(const void *pPersistentData)
 	// <FoxNet
 	Collision()->InitQuads();
 	Collision()->InitSpawnCandidates();
+	m_vMultiMaps[DefaultMapIndex].get()->InitTuning(this, DefaultMapIndex);
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(DefaultMapIndex);
 	// FoxNet>
-	m_World.Init(m_aTuningList);
 	m_World.InitSwitchers(Collision()->m_HighestSwitchNumber, DefaultMapIndex);
-	m_vMultiMaps[DefaultMapIndex]->m_LoadedSwitchers = true;
+	m_vMultiMaps[DefaultMapIndex]->m_LoadedSwitchers = true; // FoxNet
 	m_MapBugs = CMapBugs::Create(Map()->BaseName(), Map()->Size(), Map()->Sha256());
-
-	// Reset Tunezones
-	for(int i = 0; i < TuneZone::NUM; i++)
-	{
-		TuningList()[i] = CTuningParams::DEFAULT;
-		TuningList()[i].Set("gun_curvature", 0);
-		TuningList()[i].Set("gun_speed", 1400);
-		TuningList()[i].Set("shotgun_curvature", 0);
-		TuningList()[i].Set("shotgun_speed", 500);
-		TuningList()[i].Set("shotgun_speeddiff", 0);
-	}
 
 	for(int i = 0; i < TuneZone::NUM; i++)
 	{
 		// Send no text by default when changing tune zones.
 		m_aaZoneEnterMsg[i][0] = 0;
 		m_aaZoneLeaveMsg[i][0] = 0;
-	}
-	// Reset Tuning
-	if(g_Config.m_SvTuneReset)
-	{
-		ResetTuning();
-	}
-	else
-	{
-		GlobalTuning()->Set("gun_speed", 1400);
-		GlobalTuning()->Set("gun_curvature", 0);
-		GlobalTuning()->Set("shotgun_speed", 500);
-		GlobalTuning()->Set("shotgun_speeddiff", 0);
-		GlobalTuning()->Set("shotgun_curvature", 0);
 	}
 
 	if(g_Config.m_SvDDRaceTuneReset)
@@ -4373,14 +4390,14 @@ void CGameContext::OnInit(const void *pPersistentData)
 		g_Config.m_SvTeam = SV_TEAM_FORCED_SOLO;
 		g_Config.m_SvShowOthersDefault = SHOW_OTHERS_ON;
 
-		GlobalTuning()->Set("player_collision", 0);
-		GlobalTuning()->Set("player_hooking", 0);
+		//GlobalTuning()->Set("player_collision", 0);
+		//GlobalTuning()->Set("player_hooking", 0);
 
-		for(int i = 0; i < TuneZone::NUM; i++)
-		{
-			TuningList()[i].Set("player_collision", 0);
-			TuningList()[i].Set("player_hooking", 0);
-		}
+		//for(int i = 0; i < TuneZone::NUM; i++)
+		//{
+		//	TuningList()[i].Set("player_collision", 0);
+		//	TuningList()[i].Set("player_hooking", 0);
+		//}
 	}
 
 	if(!str_comp(Config()->m_SvGametype, "mod"))
@@ -4434,7 +4451,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 		// FoxNet>
 
 		GameInfo.m_pConfig = &g_Config;
-		GameInfo.m_pTuning = GlobalTuning();
+		GameInfo.m_pTuning = GlobalTuning(DefaultMapIndex);
 		GameInfo.m_pUuids = &g_UuidManager;
 
 		GameInfo.m_pMapName = Map()->BaseName();
@@ -4500,7 +4517,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 				}
 				else if(GameIndex == TILE_NPC)
 				{
-					GlobalTuning()->Set("player_collision", 0);
+					GlobalTuning(MultiMapIdx)->Set("player_collision", 0);
 					dbg_msg("game_layer", "found no collision tile");
 				}
 				else if(GameIndex == TILE_EHOOK)
@@ -4515,7 +4532,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 				}
 				else if(GameIndex == TILE_NPH)
 				{
-					GlobalTuning()->Set("player_hooking", 0);
+					GlobalTuning(MultiMapIdx)->Set("player_hooking", 0);
 					dbg_msg("game_layer", "found no player hooking tile");
 				}
 				else if(GameIndex >= ENTITY_OFFSET)
@@ -4534,7 +4551,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 				}
 				else if(FrontIndex == TILE_NPC)
 				{
-					GlobalTuning()->Set("player_collision", 0);
+					GlobalTuning(MultiMapIdx)->Set("player_collision", 0);
 					dbg_msg("front_layer", "found no collision tile");
 				}
 				else if(FrontIndex == TILE_EHOOK)
@@ -4549,7 +4566,7 @@ void CGameContext::CreateAllEntities(bool Initial, int MultiMapIdx)
 				}
 				else if(FrontIndex == TILE_NPH)
 				{
-					GlobalTuning()->Set("player_hooking", 0);
+					GlobalTuning(MultiMapIdx)->Set("player_hooking", 0);
 					dbg_msg("front_layer", "found no player hooking tile");
 				}
 				else if(FrontIndex >= ENTITY_OFFSET)
@@ -4793,6 +4810,7 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	IMap *pMap = Map(MultiMapIdx);
 	int Start, Num;
 	pMap->GetType(MAPITEMTYPE_INFO, &Start, &Num);
+	Console()->SetMultiMapIndex(MultiMapIdx); // set map index for config execution
 	for(int i = Start; i < Start + Num; i++)
 	{
 		int ItemId;
@@ -4829,6 +4847,7 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	char aBuf[IO_MAX_PATH_LENGTH];
 	str_format(aBuf, sizeof(aBuf), "maps/%s.map.cfg", g_Config.m_SvMap);
 	Console()->ExecuteFile(aBuf, IConsole::CLIENT_ID_NO_GAME);
+	Console()->SetMultiMapIndex(-1); // reset to default
 }
 
 void CGameContext::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
@@ -4836,11 +4855,13 @@ void CGameContext::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 	// sixup should only snap during global snap
 	dbg_assert(!Server()->IsSixup(ClientId) || GlobalSnap, "sixup should only snap during global snap");
 
+	int MultiMapIndex = GetMultiMapIdx(ClientId);
+
 	// add tuning to demo
-	if(RecordingDemo && mem_comp(&CTuningParams::DEFAULT, &m_aTuningList[0], sizeof(CTuningParams)) != 0)
+	if(RecordingDemo && mem_comp(&CTuningParams::DEFAULT, GlobalTuning(MultiMapIndex), sizeof(CTuningParams)) != 0)
 	{
 		CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
-		int *pParams = (int *)&m_aTuningList[0];
+		int *pParams = (int *)GlobalTuning(MultiMapIndex);
 		for(int i = 0; i < CTuningParams::Num(); i++)
 			Msg.AddInt(pParams[i]);
 		Server()->SendMsg(&Msg, MSGFLAG_NOSEND, ClientId);
@@ -5236,14 +5257,14 @@ int CGameContext::GetDDRaceTeam(int ClientId) const
 	return m_pController->Teams().m_Core.Team(ClientId);
 }
 
-void CGameContext::ResetTuning()
+void CGameContext::ResetTuning(size_t MultiMapIndex)
 {
-	*GlobalTuning() = CTuningParams::DEFAULT;
-	GlobalTuning()->Set("gun_speed", 1400);
-	GlobalTuning()->Set("gun_curvature", 0);
-	GlobalTuning()->Set("shotgun_speed", 500);
-	GlobalTuning()->Set("shotgun_speeddiff", 0);
-	GlobalTuning()->Set("shotgun_curvature", 0);
+	*GlobalTuning(MultiMapIndex) = CTuningParams::DEFAULT;
+	GlobalTuning(MultiMapIndex)->Set("gun_speed", 1400);
+	GlobalTuning(MultiMapIndex)->Set("gun_curvature", 0);
+	GlobalTuning(MultiMapIndex)->Set("shotgun_speed", 500);
+	GlobalTuning(MultiMapIndex)->Set("shotgun_speeddiff", 0);
+	GlobalTuning(MultiMapIndex)->Set("shotgun_curvature", 0);
 	SendTuningParams(-1);
 }
 

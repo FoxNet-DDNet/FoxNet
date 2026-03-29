@@ -79,18 +79,21 @@ enum class EMapType
 	Casino,
 };
 
-
-	class CMultiMaps
+class CMultiMaps
 {
 public:
 	std::unique_ptr<IMap> m_pMap;
 	CLayers m_Layers;
 	CCollision m_Collision;
+	CTuningParams m_aTuningList[TuneZone::NUM];
 
 	EMapType m_MapType = EMapType::None;
 
 	bool m_CreatedEntities = false;
 	bool m_LoadedSwitchers = false;
+
+	// Needs GameContext and MultiMapIndex of this map to be initialized
+	void InitTuning(CGameContext *pGameContext, size_t MultiMapIndex);
 
 	void Init()
 	{
@@ -212,7 +215,6 @@ class CGameContext : public IGameServer
 	IAntibot *m_pAntibot;
 	protocol7::CNetObjHandler m_NetObjHandler7;
 	CNetObjHandler m_NetObjHandler;
-	CTuningParams m_aTuningList[TuneZone::NUM];
 	std::vector<std::string> m_vCensorlist;
 
 	bool m_TeeHistorianActive;
@@ -288,17 +290,17 @@ public:
 	IConsole *Console() { return m_pConsole; }
 	IEngine *Engine() { return m_pEngine; }
 	IStorage *Storage() { return m_pStorage; }
-	IMap *Map(size_t Idx = 0) override
+	IMap *Map(size_t MultiMapIdx = 0) override
 	{
-		if(Idx >= m_vMultiMaps.size())
+		if(MultiMapIdx >= m_vMultiMaps.size())
 			return m_vMultiMaps[DefaultMapIndex]->m_pMap.get();
-		return m_vMultiMaps[Idx]->m_pMap.get();
+		return m_vMultiMaps[MultiMapIdx]->m_pMap.get();
 	}
-	const IMap *Map(size_t Idx = 0) const override
+	const IMap *Map(size_t MultiMapIdx = 0) const override
 	{
-		if(Idx >= m_vMultiMaps.size())
+		if(MultiMapIdx >= m_vMultiMaps.size())
 			return m_vMultiMaps[DefaultMapIndex]->m_pMap.get();
-		return m_vMultiMaps[Idx]->m_pMap.get();
+		return m_vMultiMaps[MultiMapIdx]->m_pMap.get();
 	}
 	int GetMultiMapIdx(int ClientId) const override
 	{
@@ -309,15 +311,27 @@ public:
 		return m_apPlayers[ClientId]->MultiMapIdx();
 	}
 	// <FoxNet
-	CCollision *Collision(size_t Idx = 0)
+	CCollision *Collision(size_t MultiMapIdx = 0)
 	{
-		if(Idx >= m_vMultiMaps.size())
+		if(MultiMapIdx >= m_vMultiMaps.size())
 			return &m_vMultiMaps[DefaultMapIndex]->m_Collision;
-		return &m_vMultiMaps[Idx]->m_Collision;
+		return &m_vMultiMaps[MultiMapIdx]->m_Collision;
 	}
+
+	CTuningParams *GlobalTuning(size_t MultiMapIdx) 
+	{
+		if(MultiMapIdx >= m_vMultiMaps.size())
+			return &m_vMultiMaps[DefaultMapIndex]->m_aTuningList[0];
+		return &m_vMultiMaps[MultiMapIdx]->m_aTuningList[0];
+	}
+	CTuningParams *TuningList(size_t MultiMapIdx)
+	{ 
+		if(MultiMapIdx >= m_vMultiMaps.size())
+			return &m_vMultiMaps[DefaultMapIndex]->m_aTuningList[0];
+		return &m_vMultiMaps[MultiMapIdx]->m_aTuningList[0];
+	}
+
 	// FoxNet>
-	CTuningParams *GlobalTuning() { return &m_aTuningList[0]; }
-	CTuningParams *TuningList() { return m_aTuningList; }
 	IAntibot *Antibot() { return m_pAntibot; }
 	CTeeHistorian *TeeHistorian() { return &m_TeeHistorian; }
 	bool TeeHistorianActive() const { return m_TeeHistorianActive; }
@@ -369,6 +383,7 @@ public:
 	char m_aVoteReason[VOTE_REASON_LENGTH];
 	int m_NumVoteOptions;
 	int m_VoteEnforce;
+	// ToDo @qxdFox: make multi map compatible
 	char m_aaZoneEnterMsg[TuneZone::NUM][256]; // 0 is used for switching from or to area without tunings
 	char m_aaZoneLeaveMsg[TuneZone::NUM][256];
 
@@ -765,7 +780,9 @@ public:
 	void SendSaveCode(int Team, int TeamSize, int State, const char *pError, const char *pSaveRequester, const char *pServerName, const char *pGeneratedCode, const char *pCode);
 	void OnSetAuthed(int ClientId, int Level) override;
 
-	void ResetTuning();
+	void ResetTuning(size_t MultiMapIndex);
+
+	int ClientIdByName(const char *pName) const;
 	// <FoxNet
 	CScripting m_Scripting;
 	CAccounts m_AccountManager;
@@ -821,6 +838,7 @@ private:
 
 	void PowerUpSpawner();
 
+	// ToDo @qxdFox: Remove this and move to zones
 	void SnapDebuggedQuad(int ClientId);
 	void QuadDebugIds(bool Clear);
 	std::vector<int> m_vQuadDebugIds;
@@ -1035,8 +1053,6 @@ public:
 
 	bool SetPredictEventsFlag(int ClientId) const;
 	bool CanUseCmd(int ClientId, const char *pCmd);
-
-	int ClientIdByName(const char *pName) const;
 	// FoxNet>
 };
 

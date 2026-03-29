@@ -54,6 +54,48 @@
 #include <utility>
 #include <vector>
 
+void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
+{
+	// Global tuning = m_aTuningList[0]
+	// Tune zones = anything above index 0
+
+	for(int i = 0; i < TuneZone::NUM; i++)
+	{
+		m_aTuningList[i] = CTuningParams::DEFAULT;
+		m_aTuningList[i].Set("gun_curvature", 0);
+		m_aTuningList[i].Set("gun_speed", 1400);
+		m_aTuningList[i].Set("shotgun_curvature", 0);
+		m_aTuningList[i].Set("shotgun_speed", 500);
+		m_aTuningList[i].Set("shotgun_speeddiff", 0);
+	} 
+	
+	// Reset Tuning
+	if(g_Config.m_SvTuneReset)
+	{
+		pGameContext->ResetTuning(MultiMapIndex);
+	}
+	else
+	{
+		m_aTuningList[0].Set("gun_speed", 1400);
+		m_aTuningList[0].Set("gun_curvature", 0);
+		m_aTuningList[0].Set("shotgun_speed", 500);
+		m_aTuningList[0].Set("shotgun_speeddiff", 0);
+		m_aTuningList[0].Set("shotgun_curvature", 0);
+	}
+
+	if(g_Config.m_SvSoloServer)
+	{
+		m_aTuningList[0].Set("player_collision", 0);
+		m_aTuningList[0].Set("player_hooking", 0);
+
+		for(int i = 0; i < TuneZone::NUM; i++)
+		{
+			m_aTuningList[i].Set("player_collision", 0);
+			m_aTuningList[i].Set("player_hooking", 0);
+		}
+	}
+}
+
 void CGameContext::FoxNetTick()
 {
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
@@ -222,10 +264,14 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	}
 	log_info("multimap", "Map loaded: %s", aBuf);
 	pNewMap->Init();
+	pNewMap->InitTuning(this, m_vMultiMaps.size());
 	pNewMap->m_MapType = Type;
 	pNewMap->m_CreatedEntities = false;
 	pNewMap->m_LoadedSwitchers = false;
 	m_vMultiMaps.push_back(std::move(pNewMap));
+
+	
+	LoadMapSettings(m_vMultiMaps.size() - 1);
 
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(m_vMultiMaps.size() - 1);
@@ -1389,9 +1435,9 @@ void CGameContext::OnExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, i
 		l = 1 - std::clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
 		float Strength;
 		if(Owner == -1 || !m_apPlayers[Owner] || !m_apPlayers[Owner]->m_TuneZone)
-			Strength = GlobalTuning()->m_ExplosionStrength;
+			Strength = GlobalTuning(MultiMapIdx)->m_ExplosionStrength;
 		else
-			Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+			Strength = TuningList(MultiMapIdx)[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
 
 		float Dmg = Strength * l;
 		if(!(int)Dmg)

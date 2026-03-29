@@ -49,7 +49,8 @@ void CVUfo::SetActive(bool Active)
 	m_pCharacter->SetPosition(m_pCharacter->m_Pos);
 
 	int Zone = m_pCharacter->GetOverriddenTuneZone();
-	CTuningParams FakeTuning = Zone > 0 ? GameServer()->TuningList()[Zone] : *GameServer()->GlobalTuning();
+	size_t MultiMapIdx = m_pCharacter->MultiMapIdx();
+	CTuningParams FakeTuning = Zone > 0 ? GameServer()->TuningList(MultiMapIdx)[Zone] : *GameServer()->GlobalTuning(MultiMapIdx);
 
 	if(m_pCharacter->m_Snake.Active())
 		m_pCharacter->m_Snake.SetActive(false);

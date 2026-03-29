@@ -62,9 +62,9 @@ public: // TODO: Maybe make protected
 	/* Objects */
 	std::vector<SSwitchers> &Switchers() { return m_pGameWorld->m_Core.m_vvSwitchers[MultiMapIdx()]; }
 	CGameWorld *GameWorld() { return m_pGameWorld; }
-	CTuningParams *GlobalTuning() { return &GameWorld()->TuningList()[0]; }
-	CTuningParams *TuningList() { return GameWorld()->TuningList(); }
-	CTuningParams *GetTuning(int i) { return GameWorld()->GetTuning(i); }
+	CTuningParams *GlobalTuning() { return &GameWorld()->TuningList(MultiMapIdx())[0]; }
+	CTuningParams *TuningList() { return GameWorld()->TuningList(MultiMapIdx()); }
+	CTuningParams *GetTuning(int i) { return GameWorld()->GetTuning(MultiMapIdx(), i); }
 	class CConfig *Config() { return m_pGameWorld->Config(); }
 	class CGameContext *GameServer() { return m_pGameWorld->GameServer(); }
 	class IServer *Server() { return m_pGameWorld->Server(); }

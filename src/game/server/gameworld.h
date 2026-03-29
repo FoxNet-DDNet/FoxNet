@@ -65,10 +65,10 @@ private:
 	class CGameContext *m_pGameServer;
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
-	CTuningParams *m_pTuningList;
 
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
+	const class CGameContext *GameServer() const { return m_pGameServer; } // FoxNet
 	class CConfig *Config() { return m_pConfig; }
 	class IServer *Server() { return m_pServer; }
 
@@ -80,7 +80,6 @@ public:
 	~CGameWorld();
 
 	void SetGameServer(CGameContext *pGameServer);
-	void Init(CTuningParams *pTuningList);
 	void InitSwitchers(int HighestSwitchNumber, int MultiMapIdx);
 
 	CEntity *FindFirst(int Type);
@@ -221,19 +220,19 @@ public:
 	*/
 	std::vector<CCharacter *> IntersectedCharacters(vec2 Pos0, vec2 Pos1, float Radius, const CEntity *pNotThis = nullptr);
 
-	const CTuningParams *TuningList() const { return m_pTuningList; }
-	CTuningParams *TuningList() { return m_pTuningList; }
-	const CTuningParams *GetTuning(int i) const { return &TuningList()[i]; }
-	CTuningParams *GetTuning(int i) { return &TuningList()[i]; }
-
 	// <FoxNet
+	CTuningParams *TuningList(size_t MultiMapIdx);
+	CTuningParams *GetTuning(size_t MultiMapIdx, int i);
+	const CTuningParams *TuningList(size_t MultiMapIdx) const;
+	const CTuningParams *GetTuning(size_t MultiMapIdx, int i) const;
+
 	void RemoveEntities(int Type);
 	std::vector<CEntity *> FindEntitiesWithOwner(int Type, int Owner) const;
 	std::vector<CEntity *> EntitiesOfType(int Type, const CEntity *pNotThis = nullptr) const;
 	CEntity *FindEntityOnMap(int Type, int MapIdx, const CEntity *pNotThis = nullptr);
 	void DestroyEntitiesOfMap(int MultiMapIdx);
 
-	// FoxNet
+	// FoxNet>
 };
 
 #endif

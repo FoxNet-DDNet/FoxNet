@@ -83,6 +83,7 @@ public:
 		// <FoxNet
 		virtual int64_t GetInteger64(unsigned Index) const = 0;
 		virtual const char *GetCommand() const = 0;
+		virtual int GetMultiMapIndex() const = 0;
 		virtual void SetVictimAddrStr(const char *pAddrStr) = 0;
 		virtual const char *GetVictimAddrStr() const = 0;
 		// FoxNet>
@@ -162,6 +163,7 @@ public:
 	virtual void SetFlagMask(int FlagMask) = 0;
 	// <FoxNet
 	virtual bool ExecuteBansFile() = 0;
+	virtual void SetMultiMapIndex(int MultiMapIndex) = 0;
 	// FoxNet>
 };
 

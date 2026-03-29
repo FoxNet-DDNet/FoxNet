@@ -45,10 +45,6 @@ void CGameWorld::SetGameServer(CGameContext *pGameServer)
 	m_pServer = m_pGameServer->Server();
 }
 
-void CGameWorld::Init(CTuningParams *pTuningList)
-{
-	m_pTuningList = pTuningList;
-}
 void CGameWorld::InitSwitchers(int HighestSwitchNumber, int MultiMapIdx)
 {
 	m_Core.InitSwitchers(HighestSwitchNumber, MultiMapIdx);
@@ -405,6 +401,24 @@ void CGameWorld::ReleaseHooked(int ClientId)
 }
 
 // <FoxNet
+CTuningParams *CGameWorld::TuningList(size_t MultiMapIdx)
+{
+	return GameServer()->TuningList(MultiMapIdx);
+}
+CTuningParams *CGameWorld::GetTuning(size_t MultiMapIdx, int i)
+{
+	return &TuningList(MultiMapIdx)[i];
+}
+const CTuningParams *CGameWorld::TuningList(size_t MultiMapIdx) const
+{
+	return TuningList(MultiMapIdx);
+}
+const CTuningParams *CGameWorld::GetTuning(size_t MultiMapIdx, int i) const
+{
+	return &TuningList(MultiMapIdx)[i];
+}
+
+
 void CGameWorld::RemoveEntities(int Type)
 {
 	for(auto *pEnt : m_apFirstEntityTypes)

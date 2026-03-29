@@ -121,7 +121,9 @@ class CConsole : public IConsole
 		int m_VictimHighest;
 
 		// This is really fucking ugly but its the easiest solution I came up with ngl
+		int m_MultiMapIndex;
 		const char *m_pVictimAddrStr;
+		int GetMultiMapIndex() const override { return m_MultiMapIndex; }
 		void SetVictimAddrStr(const char *pAddrStr) override;
 		const char *GetVictimAddrStr() const override;
 		// FoxNet>
@@ -184,6 +186,8 @@ class CConsole : public IConsole
 
 	bool m_Cheated;
 
+	int m_MultiMapIndex = -1; // FoxNet
+
 public:
 	CConsole(int FlagMask);
 	~CConsole() override;
@@ -243,6 +247,8 @@ public:
 
 	// <FoxNet
 	bool ExecuteBansFile() override;
+	void SetMultiMapIndex(int MultiMapIndex) override { m_MultiMapIndex = MultiMapIndex; }
+	// FoxNet>
 };
 
 #endif

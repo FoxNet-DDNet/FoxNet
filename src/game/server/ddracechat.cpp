@@ -95,6 +95,11 @@ void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConSettings(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	// FoxNet>
 
 	if(pResult->NumArguments() == 0)
 	{
@@ -108,8 +113,8 @@ void CGameContext::ConSettings(IConsole::IResult *pResult, void *pUserData)
 		char aBuf[256];
 		float ColTemp;
 		float HookTemp;
-		pSelf->GlobalTuning()->Get("player_collision", &ColTemp);
-		pSelf->GlobalTuning()->Get("player_hooking", &HookTemp);
+		pSelf->GlobalTuning(MultiMapIndex)->Get("player_collision", &ColTemp);
+		pSelf->GlobalTuning(MultiMapIndex)->Get("player_hooking", &HookTemp);
 		if(str_comp_nocase(pArg, "teams") == 0)
 		{
 			str_format(aBuf, sizeof(aBuf), "%s %s",

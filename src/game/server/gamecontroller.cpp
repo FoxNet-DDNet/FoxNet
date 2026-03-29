@@ -110,7 +110,6 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int ClientI
 
 void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType, int ClientId)
 {
-	const bool PlayerCollision = GameServer()->GlobalTuning()->m_PlayerCollision;
 
 	bool PlayerCollisionDisabled = false;
 	CCharacter *pPlayerCharacter = GameServer()->GetPlayerChar(ClientId);
@@ -119,13 +118,15 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, ESpawnType SpawnType,
 
 	// make sure players keep spawning at the same tile
 	// on race maps no matter what
-	if(!PlayerCollision && pEval->m_Got)
-		return;
 
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 	const int MultiMapIdx = pPlayer->MultiMapIdx();
+	const bool PlayerCollision = GameServer()->GlobalTuning(MultiMapIdx)->m_PlayerCollision;
+
+	if(!PlayerCollision && pEval->m_Got)
+		return;
 
 	if(SpawnType < 0 || SpawnType >= NUM_SPAWNTYPES)
 		return;

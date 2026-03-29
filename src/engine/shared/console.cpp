@@ -36,6 +36,8 @@ CConsole::CResult::CResult(int ClientId) :
 	m_pArgsStart = nullptr;
 	m_pCommand = nullptr;
 	std::fill(std::begin(m_apArgs), std::end(m_apArgs), nullptr);
+	ResetVictim();
+	m_MultiMapIndex = -1;
 }
 
 CConsole::CResult::CResult(const CResult &Other) :
@@ -585,68 +587,93 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 						else
 							log_info("chatresp", "Invalid arguments. Usage: %s %s", pCommand->m_pName, pCommand->m_pParams);
 					}
-					else if(m_StoreCommands && pCommand->m_Flags & CFGFLAG_STORE)
-					{
-						m_vExecutionQueue.emplace_back(pCommand, Result);
-					}
 					else
 					{
-						if(pCommand->m_Flags & CMDFLAG_TEST && !g_Config.m_SvTestingCommands)
-						{
-							Print(OUTPUT_LEVEL_STANDARD, "console", "Test commands aren't allowed, enable them with 'sv_test_cmds 1' in your initial config.");
-							return;
-						}
+						FCommandCallback pfnResolvedCallback = pCommand->m_pfnCallback;
+						void *pResolvedUserData = pCommand->m_pUserData;
+						TraverseChain(&pfnResolvedCallback, &pResolvedUserData);
+						(void)pResolvedUserData;
 
-						if(m_pfnTeeHistorianCommandCallback && !(pCommand->m_Flags & CFGFLAG_NONTEEHISTORIC))
-						{
-							m_pfnTeeHistorianCommandCallback(ClientId, m_FlagMask, pCommand->m_pName, &Result, m_pTeeHistorianCommandUserdata);
-						}
+						const bool IsConfigVariable =
+							pfnResolvedCallback == SIntConfigVariable::CommandCallback ||
+							pfnResolvedCallback == SColorConfigVariable::CommandCallback ||
+							pfnResolvedCallback == SStringConfigVariable::CommandCallback;
 
-						if(Result.GetVictim() == CResult::VICTIM_ME)
-							Result.SetVictim(ClientId);
-
-						if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_ALL)
+						if(m_MultiMapIndex > 0 && IsConfigVariable && Result.NumArguments() > 0)
 						{
-							for(int i = 0; i < MAX_CLIENTS; i++)
+							if(Stroke)
 							{
-								Result.SetVictim(i);
-								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+								// ToDo @qxdFox: somehow add config variables per map
+								log_info("console", "Config variable '%s' cannot be changed for multimap index %d.", pCommand->m_pName, m_MultiMapIndex);
 							}
 						}
-						// <FoxNet
-						else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_OTHERS)
+						else if(m_StoreCommands && pCommand->m_Flags & CFGFLAG_STORE)
 						{
-							for(int i = 0; i < MAX_CLIENTS; i++)
-							{
-								if(i == ClientId)
-									continue;
-
-								Result.SetVictim(i);
-								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
-							}
+							m_vExecutionQueue.emplace_back(pCommand, Result);
 						}
-						else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_RANGE)
-						{
-							for(int i = 0; i < MAX_CLIENTS; i++)
-							{
-								if(i == ClientId)
-									continue;
-
-								if(i < Result.m_VictimLowest || i > Result.m_VictimHighest)
-									continue;
-
-								Result.SetVictim(i);
-								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
-							}
-						}
-						// FoxNet>
 						else
 						{
-							pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
-						}
+							if(pCommand->m_Flags & CMDFLAG_TEST && !g_Config.m_SvTestingCommands)
+							{
+								Print(OUTPUT_LEVEL_STANDARD, "console", "Test commands aren't allowed, enable them with 'sv_test_cmds 1' in your initial config.");
+								return;
+							}
 
-						if(pCommand->m_Flags & CMDFLAG_TEST)
-							m_Cheated = true;
+							if(m_pfnTeeHistorianCommandCallback && !(pCommand->m_Flags & CFGFLAG_NONTEEHISTORIC))
+							{
+								m_pfnTeeHistorianCommandCallback(ClientId, m_FlagMask, pCommand->m_pName, &Result, m_pTeeHistorianCommandUserdata);
+							}
+
+							// <FoxNet
+							if(m_MultiMapIndex >= 0)
+								Result.m_MultiMapIndex = m_MultiMapIndex;
+
+							if(Result.GetVictim() == CResult::VICTIM_ME)
+								Result.SetVictim(ClientId);
+
+							if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_ALL)
+							{
+								for(int i = 0; i < MAX_CLIENTS; i++)
+								{
+									Result.SetVictim(i);
+									pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+								}
+							}
+							// <FoxNet
+							else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_OTHERS)
+							{
+								for(int i = 0; i < MAX_CLIENTS; i++)
+								{
+									if(i == ClientId)
+										continue;
+
+									Result.SetVictim(i);
+									pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+								}
+							}
+							else if(Result.HasVictim() && Result.GetVictim() == CResult::VICTIM_RANGE)
+							{
+								for(int i = 0; i < MAX_CLIENTS; i++)
+								{
+									if(i == ClientId)
+										continue;
+
+									if(i < Result.m_VictimLowest || i > Result.m_VictimHighest)
+										continue;
+
+									Result.SetVictim(i);
+									pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+								}
+							}
+							// FoxNet>
+							else
+							{
+								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+							}
+
+							if(pCommand->m_Flags & CMDFLAG_TEST)
+								m_Cheated = true;
+						}
 					}
 				}
 			}

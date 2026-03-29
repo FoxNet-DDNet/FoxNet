@@ -161,7 +161,7 @@ void CLaser::DoBounce()
 			}
 			else
 			{
-				m_Energy -= Distance + GameServer()->TuningList()[m_TuneZone].m_LaserBounceCost;
+				m_Energy -= Distance + TuningList()[m_TuneZone].m_LaserBounceCost;
 			}
 			m_ZeroEnergyBounceInLastTick = Distance == 0.0f;
 
