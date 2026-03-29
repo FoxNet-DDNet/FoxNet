@@ -298,6 +298,8 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 			CPlayer *pPlayer = m_apPlayers[ClientId];
 			if(!pPlayer)
 				continue;
+			if(pPlayer->MultiMapIdx() != Idx)
+				continue;
 			pPlayer->SendToMap(DefaultMapIndex);
 		}
 
