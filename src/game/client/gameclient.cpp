@@ -4697,16 +4697,8 @@ void CGameClient::LoadMapSettings()
 		char *pNext = pSettings;
 		Console()->SetUnknownCommandCallback(UnknownMapSettingCallback, nullptr);
 
-		g_Config.m_SvMovingTiles = false;
-		g_Config.m_SvTeleGrenade = false;
-
 		while(pNext < pSettings + Size)
 		{
-			if(str_find(pNext, "sv_kog_qquads_enable 1"))
-				g_Config.m_SvMovingTiles = true;
-			if(str_find(pNext, "sv_kog_grenade_tele 1"))
-				g_Config.m_SvTeleGrenade = true;
-
 			int StrSize = str_length(pNext) + 1;
 			Console()->ExecuteLine(pNext, IConsole::CLIENT_ID_GAME);
 			pNext += StrSize;

@@ -411,13 +411,12 @@ CTuningParams *CGameWorld::GetTuning(size_t MultiMapIdx, int i)
 }
 const CTuningParams *CGameWorld::TuningList(size_t MultiMapIdx) const
 {
-	return TuningList(MultiMapIdx);
+	return const_cast<CGameContext *>(GameServer())->TuningList(MultiMapIdx);
 }
 const CTuningParams *CGameWorld::GetTuning(size_t MultiMapIdx, int i) const
 {
 	return &TuningList(MultiMapIdx)[i];
 }
-
 
 void CGameWorld::RemoveEntities(int Type)
 {

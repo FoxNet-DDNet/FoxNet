@@ -177,7 +177,6 @@ private:
 	bool m_HasSolidQuads = false;
 	std::vector<CQuadData> m_vQuads;
 	std::vector<CQuadData> m_vNextQuads;
-
 public:
 	const std::vector<CQuadData> &Quads() const { return m_vQuads; }
 
@@ -197,7 +196,6 @@ public:
 
 	int PosToIndex(vec2 Pos) const;
 	vec2 IndexToPos(int Index) const;
-
 	// FoxNet>
 };
 

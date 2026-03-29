@@ -31,6 +31,8 @@ void CCheckpointFromZone::OnTick()
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr->IsAlive())
 				continue;
+			if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
+				continue;
 			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
 			if(!InsideQuad(pChr->GetPos(), Points, vec2(0, 0)))
 				continue;
@@ -40,6 +42,8 @@ void CCheckpointFromZone::OnTick()
 		for(CEntity *pEnt : apEnts)
 		{
 			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
+				continue;
+			if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
 				continue;
 
 			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};

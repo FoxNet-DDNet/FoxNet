@@ -21,10 +21,12 @@ void CFreezeZone::OnTick()
 			if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
 				continue;
 			CCharacter *pChr = pPlayer->GetCharacter();
+			pChr->m_InsideQuadFreeze = false;
+
+			if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
+				continue;
 			if(!pChr->IsAlive())
 				continue;
-
-			pChr->m_InsideQuadFreeze = false;
 			if(pChr->Core()->m_IsInFreeze)
 				continue;
 

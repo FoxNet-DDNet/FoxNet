@@ -585,8 +585,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> vec2 {
 		vec2 Delta = vec2(0, 0);
-		if(!g_Config.m_SvMovingTiles)
-			return Delta;
+		//if(!g_Config.m_SvMovingTiles)
+		//	return Delta;
 		if(!m_HasSolidQuads)
 			return Delta;
 		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
@@ -1571,8 +1571,8 @@ void CCollision::UnloadQuads()
 
 void CCollision::UpdateQuads(float Time)
 {	
-	if(!g_Config.m_SvMovingTiles)
-		return;
+	//if(!g_Config.m_SvMovingTiles)
+	//	return;
 
 	auto GetAnimationTransform = [this, Time](float Offset, int Env, vec2 &Position, float &Angle) {
 		Position.x = 0.0f;

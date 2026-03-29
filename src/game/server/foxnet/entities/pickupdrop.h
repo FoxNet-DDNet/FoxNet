@@ -51,6 +51,7 @@ public:
 	void SetRawVelocity(vec2 Vel) override { m_Vel = Vel; }
 	const vec2 &GetVelocity() const override { return m_Vel; }
 	void ForceSetPos(vec2 Pos) override;
+	int TuneZone() const override { return m_TuneZone; }
 
 	CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 

@@ -671,7 +671,7 @@ void CCharacter::FireWeapon()
 	case WEAPON_GRENADE:
 	{
 		// <FoxNet
-		if(g_Config.m_SvTeleGrenade) // KoG Compatibility
+		if(GetTuning(GetOverriddenTuneZone())->m_TeleGrenade) // KoG Compatibility
 		{
 			bool Teleported = false;
 			std::vector<CEntity *> vpEntities = GameWorld()->FindEntitiesWithOwner(CGameWorld::ENTTYPE_PROJECTILE, GetPlayer()->GetCid());

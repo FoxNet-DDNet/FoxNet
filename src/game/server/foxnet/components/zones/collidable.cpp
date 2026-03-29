@@ -166,6 +166,8 @@ void CCollidableZone::HandleCharacters()
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr->IsAlive())
 			continue;
+		if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
+			continue;
 
 		if(!Quads().empty())
 		{
@@ -201,6 +203,8 @@ void CCollidableZone::HandlePickups()
 	for(CEntity *pEnt : apEnts)
 	{
 		if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
+			continue;
+		if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
 			continue;
 
 		if(!Quads().empty())

@@ -66,9 +66,11 @@ MACRO_CONFIG_INT(SvQuietJoin, sv_quiet_join, 0, 0, 1, CFGFLAG_SERVER, "Whether t
 MACRO_CONFIG_STR(SvQuietJoinPassword, sv_quiet_join_password, 128, "", CFGFLAG_SERVER, "Password if QuietJoin is enabled")
 
 // Quads
-MACRO_CONFIG_INT(SvMovingTiles, sv_moving_tiles, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use moving tiles using quads or not")
+// MACRO_CONFIG_INT(SvMovingTiles, sv_moving_tiles, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use moving tiles using quads or not")
+
 MACRO_CONFIG_INT(SvMovingTilesStopTime, sv_moving_tiles_stop_time, 0, 0, 1, CFGFLAG_SERVER, "Stops every quad")
-MACRO_CONFIG_INT(SvTeleGrenade, sv_tele_grenade, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use tele grenade")
+
+// MACRO_CONFIG_INT(SvTeleGrenade, sv_tele_grenade, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to use tele grenade")
 
 MACRO_CONFIG_INT(SvInstantCoreUpdate, sv_instant_core_update, 0, 0, 1, CFGFLAG_SERVER, "Sends Info about a player every tick, even if not doing anything")
 MACRO_CONFIG_INT(SvDebugQuadPos, sv_debug_quad_pos, 0, 0, 1, CFGFLAG_SERVER, "Shows interactive quad positions using lasers")
