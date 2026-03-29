@@ -1712,7 +1712,7 @@ void CGameContext::ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserDat
 	pSelf->CreateSoundGlobal(Sound);
 }
 
-void CGameContext::ConLoadMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConLoadMulitMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(pResult->NumArguments() != 2)
@@ -1731,27 +1731,65 @@ void CGameContext::ConLoadMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->LoadMapByName(pMapName, Type);
 }
 
-void CGameContext::ConUnloadMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConUnloadMulitMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pMapName = pResult->GetString(0);
-	if(!pMapName[0])
-		return;
+	char aMapName[IO_MAX_PATH_LENGTH];
+	if(pResult->NumArguments())
+	{
+		str_copy(aMapName, pResult->GetString(0), sizeof(aMapName));
+	}
+	else
+	{
+		int UserId = pResult->m_ClientId;
+		if(CheckClientId(UserId) && !pSelf->Server()->ClientSlotEmpty(UserId))
+		{
+			int MultiMapIndex = pSelf->GetMultiMapIdx(UserId);
+			if(MultiMapIndex > DefaultMapIndex)
+				str_copy(aMapName, pSelf->m_vMultiMaps[MultiMapIndex]->m_pMap->BaseName(), sizeof(aMapName));
+		}
+	}
 
-	pSelf->UnloadMapByName(pMapName);
+	pSelf->UnloadMapByName(aMapName);
 }
 
-void CGameContext::ConReloadMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConReloadMulitMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	const char *pMapName = pResult->GetString(0);
-	if(!pMapName[0])
-		return;
+	char aMapName[IO_MAX_PATH_LENGTH];
+	if(pResult->NumArguments())
+	{
+		str_copy(aMapName, pResult->GetString(0), sizeof(aMapName));
+	}
+	else
+	{
+		int UserId = pResult->m_ClientId;
+		if(CheckClientId(UserId) && !pSelf->Server()->ClientSlotEmpty(UserId))
+		{
+			int MultiMapIndex = pSelf->GetMultiMapIdx(UserId);
+			if(MultiMapIndex > DefaultMapIndex)
+			{
+				str_copy(aMapName, pSelf->m_vMultiMaps[MultiMapIndex]->m_pMap->BaseName(), sizeof(aMapName));
+			}
+		}
 
-	pSelf->ReloadMapByName(pMapName);
+		pSelf->ReloadMapByName(aMapName);
+	}
 }
 
-void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::ConListMultiMaps(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int Idx = 0;
+	for(const auto &MultiMap : pSelf->m_vMultiMaps)
+	{
+		const char *pMapName = MultiMap->m_pMap->BaseName();
+		log_info("multimap", "%d: %s (Type: %d)", Idx, pMapName, (int)MultiMap->m_MapType);
+		Idx++;	
+	}
+}
+
+void CGameContext::ConSendToMulitMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
@@ -1871,12 +1909,13 @@ void CGameContext::ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::RegisterFoxNetCommands()
 {
 	// MultiMaps
-	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMap, this, "Load a map of type (leave empty for help text)");
-	Console()->Register("unload_map", "r[map-name]", CFGFLAG_SERVER, ConUnloadMap, this, "Unload a map by name");
-	Console()->Register("reload_map", "r[map-name]", CFGFLAG_SERVER, ConReloadMap, this, "Reload a map by name");
+	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMulitMap, this, "Load a map of type (leave empty for help text)");
+	Console()->Register("unload_map", "?r[map-name]", CFGFLAG_SERVER, ConUnloadMulitMap, this, "Unload a map by name");
+	Console()->Register("reload_map", "?r[map-name]", CFGFLAG_SERVER, ConReloadMulitMap, this, "Reload a map by name");
+	Console()->Register("list_maps", "", CFGFLAG_SERVER, ConListMultiMaps, this, "Reload a map by name");
 	
 	Console()->Register("send_to_main_map", "?v[id]", CFGFLAG_SERVER, ConMainMap, this, "Send player to the main map");
-	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send player to a different loaded map");
+	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMulitMap, this, "Send player to a different loaded map");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");
 

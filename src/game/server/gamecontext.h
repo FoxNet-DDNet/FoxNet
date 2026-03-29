@@ -984,11 +984,12 @@ private:
 
 	static void ConPlaySoundGlobal(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConLoadMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConUnloadMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConReloadMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConLoadMulitMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConUnloadMulitMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConReloadMulitMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConListMultiMaps(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConSendToMulitMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData);
