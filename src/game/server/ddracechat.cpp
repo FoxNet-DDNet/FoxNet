@@ -1118,7 +1118,7 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		log_info("chatresp", "%s", aBuf);
 	}
 	// <FoxNet
-	else if(Team != TEAM_FLOCK && (TeamMultiMapIdx != pPlayer->MultiMapIdx() && m_pController->Teams().Count(Team) > 0) && !g_Config.m_SvMultimapAllowInteraction)
+	else if(Team != TEAM_FLOCK && (TeamMultiMapIdx != pPlayer->MultiMapIdx() && m_pController->Teams().TeamSize(Team) > 0) && !g_Config.m_SvMultimapAllowInteraction)
 	{
 		char aMapName[32] = "unknown";
 

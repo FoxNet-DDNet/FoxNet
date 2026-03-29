@@ -572,11 +572,11 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size, const CQuadData **ppHitQuad) const
 	return false;
 }
 
-bool CCollision::IsOnGround(vec2 Pos, float Size) const
+bool CCollision::IsOnGround(vec2 Pos, float Size, const CQuadData **ppHitQuad) const
 {
-	if(CheckPoint(Pos.x + Size / 2, Pos.y + Size / 2 + 5))
+	if(CheckPoint(Pos.x + Size / 2, Pos.y + Size / 2 + 5, ppHitQuad))
 		return true;
-	if(CheckPoint(Pos.x - Size / 2, Pos.y + Size / 2 + 5))
+	if(CheckPoint(Pos.x - Size / 2, Pos.y + Size / 2 + 5, ppHitQuad))
 		return true;
 
 	return false;
