@@ -834,6 +834,7 @@ private:
 	// Multimaps
 	void LoadMapByName(const char *pMapName, EMapType Type);
 	void UnloadMapByName(const char *pMapName);
+	void ReloadMapByName(const char *pMapName);
 	void UnloadMapsAll();
 
 	void PowerUpSpawner();
@@ -980,6 +981,8 @@ private:
 
 	static void ConLoadMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnloadMap(IConsole::IResult *pResult, void *pUserData);
+	static void ConReloadMap(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConSendToMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConCasino(IConsole::IResult *pResult, void *pUserData);
 	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);

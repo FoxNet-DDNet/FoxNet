@@ -1741,6 +1741,16 @@ void CGameContext::ConUnloadMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->UnloadMapByName(pMapName);
 }
 
+void CGameContext::ConReloadMap(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pMapName = pResult->GetString(0);
+	if(!pMapName[0])
+		return;
+
+	pSelf->ReloadMapByName(pMapName);
+}
+
 void CGameContext::ConSendToMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1827,9 +1837,12 @@ void CGameContext::ConMainMap(IConsole::IResult *pResult, void *pUserData)
 
 void CGameContext::RegisterFoxNetCommands()
 {
+	// MultiMaps
 	Console()->Register("load_map", "?i[type] ?r[map-name]", CFGFLAG_SERVER, ConLoadMap, this, "Load a map of type (leave empty for help text)");
 	Console()->Register("unload_map", "r[map-name]", CFGFLAG_SERVER, ConUnloadMap, this, "Unload a map by name");
-
+	Console()->Register("reload_map", "r[map-name]", CFGFLAG_SERVER, ConReloadMap, this, "Reload a map by name");
+	
+	Console()->Register("send_to_main_map", "?v[id]", CFGFLAG_SERVER, ConMainMap, this, "Send player to the main map");
 	Console()->Register("send_to_map", "v[id] r[map-name]", CFGFLAG_SERVER, ConSendToMap, this, "Send player to a different loaded map");
 
 	Console()->Register("playsound", "?i[sound_id]", CFGFLAG_SERVER, ConPlaySoundGlobal, this, "Play a sound globally for everyone");

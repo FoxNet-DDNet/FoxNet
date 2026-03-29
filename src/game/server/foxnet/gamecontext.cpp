@@ -276,6 +276,7 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(m_vMultiMaps.size() - 1);
 }
+
 void CGameContext::UnloadMapByName(const char *pMapName)
 {
 	auto it = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const auto &pMapOverride) {
@@ -310,6 +311,97 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 	else
 		log_error("multimap", "Failed to unload map '%s': not found", pMapName);
 }
+
+void CGameContext::ReloadMapByName(const char *pMapName)
+{
+	auto It = std::find_if(m_vMultiMaps.begin(), m_vMultiMaps.end(), [pMapName](const auto &pMapOverride) {
+		return pMapOverride && pMapOverride->m_pMap && str_comp(pMapOverride->m_pMap->BaseName(), pMapName) == 0;
+	});
+
+	if(It == m_vMultiMaps.end())
+	{
+		log_error("multimap", "Failed to reload map '%s': not found", pMapName);
+		return;
+	}
+
+	const int Idx = std::distance(m_vMultiMaps.begin(), It);
+	if(Idx == DefaultMapIndex)
+	{
+		log_error("multimap", "Failed to reload map '%s': cannot reload default map", pMapName);
+		return;
+	}
+
+	const EMapType Type = (*It)->m_MapType;
+
+	std::unique_ptr<CMultiMaps> pReloadedMap = std::make_unique<CMultiMaps>();
+	pReloadedMap->m_pMap = CreateMap();
+
+	char aBuf[IO_MAX_PATH_LENGTH];
+	str_format(aBuf, sizeof(aBuf), "maps/%s.map", pMapName);
+	if(!str_valid_filename(fs_filename(aBuf)))
+	{
+		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
+		return;
+	}
+	if(!pReloadedMap->m_pMap->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
+	{
+		log_error("multimap", "Failed to reload map '%s'", aBuf);
+		return;
+	}
+
+	bool aWasOnMap[MAX_CLIENTS] = {false};
+
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		if(Server()->ClientSlotEmpty(ClientId))
+			continue;
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+
+		if(pPlayer->MultiMapIdx() == Idx)
+		{
+			aWasOnMap[ClientId] = true;
+			pPlayer->SendToMap(DefaultMapIndex);
+		}
+	}
+
+	m_pController->ClearSpawnPoints(Idx);
+	m_World.DestroyEntitiesOfMap(Idx);
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnMapUnload(Idx);
+
+	(*It)->Unload();
+
+	pReloadedMap->Init();
+	m_vMultiMaps[Idx] = std::move(pReloadedMap);
+	m_vMultiMaps[Idx]->m_MapType = Type;
+	m_vMultiMaps[Idx]->m_CreatedEntities = false;
+	m_vMultiMaps[Idx]->m_LoadedSwitchers = false;
+	m_vMultiMaps[Idx]->InitTuning(this, Idx);
+
+	LoadMapSettings(Idx);
+
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnMapLoad(Idx);
+
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		if(!aWasOnMap[ClientId])
+			continue;
+
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+
+		if(!pPlayer->SendToMap(Idx))
+			log_error("multimap", "Failed to send client %d back to reloaded map '%s'", ClientId, pMapName);
+	}
+
+	log_info("multimap", "Map reloaded of type %d: %s", (int)Type, pMapName);
+}
+
 void CGameContext::UnloadMapsAll()
 {
 	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)

@@ -3644,12 +3644,25 @@ void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConHotReload(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
+	// <FoxNet
+	int MultiMapIndex = pResult->GetMultiMapIndex();
+	if(MultiMapIndex < 0)
+		MultiMapIndex = pSelf->GetMultiMapIdx(pResult->m_ClientId);
+	if(MultiMapIndex != DefaultMapIndex)
+	{
+		log_info("server", "hot reload is only supported for the default map");
+		return;
+	}
+	// FoxNet>
+
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		if(!pSelf->GetPlayerChar(i))
 			continue;
 
 		CCharacter *pChar = pSelf->GetPlayerChar(i);
+		if(pChar->MultiMapIdx() != DefaultMapIndex)
+			continue;
 
 		// Save the tee individually
 		pSelf->m_apSavedTees[i] = new CSaveHotReloadTee();
