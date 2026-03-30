@@ -4871,7 +4871,7 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	}
 
 	char aBuf[IO_MAX_PATH_LENGTH];
-	str_format(aBuf, sizeof(aBuf), "maps/%s.map.cfg", g_Config.m_SvMap);
+	str_format(aBuf, sizeof(aBuf), "maps/%s.map.cfg", pMap->BaseName());
 	Console()->ExecuteFile(aBuf, IConsole::CLIENT_ID_NO_GAME);
 	Console()->SetMultiMapIndex(-1); // reset to default
 }

@@ -1270,7 +1270,8 @@ bool CPlayer::SendToMap(int Idx)
 		pChr->Die(-1, WEAPON_GAME);
 	}
 
-	GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");
+	if(MultiMapIdx() != DefaultMapIndex)
+		GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");
 
 	return true;
 }
