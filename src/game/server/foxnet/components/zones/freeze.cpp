@@ -11,6 +11,9 @@
 
 void CFreezeZone::OnTick()
 {
+	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
+		return;
+
 	for(const CQuadData &QuadData : Quads())
 	{
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
@@ -23,8 +26,6 @@ void CFreezeZone::OnTick()
 			CCharacter *pChr = pPlayer->GetCharacter();
 			pChr->m_InsideQuadFreeze = false;
 
-			if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
-				continue;
 			if(!pChr->IsAlive())
 				continue;
 			if(pChr->Core()->m_IsInFreeze)

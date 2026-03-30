@@ -11,8 +11,10 @@
 
 void CUnfreezeZone::OnTick()
 {
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
+		return;
 
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer || !pPlayer->GetCharacter())
@@ -21,8 +23,6 @@ void CUnfreezeZone::OnTick()
 			continue;
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr->IsAlive())
-			continue;
-		if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
 			continue;
 
 		if(pChr->Core()->m_IsInFreeze)

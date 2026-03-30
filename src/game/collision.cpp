@@ -595,8 +595,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CQuadData **ppHitQuad) -> vec2 {
 		vec2 Delta = vec2(0, 0);
-		//if(!g_Config.m_SvMovingTiles)
-		//	return Delta;
+		if(!m_UseMovingTiles)
+			return Delta;
 		if(!m_HasSolidQuads)
 			return Delta;
 		if(m_vQuads.empty() || m_vPrevQuads.size() != m_vQuads.size())
@@ -1581,10 +1581,12 @@ void CCollision::UnloadQuads()
 	m_vPrevQuads.clear();
 }
 
-void CCollision::UpdateQuads(float Time)
+void CCollision::UpdateQuads(bool UseMovingTiles, float Time)
 {
-	//if(!g_Config.m_SvMovingTiles)
-	//	return;
+	m_UseMovingTiles = UseMovingTiles;
+
+	if(!m_UseMovingTiles)
+		return;
 
 	auto GetAnimationTransform = [this, Time](float Offset, int Env, vec2 &Position, float &Angle) {
 		Position.x = 0.0f;
@@ -1733,6 +1735,9 @@ void CCollision::UpdateQuads(float Time)
 
 CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 {
+	if(!m_UseMovingTiles)
+		return nullptr;
+
 	for(const CQuadData &Quad : m_vQuads)
 	{
 		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
@@ -1743,6 +1748,9 @@ CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 
 const CQuadData *CCollision::ResolveCurrentQuad(const CQuadData *pQuad) const
 {
+	if(!m_UseMovingTiles)
+		return nullptr;
+
 	if(!pQuad || !pQuad->m_pQuad)
 		return nullptr;
 

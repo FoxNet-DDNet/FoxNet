@@ -100,7 +100,7 @@ void CGameContext::FoxNetTick()
 {
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
 	{
-		Collision(Idx)->UpdateQuads(m_pController->GetTime());
+		Collision(Idx)->UpdateQuads(GlobalTuning(Idx)->m_MovingTiles == 1.0f, m_pController->GetTime());
 	}
 
 	for(auto &pComponent : m_vpComponents)

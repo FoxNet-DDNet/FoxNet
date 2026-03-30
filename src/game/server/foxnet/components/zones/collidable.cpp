@@ -18,6 +18,8 @@
 
 void CCollidableZone::OnTick()
 {
+	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
+		return;
 	HandleCharacters();
 	HandlePickups();
 }
@@ -165,8 +167,6 @@ void CCollidableZone::HandleCharacters()
 			continue;
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr->IsAlive())
-			continue;
-		if(!pChr->GetTuning(pChr->GetOverriddenTuneZone())->m_MovingTiles)
 			continue;
 
 		if(!Quads().empty())

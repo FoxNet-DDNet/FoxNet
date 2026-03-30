@@ -178,13 +178,14 @@ private:
 	bool m_HasSolidQuads = false;
 	std::vector<CQuadData> m_vPrevQuads;
 	std::vector<CQuadData> m_vQuads;
-	// std::vector<CQuadData> m_vNextQuads;
+
+	bool m_UseMovingTiles = false;
 
 public:
 	const std::vector<CQuadData> &Quads() const { return m_vQuads; }
 
 	void InitQuads();
-	void UpdateQuads(float Time);
+	void UpdateQuads(bool UseMovingTiles, float Time);
 	void UnloadQuads();
 	CQuadData *GetQuadAt(vec2 Pos) const;
 	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
