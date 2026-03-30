@@ -599,7 +599,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 		//	return Delta;
 		if(!m_HasSolidQuads)
 			return Delta;
-		if(m_vQuads.empty() || m_vNextQuads.size() != m_vQuads.size())
+		if(m_vQuads.empty() || m_vPrevQuads.size() != m_vQuads.size())
 			return Delta;
 
 		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.55f);
@@ -612,20 +612,20 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			*ppHitQuad = pQuad;
 
 		const CQuadData *pBase = m_vQuads.data();
-		if(pQuad - pBase < 0 || (size_t)(pQuad - pBase) >= m_vNextQuads.size())
+		if(pQuad - pBase < 0 || (size_t)(pQuad - pBase) >= m_vQuads.size())
 			return Delta;
 		const size_t Idx = pQuad - pBase;
 
 		const vec2 CurCenter = vec2(round_to_int(m_vQuads[Idx].m_Pos[4].x), round_to_int(m_vQuads[Idx].m_Pos[4].y));
-		const vec2 NextCenter = vec2(round_to_int(m_vNextQuads[Idx].m_Pos[4].x), round_to_int(m_vNextQuads[Idx].m_Pos[4].y));
+		const vec2 PrevCenter = vec2(round_to_int(m_vPrevQuads[Idx].m_Pos[4].x), round_to_int(m_vPrevQuads[Idx].m_Pos[4].y));
 
 		// Keep this only for left/right motion while standing on top.
-		if(distance(NextCenter, CurCenter) > 32.0f)
+		if(distance(CurCenter, PrevCenter) > 32.0f)
 			return Delta;
-		if(absolute(NextCenter.y - CurCenter.y) > 1.0f)
+		if(absolute(CurCenter.y - PrevCenter.y) > 1.0f)
 			return Delta;
 
-		Delta.x += (NextCenter.x - CurCenter.x) * StepFraction;
+		Delta.x += (CurCenter.x - PrevCenter.x) * StepFraction;
 		return Delta;
 	};
 
@@ -1566,16 +1566,16 @@ void CCollision::InitQuads()
 			for(int j = 0; j < 5; j++)
 				QuadData.m_Pos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
 
-			m_vNextQuads.push_back(QuadData);
+			m_vQuads.push_back(QuadData);
 		}
 	}
-	m_vQuads = m_vNextQuads;
+	m_vPrevQuads = m_vQuads;
 }
 
 void CCollision::UnloadQuads()
 {
 	m_vQuads.clear();
-	m_vNextQuads.clear();
+	m_vPrevQuads.clear();
 }
 
 void CCollision::UpdateQuads(float Time)
@@ -1711,10 +1711,9 @@ void CCollision::UpdateQuads(float Time)
 		Angle = (R0 + (R1 - R0) * a) / 360.0f * pi * 2.0f;
 	};
 
-	//m_vQuads = m_vNextQuads;
-	std::swap(m_vQuads, m_vNextQuads);
+	std::swap(m_vPrevQuads, m_vQuads);
 
-	for(auto &QuadData : m_vNextQuads)
+	for(auto &QuadData : m_vQuads)
 	{
 		vec2 Position = vec2(0, 0);
 		GetAnimationTransform(QuadData.m_pQuad->m_PosEnvOffset / 1000.0, QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);

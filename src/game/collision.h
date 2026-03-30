@@ -176,8 +176,9 @@ private:
 	std::vector<vec2> m_SpawnCandidates;
 
 	bool m_HasSolidQuads = false;
+	std::vector<CQuadData> m_vPrevQuads;
 	std::vector<CQuadData> m_vQuads;
-	std::vector<CQuadData> m_vNextQuads;
+	// std::vector<CQuadData> m_vNextQuads;
 
 public:
 	const std::vector<CQuadData> &Quads() const { return m_vQuads; }

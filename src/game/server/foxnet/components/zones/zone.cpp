@@ -175,9 +175,7 @@ CCollision *IZone::Collision() const
 
 void IZone::UpdateCache()
 {
-	// const double Time = GameServer()->m_pController->GetTime();
-	const double Time = static_cast<double>(GameServer()->Server()->Tick() - GameServer()->m_pController->m_QuadStartTick) / GameServer()->Server()->TickSpeed();
-
+	const double Time = GameServer()->m_pController->GetTime();
 	// std::swap(m_vQuads, m_vNextQuads);
 
 	for(auto &QuadData : m_vQuads)

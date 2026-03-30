@@ -224,7 +224,7 @@ public:
 	std::shared_ptr<CScoreLoadBestTimeResult> m_pLoadBestTimeResult;
 	// <FoxNet
 	int m_QuadStartTick;
-	double GetTime() { return static_cast<double>(Server()->Tick() - m_QuadStartTick + 1) / Server()->TickSpeed(); }
+	double GetTime(int OffsetTicks = 0) { return static_cast<double>(Server()->Tick() - m_QuadStartTick + OffsetTicks) / Server()->TickSpeed(); }
 	void ClearSpawnPoints(int MultiMapIdx);
 	// FoxNet>
 };
