@@ -196,7 +196,7 @@ public:
 	const ICommandInfo *FirstCommandInfo(int ClientId, int FlagMask) const override;
 	const ICommandInfo *NextCommandInfo(const IConsole::ICommandInfo *pInfo, int ClientId, int FlagMask) const override;
 	const ICommandInfo *GetCommandInfo(const char *pName, int FlagMask, bool Temp) override;
-	const ICommandInfo *GetCommandInfo(const char *pName) override; // FoxNet
+	const ICommandInfo *GetCommandInfo(const char *pName, int SkipFlags) override; // FoxNet
 	int PossibleCommands(const char *pStr, int FlagMask, bool Temp, FPossibleCallback pfnCallback, void *pUser) override;
 
 	void ParseArguments(int NumArgs, const char **ppArguments) override;

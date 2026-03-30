@@ -137,6 +137,9 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 	{
 		if(IsOptionWithSuffix(pVote, m_aPages[i]))
 		{
+			if(!IsPageAllowed(ClientId, i))
+				return true;
+
 			SetPage(ClientId, i);
 			return true;
 		}
@@ -170,6 +173,12 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 	if(Page < 0 || Page >= NUM_PAGES)
 		return false;
+
+	if(!IsPageAllowed(ClientId, Page))
+	{
+		SetPage(ClientId, PAGE_MAIN);
+		return true;
+	}
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 
@@ -796,10 +805,10 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) >= AUTHED_MOD) // Allow Mod Access
 		return true;
 
-	if(!pAcc->m_LoggedIn)
-		return false;
+	if(pAcc->m_LoggedIn && (Page == PAGE_INVENTORY || Page == PAGE_MAILBOX || Page == PAGE_SHOP))
+		return true;
 
-	return true;
+	return false;
 }
 
 void CVoteMenu::PrepareVoteOptions(int ClientId)
@@ -1636,6 +1645,12 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 
 void CVoteMenu::PrepareAdmin(int ClientId)
 {
+	if(!IsPageAllowed(ClientId, PAGE_ADMIN))
+	{
+		SetPage(ClientId, PAGE_MAIN);
+		return;
+	}
+
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 

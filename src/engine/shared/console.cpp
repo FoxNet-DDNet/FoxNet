@@ -1229,10 +1229,13 @@ const IConsole::ICommandInfo *CConsole::GetCommandInfo(const char *pName, int Fl
 	return nullptr;
 }
 // <FoxNet
-const IConsole::ICommandInfo *CConsole::GetCommandInfo(const char *pName)
+const IConsole::ICommandInfo *CConsole::GetCommandInfo(const char *pName, int SkipFlags)
 {
 	for(CCommand *pCommand = m_pFirstCommand; pCommand; pCommand = pCommand->Next())
 	{
+		if(pCommand->m_Flags & SkipFlags)
+			continue;
+
 		if(str_comp_nocase(pCommand->Name(), pName) == 0)
 			return pCommand;
 	}

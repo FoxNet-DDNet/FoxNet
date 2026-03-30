@@ -1626,7 +1626,7 @@ bool CGameContext::CanUseCmd(int ClientId, const char *pCmd)
 	if(Server()->ClientSlotEmpty(ClientId))
 		return false;
 
-	const IConsole::ICommandInfo *pInfo = Console()->GetCommandInfo(pCmd);
+	const IConsole::ICommandInfo *pInfo = Console()->GetCommandInfo(pCmd, CFGFLAG_CHAT);
 	if(!pInfo)
 		return false;
 
