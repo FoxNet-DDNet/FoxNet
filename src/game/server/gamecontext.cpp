@@ -207,7 +207,7 @@ void CGameContext::Clear()
 	}
 
 	for(auto &pComponent : m_vpComponents)
-		pComponent->OnPreReset();
+		pComponent->OnMapUnload(DefaultMapIndex);
 	std::deque<std::unique_ptr<CMultiMaps>> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
@@ -239,9 +239,6 @@ void CGameContext::Clear()
 	m_vpComponents = std::move(vComponents);
 	for(auto &pComponent : m_vpComponents)
 		pComponent->InitComponent(this);
-
-	for(auto &pComponent : m_vpComponents)
-		pComponent->OnReset();
 	// FoxNet>
 }
 
@@ -4376,8 +4373,11 @@ void CGameContext::OnInit(const void *pPersistentData)
 	Collision()->InitQuads();
 	Collision()->InitSpawnCandidates();
 	m_vMultiMaps[DefaultMapIndex].get()->InitTuning(this, DefaultMapIndex);
-	for(auto &pComponent : m_vpComponents)
-		pComponent->OnMapLoad(DefaultMapIndex);
+	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
+	{
+		for(auto &pComponent : m_vpComponents)
+			pComponent->OnMapLoad(Idx);
+	}
 	// FoxNet>
 	m_World.InitSwitchers(Collision()->m_HighestSwitchNumber, DefaultMapIndex);
 	m_vMultiMaps[DefaultMapIndex]->m_LoadedSwitchers = true; // FoxNet

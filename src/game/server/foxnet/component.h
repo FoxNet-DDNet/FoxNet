@@ -44,14 +44,6 @@ public:
 
 	virtual void OnConsoleInit() {}
 	virtual void OnInit() {}
-	/*
-	 * Called before void CGameContext::Clear()
-	 */
-	virtual void OnPreReset() {}
-	/*
-	 * Called before ~CGameContext() in CGameContext::Clear()
-	 */
-	virtual void OnReset() {}
 	virtual void OnShutdown(void *pPersistentData) {}
 	virtual void OnTick() {}
 	virtual void OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo) {}
