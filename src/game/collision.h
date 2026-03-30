@@ -186,7 +186,7 @@ public:
 	void InitQuads();
 	void UpdateQuads(float Time);
 	void UnloadQuads();
-	const CQuadData *GetQuadAt(vec2 Pos) const;
+	CQuadData *GetQuadAt(vec2 Pos) const;
 	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
 
 	void CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const;

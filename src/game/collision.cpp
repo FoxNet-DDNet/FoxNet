@@ -603,10 +603,13 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			return Delta;
 
 		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.55f);
-
-		const CQuadData *pQuad = GetQuadAt(FeetPos);
+		CQuadData *pQuad = GetQuadAt(FeetPos + vec2(Size.y * 0.5f, 0));
 		if(!pQuad)
-			return Delta;
+		{
+			pQuad = GetQuadAt(FeetPos - vec2(Size.y * 0.5f, 0));
+			if(!pQuad)
+				return Delta;
+		}
 
 		if(ppHitQuad)
 			*ppHitQuad = pQuad;
@@ -1728,12 +1731,12 @@ void CCollision::UpdateQuads(float Time)
 	}
 }
 
-const CQuadData *CCollision::GetQuadAt(vec2 Pos) const
+CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 {
 	for(const CQuadData &Quad : m_vQuads)
 	{
 		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
-			return &Quad;
+			return const_cast<CQuadData *>(&Quad);
 	}
 	return nullptr;
 }
