@@ -533,18 +533,17 @@ void CGameContext::ConMapInfo(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
+	const char *pMapName = pResult->NumArguments() > 0 ? pResult->GetString(0) : pSelf->MapName(pResult->m_ClientId);
+
 	// use cached map info for current map
-	const bool IsCurrentMap = pResult->NumArguments() == 0 || str_comp_nocase(pResult->GetString(0), pSelf->Map()->BaseName()) == 0;
+	const bool IsCurrentMap = pResult->NumArguments() == 0 || str_comp_nocase(pMapName, pSelf->Map()->BaseName()) == 0;
 	if(IsCurrentMap && pSelf->m_aMapInfoMessage[0] != '\0')
 	{
 		pSelf->SendChatTarget(pResult->m_ClientId, pSelf->m_aMapInfoMessage);
 		return;
 	}
 
-	if(pResult->NumArguments() > 0)
-		pSelf->Score()->MapInfo(pResult->m_ClientId, pResult->GetString(0));
-	else
-		pSelf->Score()->MapInfo(pResult->m_ClientId, pSelf->MapName(pResult->m_ClientId));
+	pSelf->Score()->MapInfo(pResult->m_ClientId, pMapName);
 }
 
 void CGameContext::ConTimeout(IConsole::IResult *pResult, void *pUserData)
