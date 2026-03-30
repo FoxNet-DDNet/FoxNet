@@ -123,7 +123,7 @@ void CServerBan::ConBanClientId(IConsole::IResult *pResult, void *pUser)
 	if(UserId >= 0)
 	{
 		char aBuf[1024];
-		str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
+		str_format(aBuf, sizeof(aBuf), "`%s` [||%s||] banned `%s` [||%s||] for %d Minutes: `%s`\n"
 					       "ver: %s (%d) [%s]",
 			pThis->Server()->ClientName(UserId),
 			pThis->Server()->ClientAddrString(UserId, false),
@@ -239,7 +239,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			if(UserId >= 0)
 			{
 				char aBuf[1024];
-				str_format(aBuf, sizeof(aBuf), "`%s` [%s] banned `%s` [%s] for %d Minutes: `%s`\n"
+				str_format(aBuf, sizeof(aBuf), "`%s` [||%s||] banned `%s` [||%s||] for %d Minutes: `%s`\n"
 							       "ver: %s (%d) [%s]",
 					pThis->Server()->ClientName(UserId),
 					pThis->Server()->ClientAddrString(UserId, false),
@@ -1850,7 +1850,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			const double LimitKBps = LimitBytesPerTick * (double)time_freq() / 1024.0;
 
 			str_format(aBanBuf, sizeof(aBanBuf),
-				"`%s` [%s] was banned for 10 minutes for stressing the network.\n"
+				"`%s` [||%s||] was banned for 10 minutes for stressing the network.\n"
 				"%.2f/%.2f bytes/tick, %.2f/%.2f KB/s\n"
 				"ver: %s (%d) [%s]",
 				ClientName(ClientId),

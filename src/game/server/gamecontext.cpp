@@ -1429,7 +1429,7 @@ void CGameContext::OnTick()
 
 						char aBanBuf[1024];
 						str_format(aBanBuf, sizeof(aBanBuf),
-							"`%s` [%s] was vote-kicked for %d minutes by `%s` [%s].\n"
+							"`%s` [||%s||] was vote-kicked for %d minutes by `%s` [||%s||].\n"
 							"Reason: %s\n"
 							"ver: %s (%d) [%s]",
 							Server()->ClientName(m_VoteVictim),

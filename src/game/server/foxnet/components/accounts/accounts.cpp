@@ -61,7 +61,7 @@ void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for 1440 minutes for too many '/register's.\n"
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [||%s||] was banned for 1440 minutes for too many '/register's.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
 			pAddr,
@@ -125,7 +125,7 @@ void CAccounts::ConLogin(IConsole::IResult *pResult, void *pUserData)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
 		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [%s] was banned for %d minutes for too many '/login' attempts.\n"
+		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [||%s||] was banned for %d minutes for too many '/login' attempts.\n"
 						     "ver: %s (%d) [%s]",
 			pSelf->Server()->ClientName(ClientId),
 			pAddr,
