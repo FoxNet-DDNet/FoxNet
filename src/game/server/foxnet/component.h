@@ -8,6 +8,7 @@
 class CGameContext;
 class IServer;
 class IConsole;
+class CCollision;
 class CPlayer;
 class CCharacter;
 class CAccountSession;
@@ -26,6 +27,7 @@ public:
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 	IConsole *Console() const;
+	CCollision *Collision(size_t MultiMapIdx) const;
 
 	CPlayer *GetPlayer(int ClientId);
 	CCharacter *GetCharacter(int ClientId);

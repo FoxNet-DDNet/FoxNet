@@ -107,7 +107,6 @@ void CGameContext::FoxNetTick()
 		pComponent->OnTick();
 
 	HandleEffects();
-	PowerUpSpawner();
 
 	if(g_Config.m_SvBanSyncing)
 		BanSync();
@@ -129,6 +128,7 @@ void CGameContext::FoxNetTick()
 void CGameContext::OnFoxNetConsoleInit()
 {
 	m_vpComponents.insert(m_vpComponents.end(), {
+							    &m_SpawnCandidates,
 							    &m_ZoneManager,
 							    &m_Scripting,
 							    &m_VoteMenu,
@@ -455,35 +455,6 @@ int CGameContext::RandGeometric(std::mt19937 &Rng, int Min, int Max, double P)
 	if(k > Range)
 		k = Range;
 	return Min + k;
-}
-
-void CGameContext::PowerUpSpawner()
-{
-	if(!g_Config.m_SvSpawnPowerUps)
-		return;
-	if(GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
-		return; // nah, too much work to make them work with tele grenades
-	if(!g_Config.m_SvAccounts)
-		return; // Powerups require accounts to store the data
-	if(m_vPowerups.size() >= 6)
-		return;
-	if(m_PowerUpDelay > Server()->Tick())
-		return;
-
-	const auto RandomPos = GetRandomAccessiblePos();
-	if(!RandomPos)
-	{
-		m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
-		return;
-	}
-
-	std::mt19937 Rng{std::random_device{}()};
-	std::uniform_int_distribution<int> Dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
-	EPowerUp Type = (EPowerUp)Dist(Rng);
-	CPowerUp *NewPowerUp = new CPowerUp(&m_World, DefaultMapIndex, *RandomPos, Type);
-
-	m_vPowerups.push_back(NewPowerUp);
-	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;
 }
 
 void CGameContext::HandleEffects()
@@ -1354,73 +1325,6 @@ void CGameContext::OnPreReload()
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
 	}
-}
-
-std::optional<vec2> CGameContext::GetRandomAccessiblePos()
-{
-	const auto Dist2 = [](const vec2 &a, const vec2 &b) {
-		const float DistX = a.x - b.x;
-		const float DistY = a.y - b.y;
-		return DistX * DistX + DistY * DistY;
-	};
-
-	constexpr float TileSize = 32.0f;
-	constexpr float MinPlayerDist = TileSize * 25.0f;
-
-	for(int Tries = 0; Tries < 16; ++Tries)
-	{
-		vec2 Pos;
-		if(!Collision()->TryPickCachedCandidate(Pos))
-			return std::nullopt;
-
-		CEntity *apEnts[64] = {0};
-		const int Num = m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
-		bool NearPlayer = false;
-		for(int i = 0; i < Num; ++i)
-		{
-			auto *pChr = static_cast<CCharacter *>(apEnts[i]);
-			if(pChr && pChr->IsAlive())
-			{
-				NearPlayer = true;
-				break;
-			}
-		}
-		if(NearPlayer)
-			continue;
-
-		return Pos;
-	}
-
-	float BestScore = -1.0f;
-	vec2 BestPos;
-	for(int k = 0; k < 32; ++k)
-	{
-		vec2 Pos;
-		if(!Collision()->TryPickCachedCandidate(Pos))
-			break;
-
-		float MinDist2 = std::numeric_limits<float>::infinity();
-		CEntity *apEnts[128] = {0};
-		const int Num = m_World.FindEntities(Pos, 1024.0f, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
-		for(int i = 0; i < Num; ++i)
-		{
-			auto *pChr = static_cast<CCharacter *>(apEnts[i]);
-			if(!pChr || !pChr->IsAlive())
-				continue;
-			MinDist2 = std::min(MinDist2, Dist2(pChr->m_Pos, Pos));
-			if(MinDist2 == 0.0f)
-				break;
-		}
-		if(MinDist2 > BestScore)
-		{
-			BestScore = MinDist2;
-			BestPos = Pos;
-		}
-	}
-	if(BestScore >= 0.0f)
-		return BestPos;
-
-	return std::nullopt;
 }
 
 void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) const

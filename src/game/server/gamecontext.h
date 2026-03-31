@@ -7,6 +7,7 @@
 #include "foxnet/components/accounts/accounts.h"
 #include "foxnet/components/fake_snap.h"
 #include "foxnet/components/scripting/scripting.h"
+#include "foxnet/components/spawncandidates.h"
 #include "foxnet/components/votemenu.h"
 #include "foxnet/components/zones/zonemanager.h"
 #include "foxnet/entities/powerup.h"
@@ -794,6 +795,7 @@ public:
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;
 	CFakeSnap m_FakeSnap;
+	CSpawnCandidates m_SpawnCandidates;
 	CZoneManager m_ZoneManager;
 
 	int GetMapIndexByType(EMapType MapType) const;
@@ -840,8 +842,6 @@ private:
 	void UnloadMapByName(const char *pMapName);
 	void ReloadMapByName(const char *pMapName);
 	void UnloadMapsAll();
-
-	void PowerUpSpawner();
 
 	// ToDo @qxdFox: Remove this and move to zones
 	void SnapDebuggedQuad(int ClientId);
@@ -1050,7 +1050,6 @@ public:
 	void Explosion(vec2 Pos, CClientMask Mask);
 
 	int GetWeaponType(int Weapon);
-	std::optional<vec2> GetRandomAccessiblePos();
 
 	int RandGeometric(std::mt19937 &Rng, int Min, int Max, double P);
 

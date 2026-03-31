@@ -96,13 +96,13 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			if(!str_comp("QHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
-				// pZone->Init(pTilemap); we get the pointer from Collsion()
+				// pZone->Init(pTilemap); we get the pointer from Collision()
 				m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
 			}
 			else if(!str_comp("QUnHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
-				// pZone->Init(pTilemap); we get the pointer from Collsion()
+				// pZone->Init(pTilemap); we get the pointer from Collision()
 				m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
 			}
 			else if(!str_comp("QCfrm", aLayerName))

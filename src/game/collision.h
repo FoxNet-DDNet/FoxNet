@@ -45,7 +45,6 @@ public:
 	~CCollision();
 
 	void Init(CLayers *pLayers);
-	void InitSpawnCandidates();
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
@@ -173,8 +172,6 @@ private:
 	// TILE_TELEINEVIL, TILE_TELECHECK, TILE_TELECHECKIN, TILE_TELECHECKINEVIL
 	std::map<int, std::vector<vec2>> m_TeleOthers;
 
-	std::vector<vec2> m_SpawnCandidates;
-
 	bool m_HasSolidQuads = false;
 	std::vector<CQuadData> m_vPrevQuads;
 	std::vector<CQuadData> m_vQuads;
@@ -189,14 +186,6 @@ public:
 	void UnloadQuads();
 	CQuadData *GetQuadAt(vec2 Pos) const;
 	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
-
-	void CollectMapSpawnPoints(std::vector<vec2> &OutSeeds) const;
-	int CountSolidTilesInRadius(vec2 Pos, int TileRadius, bool Circle = true) const;
-	bool HasSolidInRadius(vec2 Pos, int TileRadius, int MinCount = 1, bool Circle = true) const;
-
-	void BuildSpawnCandidates();
-	bool TryPickCachedCandidate(vec2 &Out) const;
-	size_t SpawnCandidateCount() const { return m_SpawnCandidates.size(); }
 
 	int PosToIndex(vec2 Pos) const;
 	vec2 IndexToPos(int Index) const;

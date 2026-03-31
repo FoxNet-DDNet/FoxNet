@@ -4371,7 +4371,6 @@ void CGameContext::OnInit(const void *pPersistentData)
 	Collision()->Init(Layers());
 	// <FoxNet
 	Collision()->InitQuads();
-	Collision()->InitSpawnCandidates();
 	m_vMultiMaps[DefaultMapIndex].get()->InitTuning(this, DefaultMapIndex);
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
 	{

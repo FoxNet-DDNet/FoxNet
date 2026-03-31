@@ -2881,6 +2881,8 @@ if(SERVER)
     foxnet/components/scripting/scripting.h
     foxnet/components/shop.cpp
     foxnet/components/shop.h
+    foxnet/components/spawncandidates.cpp
+    foxnet/components/spawncandidates.h
     foxnet/components/votemenu.cpp
     foxnet/components/votemenu.h
     foxnet/components/zones/checktele.cpp

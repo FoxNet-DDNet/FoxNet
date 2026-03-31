@@ -7,6 +7,7 @@
 
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/collision.h>
 
 void CServerComponent::InitComponent(CGameContext *pGameServer)
 {
@@ -19,11 +20,15 @@ void CServerComponent::SendChatTarget(int ClientId, const char *pMessage)
 
 IServer *CServerComponent::Server() const
 {
-	return m_pGameServer->Server();
+	return GameServer()->Server();
 }
 IConsole *CServerComponent::Console() const
 {
-	return m_pGameServer->Console();
+	return GameServer()->Console();
+}
+CCollision *CServerComponent::Collision(size_t MultiMapIdx) const
+{
+	return GameServer()->Collision(MultiMapIdx);
 }
 
 CPlayer *CServerComponent::GetPlayer(int ClientId)
