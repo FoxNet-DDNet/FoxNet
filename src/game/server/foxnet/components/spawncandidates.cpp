@@ -527,7 +527,7 @@ namespace
 		if(vSpawnCandidates.size() < 500)
 			vSpawnCandidates.clear();
 
-		log_info("spawn-candidates", "found %d spawn point%s for map %zu", (int)vSpawnCandidates.size(), vSpawnCandidates.size() == 1 ? "" : "s", MapIdx);
+		log_info("spawn-candidates", "found %d spawn point%s for map %" PRIzu, (int)vSpawnCandidates.size(), vSpawnCandidates.size() == 1 ? "" : "s", MapIdx);
 		return vSpawnCandidates;
 	}
 }
