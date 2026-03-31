@@ -21,6 +21,14 @@
 #include <iterator>
 #include <vector>
 
+static IZone *FindZoneByMapIndex(const std::vector<IZone *> &vZones, size_t MultiMapIdx)
+{
+	auto It = std::find_if(vZones.begin(), vZones.end(), [MultiMapIdx](const IZone *pZone) {
+		return pZone->MultiMapIndex() == MultiMapIdx;
+	});
+	return It != vZones.end() ? *It : nullptr;
+}
+
 void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 {
 	int GroupsStart, LayersStart, GroupsNum, LayersNum;
@@ -34,11 +42,16 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 		char aGroupName[30];
 		IntsToStr(pGroup->m_aName, std::size(pGroup->m_aName), aGroupName, std::size(aGroupName));
 
-		// Only create one casino zone per map
-		if(m_avpZones[(int)EZoneType::Roulette].empty() && !str_comp(aGroupName, "#Roulette"))
+		IZone *pGroupZone = nullptr;
+		if(!str_comp(aGroupName, "#Roulette"))
 		{
-			CRouletteZone *pZone = new CRouletteZone(GameServer(), MultiMapIdx);
-			m_avpZones[(int)EZoneType::Roulette].push_back(pZone);
+			auto &vZones = m_avpZones[(int)EZoneType::Roulette];
+			pGroupZone = FindZoneByMapIndex(vZones, MultiMapIdx);
+			if(pGroupZone == nullptr)
+			{
+				pGroupZone = new CRouletteZone(GameServer(), MultiMapIdx);
+				vZones.push_back(pGroupZone);
+			}
 		}
 
 		for(int LayerIndex = 0; LayerIndex < pGroup->m_NumLayers; LayerIndex++)
@@ -52,9 +65,9 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			CMapItemLayerQuads *pTilemap = reinterpret_cast<CMapItemLayerQuads *>(pLayer);
 			IntsToStr(pTilemap->m_aName, std::size(pTilemap->m_aName), aLayerName, std::size(aLayerName));
 
-			if(!str_comp(aGroupName, "#Roulette"))
+			if(pGroupZone != nullptr)
 			{
-				m_avpZones[(int)EZoneType::Roulette].at(0)->Init(pTilemap);
+				pGroupZone->Init(pTilemap);
 			}
 			else if(!str_comp("QFr", aLayerName))
 			{
@@ -83,11 +96,13 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			if(!str_comp("QHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				// pZone->Init(pTilemap); we get the pointer from Collsion()
 				m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
 			}
 			else if(!str_comp("QUnHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				// pZone->Init(pTilemap); we get the pointer from Collsion()
 				m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
 			}
 			else if(!str_comp("QCfrm", aLayerName))
