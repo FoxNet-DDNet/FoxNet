@@ -21,16 +21,18 @@
 #include <iterator>
 #include <vector>
 
-static IZone *FindZoneByMapIndex(const std::vector<IZone *> &vZones, size_t MultiMapIdx)
+IZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
 {
-	auto It = std::find_if(vZones.begin(), vZones.end(), [MultiMapIdx](const IZone *pZone) {
+	auto It = std::find_if(m_avpZones[(int)Type].begin(), m_avpZones[(int)Type].end(), [MultiMapIdx](const IZone *pZone) {
 		return pZone->MultiMapIndex() == MultiMapIdx;
 	});
-	return It != vZones.end() ? *It : nullptr;
+	return It != m_avpZones[(int)Type].end() ? *It : nullptr;
 }
 
 void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 {
+	OnMapUnload(MultiMapIdx);
+
 	int GroupsStart, LayersStart, GroupsNum, LayersNum;
 
 	IMap *pMap = GameServer()->Map(MultiMapIdx);
@@ -45,12 +47,11 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 		IZone *pGroupZone = nullptr;
 		if(!str_comp(aGroupName, "#Roulette"))
 		{
-			auto &vZones = m_avpZones[(int)EZoneType::Roulette];
-			pGroupZone = FindZoneByMapIndex(vZones, MultiMapIdx);
+			pGroupZone = FindZoneByMapIndex(EZoneType::Roulette, MultiMapIdx);
 			if(pGroupZone == nullptr)
 			{
 				pGroupZone = new CRouletteZone(GameServer(), MultiMapIdx);
-				vZones.push_back(pGroupZone);
+				m_avpZones[(int)EZoneType::Roulette].push_back(pGroupZone);
 			}
 		}
 

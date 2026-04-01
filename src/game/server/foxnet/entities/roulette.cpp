@@ -64,6 +64,8 @@ int CRoulette::AmountOfCloseClients()
 			continue;
 		if(pPlayer->IsAfk())
 			continue;
+		if(pPlayer->MultiMapIdx() != MultiMapIdx())
+			continue;
 		if(!pPlayer->Acc()->m_LoggedIn)
 			continue;
 		if(!pPlayer->Acc()->m_Money)
@@ -84,6 +86,9 @@ int CRoulette::AmountOfCloseClients()
 bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+
+	if(pPlayer->MultiMapIdx() != MultiMapIdx())
+		return false;
 
 	if(pPlayer->m_Area != EArea::Roulette)
 		return false;

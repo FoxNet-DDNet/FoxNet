@@ -416,6 +416,9 @@ void CGameContext::UnloadMapsAll()
 				continue;
 			pPlayer->SendToMap(DefaultMapIndex);
 		}
+
+		for(auto &pComponent : m_vpComponents)
+			pComponent->OnMapUnload(Idx);
 	}
 	m_vMultiMaps.clear();
 }

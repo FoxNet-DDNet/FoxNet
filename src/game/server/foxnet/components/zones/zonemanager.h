@@ -21,6 +21,8 @@ class CZoneManager : public CServerComponent
 	std::vector<IZone *> m_avpZones[(int)EZoneType::Num];
 
 public:
+	IZone *FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx);
+
 	std::vector<IZone *> Zones(EZoneType Type) const { return m_avpZones[(int)Type]; }
 
 	void OnMapLoad(size_t MapIdx) override;

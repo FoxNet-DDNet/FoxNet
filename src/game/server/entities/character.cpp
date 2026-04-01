@@ -3180,9 +3180,9 @@ void CCharacter::RouletteTileHandle()
 
 	vec2 CursorPos = GetCursorPos();
 
-	if(GameServer()->m_ZoneManager.Zones(EZoneType::Roulette).empty())
+	CRouletteZone *pRouletteZone = static_cast<CRouletteZone *>(GameServer()->m_ZoneManager.FindZoneByMapIndex(EZoneType::Roulette, MultiMapIdx()));
+	if(!pRouletteZone)
 		return;
-	CRouletteZone *pRouletteZone = static_cast<CRouletteZone *>(GameServer()->m_ZoneManager.Zones(EZoneType::Roulette)[0]);
 
 	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
 	{
