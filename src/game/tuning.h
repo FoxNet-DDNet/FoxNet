@@ -76,4 +76,6 @@ MACRO_TUNING_PARAM(PortalgunFireDelay, portalgun_fire_delay, 100, "Delay of usin
 
 MACRO_TUNING_PARAM(MovingTiles, moving_tiles, 0, "Whether to use Moving Tiles")
 MACRO_TUNING_PARAM(TeleGrenade, tele_grenade, 0, "Whether to use Tele Grenade")
+
+MACRO_TUNING_PARAM(PlayerHammering, player_hammering, 1, "Whether this player can hammer others")
 // FoxNet>

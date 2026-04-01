@@ -1637,6 +1637,12 @@ void CGameContext::ConSendAsPlayer(IConsole::IResult *pResult, void *pUserData)
 			pPlayer->m_aLastCommands[pPlayer->m_LastCommandPos] = Now;
 			pPlayer->m_LastCommandPos = (pPlayer->m_LastCommandPos + 1) % 4;
 
+			for(CServerComponent *pComponent : pSelf->m_vpComponents)
+			{
+				if(!pComponent->CanUseCommand(pPlayer, pText + 1))
+					return;
+			}
+
 			pSelf->Console()->SetFlagMask(CFGFLAG_CHAT);
 			pSelf->Console()->ExecuteLine(pText + 1, ClientId, false);
 

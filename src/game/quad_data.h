@@ -16,6 +16,7 @@ enum class EZoneType
 	Hookable,
 	Unhookable,
 	Roulette,
+	HideNSeek,
 	Num,
 };
 

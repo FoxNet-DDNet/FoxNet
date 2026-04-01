@@ -151,6 +151,20 @@ MACRO_CONFIG_INT(SvExecBasedOnPort, sv_execute_based_on_port, 0, 0, 1, CFGFLAG_S
 MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER, "Display everyones position at their cursor")
 MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER, "Set everyones snapping velocity to 0 (disables interpolation on the client)")
 
+
+// Hide and Seek
+MACRO_CONFIG_INT(SvMinigamesSameIp, sv_minigames_same_ip, 0, 0, 1, CFGFLAG_SERVER, "Whether to allow the same ip in minigames")
+
+MACRO_CONFIG_INT(SvHideSeekGiveXp, sv_hide_seek_give_xp, 1, 0, 1, CFGFLAG_SERVER, "Whether the minigame should give xp on game finish")
+MACRO_CONFIG_INT(SvHideSeekWarmupTime, sv_hide_seek_warmup_time, 10, 1, 60, CFGFLAG_SERVER, "Delay in seconds before the game starts")
+MACRO_CONFIG_INT(SvHideSeekFreezeDuration, sv_hide_seek_freeze_duration, 10, 1, 30, CFGFLAG_SERVER, "How long seekers are frozen on game start")
+MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 80, 1, 500, CFGFLAG_SERVER, "How much time seekers have to find all hiders")
+MACRO_CONFIG_INT(SvHideSeekSeekersGunCooldown, sv_hide_seek_seekers_gun_cooldown, 5000, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers gun is (like normal weapons)")
+MACRO_CONFIG_INT(SvHideSeekSeekersGunFreeze, sv_hide_seek_seekers_gun_freeze, 0, 0, 10000, CFGFLAG_SERVER, "Whether the gun should freeze hit hiders and how long (in ticks, 50 ticks in a second)")
+MACRO_CONFIG_INT(SvHideSeekSeekersHammerDelay, sv_hide_seek_seekers_hammer_delay, 275, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers hammer is (like normal weapons)")
+MACRO_CONFIG_INT(SvHideSeekHidersGhostDuration, sv_hide_seek_hiders_ghost_duration, 35, 1, 1000, CFGFLAG_SERVER, "How long hiders remain in ghost mode in second Seconds (30 -> 3 seconds)")
+MACRO_CONFIG_INT(SvHideSeekHidersGhostCooldown, sv_hide_seek_hiders_ghost_cooldown, 55, 1, 1000, CFGFLAG_SERVER, "Cooldown time for hiders' ghost mode in second Seconds (30 -> 3 seconds)")
+
 // Scripting
 
 // Notes:

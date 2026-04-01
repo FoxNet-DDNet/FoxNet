@@ -1525,3 +1525,46 @@ CTuningParams CGameContext::DDNetDefaultTuning() const
 	Tune.m_ShotgunSpeeddiff = 0;
 	return Tune;
 }
+
+bool CGameContext::GetNearestAirPos(vec2 Pos, vec2 *pOut, float Radius)
+{
+	const float Size = Radius * 0.5f;
+	const vec2 SizeVec2 = vec2(Size, Size);
+
+	if(!Collision()->TestBox(Pos, SizeVec2))
+	{
+		*pOut = Pos;
+		return true;
+	}
+
+	static constexpr int SearchRadius = 12;
+	static constexpr float Step = 16.0f;
+
+	float BestDist = std::numeric_limits<float>::max();
+	vec2 BestPos = Pos;
+
+	for(int y = -SearchRadius; y <= SearchRadius; y++)
+	{
+		for(int x = -SearchRadius; x <= SearchRadius; x++)
+		{
+			vec2 Candidate = Pos + vec2(x * Step, y * Step);
+			if(Collision()->TestBox(Pos, SizeVec2))
+				continue;
+
+			float Dist = distance(Pos, Candidate);
+			if(Dist < BestDist)
+			{
+				BestDist = Dist;
+				BestPos = Candidate;
+			}
+		}
+	}
+
+	if(BestDist < std::numeric_limits<float>::max())
+	{
+		*pOut = BestPos;
+		return true;
+	}
+
+	return false;
+}

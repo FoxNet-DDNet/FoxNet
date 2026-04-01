@@ -11,13 +11,6 @@
 #include <cstdint>
 #include <vector>
 
-enum class ESubType : uint8_t
-{
-	Area = 0,
-	Wheel,
-	BetOption,
-};
-
 class CBetQuadData
 {
 public:
@@ -29,6 +22,13 @@ public:
 
 class CRouletteZone : public IZone
 {
+	enum class ESubType : uint8_t
+	{
+		Area = 0,
+		Wheel,
+		BetOption,
+	};
+
 	bool m_CreatedWheel = false;
 	std::vector<CBetQuadData> m_vBetQuads;
 

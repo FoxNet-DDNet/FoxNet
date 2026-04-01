@@ -40,36 +40,43 @@ void CRouletteZone::OnTick()
 			}
 		}
 	}
-
-	for(const CQuadData &QuadData : Quads())
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		if(QuadData.m_SubType != (uint8_t)ESubType::Area)
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer || !pPlayer->GetCharacter())
+			continue;
+		if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+			continue;
+		CCharacter *pChr = pPlayer->GetCharacter();
+		if(!pChr->IsAlive())
 			continue;
 
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-		{
-			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-			if(!pPlayer || !pPlayer->GetCharacter())
-				continue;
-			if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
-				continue;
-			CCharacter *pChr = pPlayer->GetCharacter();
-			if(!pChr->IsAlive())
-				continue;
+		pChr->m_InsideQuadFreeze = false;
+		if(pChr->Core()->m_IsInFreeze)
+			continue;
 
-			pChr->m_InsideQuadFreeze = false;
-			if(pChr->Core()->m_IsInFreeze)
+		bool InArea = false;
+		for(const CQuadData &QuadData : Quads())
+		{
+			if(QuadData.m_SubType != (uint8_t)ESubType::Area)
 				continue;
 
 			if(InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 			{
+				InArea = true;
+				break;
+			}
+		}
+
+		if(InArea)
+		{
+			if(pPlayer->m_Area != EArea::Roulette)
 				pPlayer->SetArea(EArea::Roulette);
-			}
-			else
-			{
-				if(pPlayer->m_Area == EArea::Roulette)
-					pPlayer->SetArea(EArea::Game);
-			}
+		}
+		else
+		{
+			if(pPlayer->m_Area == EArea::Roulette)
+				pPlayer->SetArea(EArea::Game);
 		}
 	}
 }

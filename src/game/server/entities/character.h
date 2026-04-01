@@ -115,6 +115,7 @@ public:
 
 	int NeededFaketuning() const { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
+	// /spec
 	bool IsPaused() const { return m_Paused; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 	CClientMask TeamMask();
@@ -217,6 +218,8 @@ public:
 
 	void FillAntibot(CAntibotCharacterData *pData);
 	void Pause(bool Pause);
+	// FoxNet
+	bool FreezeForce(int Seconds);
 	bool Freeze(int Seconds);
 	bool Freeze();
 	bool Unfreeze();
@@ -224,6 +227,7 @@ public:
 	void ResetPickups();
 	void ResetJumps();
 	ERaceState m_DDRaceState;
+	// DDRace Team
 	int Team();
 	bool CanCollide(int ClientId) override;
 	bool SameTeam(int ClientId);
@@ -306,6 +310,7 @@ public:
 
 	CSaveTee &GetLastRescueTeeRef(int Mode = RESCUEMODE_AUTO) { return m_RescueTee[Mode]; }
 	CTuningParams *GetTuning(int Zone) { return &TuningList()[Zone]; }
+	CTuningParams *GetCurrentTuning() { return GetTuning(GetOverriddenTuneZone()); }
 
 	// <FoxNet
 	CAccountSession *Acc();
@@ -372,16 +377,17 @@ public:
 	int MultiMapIdx() const override { return m_pPlayer->MultiMapIdx(); }
 	CCollision *Collision() override;
 
-private:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
+	float GetFireDelay(int Weapon);
+
+private:
 
 	void RouletteTileHandle();
 
-	bool CanDropWeapon(int Type) const;
+	bool CanDropWeapon(int Type);
 
 	vec2 m_HookBasePos = vec2(0, 0);
 	void OnPlayerHook();
-	float GetFireDelay(int Weapon);
 
 	int m_VoteActionDelay;
 

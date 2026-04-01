@@ -1,3 +1,4 @@
+#include "component.h"
 #include "cosmetics/dot_trail.h"
 #include "cosmetics/epic_circle.h"
 #include "cosmetics/halo.h"
@@ -149,10 +150,8 @@ void CPlayer::ExpireItems()
 					pCfg->m_Remove(*this, *pCfg, -1);
 			}
 			Entry = CInventoryEntry();
-			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", pName);
+			SendChatFmt("Item '%s' has expired!", pName);
 			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, pName);
-			SendChat(aBuf);
 		}
 	}
 }
@@ -1018,7 +1017,10 @@ int CPlayer::NumDDraceHudRows()
 		Rows++;
 	if(pChr->Core()->m_Solo || pChr->Core()->m_CollisionDisabled || pChr->Core()->m_Passive ||
 		pChr->Core()->m_HookHitDisabled || pChr->Core()->m_HammerHitDisabled || pChr->Core()->m_ShotgunHitDisabled ||
-		pChr->Core()->m_GrenadeHitDisabled || pChr->Core()->m_LaserHitDisabled)
+		pChr->Core()->m_GrenadeHitDisabled || pChr->Core()->m_LaserHitDisabled ||
+		!pChr->GetCurrentTuning()->m_PlayerHammering ||
+		!pChr->GetCurrentTuning()->m_PlayerHooking ||
+		!pChr->GetCurrentTuning()->m_PlayerCollision)
 		Rows++;
 	if(pChr->Teams()->IsPractice(pChr->Team()) || pChr->Teams()->TeamLocked(pChr->Team()) || pChr->Core()->m_DeepFrozen || pChr->Core()->m_LiveFrozen)
 		Rows++;
@@ -1073,9 +1075,18 @@ void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Of
 	SendBroadcast(aBuf);
 }
 
-void CPlayer::SendChat(const char *pText)
+void CPlayer::SendChat(const char *pMsg)
 {
-	GameServer()->SendChatTarget(GetCid(), pText);
+	GameServer()->SendChatTarget(GetCid(), pMsg);
+}
+void CPlayer::SendChatFmt(const char *pFmt, ...)
+{
+	char aBuf[1024];
+	va_list args;
+	va_start(args, pFmt);
+	str_format_v(aBuf, sizeof(aBuf), pFmt, args);
+	va_end(args);
+	SendChat(aBuf);
 }
 
 void CPlayer::SendAreaMotd(EArea Area)
@@ -1117,6 +1128,22 @@ void CPlayer::SendAreaMotd(EArea Area)
 			"3x dozens: 3x\n"
 			"Green [Zero]: 10x\n"
 			"\n"
+			"[Press Tab to hide]";
+		break;
+	case EArea::HideAndSeek:
+		Msg.m_pMessage =
+			"[Viewable in Server info tab]\n"
+			"\n"
+			"\n"
+			"--  Hɪᴅᴇ ᴀɴᴅ Sᴇᴇᴋ  --\n"
+			"\n"
+			"Sᴇᴇᴋᴇʀ:\n"
+			"Find all seekers and hammer them, shooting your gun will point to the closest hidden player.\n"
+			"\n"
+			"Hɪᴅᴇʀ:\n"
+			"Dark Areas completely hide you from the seeker, hammering will put you in ghost mode for a short time which allows you to run away\n"
+			"\n"
+			"Depending on the map, entities will or will not work\n"
 			"\n"
 			"[Press Tab to hide]";
 		break;
@@ -1276,4 +1303,15 @@ bool CPlayer::SendToMap(int Idx)
 		SendChat("Use /exit to leave to the main map.");
 
 	return true;
+}
+
+int CPlayer::GetShowOthers()
+{
+	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+	{
+		int Value = pComponent->ShowOthers(this);
+		if(Value != -1)
+			return Value;
+	}
+	return m_ShowOthers;
 }

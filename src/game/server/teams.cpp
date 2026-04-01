@@ -1482,6 +1482,12 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 	if(MultiMapIdx != pClient->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		return false;
 
+	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+	{
+		if(!pComponent->SetMask(ClientId, MultiMapIdx, Team, ExceptId, Asker, VersionFlags, Flags))
+			return false;
+	}
+
 	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
 	{ // Not spectator
 		if(ClientId != Asker)
@@ -1489,12 +1495,12 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 			if(!pClientChr)
 				return false; // Player is currently dead
 			const bool SpawnSolo = pClientChr->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(pClient->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			if(pClient->GetShowOthers() == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
 				if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
 					return false; // In different teams
 			}
-			else if(pClient->m_ShowOthers == SHOW_OTHERS_OFF)
+			else if(pClient->GetShowOthers() == SHOW_OTHERS_OFF)
 			{
 				if(!(Flags & IGNORE_SOLO))
 				{
@@ -1515,12 +1521,12 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 			if(!Character(pClient->SpectatorId()))
 				return false; // Player is currently dead
 			const bool SpawnSolo = Character(pClient->SpectatorId())->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(pClient->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			if(pClient->GetShowOthers() == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
 				if(m_Core.Team(pClient->SpectatorId()) != Team && m_Core.Team(pClient->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams
 			}
-			else if(pClient->m_ShowOthers == SHOW_OTHERS_OFF)
+			else if(pClient->GetShowOthers() == SHOW_OTHERS_OFF)
 			{
 				if(!(Flags & IGNORE_SOLO))
 				{

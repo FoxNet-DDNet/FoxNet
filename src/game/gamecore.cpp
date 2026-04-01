@@ -518,7 +518,7 @@ void CCharacterCore::TickDeferred()
 			{
 				vec2 Dir = normalize(m_Pos - pCharCore->m_Pos);
 
-				bool CanCollide = (m_Super || pCharCore->m_Super) || (!m_CollisionDisabled && !pCharCore->m_CollisionDisabled && Tuning.m_PlayerCollision);
+				bool CanCollide = (m_Super || pCharCore->m_Super) || (!m_CollisionDisabled && !pCharCore->m_CollisionDisabled && Tuning.m_PlayerCollision && pCharCore->m_Tuning.m_PlayerCollision);
 				// <FoxNet
 				CanCollide &= m_Collidable;
 				// FoxNet>
@@ -636,6 +636,9 @@ void CCharacterCore::Move()
 					if(m_Passive || pCharCore->m_Passive)
 						continue;
 					if(!m_Collidable)
+						continue;
+
+					if(!pCharCore->m_Tuning.m_PlayerCollision)
 						continue;
 
 					if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)

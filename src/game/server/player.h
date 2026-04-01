@@ -40,6 +40,7 @@ enum class EArea
 {
 	Game,
 	Roulette,
+	HideAndSeek,
 	Num
 };
 
@@ -439,8 +440,6 @@ private:
 
 	void LootBoxTick();
 
-	void SendBroadcast(const char *pText);
-
 	class CLootBoxData
 	{
 	public:
@@ -573,9 +572,13 @@ public:
 	} m_BroadcastData;
 
 	int NumDDraceHudRows();
+	void SendBroadcast(const char *pText);
+
 	void SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset = -1);
 	void ClearBroadcast() { SendBroadcast(""); }
-	void SendChat(const char *pText);
+
+	void SendChat(const char *pMsg);
+	[[gnu::format(printf, 2, 3)]] void SendChatFmt(const char *pFmt, ...);
 
 	float m_PredMargin;
 	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; }
@@ -597,6 +600,8 @@ public:
 	std::vector<std::string> m_vReceivedConditionals; // conditional chat commands
 
 	bool m_SupportsCosmeticSnaps;
+
+	int GetShowOthers();
 	// FoxNet>
 };
 #endif
