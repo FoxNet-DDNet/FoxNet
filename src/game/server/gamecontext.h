@@ -330,10 +330,9 @@ public:
 	CTuningParams *TuningList(size_t MultiMapIdx)
 	{
 		if(MultiMapIdx >= m_vMultiMaps.size())
-			return &m_vMultiMaps[DefaultMapIndex]->m_aTuningList[0];
-		return &m_vMultiMaps[MultiMapIdx]->m_aTuningList[0];
+			return m_vMultiMaps[DefaultMapIndex]->m_aTuningList;
+		return m_vMultiMaps[MultiMapIdx]->m_aTuningList;
 	}
-
 	// FoxNet>
 	IAntibot *Antibot() { return m_pAntibot; }
 	CTeeHistorian *TeeHistorian() { return &m_TeeHistorian; }
@@ -804,8 +803,8 @@ public:
 	const char *MapName(int ClientId);
 
 	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
-private:
 	std::vector<class CServerComponent *> m_vpComponents;
+private:
 
 	class CDamageIndEffects
 	{
@@ -1058,6 +1057,8 @@ public:
 	bool CanUseCmd(int ClientId, const char *pCmd);
 
 	CTuningParams DDNetDefaultTuning() const;
+
+	bool GetNearestAirPos(vec2 Pos, vec2 *pOut, float Radius);
 	// FoxNet>
 };
 

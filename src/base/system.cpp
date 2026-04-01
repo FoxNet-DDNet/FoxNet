@@ -1,4 +1,4 @@
-﻿
+
 #include "system.h"
 
 #include "dbg.h"
@@ -542,6 +542,12 @@ std::string SanitizeMessage(const char *pMessage)
 	}
 
 	return Out;
+}
+std::mt19937 &Rng()
+{
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	return gen;
 }
 
 // FoxNet>

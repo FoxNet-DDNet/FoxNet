@@ -723,8 +723,11 @@ void IGameController::Snap(int SnappingClient)
 	else
 		m_QuadStartTick = m_RoundStartTick;
 	pGameInfoObj->m_RoundStartTick = m_QuadStartTick;
-	// FoxNet>
+	
+	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+		pComponent->OnGameInfoSnap(SnappingClient, pGameInfoObj, pGameInfoEx);
 
+	// FoxNet>
 	if(Server()->IsSixup(SnappingClient))
 	{
 		protocol7::CNetObj_GameData *pGameData = Server()->SnapNewItem<protocol7::CNetObj_GameData>(0);

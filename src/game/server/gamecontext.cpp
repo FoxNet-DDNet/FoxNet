@@ -2425,6 +2425,12 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 			pPlayer->m_aLastCommands[pPlayer->m_LastCommandPos] = Now;
 			pPlayer->m_LastCommandPos = (pPlayer->m_LastCommandPos + 1) % 4;
 
+			for(CServerComponent *pComponent : m_vpComponents)
+			{
+				if(!pComponent->CanUseCommand(pPlayer, pMsg->m_pMessage + 1))
+					return;
+			}
+
 			Console()->SetFlagMask(CFGFLAG_CHAT);
 			{
 				CClientChatLogger Logger(this, ClientId, log_get_scope_logger());
