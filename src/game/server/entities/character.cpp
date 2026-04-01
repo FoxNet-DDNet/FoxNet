@@ -175,6 +175,15 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 			delete GameServer()->m_apSavedTees[m_pPlayer->GetCid()];
 			GameServer()->m_apSavedTees[m_pPlayer->GetCid()] = nullptr;
 		}
+
+		if(GameServer()->m_apPersistentData[m_pPlayer->GetCid()])
+		{
+			GameServer()->m_apPersistentData[m_pPlayer->GetCid()]->Load(m_pPlayer);
+			delete GameServer()->m_apPersistentData[m_pPlayer->GetCid()];
+			GameServer()->m_apPersistentData[m_pPlayer->GetCid()] = nullptr;
+		}
+		if(!Acc()->m_LoggedIn)
+			GameServer()->m_AccountManager.ForceLogin(m_pPlayer->GetCid(), Acc()->m_aUsername, true, true);
 	}
 	// <FoxNet
 	FoxNetSpawn();
