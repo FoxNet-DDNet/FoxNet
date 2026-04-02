@@ -4856,9 +4856,9 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 		while(pNext < pSettings + Size)
 		{
 			if(str_find_nocase(pNext, "sv_kog_qquads_enable 1") || str_find_nocase(pNext, "sv_moving_tiles 1"))
-				GlobalTuning(MultiMapIdx)->m_MovingTiles = true;
+				GlobalTuning(MultiMapIdx)->m_MovingTiles = 1.0f;
 			if(str_find_nocase(pNext, "sv_kog_grenade_tele 1"))
-				GlobalTuning(MultiMapIdx)->m_TeleGrenade = true;
+				GlobalTuning(MultiMapIdx)->m_TeleGrenade = 1.0f;
 
 			int StrSize = str_length(pNext) + 1;
 			Console()->ExecuteLine(pNext, IConsole::CLIENT_ID_GAME);
