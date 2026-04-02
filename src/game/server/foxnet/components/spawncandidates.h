@@ -8,36 +8,41 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
 class CSpawnCandidates : public CServerComponent
 {
-	mutable CLock m_CacheLock;
-	std::map<const CMultiMaps *, std::vector<vec2>> m_CachedCandidates GUARDED_BY(m_CacheLock);
-	std::unordered_map<const CMultiMaps *, std::thread> m_RebuildThreads GUARDED_BY(m_CacheLock);
-	std::unordered_map<const CMultiMaps *, uint64_t> m_RebuildGenerations GUARDED_BY(m_CacheLock);
+	struct SSharedState
+	{
+		mutable CLock m_CacheLock;
+		std::map<const CMultiMaps *, std::vector<vec2>> m_CachedCandidates GUARDED_BY(m_CacheLock);
+		std::unordered_map<const CMultiMaps *, uint64_t> m_RebuildGenerations GUARDED_BY(m_CacheLock);
+		bool m_RebuildBusy GUARDED_BY(m_CacheLock) = false;
+		bool m_RebuildDeferred GUARDED_BY(m_CacheLock) = false;
+	};
 
-	void JoinRebuildThread(const CMultiMaps *pMultiMap) REQUIRES(!m_CacheLock);
-	void RebuildAsync(size_t MapIdx) REQUIRES(!m_CacheLock);
-	void StoreRebuildResult(const CMultiMaps *pMultiMap, uint64_t Generation, std::vector<vec2> &&vSpawnCandidates) REQUIRES(!m_CacheLock);
+	std::shared_ptr<SSharedState> m_pShared = std::make_shared<SSharedState>();
+
+	void QueueRebuildSnapshot(size_t MapIdx);
+	void RebuildAsync(size_t MapIdx);
 
 public:
-	~CSpawnCandidates() override REQUIRES(!m_CacheLock);
+	~CSpawnCandidates() override;
 
-	void OnMapLoad(size_t MapIdx) override REQUIRES(!m_CacheLock);
-	void OnMapUnload(size_t MapIdx) override REQUIRES(!m_CacheLock);
-	void OnShutdown(void *pPersistentData) override REQUIRES(!m_CacheLock);
+	void OnMapLoad(size_t MapIdx) override;
+	void OnMapUnload(size_t MapIdx) override;
+	void OnShutdown(void *pPersistentData) override;
 
-	void Rebuild(size_t MapIdx) REQUIRES(!m_CacheLock);
-	bool TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const REQUIRES(!m_CacheLock);
+	void Rebuild(size_t MapIdx);
+	bool TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const;
 
-	size_t SpawnCandidateCount(size_t MapIdx) const REQUIRES(!m_CacheLock);
+	size_t SpawnCandidateCount(size_t MapIdx) const;
 
-	std::optional<vec2> GetRandomAccessiblePos() REQUIRES(!m_CacheLock);
-	void OnTick() override REQUIRES(!m_CacheLock);
+	std::optional<vec2> GetRandomAccessiblePos();
+	void OnTick() override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_SPAWNCANDIDATES_H

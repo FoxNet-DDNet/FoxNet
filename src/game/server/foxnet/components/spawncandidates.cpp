@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <cstdint>
 #include <deque>
 #include <iterator>
@@ -163,7 +164,7 @@ namespace
 		return false;
 	}
 
-	std::vector<vec2> BuildSpawnCandidates(SSpawnBuildData Data, size_t MapIdx)
+	std::vector<vec2> BuildSpawnCandidates(const SSpawnBuildData &Data, size_t MapIdx)
 	{
 		if(Data.m_Width <= 0 || Data.m_Height <= 0)
 			return {};
@@ -576,52 +577,76 @@ CSpawnCandidates::~CSpawnCandidates()
 	OnShutdown(nullptr);
 }
 
-void CSpawnCandidates::JoinRebuildThread(const CMultiMaps *pMultiMap)
+void CSpawnCandidates::QueueRebuildSnapshot(size_t MapIdx)
 {
-	std::thread Thread;
+	auto pShared = m_pShared;
+	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
+	CZoneManager *pZoneManager = &GameServer()->m_ZoneManager;
+	if(!pMultiMap)
 	{
-		CLockScope Lock(m_CacheLock);
-		auto It = m_RebuildThreads.find(pMultiMap);
-		if(It == m_RebuildThreads.end())
-			return;
-		Thread = std::move(It->second);
-		m_RebuildThreads.erase(It);
+		CLockScope Lock(pShared->m_CacheLock);
+		pShared->m_RebuildBusy = false;
+		return;
 	}
 
-	if(Thread.joinable())
-		Thread.join();
+	const CMultiMaps *pMultiMapKey = pMultiMap;
+	uint64_t Generation = 0;
+	{
+		CLockScope Lock(pShared->m_CacheLock);
+		auto It = pShared->m_RebuildGenerations.find(pMultiMapKey);
+		if(It == pShared->m_RebuildGenerations.end())
+		{
+			pShared->m_RebuildBusy = false;
+			return;
+		}
+		Generation = It->second;
+	}
+
+	auto pData = std::make_shared<SSpawnBuildData>(SnapshotBuildData(pMultiMap, pZoneManager));
+
+	{
+		CLockScope Lock(pShared->m_CacheLock);
+		auto It = pShared->m_RebuildGenerations.find(pMultiMapKey);
+		if(It == pShared->m_RebuildGenerations.end() || It->second != Generation)
+		{
+			pShared->m_RebuildBusy = false;
+			return;
+		}
+	}
+
+	std::thread([pShared, pMultiMapKey, MapIdx, Generation, pData]() {
+		std::vector<vec2> vSpawnCandidates = BuildSpawnCandidates(*pData, MapIdx);
+
+		CLockScope Lock(pShared->m_CacheLock);
+		auto It = pShared->m_RebuildGenerations.find(pMultiMapKey);
+		if(It != pShared->m_RebuildGenerations.end() && It->second == Generation)
+			pShared->m_CachedCandidates[pMultiMapKey] = std::move(vSpawnCandidates);
+		pShared->m_RebuildBusy = false;
+	}).detach();
 }
 
 void CSpawnCandidates::RebuildAsync(size_t MapIdx)
 {
+	auto pShared = m_pShared;
 	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
-	CZoneManager *pZoneManager = &GameServer()->m_ZoneManager;
 	if(!pMultiMap)
 		return;
 
-	const CMultiMaps *pMultiMapKey = pMultiMap;
-	JoinRebuildThread(pMultiMapKey);
-
-	uint64_t Generation = 0;
 	{
-		CLockScope Lock(m_CacheLock);
-		Generation = ++m_RebuildGenerations[pMultiMapKey];
-		m_CachedCandidates.erase(pMultiMapKey);
-		const SSpawnBuildData Data = SnapshotBuildData(pMultiMap, pZoneManager);
-		m_RebuildThreads[pMultiMapKey] = std::thread([this, pMultiMap, MapIdx, Generation, Data]() {
-			StoreRebuildResult(pMultiMap, Generation, BuildSpawnCandidates(Data, MapIdx));
-		});
+		CLockScope Lock(pShared->m_CacheLock);
+		++pShared->m_RebuildGenerations[pMultiMap];
+		pShared->m_CachedCandidates.erase(pMultiMap);
+
+		if(pShared->m_RebuildBusy)
+		{
+			pShared->m_RebuildDeferred = true;
+			return;
+		}
+
+		pShared->m_RebuildBusy = true;
 	}
-}
 
-void CSpawnCandidates::StoreRebuildResult(const CMultiMaps *pMultiMap, uint64_t Generation, std::vector<vec2> &&vSpawnCandidates)
-{
-	CLockScope Lock(m_CacheLock);
-	auto It = m_RebuildGenerations.find(pMultiMap);
-	if(It == m_RebuildGenerations.end() || It->second != Generation)
-		return;
-
-	m_CachedCandidates[pMultiMap] = std::move(vSpawnCandidates);
+	QueueRebuildSnapshot(MapIdx);
 }
 
 void CSpawnCandidates::OnMapLoad(size_t MapIdx)
@@ -637,34 +662,26 @@ void CSpawnCandidates::OnMapUnload(size_t MapIdx)
 	if(MapIdx != DefaultMapIndex)
 		return; // ignore other map indexes for now
 
+	auto pShared = m_pShared;
 	const CMultiMaps *pMultiMap = MultiMaps(MapIdx);
 	if(!pMultiMap)
 		return;
 
-	JoinRebuildThread(pMultiMap);
-
-	CLockScope Lock(m_CacheLock);
-	m_CachedCandidates.erase(pMultiMap);
-	m_RebuildGenerations.erase(pMultiMap);
+	CLockScope Lock(pShared->m_CacheLock);
+	pShared->m_CachedCandidates.erase(pMultiMap);
+	++pShared->m_RebuildGenerations[pMultiMap];
+	pShared->m_RebuildDeferred = false;
 }
 
 void CSpawnCandidates::OnShutdown(void *pPersistentData)
 {
-	std::vector<const CMultiMaps *> vMaps;
-	{
-		CLockScope Lock(m_CacheLock);
-		vMaps.reserve(m_RebuildThreads.size());
-		for(const auto &[pMultiMap, Thread] : m_RebuildThreads)
-			vMaps.push_back(pMultiMap);
-	}
+	auto pOldShared = std::move(m_pShared);
+	m_pShared = std::make_shared<SSharedState>();
 
-	for(const CMultiMaps *pMultiMap : vMaps)
-		JoinRebuildThread(pMultiMap);
-
-	CLockScope Lock(m_CacheLock);
-	m_CachedCandidates.clear();
-	m_RebuildThreads.clear();
-	m_RebuildGenerations.clear();
+	CLockScope Lock(pOldShared->m_CacheLock);
+	pOldShared->m_CachedCandidates.clear();
+	pOldShared->m_RebuildGenerations.clear();
+	pOldShared->m_RebuildDeferred = false;
 }
 
 void CSpawnCandidates::Rebuild(size_t MapIdx)
@@ -674,13 +691,14 @@ void CSpawnCandidates::Rebuild(size_t MapIdx)
 
 bool CSpawnCandidates::TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const
 {
+	auto pShared = m_pShared;
 	const CMultiMaps *pMultiMap = MultiMaps(MapIdx);
 	if(!pMultiMap)
 		return false;
 
-	CLockScope Lock(m_CacheLock);
-	auto It = m_CachedCandidates.find(pMultiMap);
-	if(It == m_CachedCandidates.end() || It->second.empty())
+	CLockScope Lock(pShared->m_CacheLock);
+	auto It = pShared->m_CachedCandidates.find(pMultiMap);
+	if(It == pShared->m_CachedCandidates.end() || It->second.empty())
 		return false;
 
 	static thread_local std::mt19937 s_Rng{std::random_device{}()};
@@ -691,13 +709,58 @@ bool CSpawnCandidates::TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const
 
 size_t CSpawnCandidates::SpawnCandidateCount(size_t MapIdx) const
 {
+	auto pShared = m_pShared;
 	const CMultiMaps *pMultiMap = MultiMaps(MapIdx);
 	if(!pMultiMap)
 		return 0;
 
-	CLockScope Lock(m_CacheLock);
-	auto It = m_CachedCandidates.find(pMultiMap);
-	return It != m_CachedCandidates.end() ? It->second.size() : 0;
+	CLockScope Lock(pShared->m_CacheLock);
+	auto It = pShared->m_CachedCandidates.find(pMultiMap);
+	return It != pShared->m_CachedCandidates.end() ? It->second.size() : 0;
+}
+
+void CSpawnCandidates::OnTick()
+{
+	auto pShared = m_pShared;
+	bool StartDeferredRebuild = false;
+	{
+		CLockScope Lock(pShared->m_CacheLock);
+		if(pShared->m_RebuildDeferred && !pShared->m_RebuildBusy)
+		{
+			pShared->m_RebuildDeferred = false;
+			pShared->m_RebuildBusy = true;
+			StartDeferredRebuild = true;
+		}
+	}
+
+	if(StartDeferredRebuild)
+		QueueRebuildSnapshot(DefaultMapIndex);
+
+	if(!g_Config.m_SvSpawnPowerUps)
+		return;
+	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
+		return; // nah, too much work to make them work with tele grenades
+	if(!g_Config.m_SvAccounts)
+		return; // Powerups require accounts to store the data
+	if(GameServer()->m_vPowerups.size() >= 6)
+		return;
+	if(GameServer()->m_PowerUpDelay > Server()->Tick())
+		return;
+
+	const auto RandomPos = GetRandomAccessiblePos();
+	if(!RandomPos)
+	{
+		GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
+		return;
+	}
+
+	std::mt19937 Rng{std::random_device{}()};
+	std::uniform_int_distribution<int> Dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
+	EPowerUp Type = (EPowerUp)Dist(Rng);
+	CPowerUp *NewPowerUp = new CPowerUp(&GameServer()->m_World, DefaultMapIndex, *RandomPos, Type);
+
+	GameServer()->m_vPowerups.push_back(NewPowerUp);
+	GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;
 }
 
 std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
@@ -765,33 +828,4 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 		return BestPos;
 
 	return std::nullopt;
-}
-
-void CSpawnCandidates::OnTick()
-{
-	if(!g_Config.m_SvSpawnPowerUps)
-		return;
-	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
-		return; // nah, too much work to make them work with tele grenades
-	if(!g_Config.m_SvAccounts)
-		return; // Powerups require accounts to store the data
-	if(GameServer()->m_vPowerups.size() >= 6)
-		return;
-	if(GameServer()->m_PowerUpDelay > Server()->Tick())
-		return;
-
-	const auto RandomPos = GetRandomAccessiblePos();
-	if(!RandomPos)
-	{
-		GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
-		return;
-	}
-
-	std::mt19937 Rng{std::random_device{}()};
-	std::uniform_int_distribution<int> Dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
-	EPowerUp Type = (EPowerUp)Dist(Rng);
-	CPowerUp *NewPowerUp = new CPowerUp(&GameServer()->m_World, DefaultMapIndex, *RandomPos, Type);
-
-	GameServer()->m_vPowerups.push_back(NewPowerUp);
-	GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;
 }
