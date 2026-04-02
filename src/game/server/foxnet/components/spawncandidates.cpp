@@ -28,6 +28,9 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <game/quad_data.h>
+#include "zones/zonemanager.h"
+#include "zones/zone.h"
 
 namespace
 {
@@ -68,9 +71,11 @@ namespace
 		std::vector<std::vector<vec2>> m_TeleOuts;
 		std::vector<std::vector<vec2>> m_TeleCheckOuts;
 		std::vector<vec2> m_Seeds;
+
+		std::vector<CQuadData> m_QuadDatas;
 	};
 
-	SSpawnBuildData SnapshotBuildData(CMultiMaps *pMultiMap)
+	SSpawnBuildData SnapshotBuildData(CMultiMaps *pMultiMap, CZoneManager *pZoneManager)
 	{
 		SSpawnBuildData Data;
 		if(!pMultiMap)
@@ -124,7 +129,38 @@ namespace
 			}
 		}
 
+		if (pZoneManager)
+		{
+			for(const IZone *pZone : pZoneManager->Zones(EZoneType::Unfreeze))
+			{
+				for (const CQuadData &QuadData : pZone->Quads())
+				{
+					Data.m_QuadDatas.push_back(QuadData);
+				}
+			}
+		}
+
 		return Data;
+	}
+
+	vec2 ToPosition(int Idx, int Width, int Height)
+	{
+		if(Width <= 0 || Height <= 0 || Idx < 0 || Idx >= Width * Height)
+			return vec2(0.0f, 0.0f);
+
+		const int X = Idx % Width;
+		const int Y = Idx / Width;
+		return vec2(X * 32.0f + 16.0f, Y * 32.0f + 16.0f);
+	}
+
+	bool InsideQuad(vec2 Pos, const SSpawnBuildData &Data, EZoneType Type)
+	{
+		for(const CQuadData &Quad : Data.m_QuadDatas)
+		{
+			if(InsideQuadrilateral(Pos, Quad.m_Pos[0],Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
+				return true;
+		}
+		return false;
 	}
 
 	std::vector<vec2> BuildSpawnCandidates(SSpawnBuildData Data, size_t MapIdx)
@@ -195,9 +231,12 @@ namespace
 			const int Front = Data.m_FrontTiles[Idx];
 			const int Sw = Data.m_SwitchTiles[Idx];
 
+			const bool QuadUnfreeze = InsideQuad(ToPosition(Idx, Data.m_Width, Data.m_Height), Data, EZoneType::Unfreeze);
+			
 			return Game == TILE_UNFREEZE || Game == TILE_DUNFREEZE || Game == TILE_LUNFREEZE ||
 			       Front == TILE_UNFREEZE || Front == TILE_DUNFREEZE || Front == TILE_LUNFREEZE ||
-			       Sw == TILE_UNFREEZE || Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE;
+			       Sw == TILE_UNFREEZE || Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE ||
+				QuadUnfreeze;
 		};
 
 		const auto IsBlockedForSpawnNav = [&](int Tx, int Ty) -> bool {
@@ -556,6 +595,7 @@ void CSpawnCandidates::JoinRebuildThread(const CMultiMaps *pMultiMap)
 void CSpawnCandidates::RebuildAsync(size_t MapIdx)
 {
 	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
+	CZoneManager *pZoneManager = &GameServer()->m_ZoneManager;
 	if(!pMultiMap)
 		return;
 
@@ -567,7 +607,7 @@ void CSpawnCandidates::RebuildAsync(size_t MapIdx)
 		CLockScope Lock(m_CacheLock);
 		Generation = ++m_RebuildGenerations[pMultiMapKey];
 		m_CachedCandidates.erase(pMultiMapKey);
-		const SSpawnBuildData Data = SnapshotBuildData(pMultiMap);
+		const SSpawnBuildData Data = SnapshotBuildData(pMultiMap, pZoneManager);
 		m_RebuildThreads[pMultiMapKey] = std::thread([this, pMultiMap, MapIdx, Generation, Data]() {
 			StoreRebuildResult(pMultiMap, Generation, BuildSpawnCandidates(Data, MapIdx));
 		});

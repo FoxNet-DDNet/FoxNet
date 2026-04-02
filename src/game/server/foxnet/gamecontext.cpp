@@ -128,8 +128,8 @@ void CGameContext::FoxNetTick()
 void CGameContext::OnFoxNetConsoleInit()
 {
 	m_vpComponents.insert(m_vpComponents.end(), {
-							    &m_SpawnCandidates,
 							    &m_ZoneManager,
+							    &m_SpawnCandidates,
 							    &m_Scripting,
 							    &m_VoteMenu,
 							    &m_AccountManager,
