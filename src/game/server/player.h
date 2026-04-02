@@ -575,6 +575,7 @@ public:
 	int NumDDraceHudRows();
 	void SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset = -1);
 	void ClearBroadcast() { SendBroadcast(""); }
+	void SendChat(const char *pText);
 
 	float m_PredMargin;
 	void Repredict(int PredMargin) { m_PredMargin = PredMargin / 10.0; }

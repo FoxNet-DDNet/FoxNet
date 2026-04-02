@@ -152,7 +152,7 @@ void CPlayer::ExpireItems()
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "Item '%s' has expired!", pName);
 			GameServer()->m_AccountManager.RemoveItem(Acc()->m_aUsername, pName);
-			GameServer()->SendChatTarget(GetCid(), aBuf);
+			SendChat(aBuf);
 		}
 	}
 }
@@ -168,6 +168,8 @@ void CPlayer::FoxNetReset()
 	m_AccRegisters = 0;
 
 	m_IncludeServerInfo = true;
+	if(Server()->DebugDummy(GetCid()))
+		m_IncludeServerInfo = false;
 
 	m_ExtraPing = false;
 	m_Vanish = false;
@@ -534,7 +536,7 @@ bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 
 	if(ReachedItemLimit(pCfg) && Equip != 0 && !Force)
 	{
-		GameServer()->SendChatTarget(GetCid(), "You have reached the limit of equipped cosmetics. Unequip some other items first.");
+		SendChat("You have reached the limit of equipped cosmetics. Unequip some other items first.");
 		return false;
 	}
 
@@ -565,7 +567,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 		return false;
 	if(m_LootBoxData.m_Opening)
 	{
-		GameServer()->SendChatTarget(GetCid(), "You are already opening a loot case!");
+		SendChat("You are already opening a loot case!");
 		return false;
 	}
 
@@ -657,7 +659,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 	auto It = Inv()->m_Map.find(CaseCfg.m_pName);
 	if(It == Inv()->m_Map.end() || It->second.m_Quantity <= 0)
 	{
-		GameServer()->SendChatTarget(GetCid(), "You don't own this loot case.");
+		SendChat("You don't own this loot case.");
 		return false;
 	}
 	It->second.m_Quantity = std::max(0, It->second.m_Quantity - 1);
@@ -1014,13 +1016,15 @@ int CPlayer::NumDDraceHudRows()
 	int Rows = 0;
 	if(pChr->Core()->m_EndlessJump || pChr->Core()->m_EndlessHook || pChr->Core()->m_Jetpack || pChr->Core()->m_HasTelegunGrenade || pChr->Core()->m_HasTelegunGun || pChr->Core()->m_HasTelegunLaser)
 		Rows++;
-	if(pChr->Core()->m_Solo || pChr->Core()->m_CollisionDisabled || pChr->Core()->m_Passive || pChr->Core()->m_HookHitDisabled || pChr->Core()->m_HammerHitDisabled || pChr->Core()->m_ShotgunHitDisabled || pChr->Core()->m_GrenadeHitDisabled || pChr->Core()->m_LaserHitDisabled)
+	if(pChr->Core()->m_Solo || pChr->Core()->m_CollisionDisabled || pChr->Core()->m_Passive ||
+		pChr->Core()->m_HookHitDisabled || pChr->Core()->m_HammerHitDisabled || pChr->Core()->m_ShotgunHitDisabled ||
+		pChr->Core()->m_GrenadeHitDisabled || pChr->Core()->m_LaserHitDisabled)
 		Rows++;
 	if(pChr->Teams()->IsPractice(pChr->Team()) || pChr->Teams()->TeamLocked(pChr->Team()) || pChr->Core()->m_DeepFrozen || pChr->Core()->m_LiveFrozen)
 		Rows++;
 
 	if(GameServer()->m_VoteCloseTime)
-		Rows += 3;
+		Rows = 3;
 
 	return Rows;
 }
@@ -1031,6 +1035,17 @@ bool CPlayer::HasImportantBroadcast() const
 	return m_LootBoxData.m_Opening;
 }
 
+void CPlayer::SendBroadcast(const char *pText)
+{
+	if(!str_comp(m_BroadcastData.m_aMessage, pText) && m_BroadcastData.m_Time + Server()->TickSpeed() * 9 > Server()->Tick())
+		return;
+
+	str_copy(m_BroadcastData.m_aMessage, pText);
+	m_BroadcastData.m_Time = Server()->Tick();
+
+	GameServer()->SendBroadcast(pText, GetCid());
+}
+
 void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset)
 {
 	if(pMessages.empty())
@@ -1039,7 +1054,8 @@ void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Of
 		return; // Other broadcast is being sent
 
 	char aBuf[256] = "";
-	int NextLines = Offset == -1 ? NumDDraceHudRows() : Offset;
+	Offset = std::max(Offset, 0);
+	int NextLines = NumDDraceHudRows() + Offset;
 
 	for(int i = 0; i < NextLines; i++)
 		str_append(aBuf, "\n", sizeof(aBuf));
@@ -1057,15 +1073,9 @@ void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Of
 	SendBroadcast(aBuf);
 }
 
-void CPlayer::SendBroadcast(const char *pText)
+void CPlayer::SendChat(const char *pText)
 {
-	if(!str_comp(m_BroadcastData.m_aMessage, pText) && m_BroadcastData.m_Time + Server()->TickSpeed() * 9 > Server()->Tick())
-		return;
-
-	str_copy(m_BroadcastData.m_aMessage, pText);
-	m_BroadcastData.m_Time = Server()->Tick();
-
-	GameServer()->SendBroadcast(pText, GetCid());
+	GameServer()->SendChatTarget(GetCid(), pText);
 }
 
 void CPlayer::SendAreaMotd(EArea Area)
@@ -1095,7 +1105,7 @@ void CPlayer::SendAreaMotd(EArea Area)
 	case EArea::Roulette:
 		Msg.m_pMessage =
 			"\n"
-			"[Viewable in Server info Tab]\n"
+			"[Viewable in Server info tab]\n"
 			"\n"
 			"\n"
 			"--  Rᴏᴜʟᴇᴛᴛᴇ  --\n"
@@ -1116,6 +1126,7 @@ void CPlayer::SendAreaMotd(EArea Area)
 	if(Msg.m_pMessage[0] == '\0')
 		return;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, GetCid());
+	SendChat("How to view Area Info: Open Menu -> Server Info -> MOTD");
 }
 
 void CPlayer::SetArea(EArea Area)
@@ -1262,7 +1273,7 @@ bool CPlayer::SendToMap(int Idx)
 	}
 
 	if(MultiMapIdx() != DefaultMapIndex)
-		GameServer()->SendChatTarget(GetCid(), "Use /exit to leave to the main map.");
+		SendChat("Use /exit to leave to the main map.");
 
 	return true;
 }

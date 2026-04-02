@@ -190,7 +190,7 @@ void CPlayer::Tick()
 	if(m_Moderating && m_Afk)
 	{
 		m_Moderating = false;
-		GameServer()->SendChatTarget(m_ClientId, "Active moderator mode disabled because you are afk.");
+		SendChat("Active moderator mode disabled because you are afk.");
 
 		if(!GameServer()->PlayerModerating())
 			GameServer()->SendChat(-1, TEAM_ALL, "Server kick/spec votes are no longer actively moderated.");
@@ -827,7 +827,7 @@ void CPlayer::ProcessPause()
 	if(m_ForcePauseTime && m_ForcePauseTime < Server()->Tick())
 	{
 		m_ForcePauseTime = 0;
-		GameServer()->SendChatTarget(m_ClientId, "The force pause timer is now over, you can exit with /spec");
+		SendChat("The force pause timer is now over, you can exit with /spec");
 	}
 
 	if(m_Paused == PAUSE_SPEC && !m_pCharacter->IsPaused() && CanSpec())
@@ -858,7 +858,7 @@ int CPlayer::Pause(int State, bool Force)
 			{
 				if(!Force && m_LastPause && m_LastPause + (int64_t)g_Config.m_SvSpecFrequency * Server()->TickSpeed() > Server()->Tick())
 				{
-					GameServer()->SendChatTarget(m_ClientId, "Can't /spec that quickly.");
+					SendChat("Can't /spec that quickly.");
 					return m_Paused; // Do not update state. Do not collect $200
 				}
 				m_pCharacter->Pause(false);
@@ -932,13 +932,13 @@ void CPlayer::SetSpectatorId(int Id)
 	{
 		if(pSpectator->m_Vanish && !m_Vanish)
 		{
-			GameServer()->SendChatTarget(GetCid(), "Invalid spectator id used");
+			SendChat("Invalid spectator id used");
 			return;
 		}
 		else if(pSpectator->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		{
-			GameServer()->SendChatTarget(GetCid(), "You can't spectate players on different maps");
-			GameServer()->SendChatTarget(GetCid(), "use /join_map <name> to join their map");
+			SendChat("You can't spectate players on different maps");
+			SendChat("use /join_map <name> to join their map");
 			return;
 		}
 	}
@@ -957,7 +957,7 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 			{
 				if(aMessage[0] == 0)
 					break;
-				GameServer()->SendChatTarget(m_ClientId, aMessage);
+				SendChat(aMessage);
 			}
 			break;
 		case CScorePlayerResult::ALL:
@@ -1033,7 +1033,7 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 			char aBuf[128], aTime[32];
 			str_time_float(Result.m_Data.m_Info.m_Time.value(), ETimeFormat::HOURS_CENTISECS, aTime, sizeof(aTime));
 			str_format(aBuf, sizeof(aBuf), "Showing the checkpoint times for '%s' with a race time of %s", Result.m_Data.m_Info.m_aRequestedPlayer, aTime);
-			GameServer()->SendChatTarget(m_ClientId, aBuf);
+			SendChat(aBuf);
 			break;
 		}
 	}
