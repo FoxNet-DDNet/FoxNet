@@ -1097,24 +1097,6 @@ void CGameContext::AbortVoteKickOnDisconnect(int ClientId)
 		m_VoteEnforce = VOTE_ENFORCE_ABORT;
 }
 
-void CGameContext::CheckPureTuning()
-{
-	// might not be created yet during start up
-	if(!m_pController)
-		return;
-
-	if(str_comp(m_pController->m_pGameType, "DM") == 0 ||
-		str_comp(m_pController->m_pGameType, "TDM") == 0 ||
-		str_comp(m_pController->m_pGameType, "CTF") == 0)
-	{
-		if(mem_comp(&CTuningParams::DEFAULT, GlobalTuning(DefaultMapIndex), sizeof(CTuningParams)) != 0)
-		{
-			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "resetting tuning due to pure server");
-			*GlobalTuning(DefaultMapIndex) = CTuningParams::DEFAULT;
-		}
-	}
-}
-
 void CGameContext::SendTuningParams(int ClientId, int Zone)
 {
 	if(ClientId == -1)
@@ -1136,8 +1118,6 @@ void CGameContext::SendTuningParams(int ClientId, int Zone)
 		}
 		return;
 	}
-
-	CheckPureTuning();
 
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "Invalid ClientId: %d", ClientId);
 	dbg_assert(m_apPlayers[ClientId], "client %d without player", ClientId);
@@ -1213,9 +1193,6 @@ void CGameContext::OnPreTickTeehistorian()
 void CGameContext::OnTick()
 {
 	FoxNetTick();
-
-	// check tuning
-	CheckPureTuning();
 
 	if(m_TeeHistorianActive)
 	{
@@ -4371,6 +4348,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 	Collision()->Init(Layers());
 	// <FoxNet
 	Collision()->InitQuads();
+	// Collision()->InitSpawnCandidates();
 	m_vMultiMaps[DefaultMapIndex].get()->InitTuning(this, DefaultMapIndex);
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)
 	{

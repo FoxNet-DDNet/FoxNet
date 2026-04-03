@@ -452,7 +452,6 @@ public:
 	void List(int ClientId, const char *pFilter);
 
 	//
-	void CheckPureTuning();
 	void SendTuningParams(int ClientId, int Zone = 0);
 
 	//
@@ -1062,6 +1061,8 @@ public:
 
 	bool SetPredictEventsFlag(int ClientId) const;
 	bool CanUseCmd(int ClientId, const char *pCmd);
+
+	CTuningParams DDNetDefaultTuning() const;
 	// FoxNet>
 };
 

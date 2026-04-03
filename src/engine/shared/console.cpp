@@ -599,6 +599,9 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 							pfnResolvedCallback == SColorConfigVariable::CommandCallback ||
 							pfnResolvedCallback == SStringConfigVariable::CommandCallback;
 
+						if(m_MultiMapIndex >= 0)
+							Result.m_MultiMapIndex = m_MultiMapIndex;
+
 						if(m_MultiMapIndex > 0 && IsConfigVariable && Result.NumArguments() > 0)
 						{
 							if(Stroke)
@@ -625,9 +628,6 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 							}
 
 							// <FoxNet
-							if(m_MultiMapIndex >= 0)
-								Result.m_MultiMapIndex = m_MultiMapIndex;
-
 							if(Result.GetVictim() == CResult::VICTIM_ME)
 								Result.SetVictim(ClientId);
 

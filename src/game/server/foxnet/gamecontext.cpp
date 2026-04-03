@@ -61,12 +61,7 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 
 	for(auto &Tune : m_aTuningList)
 	{
-		Tune = CTuningParams::DEFAULT;
-		Tune.Set("gun_curvature", 0);
-		Tune.Set("gun_speed", 1400);
-		Tune.Set("shotgun_curvature", 0);
-		Tune.Set("shotgun_speed", 500);
-		Tune.Set("shotgun_speeddiff", 0);
+		Tune = pGameContext->DDNetDefaultTuning();
 	}
 
 	// Reset Tuning
@@ -76,11 +71,7 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 	}
 	else
 	{
-		m_aTuningList[0].Set("gun_speed", 1400);
-		m_aTuningList[0].Set("gun_curvature", 0);
-		m_aTuningList[0].Set("shotgun_speed", 500);
-		m_aTuningList[0].Set("shotgun_speeddiff", 0);
-		m_aTuningList[0].Set("shotgun_curvature", 0);
+		m_aTuningList[0] = pGameContext->DDNetDefaultTuning();
 	}
 
 	if(g_Config.m_SvSoloServer)
@@ -264,16 +255,18 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 	}
 	log_info("multimap", "Map loaded: %s", aBuf);
 	pNewMap->Init();
-	pNewMap->InitTuning(this, m_vMultiMaps.size());
 	pNewMap->m_MapType = Type;
 	pNewMap->m_CreatedEntities = false;
 	pNewMap->m_LoadedSwitchers = false;
-	m_vMultiMaps.push_back(std::move(pNewMap));
 
-	LoadMapSettings(m_vMultiMaps.size() - 1);
+	const size_t NewMapIndex = m_vMultiMaps.size();
+	m_vMultiMaps.push_back(std::move(pNewMap));
+	m_vMultiMaps[NewMapIndex]->InitTuning(this, NewMapIndex);
+
+	LoadMapSettings(NewMapIndex);
 
 	for(auto &pComponent : m_vpComponents)
-		pComponent->OnMapLoad(m_vMultiMaps.size() - 1);
+		pComponent->OnMapLoad(NewMapIndex);
 }
 
 void CGameContext::UnloadMapByName(const char *pMapName)
@@ -1559,4 +1552,15 @@ int CGameContext::ClientIdByName(const char *pName) const
 			return i;
 	}
 	return -1;
+}
+
+CTuningParams CGameContext::DDNetDefaultTuning() const
+{
+	CTuningParams Tune = CTuningParams::DEFAULT;
+	Tune.m_GunCurvature = 0;
+	Tune.m_GunSpeed = 1400;
+	Tune.m_ShotgunCurvature = 0;
+	Tune.m_ShotgunSpeed = 500;
+	Tune.m_ShotgunSpeeddiff = 0;
+	return Tune;
 }
