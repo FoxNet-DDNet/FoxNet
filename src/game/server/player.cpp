@@ -441,6 +441,13 @@ void CPlayer::Snap(int SnappingClient)
 					{
 						continue;
 					}
+					// <FoxNet
+					if(pPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
+						continue;
+
+					if(MultiMapIdx() != pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
+						continue;
+					// FoxNet>
 
 					if(pPlayer->m_SpectatorId == TranslatedId)
 					{
