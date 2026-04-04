@@ -341,7 +341,6 @@ void CServer::CClient::Reset()
 	m_RedirectDropTime = 0;
 
 	FreeClientOverrideMap(*this);
-	ResetContent();
 }
 
 CServer::CServer()
@@ -1330,6 +1329,7 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 	pThis->Antibot()->OnEngineClientJoin(ClientId);
 
 	// <FoxNet
+	pThis->m_aClients[ClientId].ResetContent();
 	pThis->SendFoxnetInfo(ClientId);
 	// FoxNet>
 
@@ -1372,6 +1372,7 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 	pThis->SendConnLoggingCommand(OPEN_SESSION, pThis->ClientAddr(ClientId));
 #endif
 	// <FoxNet
+	pThis->m_aClients[ClientId].ResetContent();
 	pThis->SendFoxnetInfo(ClientId);
 	// FoxNet>
 	return 0;
@@ -4921,6 +4922,7 @@ void CServer::CClient::ResetContent()
 {
 	FreeClientOverrideMap(*this);
 	str_copy(m_aCustomClient, "DDNet");
+	m_aClientMessage[0] = '\0';
 	m_QuietJoin = false;
 	m_HighBandwidth = true;
 }
