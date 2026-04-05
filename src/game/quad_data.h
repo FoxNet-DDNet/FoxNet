@@ -28,6 +28,8 @@ public:
 	CMapItemLayerQuads *m_pLayer = nullptr;
 	EZoneType m_Type = EZoneType::Num;
 	uint8_t m_SubType = 0;
+	bool m_Animated = false;
+	vec2 m_LocalPos[5] = {vec2(0, 0)};
 	vec2 m_Pos[5] = {vec2(0, 0)};
 	float m_Angle = 0.0f;
 };

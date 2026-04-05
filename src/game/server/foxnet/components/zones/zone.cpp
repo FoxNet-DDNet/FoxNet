@@ -147,21 +147,46 @@ void IZone::GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, 
 	Angle = (r0 + (r1 - r0) * a) / 360.0f * pi * 2.0f;
 }
 
+void IZone::ReserveQuads(int AdditionalQuads)
+{
+	if(AdditionalQuads <= 0)
+		return;
+
+	m_vQuads.reserve(m_vQuads.size() + (size_t)AdditionalQuads);
+	m_vAnimatedQuadIndices.reserve(m_vAnimatedQuadIndices.size() + (size_t)AdditionalQuads);
+}
+
+void IZone::InitQuadData(CQuadData &QuadData, CMapItemLayerQuads *pQuadsLayer, CQuad *pQuad) const
+{
+	QuadData.m_pQuad = pQuad;
+	QuadData.m_pLayer = pQuadsLayer;
+	QuadData.m_Type = m_QuadType;
+	QuadData.m_MapIndex = m_MultiMapIndex;
+	QuadData.m_Animated = pQuad->m_PosEnv >= 0;
+
+	for(int j = 0; j < 5; j++)
+	{
+		QuadData.m_LocalPos[j] = vec2(fx2f(pQuad->m_aPoints[j].x), fx2f(pQuad->m_aPoints[j].y));
+		QuadData.m_Pos[j] = QuadData.m_LocalPos[j];
+	}
+}
+
+void IZone::AddQuad(const CQuadData &QuadData)
+{
+	m_vQuads.push_back(QuadData);
+	if(QuadData.m_Animated)
+		m_vAnimatedQuadIndices.push_back((int)m_vQuads.size() - 1);
+}
+
 void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 {
 	CQuad *pQuads = (CQuad *)GameServer()->Map(MultiMapIndex())->GetDataSwapped(pQuadsLayer->m_Data);
-	m_vQuads.reserve(pQuadsLayer->m_NumQuads);
+	ReserveQuads(pQuadsLayer->m_NumQuads);
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		QuadData.m_pQuad = &pQuads[NumQuads];
-		QuadData.m_pLayer = pQuadsLayer;
-		QuadData.m_Type = m_QuadType;
-		for(int j = 0; j < 5; j++)
-			QuadData.m_Pos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
-
-		QuadData.m_MapIndex = m_MultiMapIndex;
-		m_vQuads.push_back(QuadData);
+		InitQuadData(QuadData, pQuadsLayer, &pQuads[NumQuads]);
+		AddQuad(QuadData);
 	}
 }
 
@@ -175,15 +200,20 @@ CCollision *IZone::Collision() const
 
 void IZone::UpdateCache()
 {
-	const double Time = GameServer()->m_pController->GetTime();
-	// std::swap(m_vQuads, m_vNextQuads);
+	if(m_vAnimatedQuadIndices.empty())
+		return;
 
-	for(auto &QuadData : m_vQuads)
+	const double Time = GameServer()->m_pController->GetTime();
+
+	for(int QuadIndex : m_vAnimatedQuadIndices)
 	{
+		CQuadData &QuadData = m_vQuads[QuadIndex];
+
 		vec2 Position = vec2(0, 0);
 		GetAnimationTransform(QuadData.m_MapIndex, Time + (QuadData.m_pQuad->m_PosEnvOffset / 1000.0), QuadData.m_pQuad->m_PosEnv, Position, QuadData.m_Angle);
+
 		for(int i = 0; i < 5; i++)
-			QuadData.m_Pos[i] = (Position + vec2(fx2f(QuadData.m_pQuad->m_aPoints[i].x), fx2f(QuadData.m_pQuad->m_aPoints[i].y)));
+			QuadData.m_Pos[i] = Position + QuadData.m_LocalPos[i];
 
 		if(QuadData.m_Angle != 0)
 		{

@@ -81,7 +81,8 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	IntsToStr(pQuadsLayer->m_aName, std::size(pQuadsLayer->m_aName), aLayerName, std::size(aLayerName));
 
 	CQuad *pQuads = (CQuad *)GameServer()->Map(MultiMapIndex())->GetDataSwapped(pQuadsLayer->m_Data);
-	m_vQuads.reserve(pQuadsLayer->m_NumQuads);
+	ReserveQuads(pQuadsLayer->m_NumQuads);
+
 	ESubType SubType = ESubType::Area;
 	if(!str_comp(aLayerName, "Area"))
 		SubType = ESubType::Area;
@@ -97,16 +98,10 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		QuadData.m_pQuad = &pQuads[NumQuads];
-		QuadData.m_pLayer = pQuadsLayer;
+		InitQuadData(QuadData, pQuadsLayer, &pQuads[NumQuads]);
 		QuadData.m_Type = EZoneType::Roulette;
 		QuadData.m_SubType = (uint8_t)SubType;
-		for(int j = 0; j < 5; j++)
-			QuadData.m_Pos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
-
-		QuadData.m_MapIndex = MultiMapIndex();
-
-		m_vQuads.push_back(QuadData);
+		AddQuad(QuadData);
 
 		if(SubType == ESubType::BetOption)
 		{

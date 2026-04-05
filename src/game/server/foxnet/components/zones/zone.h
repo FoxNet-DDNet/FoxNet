@@ -19,6 +19,7 @@ class IZone
 	CGameContext *m_pGameContext = nullptr;
 	size_t m_MultiMapIndex = 0;
 	EZoneType m_QuadType = EZoneType::Num;
+	std::vector<int> m_vAnimatedQuadIndices;
 
 	class CAnimationTransformCache
 	{
@@ -30,6 +31,11 @@ class IZone
 	};
 	void GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 
+protected:
+	void ReserveQuads(int AdditionalQuads);
+	void InitQuadData(CQuadData &QuadData, CMapItemLayerQuads *pQuadsLayer, CQuad *pQuad) const;
+	void AddQuad(const CQuadData &QuadData);
+
 public:
 	std::vector<CQuadData> m_vQuads;
 
@@ -38,6 +44,7 @@ public:
 
 	[[nodiscard]] const std::vector<CQuadData> &Quads() const { return m_vQuads; }
 	[[nodiscard]] size_t MultiMapIndex() const { return m_MultiMapIndex; }
+	[[nodiscard]] bool HasAnimatedQuads() const { return !m_vAnimatedQuadIndices.empty(); }
 
 	void UpdateCache();
 
