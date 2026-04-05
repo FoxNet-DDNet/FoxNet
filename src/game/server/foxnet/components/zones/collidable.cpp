@@ -173,9 +173,9 @@ void CCollidableZone::HandleCharacters()
 		{
 			for(const CQuadData &QuadData : Quads())
 			{
-				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-				vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
-				if(!InsideQuad(pChr->GetPos(), Points, Size * 0.55f))
+				const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
+
+				if(!InsideQuad(pChr->GetPos(), QuadData, Size))
 					continue;
 
 				CollidableImpl(QuadData, pChr);
@@ -185,9 +185,11 @@ void CCollidableZone::HandleCharacters()
 		{
 			for(const CQuadData &QuadData : Collision()->Quads())
 			{
-				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-				vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
-				if(!InsideQuad(pChr->GetPos(), Points, Size * 0.55f))
+				const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
+				if(!QuadData.AabbIntersects(pChr->GetPos(), Size))
+					continue;
+
+				if(!InsideQuad(pChr->GetPos(), QuadData, Size))
 					continue;
 
 				CollidableImpl(QuadData, pChr);
@@ -211,9 +213,9 @@ void CCollidableZone::HandlePickups()
 		{
 			for(const CQuadData &QuadData : Quads())
 			{
-				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-				vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
-				if(!InsideQuad(pEnt->GetPos(), Points, Size * 0.55f))
+				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
+
+				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
 					continue;
 
 				CollidableImpl(QuadData, pEnt);
@@ -223,9 +225,9 @@ void CCollidableZone::HandlePickups()
 		{
 			for(const CQuadData &QuadData : Collision()->Quads())
 			{
-				vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-				vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
-				if(!InsideQuad(pEnt->GetPos(), Points, Size * 0.55f))
+				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
+
+				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
 					continue;
 
 				CollidableImpl(QuadData, pEnt);

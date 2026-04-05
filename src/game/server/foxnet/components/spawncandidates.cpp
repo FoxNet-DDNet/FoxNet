@@ -158,6 +158,9 @@ namespace
 	{
 		for(const CQuadData &Quad : Data.m_QuadDatas)
 		{
+			if(!Quad.AabbContains(Pos))
+				continue;
+
 			if(InsideQuadrilateral(Pos, Quad.m_Pos[0],Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
 				return true;
 		}

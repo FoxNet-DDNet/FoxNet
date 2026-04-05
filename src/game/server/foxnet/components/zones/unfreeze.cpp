@@ -32,8 +32,7 @@ void CUnfreezeZone::OnTick()
 
 		for(const CQuadData &QuadData : Quads())
 		{
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			if(!InsideQuad(pChr->GetPos(), Points, vec2(0, 0)))
+			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 				continue;
 
 			pChr->Unfreeze();

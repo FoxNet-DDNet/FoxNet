@@ -34,8 +34,8 @@ void CCheckpointFromZone::OnTick()
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr->IsAlive())
 				continue;
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			if(!InsideQuad(pChr->GetPos(), Points, vec2(0, 0)))
+
+			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 				continue;
 
 			HandleTeleport(pChr);
@@ -45,8 +45,7 @@ void CCheckpointFromZone::OnTick()
 			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
 				continue;
 
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			if(!InsideQuad(pEnt->GetPos(), Points, vec2(0, 0)))
+			if(!InsideQuad(pEnt->GetPos(), QuadData, vec2(0, 0)))
 				continue;
 
 			HandleTeleport(pEnt);

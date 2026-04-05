@@ -25,6 +25,7 @@
 #include <base/vmath.h>
 #include <engine/console.h>
 #include <engine/shared/config.h>
+#include <base/log.h>
 
 IZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
 {
@@ -178,7 +179,7 @@ void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDem
 		auto &vZones = m_avpZones[i];
 		for(IZone *pZone : vZones)
 		{
-			int SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
+			size_t SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
 
 			if(pZone->MultiMapIndex() != SnappMultiMapIndex)
 				continue;
@@ -253,7 +254,8 @@ void CZoneManager::FreeQuadIds()
 
 void CZoneManager::OnConsoleInit()
 {
-	Console()->Register("debug_snap_quads", "i[snap]", CFGFLAG_SERVER, ConDebugSnapQuads, this, "Toggle snapping of zone quads");
+	Console()->Register("zones_debug_snap", "i[snap]", CFGFLAG_SERVER, ConDebugSnapQuads, this, "Toggle snapping of zone quads");
+	Console()->Register("zones_num", "?i[multimap]", CFGFLAG_SERVER, ConNumQuads, this, "Print the amount of quads loaded on the server");
 }
 
 void CZoneManager::ConDebugSnapQuads(IConsole::IResult *pResult, void *pUserData)
@@ -272,4 +274,50 @@ void CZoneManager::ConDebugSnapQuads(IConsole::IResult *pResult, void *pUserData
 		pSelf->SnapQuadIds();
 	else
 		pSelf->FreeQuadIds();
+}
+
+void CZoneManager::ConNumQuads(IConsole::IResult *pResult, void *pUserData)
+{
+	CZoneManager *pSelf = (CZoneManager *)pUserData;
+
+	int MultiMapIndex = pResult->NumArguments() ? pResult->GetInteger(0) : -1;
+	if(MultiMapIndex != -1 && (size_t)MultiMapIndex >= pSelf->GameServer()->m_vMultiMaps.size())
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "zones", "invalid multimap index");
+		return;
+	}
+
+	size_t Num = 0;
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = pSelf->m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(MultiMapIndex != -1 && (size_t)pZone->MultiMapIndex() != (size_t)MultiMapIndex)
+				continue;
+
+			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
+			{
+				Num++;
+			}
+		}
+	}
+	if(MultiMapIndex == -1)
+	{
+		for(size_t Idx = 0; Idx < pSelf->GameServer()->m_vMultiMaps.size(); Idx++)
+		{
+			for(size_t Quad = 0; Quad < pSelf->Collision(Idx)->Quads().size(); Quad++)
+			{
+				Num++;
+			}
+		}
+	}
+	else
+	{
+		for(size_t Quad = 0; Quad < pSelf->Collision(MultiMapIndex)->Quads().size(); Quad++)
+		{
+			Num++;
+		}
+	}
+	log_info("zones", "%" PRIzu " total zones", Num);
 }

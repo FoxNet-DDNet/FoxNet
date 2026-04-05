@@ -1486,7 +1486,11 @@ void CCollision::InitQuads()
 				continue;
 			m_HasSolidQuads = true;
 			for(int j = 0; j < 5; j++)
-				QuadData.m_Pos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
+			{
+				QuadData.m_LocalPos[j] = vec2(fx2f(QuadData.m_pQuad->m_aPoints[j].x), fx2f(QuadData.m_pQuad->m_aPoints[j].y));
+				QuadData.m_Pos[j] = QuadData.m_LocalPos[j];
+			}
+			QuadData.UpdateAabb();
 
 			m_vQuads.push_back(QuadData);
 		}
@@ -1649,6 +1653,8 @@ void CCollision::UpdateQuads(bool UseMovingTiles, float Time)
 			for(int i = 0; i < 4; i++)
 				Rotate(QuadData.m_Pos[4], &QuadData.m_Pos[i], QuadData.m_Angle);
 		}
+
+		QuadData.UpdateAabb();
 	}
 }
 
@@ -1659,6 +1665,9 @@ CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 
 	for(const CQuadData &Quad : m_vQuads)
 	{
+		if(!Quad.AabbContains(Pos))
+			continue;
+
 		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
 			return const_cast<CQuadData *>(&Quad);
 	}

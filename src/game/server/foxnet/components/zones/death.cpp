@@ -35,9 +35,8 @@ void CDeathZone::OnTick()
 			if(!pChr->IsAlive())
 				continue;
 
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
 			vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius());
-			if(!InsideQuad(pChr->GetPos(), Points, Size / 3.0f))
+			if(!InsideQuad(pChr->GetPos(), QuadData, Size / 3.0f))
 				continue;
 
 			pChr->Die(pPlayer->GetCid(), WEAPON_WORLD);
@@ -47,8 +46,7 @@ void CDeathZone::OnTick()
 			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
 				continue;
 
-			vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-			if(!InsideQuad(pEnt->GetPos(), Points, vec2(0, 0)))
+			if(!InsideQuad(pEnt->GetPos(), QuadData, vec2(0, 0)))
 				continue;
 
 			pEnt->Reset();

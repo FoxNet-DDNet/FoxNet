@@ -28,6 +28,7 @@ class CZoneManager : public CServerComponent
 
 	bool m_DebugSnappingQuads = false;
 	static void ConDebugSnapQuads(IConsole::IResult *pResult, void *pUserData);
+	static void ConNumQuads(IConsole::IResult *pResult, void *pUserData);
 
 public:
 	IZone *FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx);

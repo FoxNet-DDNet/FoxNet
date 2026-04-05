@@ -45,7 +45,7 @@ public:
 	[[nodiscard]] const std::vector<CQuadData> &Quads() const { return m_vQuads; }
 	[[nodiscard]] size_t MultiMapIndex() const { return m_MultiMapIndex; }
 	[[nodiscard]] bool HasAnimatedQuads() const { return !m_vAnimatedQuadIndices.empty(); }
-
+	[[nodiscard]] bool InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size = vec2(0, 0)) const;
 	void UpdateCache();
 
 	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :

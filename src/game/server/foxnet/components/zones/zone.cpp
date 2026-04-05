@@ -169,6 +169,7 @@ void IZone::InitQuadData(CQuadData &QuadData, CMapItemLayerQuads *pQuadsLayer, C
 		QuadData.m_LocalPos[j] = vec2(fx2f(pQuad->m_aPoints[j].x), fx2f(pQuad->m_aPoints[j].y));
 		QuadData.m_Pos[j] = QuadData.m_LocalPos[j];
 	}
+	QuadData.UpdateAabb();
 }
 
 void IZone::AddQuad(const CQuadData &QuadData)
@@ -198,6 +199,23 @@ CCollision *IZone::Collision() const
 	return GameServer()->Collision(MultiMapIndex());
 }
 
+bool IZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size) const
+{
+	if(Size.x == 0 && Size.y == 0)
+	{
+		if(!QuadData.AabbContains(Pos))
+			return false;
+	}
+	else 
+	{
+		if(!QuadData.AabbIntersects(Pos, Size))
+			return false;
+	}
+	const vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+	
+	return ::InsideQuad(Pos, Points, Size);
+}
+
 void IZone::UpdateCache()
 {
 	if(m_vAnimatedQuadIndices.empty())
@@ -220,5 +238,7 @@ void IZone::UpdateCache()
 			for(int i = 0; i < 4; i++)
 				Rotate(QuadData.m_Pos[4], &QuadData.m_Pos[i], QuadData.m_Angle);
 		}
+
+		QuadData.UpdateAabb();
 	}
 }
