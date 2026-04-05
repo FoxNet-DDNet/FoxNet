@@ -482,8 +482,6 @@ void CGameContext::FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 {
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnSnap(ClientId, GlobalSnap, RecordingDemo);
-
-	SnapDebuggedQuad(ClientId);
 }
 
 void CGameContext::BanSync()
@@ -1138,56 +1136,6 @@ int CGameContext::GetWeaponType(int Weapon)
 		return WEAPON_LASER;
 	}
 	return Weapon;
-}
-
-void CGameContext::SnapDebuggedQuad(int ClientId)
-{
-	/*CPlayer *pPlayer = m_apPlayers[ClientId];
-	if(!pPlayer || !g_Config.m_SvDebugQuadPos)
-		return;
-
-	const auto &Quads = Collision()->QuadLayers();
-	if(Quads.empty() || m_vQuadDebugIds.empty())
-		return;
-
-	const size_t Count = std::min(Quads.size(), m_vQuadDebugIds.size());
-
-	for(size_t i = 0; i < Count; ++i)
-	{
-		const CQuadData &Quad = Quads[i];
-		const vec2 TopLeft = Quad.m_Pos[0];
-
-		if(CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(m_vQuadDebugIds[i]))
-		{
-			pObj->m_ToX = (int)TopLeft.x;
-			pObj->m_ToY = (int)TopLeft.y;
-			pObj->m_FromX = (int)TopLeft.x;
-			pObj->m_FromY = (int)TopLeft.y;
-			pObj->m_StartTick = Server()->Tick();
-			pObj->m_Owner = -1;
-			pObj->m_Flags = LASERFLAG_NO_PREDICT;
-		}
-	}*/
-}
-
-void CGameContext::QuadDebugIds(bool Clear)
-{
-	/*if(Clear)
-	{
-		m_vQuadDebugIds.clear();
-		const size_t size = Collision()->QuadLayers().size();
-		for(size_t i = 0; i < size; i++)
-			m_vQuadDebugIds.push_back(Server()->SnapNewId());
-	}
-	else if(!Clear && !m_vQuadDebugIds.empty())
-	{
-		if(g_Config.m_SvLogExtra >= 2)
-			log_info("quad-debug", "Freeing Ids");
-
-		for(int i = 0; i < (int)m_vQuadDebugIds.size(); i++)
-			Server()->SnapFreeId(m_vQuadDebugIds[i]);
-		m_vQuadDebugIds.clear();
-	}*/
 }
 
 static const char *GetMapName(const char *pCmd)

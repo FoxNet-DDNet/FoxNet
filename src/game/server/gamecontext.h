@@ -843,17 +843,11 @@ private:
 	void ReloadMapByName(const char *pMapName);
 	void UnloadMapsAll();
 
-	// ToDo @qxdFox: Remove this and move to zones
-	void SnapDebuggedQuad(int ClientId);
-	void QuadDebugIds(bool Clear);
-	std::vector<int> m_vQuadDebugIds;
-
 	static void ConchainMultimap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	static void ConchainScriptingBan(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	void FormatAndRunScriptingBan(const char *pStr, int ClientId);
 
-	static void ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSoloOnSpawn(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainCosmetics(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainAccounts(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);

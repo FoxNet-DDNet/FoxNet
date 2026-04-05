@@ -20,6 +20,11 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <game/server/entity.h>
+#include <generated/protocol.h>
+#include <base/vmath.h>
+#include <engine/console.h>
+#include <engine/shared/config.h>
 
 IZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
 {
@@ -114,6 +119,12 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			}
 		}
 	}
+
+	if(m_DebugSnappingQuads)
+	{
+		FreeQuadIds();
+		SnapQuadIds();
+	}
 }
 
 void CZoneManager::OnMapUnload(size_t MapIdx)
@@ -132,6 +143,12 @@ void CZoneManager::OnMapUnload(size_t MapIdx)
 		}),
 			vZones.end());
 	}
+
+	if(m_DebugSnappingQuads)
+	{
+		FreeQuadIds();
+		SnapQuadIds();
+	}
 }
 
 void CZoneManager::OnTick()
@@ -145,4 +162,114 @@ void CZoneManager::OnTick()
 			pZone->OnTick();
 		}
 	}
+}
+
+void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDemo)
+{
+	if(!m_DebugSnappingQuads)
+		return;
+
+	const int ClientVersion = Server()->GetClientVersion(SnappingClient);
+	const bool Sixup = Server()->IsSixup(SnappingClient);
+
+	size_t Idx = 0;
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			int SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
+
+			if(pZone->MultiMapIndex() != SnappMultiMapIndex)
+				continue;
+
+			for(const CQuadData &Quad : pZone->Quads())
+			{
+				if(Idx > m_vIds.size() - 1)
+					return;
+
+				const int &Id = m_vIds[Idx];
+
+				vec2 Pos = Quad.m_Pos[0];
+				if(NetworkClipped(GameServer(), SnappingClient, Pos))
+					continue;
+
+				GameServer()->SnapLaserObject(CSnapContext(ClientVersion, Sixup, SnappingClient), Id, Pos, Pos, Server()->Tick(), -1, -1, -1, -1, LASERFLAG_NO_PREDICT);
+				Idx++;
+			}
+		}
+	}
+
+	for(size_t MapIdx = 0; MapIdx < GameServer()->m_vMultiMaps.size(); MapIdx++)
+	{
+		if(MapIdx != (size_t)GameServer()->GetMultiMapIdx(SnappingClient))
+			continue;
+		for(const CQuadData &Quad : Collision(MapIdx)->Quads())
+		{
+			if(Idx > m_vIds.size() - 1)
+				return;
+			const int &Id = m_vIds[Idx];
+			vec2 Pos = Quad.m_Pos[0];
+			if(NetworkClipped(GameServer(), SnappingClient, Pos))
+				continue;
+			GameServer()->SnapLaserObject(CSnapContext(ClientVersion, Sixup, SnappingClient), Id, Pos, Pos, Server()->Tick(), -1, -1, -1, -1, LASERFLAG_NO_PREDICT);
+			Idx++;
+		}
+	}
+}
+
+void CZoneManager::SnapQuadIds()
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
+		{
+				int Id = Server()->SnapNewId();
+				m_vIds.emplace_back(Id);
+			}
+		}
+	}
+	for(size_t Idx = 0; Idx < GameServer()->m_vMultiMaps.size(); Idx++)
+	{
+		for(size_t Quad = 0; Quad < Collision(Idx)->Quads().size(); Quad++)
+		{
+			int Id = Server()->SnapNewId();
+			m_vIds.emplace_back(Id);
+		}
+	}
+}
+
+void CZoneManager::FreeQuadIds()
+{
+	for(int Id : m_vIds)
+	{
+		Server()->SnapFreeId(Id);
+	}
+	m_vIds.clear();
+}
+
+void CZoneManager::OnConsoleInit()
+{
+	Console()->Register("debug_snap_quads", "i[snap]", CFGFLAG_SERVER, ConDebugSnapQuads, this, "Toggle snapping of zone quads");
+}
+
+void CZoneManager::ConDebugSnapQuads(IConsole::IResult *pResult, void *pUserData)
+{
+	CZoneManager *pSelf = (CZoneManager *)pUserData;
+	if(!pResult->NumArguments())
+		return;
+
+	bool Set = pResult->GetInteger(0) != 0;
+	if(Set == pSelf->m_DebugSnappingQuads)
+		return;
+
+	pSelf->m_DebugSnappingQuads = Set;
+
+	if(pSelf->m_DebugSnappingQuads)
+		pSelf->SnapQuadIds();
+	else
+		pSelf->FreeQuadIds();
 }

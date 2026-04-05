@@ -2046,7 +2046,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("powerups", "", CFGFLAG_CHAT, ConPowerups, this, "Hide/show powerups");
 	Console()->Register("cosmetics", "", CFGFLAG_CHAT, ConCosmetics, this, "Hide/show all cosmetics");
 
-	Console()->Chain("sv_debug_quad_pos", ConchainQuadDebugPos, this);
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
 	Console()->Chain("sv_accounts", ConchainAccounts, this);
@@ -2193,16 +2192,6 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 	char aScriptingBuf[256];
 	str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerBans, aScriptingArgs);
 	Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
-}
-
-void CGameContext::ConchainQuadDebugPos(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-{
-	pfnCallback(pResult, pCallbackUserData);
-	if(pResult->NumArguments())
-	{
-		CGameContext *pSelf = (CGameContext *)pUserData;
-		pSelf->QuadDebugIds(g_Config.m_SvDebugQuadPos);
-	}
 }
 
 void CGameContext::ConchainSoloOnSpawn(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

@@ -211,7 +211,6 @@ void CGameContext::Clear()
 	std::deque<std::unique_ptr<CMultiMaps>> vMultiMaps = std::move(m_vMultiMaps);
 	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
-	std::vector<int> vQuadDebugIds = m_vQuadDebugIds;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
 	std::vector<CServerComponent *> vComponents = m_vpComponents;
@@ -233,7 +232,6 @@ void CGameContext::Clear()
 	m_vMultiMaps = std::move(vMultiMaps);
 	m_vChatDetection = vChatDetection;
 	m_vNameDetection = vNameDetection;
-	m_vQuadDebugIds = vQuadDebugIds;
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;
 	m_vpComponents = std::move(vComponents);
