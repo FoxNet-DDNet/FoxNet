@@ -80,19 +80,6 @@ void CEpicCircle::Snap(int SnappingClient)
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
-		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_aIds[i]);
-		if(!pProj)
-			return;
-
-		vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
-		Pos += m_RotatePos[i];
-
-		pProj->m_X = round_to_int(Pos.x * 100.0f);
-		pProj->m_Y = round_to_int(Pos.y * 100.0f);
-		pProj->m_Type = WEAPON_HAMMER;
-		pProj->m_Owner = m_Owner;
-		pProj->m_StartTick = 0;
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
+		SnapCosmeticProjectile(SnappingClient, m_aIds[i], m_Owner, m_RotatePos[i], vec2(0, 0), 0, WEAPON_HAMMER);
 	}
 }

@@ -13,6 +13,7 @@
 class CGameWorld;
 class CPlayer;
 class CCharacter;
+class CSnapContext;
 
 class CEntityOwned : public CEntity
 {
@@ -31,6 +32,10 @@ public:
 
 	CClientMask CosmeticMask(EItemType ItemType);
 	CClientMask TeamMask();
+
+	bool SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Offset, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 1);
+	bool SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 1);
+	bool SnapCosmeticProjectile(int SnappingClient, int SnapId, int Owner, const vec2 &Offset, const vec2 &Target, int StartTick, int Type, int Alpha = -1, int Flags = 1);
 
 	void Reset() override {}
 	void Tick() override {}

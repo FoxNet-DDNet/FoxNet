@@ -125,12 +125,9 @@ void CHeadItem::Snap(int SnappingClient)
 			return;
 	}
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
 	int Type = 0;
 	int SubType = 0;
-	int Flags = PICKUPFLAG_NO_PREDICT;
+	int Flags = 0;
 
 	switch(m_Type)
 	{
@@ -147,9 +144,17 @@ void CHeadItem::Snap(int SnappingClient)
 		break;
 	}
 
-	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient) + m_Offset;
+	int Rotation = 0;
+	if(Flags == PICKUPFLAG_ROTATE + PICKUPFLAG_XFLIP + PICKUPFLAG_YFLIP)
+		Rotation = 270;
+	else if(Flags == PICKUPFLAG_XFLIP + PICKUPFLAG_YFLIP)
+		Rotation = 180;
+	else if(Flags == PICKUPFLAG_ROTATE)
+		Rotation = 90;
 
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), Pos, Type, SubType, -1, Flags);
+	Flags |= PICKUPFLAG_NO_PREDICT;
+
+	SnapCosmeticPickup(SnappingClient, GetId(), Flags, m_Owner, m_Offset, Type, SubType, Rotation, -1, COSMETIC_FLAG_ANCHORED);
 }
 
 void CHeadItem::SnapPartyHat(int SnappingClient)
@@ -159,6 +164,7 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 
 	vec2 HatFrom[NumPoints] = {vec2(19.0f, -48.0f), vec2(19.0f, -48.0f)};
 	vec2 HatTo[NumPoints] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
+	int Flags[NumPoints] = {COSMETIC_FLAG_ANCHORED, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD};
 
 	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 
@@ -174,9 +180,6 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 		}
 	}
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
 	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
 
 	for(size_t i = 0; i < NumPoints; i++)
@@ -187,11 +190,7 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 			HatTo[i].x = -HatTo[i].x;
 		}
 
-		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
-		vec2 From = Pos + HatFrom[i];
-		vec2 To = Pos + HatTo[i];
-
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[i], From, To, Server()->Tick() - 4, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		SnapCosmeticLaser(SnappingClient, m_aIds[i], m_Owner, HatFrom[i], HatTo[i], 4, LASERTYPE_GUN, -1, Flags[i]);
 	}
 }
 
@@ -199,7 +198,6 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 {
 	const vec2 Center = vec2(0, 0);
 	const int NumPoints = 5;
-	const int Now = Server()->Tick();
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 
 	vec2 HatFrom[NumPoints] = {
@@ -218,13 +216,20 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 		vec2(-26.5f, -21.0f), // bottom dot
 	};
 
-	int HatSnapTick[NumPoints] = {
-		Now - 5, // top line
-		Now - 5, // right line down
-		Now - 5, // left line down
-		Now - 4, // Long Bottom Line
-		Now - 4 // bottom dot
+	int HatTickOffset[NumPoints] = {
+		5, // top line
+		5, // right line down
+		5, // left line down
+		4, // Long Bottom Line
+		4 // bottom dot
 	};
+
+	int Flags[NumPoints] = {
+		COSMETIC_FLAG_ANCHORED,
+		COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD,
+		COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD,
+		COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD,
+		COSMETIC_FLAG_ANCHORED};
 
 	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 	for(int i = 0; i < NumPoints; i++)
@@ -240,10 +245,6 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 			HatTo[i] += vec2(-1.5f, 3.5f);
 		}
 	}
-
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
 	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
 
 	for(size_t i = 0; i < NumPoints; i++)
@@ -253,12 +254,6 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 			HatFrom[i].x = -HatFrom[i].x;
 			HatTo[i].x = -HatTo[i].x;
 		}
-
-		vec2 Pos = pOwnerChr->GetPredictedPos(SnappingClient, false);
-		vec2 From = Pos + HatFrom[i];
-		vec2 To = Pos + HatTo[i];
-		int StartTick = HatSnapTick[i];
-
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[i], From, To, StartTick, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		SnapCosmeticLaser(SnappingClient, m_aIds[i], m_Owner, HatFrom[i], HatTo[i], HatTickOffset[i], LASERTYPE_GUN, -1, Flags[i]);
 	}
 }

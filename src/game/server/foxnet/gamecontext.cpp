@@ -1282,6 +1282,19 @@ void CGameContext::OnFoxNetMessage(int MsgId, CUnpacker *pUnpacker, int ClientId
 		Acc.m_Configs.m_SentFastInput = true; // mark as sent to not overwrite on next login
 		break;
 	}
+	case NETMSG_FOXNET_COSMETIC_SNAPS:
+	{
+		log_info("foxnet", "Client %d supports cosmetic snaps", ClientId);
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(!pPlayer)
+		{
+			log_info("test", "player doesnt exist");
+			return;
+		}
+
+		pPlayer->m_SupportsCosmeticSnaps = true;
+		break;
+	}
 	default:
 		break;
 	}

@@ -27,6 +27,8 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 
 	m_Page = pPlayer->GetPage();
 	m_SubPage = pPlayer->GetSubPage();
+
+	m_SupportsCosmeticSnaps = pPlayer->m_SupportsCosmeticSnaps;
 }
 
 bool CSavePlayerData::Load(CPlayer *pPlayer) const
@@ -52,5 +54,7 @@ bool CSavePlayerData::Load(CPlayer *pPlayer) const
 
 	pPlayer->SetPage(m_Page);
 	pPlayer->SetSubPage(m_SubPage);
+
+	pPlayer->m_SupportsCosmeticSnaps = m_SupportsCosmeticSnaps;
 	return true;
 }

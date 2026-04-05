@@ -28,9 +28,10 @@ CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_StartTick = Server()->Tick();
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
-		m_Snap[Idx].m_Id = Server()->SnapNewId();
+		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
-	std::sort(m_Snap, m_Snap + NUM_IDS, [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
+	// Sort based on m_Id
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
 
 	GameWorld()->InsertEntity(this);
 }
@@ -44,7 +45,7 @@ void CLissajous::Reset()
 		log_info("lissajous", "Reset");
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
-		Server()->SnapFreeId(m_Snap[Idx].m_Id);
+		Server()->SnapFreeId(m_aSnap[Idx].m_Id);
 
 	m_MarkedForDestroy = true;
 }
@@ -69,12 +70,12 @@ void CLissajous::Tick()
 		int Point = Idx % NUM_POINTS;
 		int NextPoint = (Idx + 1) % NUM_POINTS;
 
-		m_Snap[Idx].m_To = LissajousPos(Point);
-		m_Snap[Idx].m_From = LissajousPos(NextPoint);
+		m_aSnap[Idx].m_To = LissajousPos(Point);
+		m_aSnap[Idx].m_From = LissajousPos(NextPoint);
 	}
 
-	m_Snap[NUM_POINTS].m_To = LissajousPos(0);
-	m_Snap[NUM_POINTS].m_From = LissajousPos(0);
+	m_aSnap[NUM_POINTS].m_To = LissajousPos(0);
+	m_aSnap[NUM_POINTS].m_From = LissajousPos(0);
 }
 
 float CLissajous::Flow()
@@ -114,16 +115,8 @@ void CLissajous::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
-
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{
-		const int SnapVer = Server()->GetClientVersion(SnappingClient);
-		const bool SixUp = Server()->IsSixup(SnappingClient);
-
-		vec2 From = m_Snap[Idx].m_From + Pos;
-		vec2 To = m_Snap[Idx].m_To + Pos;
-
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_Snap[Idx].m_Id, To, From, Server()->Tick(), m_Owner, 0, -1, -1, LASERFLAG_NO_PREDICT);
+		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id, m_Owner, m_aSnap[Idx].m_To, m_aSnap[Idx].m_From, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

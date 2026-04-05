@@ -22,7 +22,7 @@ class CLissajous : public CEntityOwned
 		int m_Id;
 		vec2 m_From;
 		vec2 m_To;
-	} m_Snap[NUM_IDS];
+	} m_aSnap[NUM_IDS];
 
 	int m_StartTick;
 

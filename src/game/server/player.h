@@ -595,6 +595,8 @@ public:
 	int MultiMapIdx() const { return m_MultiMapIndex; }
 
 	std::vector<std::string> m_vReceivedConditionals; // conditional chat commands
+
+	bool m_SupportsCosmeticSnaps;
 	// FoxNet>
 };
 #endif

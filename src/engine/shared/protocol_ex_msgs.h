@@ -49,6 +49,7 @@ UUID(NETMSG_MAPLIST_GROUP_END, "sv-maplist-end@ddnet.org")
 // <FoxNet
 UUID(NETMSG_FOXNET_INFO, "sv-foxnet-info@foxnet-ddnet.github.io")
 UUID(NETMSG_FOXNET_FASTINPUTS, "cl-foxnet-fastinputs@foxnet-ddnet.github.io")
+UUID(NETMSG_FOXNET_COSMETIC_SNAPS, "cosmetic-snaps@foxnet-ddnet.github.io")
 
 // Client Identification
 UUID(NETMSG_IAM_QXD, "i-am-qxd@qxdFox.github.io")

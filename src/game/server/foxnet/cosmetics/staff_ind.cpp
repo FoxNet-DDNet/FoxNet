@@ -86,13 +86,7 @@ void CStaffInd::Snap(int SnappingClient)
 	if(!CanSnapEntity(SnappingClient))
 		return;
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-	const int BallId = m_BallFirst ? m_aIds[BALL_FRONT] : m_aIds[BALL];
-
-	vec2 Pos = m_Pos + GetCharacter()->GetPredictedPos(SnappingClient) + m_aPos[ARMOR];
-	vec2 LaserPos = m_Pos + GetCharacter()->GetPredictedPos(SnappingClient, false) + m_aPos[ARMOR];
-
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[ARMOR], Pos, POWERUP_ARMOR, -1, -1, PICKUPFLAG_NO_PREDICT);
-	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), BallId, LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+	SnapCosmeticLaser(SnappingClient, m_aIds[BALL], m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? -1 : 0, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+	SnapCosmeticPickup(SnappingClient, m_aIds[ARMOR], PICKUPFLAG_NO_PREDICT, m_Owner, m_aPos[ARMOR], POWERUP_ARMOR, -1, 0, -1, COSMETIC_FLAG_ANCHORED);
+	SnapCosmeticLaser(SnappingClient, m_aIds[BALL_FRONT], m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? 0 : -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 }

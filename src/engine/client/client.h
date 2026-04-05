@@ -296,6 +296,10 @@ public:
 	// Send via the currently active client (main/dummy)
 	int SendMsgActive(CMsgPacker *pMsg, int Flags) override;
 
+	// <FoxNet
+	void SendSupportsCosmeticSnapInfo(int Conn);
+	// FoxNet>
+
 	void SendInfo(int Conn);
 	void SendEnterGame(int Conn);
 	void SendReady(int Conn);

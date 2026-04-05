@@ -256,6 +256,14 @@ int CClient::SendMsgActive(CMsgPacker *pMsg, int Flags)
 	return SendMsg(g_Config.m_ClDummy, pMsg, Flags);
 }
 
+// <FoxNet
+void CClient::SendSupportsCosmeticSnapInfo(int Conn)
+{
+	CMsgPacker Msg(NETMSG_FOXNET_COSMETIC_SNAPS, true);
+	SendMsg(Conn, &Msg, MSGFLAG_VITAL);
+}
+// FoxNet>
+
 void CClient::SendInfo(int Conn)
 {
 	CMsgPacker MsgVer(NETMSG_CLIENTVER, true);
@@ -284,6 +292,9 @@ void CClient::SendEnterGame(int Conn)
 {
 	CMsgPacker Msg(NETMSG_ENTERGAME, true);
 	SendMsg(Conn, &Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH);
+	// <FoxNet
+	SendSupportsCosmeticSnapInfo(Conn);
+	// FoxNet>
 }
 
 void CClient::SendReady(int Conn)
@@ -2349,6 +2360,19 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket, int Conn, bool Dummy)
 		{
 			m_ExpectedMaplistEntries = -1;
 		}
+		// <FoxNet
+		else if(Conn == CONN_MAIN && (pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_FOXNET_INFO)
+		{
+			const int Version = Unpacker.GetInt();
+			if(Unpacker.Error() || Version < 0)
+				return;
+
+			CMsgPacker FastInputMsg(NETMSG_FOXNET_FASTINPUTS, true);
+			FastInputMsg.AddInt(0);
+			FastInputMsg.AddInt(0);
+			SendMsg(Conn, &FastInputMsg, MSGFLAG_VITAL);
+		}
+		// FoxNet>
 	}
 	// the client handles only vital messages https://github.com/ddnet/ddnet/issues/11178
 	else if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0 || Msg == NETMSGTYPE_SV_PREINPUT)

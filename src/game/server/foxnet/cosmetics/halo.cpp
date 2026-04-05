@@ -30,7 +30,8 @@ CHalo::CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
-	std::sort(m_aSnap, m_aSnap + NUM_IDS, [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
+	// Sort based on m_Id
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
 
 	GameWorld()->InsertEntity(this);
 }
@@ -98,16 +99,8 @@ void CHalo::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
-
 	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 	{
-		const int SnapVer = Server()->GetClientVersion(SnappingClient);
-		const bool SixUp = Server()->IsSixup(SnappingClient);
-
-		vec2 From = m_aSnap[Idx].m_Pos + Pos;
-		vec2 To = m_aSnap[Idx].m_Pos + Pos;
-
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aSnap[Idx].m_Id, To, From, Server()->Tick(), m_Owner, 0, -1, -1, LASERFLAG_NO_PREDICT);
+		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id, m_Owner, m_aSnap[Idx].m_Pos, m_aSnap[Idx].m_Pos, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

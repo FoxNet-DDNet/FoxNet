@@ -36,6 +36,8 @@ private:
 
 	int m_Page;
 	int m_SubPage;
+
+	bool m_SupportsCosmeticSnaps;
 };
 
 #endif // GAME_SERVER_FOXNET_PERSISTENT_DATA_H

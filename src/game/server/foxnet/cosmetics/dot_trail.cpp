@@ -47,7 +47,7 @@ void CDotTrail::Tick()
 	}
 	if(!GetCharacter())
 		return;
-	m_LastPos = m_Pos;
+	m_PrevPos = m_Pos;
 	m_Pos = GetCharacter()->GetPos();
 }
 
@@ -63,20 +63,5 @@ void CDotTrail::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowTrails)
 		return;
 
-	if(m_LastPos == m_Pos)
-		return;
-
-	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
-	if(!pProj)
-		return;
-
-	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false);
-
-	pProj->m_X = round_to_int(Pos.x * 100.0f);
-	pProj->m_Y = round_to_int(Pos.y * 100.0f);
-	pProj->m_Type = WEAPON_HAMMER;
-	pProj->m_Owner = m_Owner;
-	pProj->m_StartTick = 0;
-	pProj->m_VelX = 0;
-	pProj->m_VelY = 0;
+	SnapCosmeticProjectile(SnappingClient, GetId(), m_Owner, vec2(0, 0), vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED); 
 }

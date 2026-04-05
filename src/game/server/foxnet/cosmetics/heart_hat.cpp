@@ -86,14 +86,10 @@ void CHeartHat::Snap(int SnappingClient)
 	{
 		const int Id = m_aIds[Heart];
 
-		vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient);
-
 		float Dist = m_Dist * (Heart == 0 ? -1.0f : 1.0f);
 
-		Pos += vec2(Dist, HeartOffset);
+		vec2 Pos = vec2(Dist, HeartOffset);
 
-		const int SnapVer = Server()->GetClientVersion(SnappingClient);
-		const bool SixUp = Server()->IsSixup(SnappingClient);
-		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), Id, Pos, POWERUP_HEALTH, -1, -1, PICKUPFLAG_NO_PREDICT);
+		SnapCosmeticPickup(SnappingClient, Id, PICKUPFLAG_NO_PREDICT, m_Owner, Pos, POWERUP_HEALTH, -1, 0, -1, COSMETIC_FLAG_ANCHORED);
 	}
 }

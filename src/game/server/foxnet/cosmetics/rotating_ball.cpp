@@ -97,22 +97,6 @@ void CRotatingBall::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, false) + m_ProjPos;
-	vec2 LaserPos = GetCharacter()->GetPredictedPos(SnappingClient, false) + m_LaserPos;
-
-	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), LaserPos, LaserPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
-
-	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_Id1);
-	if(!pProj)
-		return;
-
-	pProj->m_X = round_to_int(Pos.x * 100.0f);
-	pProj->m_Y = round_to_int(Pos.y * 100.0f);
-	pProj->m_Type = WEAPON_HAMMER;
-	pProj->m_Owner = m_Owner;
-	pProj->m_StartTick = 0;
-	pProj->m_VelX = 0;
-	pProj->m_VelY = 0;
+	SnapCosmeticLaser(SnappingClient, GetId(), m_Owner, m_LaserPos, m_LaserPos, 1, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+	SnapCosmeticProjectile(SnappingClient, m_Id1, m_Owner, m_ProjPos, vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED); 
 }

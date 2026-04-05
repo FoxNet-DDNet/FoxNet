@@ -4938,97 +4938,93 @@ void CServer::SetCustomClient(int ClientId, const char *pCustomClient, CUnpacker
 
 bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 {
-	bool ReturnValue = false;
 	if(Unpacker.Error())
 		return true;
 
 	switch(Msg)
 	{
-	case NETMSG_FOXNET_FASTINPUTS: ReturnValue = true; break;
+	case NETMSG_FOXNET_FASTINPUTS: return true;
+	case NETMSG_FOXNET_COSMETIC_SNAPS: return true;
 
 	case NETMSG_IAM_QXD:
 	{
 		SetCustomClient(ClientId, "E-Client", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_TATER:
 	{
 		SetCustomClient(ClientId, "T-Client", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_CACTUS:
 	{
 		SetCustomClient(ClientId, "Cactus", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_AIODOB:
 	{
 		SetCustomClient(ClientId, "A-Client", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_FEX:
 	{
 		SetCustomClient(ClientId, "FeX", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_STA:
 	{
 		SetCustomClient(ClientId, "Sta", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_PULSE:
 	{
 		SetCustomClient(ClientId, "Pulse", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_SCLIENT:
 	{
 		SetCustomClient(ClientId, "S-Client", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_CHILLERBOT:
 	{
 		SetCustomClient(ClientId, "ChillerBot", Unpacker);
-		ReturnValue = true;
+		return true;
 		break;
 	}
-	break;
+
 	case NETMSG_IAM_KOSHKA:
 	{
 		SetCustomClient(ClientId, "Koshka", Unpacker);
-		ReturnValue = true;
-		break;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_RUSHIE:
 	{
 		SetCustomClient(ClientId, "R-Client", Unpacker);
-		ReturnValue = true;
-		break;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_DUCKCLIENT:
 	{
 		SetCustomClient(ClientId, "Duck/Infclass", Unpacker);
-		ReturnValue = true;
-		break;
+		return true;
 	}
-	break;
 
 	case NETMSG_IAM_NOFIS:
 	{
 		SetCustomClient(ClientId, "Nofis", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	case NETMSG_IAM_JSCLIENT:
 	{
 		if(g_Config.m_SvAutoBanJSClient)
@@ -5038,11 +5034,11 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 			return true;
 		}
 		SetCustomClient(ClientId, "JS-Client", Unpacker);
-		ReturnValue = true;
+		return true;
 	}
-	break;
+
 	}
-	return ReturnValue;
+	return false;
 }
 
 void CServer::ConHighBandwidth(IConsole::IResult *pResult, void *pUser)

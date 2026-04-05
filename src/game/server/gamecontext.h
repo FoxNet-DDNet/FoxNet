@@ -159,8 +159,9 @@ public:
 };
 // FoxNet>
 
-struct CSnapContext
+class CSnapContext
 {
+public:
 	CSnapContext(int Version, bool Sixup, int ClientId) :
 		m_ClientVersion(Version), m_Sixup(Sixup), m_ClientId(ClientId)
 	{
