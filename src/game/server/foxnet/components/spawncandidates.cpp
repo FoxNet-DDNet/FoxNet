@@ -181,6 +181,7 @@ namespace
 
 		const auto ToIndex = [&](int X, int Y) { return Y * W + X; };
 		const auto InBounds = [&](int X, int Y) { return X >= 0 && X < W && Y >= 0 && Y < H; };
+		const auto VisitedIndex = [&](int Idx, bool CrossedStart) { return (size_t)Idx * 2 + (CrossedStart ? 1u : 0u); };
 
 		bool HasAnyStartTiles = false;
 		for(int Y = 0; Y < H && !HasAnyStartTiles; ++Y)
@@ -283,7 +284,7 @@ namespace
 		constexpr int UnfreezeRadiusUp = 7;
 		constexpr int UnfreezeRadiusDown = 50;
 
-		const auto FindNearbyUnfreezeIndex = [&](int Tx, int Ty, const std::vector<uint8_t> &Visited, int &OutIdx) -> bool {
+		const auto FindNearbyUnfreezeIndex = [&](int Tx, int Ty, bool CrossedStart, const std::vector<uint8_t> &Visited, int &OutIdx) -> bool {
 			if(!InBounds(Tx, Ty))
 				return false;
 
@@ -306,7 +307,8 @@ namespace
 					if(IsBlockedForSpawnNav(X, Y))
 						continue;
 
-					const bool CandidateUnvisited = !Visited[Idx];
+					const bool CandidateCrossedStart = CrossedStart || IsStartAtIndex(Idx);
+					const bool CandidateUnvisited = !Visited[VisitedIndex(Idx, CandidateCrossedStart)];
 					const bool CandidateBelow = Y >= Ty;
 					const int Dy = std::abs(Y - Ty);
 					const int Dx = std::abs(X - Tx);
@@ -321,7 +323,8 @@ namespace
 					const int BestX = BestIdx % W;
 					const int BestY = BestIdx / W;
 
-					const bool BestUnvisited = !Visited[BestIdx];
+					const bool BestCrossedStart = CrossedStart || IsStartAtIndex(BestIdx);
+					const bool BestUnvisited = !Visited[VisitedIndex(BestIdx, BestCrossedStart)];
 					const bool BestBelow = BestY >= Ty;
 					const int BestDy = std::abs(BestY - Ty);
 					const int BestDx = std::abs(BestX - Tx);
@@ -369,12 +372,13 @@ namespace
 				const int OutX = std::clamp((int)std::floor(OutPos.x / 32.0f), 0, W - 1);
 				const int OutY = std::clamp((int)std::floor(OutPos.y / 32.0f), 0, H - 1);
 				const int OutIdx = ToIndex(OutX, OutY);
-				if(Visited[OutIdx])
-					continue;
 				if(!IsBlockedForSpawnNav(OutX, OutY))
 				{
-					Visited[OutIdx] = 1;
 					const bool NextCrossedStart = CrossedStart || IsStartAtIndex(OutIdx);
+					const size_t OutVisitedIdx = VisitedIndex(OutIdx, NextCrossedStart);
+					if(Visited[OutVisitedIdx])
+						continue;
+					Visited[OutVisitedIdx] = 1;
 					Q.emplace_back(OutX, OutY, Cp, NextCrossedStart);
 				}
 			}
@@ -393,29 +397,32 @@ namespace
 				const int OutX = std::clamp((int)std::floor(OutPos.x / 32.0f), 0, W - 1);
 				const int OutY = std::clamp((int)std::floor(OutPos.y / 32.0f), 0, H - 1);
 				const int OutIdx = ToIndex(OutX, OutY);
-				if(Visited[OutIdx])
-					continue;
 				if(!IsBlockedForSpawnNav(OutX, OutY))
 				{
-					Visited[OutIdx] = 1;
 					const bool NextCrossedStart = CrossedStart || IsStartAtIndex(OutIdx);
+					const size_t OutVisitedIdx = VisitedIndex(OutIdx, NextCrossedStart);
+					if(Visited[OutVisitedIdx])
+						continue;
+					Visited[OutVisitedIdx] = 1;
 					Q.emplace_back(OutX, OutY, CpNumber, NextCrossedStart);
 				}
 			}
 		};
 
 		std::deque<std::tuple<int, int, int, bool>> Q;
-		std::vector<uint8_t> Visited((size_t)W * H, 0);
+		std::vector<uint8_t> Visited((size_t)W * H * 2, 0);
+		std::vector<uint8_t> CandidateAdded((size_t)W * H, 0);
 
 		for(const vec2 &Seed : Data.m_Seeds)
 		{
 			const int SeedX = std::clamp((int)std::floor(Seed.x / 32.0f), 0, W - 1);
 			const int SeedY = std::clamp((int)std::floor(Seed.y / 32.0f), 0, H - 1);
 			const int SeedIdx = ToIndex(SeedX, SeedY);
-			if(!Visited[SeedIdx])
+			const bool InitialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(SeedIdx) : true;
+			const size_t SeedVisitedIdx = VisitedIndex(SeedIdx, InitialCrossedStart);
+			if(!Visited[SeedVisitedIdx])
 			{
-				Visited[SeedIdx] = 1;
-				const bool InitialCrossedStart = HasAnyStartTiles ? IsStartAtIndex(SeedIdx) : true;
+				Visited[SeedVisitedIdx] = 1;
 				Q.emplace_back(SeedX, SeedY, 0, InitialCrossedStart);
 			}
 		}
@@ -471,8 +478,11 @@ namespace
 					}
 				}
 
-				if(HasSolid)
+				if(HasSolid && !CandidateAdded[CurIdx])
+				{
+					CandidateAdded[CurIdx] = 1;
 					vSpawnCandidates.push_back(Pos);
+				}
 			}
 
 			for(int k = 0; k < 4; ++k)
@@ -483,8 +493,6 @@ namespace
 					continue;
 
 				const int NextIdx = ToIndex(NextX, NextY);
-				if(Visited[NextIdx])
-					continue;
 
 				int NextCp = Cp;
 				bool NextCrossedStart = CrossedStart;
@@ -498,7 +506,10 @@ namespace
 					const unsigned char NextNum = pTele[NextIdx].m_Number;
 					if(NextNum > 0 && (IsTeleInRegular(NextType) || IsTeleInCheckpoint(NextType)))
 					{
-						Visited[NextIdx] = 1;
+						const size_t NextVisitedIdx = VisitedIndex(NextIdx, NextCrossedStart);
+						if(Visited[NextVisitedIdx])
+							continue;
+						Visited[NextVisitedIdx] = 1;
 						if(IsTeleInCheckpoint(NextType))
 						{
 							if(NextCp > 0)
@@ -515,25 +526,30 @@ namespace
 				if(IsBlockedForSpawnNav(NextX, NextY))
 					continue;
 
+				NextCrossedStart = NextCrossedStart || IsStartAtIndex(NextIdx);
+				const size_t NextVisitedIdx = VisitedIndex(NextIdx, NextCrossedStart);
+				if(Visited[NextVisitedIdx])
+					continue;
+
 				if(IsFreezeLikeAtIndex(NextIdx))
 				{
 					int UnfreezeIdx = -1;
-					if(!FindNearbyUnfreezeIndex(NextX, NextY, Visited, UnfreezeIdx))
+					if(!FindNearbyUnfreezeIndex(NextX, NextY, NextCrossedStart, Visited, UnfreezeIdx))
 						continue;
 
 					const int UnfreezeX = UnfreezeIdx % W;
 					const int UnfreezeY = UnfreezeIdx / W;
-					if(!Visited[UnfreezeIdx])
+					const bool UnfreezeCrossedStart = NextCrossedStart || IsStartAtIndex(UnfreezeIdx);
+					const size_t UnfreezeVisitedIdx = VisitedIndex(UnfreezeIdx, UnfreezeCrossedStart);
+					if(!Visited[UnfreezeVisitedIdx])
 					{
-						Visited[UnfreezeIdx] = 1;
-						const bool UnfreezeCrossedStart = NextCrossedStart || IsStartAtIndex(UnfreezeIdx);
+						Visited[UnfreezeVisitedIdx] = 1;
 						Q.emplace_back(UnfreezeX, UnfreezeY, NextCp, UnfreezeCrossedStart);
 					}
 					continue;
 				}
 
-				Visited[NextIdx] = 1;
-				NextCrossedStart = NextCrossedStart || IsStartAtIndex(NextIdx);
+				Visited[NextVisitedIdx] = 1;
 				Q.emplace_back(NextX, NextY, NextCp, NextCrossedStart);
 			}
 
@@ -566,9 +582,6 @@ namespace
 				});
 			});
 		}
-
-		if(vSpawnCandidates.size() < 500)
-			vSpawnCandidates.clear();
 
 		log_info("spawn-candidates", "found %d spawn point%s for map %" PRIzu, (int)vSpawnCandidates.size(), vSpawnCandidates.size() == 1 ? "" : "s", MapIdx);
 		return vSpawnCandidates;
