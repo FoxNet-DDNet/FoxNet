@@ -350,6 +350,10 @@ void CPlayer::Snap(int SnappingClient)
 	int Latency = SnappingClient == SERVER_DEMO_CLIENT ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aCurLatency[m_ClientId];
 	Latency += m_ExtraPing;
 	int Score = GameServer()->m_pController->SnapPlayerScore(SnappingClient, this);
+	int Team = m_Team;
+
+	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+		pComponent->OnPlayerSnap(this, SnappingClient, pClientInfo, &Team, &Latency, &Score);
 
 	if(!Server()->IsSixup(SnappingClient))
 	{
@@ -361,11 +365,11 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Score = Score;
 		pPlayerInfo->m_Local = (int)(m_ClientId == SnappingClient && (m_Paused != PAUSE_PAUSED || SnappingClientVersion >= VERSION_DDNET_OLD));
 		pPlayerInfo->m_ClientId = TranslatedId;
-		pPlayerInfo->m_Team = m_Team;
+		pPlayerInfo->m_Team = Team;
 		if(SnappingClientVersion < VERSION_DDNET_INDEPENDENT_SPECTATORS_TEAM)
 		{
 			// In older versions the SPECTATORS TEAM was also used if the own player is in PAUSE_PAUSED or if any player is in PAUSE_SPEC.
-			pPlayerInfo->m_Team = (m_Paused != PAUSE_PAUSED || m_ClientId != SnappingClient) && m_Paused < PAUSE_SPEC ? m_Team : TEAM_SPECTATORS;
+			pPlayerInfo->m_Team = (m_Paused != PAUSE_PAUSED || m_ClientId != SnappingClient) && m_Paused < PAUSE_SPEC ? Team : TEAM_SPECTATORS;
 		}
 	}
 	else
@@ -383,7 +387,7 @@ void CPlayer::Snap(int SnappingClient)
 		pPlayerInfo->m_Latency = Latency;
 	}
 
-	if(m_ClientId == SnappingClient && (m_Team == TEAM_SPECTATORS || m_Paused))
+	if(m_ClientId == SnappingClient && (Team == TEAM_SPECTATORS || m_Paused))
 	{
 		if(!Server()->IsSixup(SnappingClient))
 		{
@@ -411,7 +415,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(m_ClientId == SnappingClient)
 	{
 		// send extended spectator info even when playing, this allows demo to record camera settings for local player
-		const int SpectatingClient = ((m_Team != TEAM_SPECTATORS && !m_Paused) || m_SpectatorId < 0 || m_SpectatorId >= MAX_CLIENTS) ? TranslatedId : m_SpectatorId;
+		const int SpectatingClient = ((Team != TEAM_SPECTATORS && !m_Paused) || m_SpectatorId < 0 || m_SpectatorId >= MAX_CLIENTS) ? TranslatedId : m_SpectatorId;
 		const CPlayer *pSpecPlayer = GameServer()->m_apPlayers[SpectatingClient];
 
 		if(pSpecPlayer)
@@ -425,7 +429,7 @@ void CPlayer::Snap(int SnappingClient)
 			pDDNetSpectatorInfo->m_Deadzone = pSpecPlayer->m_CameraInfo.m_Deadzone;
 			pDDNetSpectatorInfo->m_FollowFactor = pSpecPlayer->m_CameraInfo.m_FollowFactor;
 
-			if(pSpecPlayer->m_EnableSpectatorCount && SpectatingClient == TranslatedId && SnappingClient != SERVER_DEMO_CLIENT && m_Team != TEAM_SPECTATORS && !m_Paused)
+			if(pSpecPlayer->m_EnableSpectatorCount && SpectatingClient == TranslatedId && SnappingClient != SERVER_DEMO_CLIENT && Team != TEAM_SPECTATORS && !m_Paused)
 			{
 				CNetObj_SpectatorCount *pSpectatorCount = Server()->SnapNewItem<CNetObj_SpectatorCount>(0);
 				if(!pSpectatorCount)
@@ -486,6 +490,13 @@ void CPlayer::Snap(int SnappingClient)
 		pDDNetPlayer->m_Flags |= EXPLAYERFLAG_PAUSED;
 
 	IGameController::CFinishTime PlayerTime = GameServer()->m_pController->SnapPlayerTime(SnappingClient, this);
+
+	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer &&
+		pSnapPlayer->m_Area == EArea::HideAndSeek && m_Area == EArea::HideAndSeek)
+	{
+		PlayerTime = IGameController::CFinishTime::Unset();
+	}
+
 	pDDNetPlayer->m_FinishTimeSeconds = PlayerTime.m_Seconds;
 	pDDNetPlayer->m_FinishTimeMillis = PlayerTime.m_Milliseconds;
 
@@ -502,7 +513,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(SnappingClient != SERVER_DEMO_CLIENT)
 	{
-		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientId) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->m_ShowOthers == SHOW_OTHERS_ON || (pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused()));
+		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientId) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->GetShowOthers() == SHOW_OTHERS_ON || (pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused()));
 	}
 
 	if(ShowSpec)
@@ -937,6 +948,12 @@ void CPlayer::SetSpectatorId(int Id)
 	CPlayer *pSpectator = Id >= 0 ? GameServer()->m_apPlayers[Id] : nullptr;
 	if(pSpectator && !Server()->IsRconAuthed(GetCid()))
 	{
+		for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+		{
+			if(!pComponent->CanSpectateId(this, pSpectator))
+				return;
+		}
+
 		if(pSpectator->m_Vanish && !m_Vanish)
 		{
 			SendChat("Invalid spectator id used");
@@ -1037,10 +1054,9 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 		}
 		case CScorePlayerResult::PLAYER_TIMECP:
 			GameServer()->Score()->PlayerData(m_ClientId)->SetBestTimeCp(Result.m_Data.m_Info.m_aTimeCp);
-			char aBuf[128], aTime[32];
+			char aTime[32];
 			str_time_float(Result.m_Data.m_Info.m_Time.value(), ETimeFormat::HOURS_CENTISECS, aTime, sizeof(aTime));
-			str_format(aBuf, sizeof(aBuf), "Showing the checkpoint times for '%s' with a race time of %s", Result.m_Data.m_Info.m_aRequestedPlayer, aTime);
-			SendChat(aBuf);
+			SendChatFmt("Showing the checkpoint times for '%s' with a race time of %s", Result.m_Data.m_Info.m_aRequestedPlayer, aTime);
 			break;
 		}
 	}

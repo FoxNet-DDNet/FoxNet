@@ -93,10 +93,6 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 	if(pPlayer->m_Area != EArea::Roulette)
 		return false;
 
-	CCharacter *pChr = pPlayer->GetCharacter();
-	if(pChr->Team() != TEAM_FLOCK)
-		return false;
-
 	if(!g_Config.m_SvAccounts)
 	{
 		GameServer()->SendChatTarget(ClientId, "Feature is disabled.");

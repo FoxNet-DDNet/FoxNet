@@ -5,6 +5,8 @@
 
 #include <base/vmath.h>
 
+#include <generated/protocol.h>
+
 #include <game/collision.h>
 #include <game/quad_data.h>
 #include <game/server/foxnet/component.h>
@@ -40,8 +42,23 @@ public:
 	void OnTick() override;
 
 	void OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDemo) override;
-
 	void OnConsoleInit() override;
+
+	void OnClientDrop(int ClientId, const char *pReason) override;
+	void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) override;
+
+	int ShowOthers(CPlayer *pPlayer) override;
+	bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) override;
+	bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) override;
+	bool CanSnapCharacter(CCharacter *pChr, int SnappingClient) override;
+	bool CanDropWeapon(CCharacter *pChr, int Weapon) override;
+	void OnCharacterSpawn(int ClientId, vec2 Pos) override;
+	void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) override;
+	bool OnCharacterFire(int ClientId, int Weapon) override;
+	void OnCharacterHammerHit(int ClientId, int Target) override;
+	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
+
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H

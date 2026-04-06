@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <engine/server.h>
 
 void IZone::GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const
 {
@@ -197,6 +198,11 @@ CCollision *IZone::Collision() const
 		return GameServer()->Collision();
 
 	return GameServer()->Collision(MultiMapIndex());
+}
+
+IServer *IZone::Server() const
+{ 
+	return GameServer()->Server();
 }
 
 bool IZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size) const

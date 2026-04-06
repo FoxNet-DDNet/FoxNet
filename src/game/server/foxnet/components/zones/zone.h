@@ -3,6 +3,8 @@
 
 #include <base/vmath.h>
 
+#include <generated/protocol.h>
+
 #include <game/collision.h>
 #include <game/layers.h>
 #include <game/quad_data.h>
@@ -11,8 +13,11 @@
 #include <vector>
 
 class CGameContext;
+class IServer;
 class CQuad;
 class CMapItemLayerQuads;
+class CPlayer;
+class CCharacter;
 
 class IZone
 {
@@ -40,6 +45,7 @@ public:
 	std::vector<CQuadData> m_vQuads;
 
 	CGameContext *GameServer() const { return m_pGameContext; }
+	IServer *Server() const;
 	CCollision *Collision() const;
 
 	[[nodiscard]] const std::vector<CQuadData> &Quads() const { return m_vQuads; }
@@ -53,6 +59,23 @@ public:
 
 	virtual void Init(CMapItemLayerQuads *pQuadsLayer);
 	virtual void OnTick() {}
+
+	virtual void OnClientDrop(int ClientId, const char *pReason) {};
+
+	virtual void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) {}
+
+	virtual int ShowOthers(CPlayer *pPlayer) { return -1; }
+	virtual bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) { return true; }
+	virtual bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) { return true; }
+	virtual bool CanSnapCharacter(CCharacter *pChr, int SnappingClient) { return true; }
+	virtual bool CanDropWeapon(CCharacter *pChr, int Weapon) { return true; }
+	virtual void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) {}
+	virtual void OnCharacterSpawn(int ClientId, vec2 Pos) {}
+	virtual bool OnCharacterFire(int ClientId, int Weapon) { return true; }
+	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
+	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
+
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore) {}
 
 	virtual ~IZone() = default;
 };

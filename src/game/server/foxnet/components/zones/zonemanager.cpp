@@ -4,6 +4,7 @@
 #include "collidable.h"
 #include "death.h"
 #include "freeze.h"
+#include "hidenseek.h"
 #include "roulette.h"
 #include "unfreeze.h"
 #include "zone.h"
@@ -20,6 +21,7 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <base/log.h>
 #include <game/server/entity.h>
 #include <generated/protocol.h>
 #include <base/vmath.h>
@@ -58,6 +60,15 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			{
 				pGroupZone = new CRouletteZone(GameServer(), MultiMapIdx);
 				m_avpZones[(int)EZoneType::Roulette].push_back(pGroupZone);
+			}
+		}
+		else if(!str_comp(aGroupName, "#HideNSeek"))
+		{
+			pGroupZone = FindZoneByMapIndex(EZoneType::HideNSeek, MultiMapIdx);
+			if(pGroupZone == nullptr)
+			{
+				pGroupZone = new CHideAndSeekZone(GameServer(), MultiMapIdx);
+				m_avpZones[(int)EZoneType::HideNSeek].push_back(pGroupZone);
 			}
 		}
 
@@ -103,13 +114,11 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			if(!str_comp("QHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
-				// pZone->Init(pTilemap); we get the pointer from Collision()
 				m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
 			}
 			else if(!str_comp("QUnHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
-				// pZone->Init(pTilemap); we get the pointer from Collision()
 				m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
 			}
 			else if(!str_comp("QCfrm", aLayerName))
@@ -243,6 +252,176 @@ void CZoneManager::SnapQuadIds()
 	}
 }
 
+void CZoneManager::OnClientDrop(int ClientId, const char *pReason)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnClientDrop(ClientId, pReason);
+		}
+	}
+}
+
+void CZoneManager::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnGameInfoSnap(ClientId, pGameInfoObj, pGameInfoEx);
+		}
+	}
+}
+
+int CZoneManager::ShowOthers(CPlayer *pPlayer)
+{
+	int ShowOthers = -1;
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			int ZoneShowOthers = pZone->ShowOthers(pPlayer);
+			if(ZoneShowOthers != -1)
+				ShowOthers = ZoneShowOthers;
+		}
+	}
+	return ShowOthers;
+}
+
+bool CZoneManager::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->CanUseCommand(pPlayer, pCommand))
+				return false;
+		}
+	}
+	return true;
+}
+
+bool CZoneManager::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->CanSpectateId(pPlayer, pTarget))
+				return false;
+		}
+	}
+	return true;
+}
+
+bool CZoneManager::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
+{
+	bool Allowed = true;
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->CanSnapCharacter(pChr, SnappingClient))
+				Allowed = false;
+		}
+	}
+	return Allowed;
+}
+bool CZoneManager::CanDropWeapon(CCharacter *pChr, int Weapon)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->CanDropWeapon(pChr, Weapon))
+				return false;
+		}
+	}
+	return true;
+}
+
+
+void CZoneManager::OnCharacterSpawn(int ClientId, vec2 Pos)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnCharacterSpawn(ClientId, Pos);
+		}
+	}
+}
+void CZoneManager::OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnCharacterDie(ClientId, Killer, Weapon, SendKillMsg);
+		}
+	}
+}
+bool CZoneManager::OnCharacterFire(int ClientId, int Weapon)
+{
+	bool Allowed = true;
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->OnCharacterFire(ClientId, Weapon))
+				Allowed = false;
+		}
+	}
+	return Allowed;
+}
+void CZoneManager::OnCharacterHammerHit(int ClientId, int Target)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnCharacterHammerHit(ClientId, Target);
+		}
+	}
+}
+bool CZoneManager::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags)
+{
+	// Doesn't need bool Allowed, if SetMask returns false the ClientId wont be snapped
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			if(!pZone->SetMask(ClientId, MultiMapIdx, Team, ExceptId, Asker, VersionFlags, Flags))
+				return false;
+		}
+	}
+	return true;
+}
+
+void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore)
+{
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		auto &vZones = m_avpZones[i];
+		for(IZone *pZone : vZones)
+		{
+			pZone->OnPlayerSnap(pPlayer, SnappingClient, pClientInfo, pTeam, pLatency, pScore);
+		}
+	}
+}
 void CZoneManager::FreeQuadIds()
 {
 	for(int Id : m_vIds)
