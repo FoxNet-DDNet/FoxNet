@@ -470,7 +470,21 @@ void IGameController::OnPlayerDisconnect(class CPlayer *pPlayer, const char *pRe
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(ClientId));
 		// <FoxNet
 		if(!pPlayer->m_Vanish && !Server()->QuietJoin(ClientId))
+		{
 			GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1, CGameContext::FLAG_SIX);
+		}
+		else
+		{
+			for(CPlayer *pRec : GameServer()->m_apPlayers)
+			{
+				if(!pRec)
+					continue;
+				if(Server()->ClientSlotEmpty(pRec->GetCid()))
+					continue;
+				if(pRec->m_Vanish || Server()->QuietJoin(pRec->GetCid()) || Server()->IsRconAuthed(pRec->GetCid()))
+					pRec->SendChat(aBuf);
+			}
+		}
 		// FoxNet>
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientId, Server()->ClientName(ClientId));
