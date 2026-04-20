@@ -38,10 +38,7 @@ void CPickupPet::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("pickuppet", "Reset");
 
-	if(!GetCharacter())
-		return;
-
-	if(GetCharacter()->Core()->m_FakeTuned)
+	if(GetCharacter() && GetCharacter()->Core()->m_FakeTuned)
 	{
 		GameServer()->ResetFakeTunes(GetPlayer()->GetCid(), GetCharacter()->GetOverriddenTuneZone());
 	}

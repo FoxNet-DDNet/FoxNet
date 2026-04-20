@@ -31,9 +31,14 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 	m_Type = Type;
 	m_Offset = Offset;
 
-	for(size_t i = 0; i < std::size(m_aIds); i++)
-		m_aIds[i] = Server()->SnapNewId();
-	std::sort(std::begin(m_aIds), std::end(m_aIds));
+	if(m_Type == HEADITEM_COSMETIC)
+	{
+		for(size_t i = 0; i < std::size(m_aIds); i++)
+			m_aIds[i] = Server()->SnapNewId();
+		std::sort(std::begin(m_aIds), std::end(m_aIds));
+	}
+	else
+		std::fill(std::begin(m_aIds), std::end(m_aIds), -1);
 
 	GameWorld()->InsertEntity(this);
 }

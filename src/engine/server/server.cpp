@@ -3459,6 +3459,7 @@ int CServer::Run()
 
 					UpdateDebugDummies(true);
 					GameServer()->OnShutdown(m_pPersistentData);
+					m_IdPool.Reset();
 
 					for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 					{

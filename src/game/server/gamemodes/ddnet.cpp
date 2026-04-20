@@ -209,11 +209,11 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 
 		int ClientVersion = Server()->GetClientVersion(ClientId);
 		if(ClientVersion >= 0)
-			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s %d)", Server()->GetCustomClient(ClientId), ClientVersion);
+			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s %d)", Server()->GetCustomClient(ClientId), ClientVersion);
 		else
-			str_format(PlayerInfo, sizeof(PlayerInfo), " (%s)", Server()->GetCustomClient(ClientId));
+			str_format(PlayerInfo, sizeof(PlayerInfo), "(%s)", Server()->GetCustomClient(ClientId));
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s%s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()), PlayerInfo);
+		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 		if(!Server()->QuietJoin(ClientId))
 		{
 			GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1, CGameContext::FLAG_SIX);
