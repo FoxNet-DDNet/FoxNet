@@ -312,7 +312,7 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	{
 		Data.m_LastMovement = Server()->Tick();
 		Data.m_MarkedAfk = false;
-		if(m_State != EState::Playing)
+		if(m_State != EState::Playing && InArea)
 			pChr->SetSolo(false);
 	}
 
