@@ -412,6 +412,7 @@ void CProjectile::Snap(int SnappingClient)
 		return;
 	// FoxNet>
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient); // FoxNet
 	if(SnappingClientVersion < VERSION_DDNET_ENTITY_NETOBJS)
 	{
 		CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
@@ -448,11 +449,31 @@ void CProjectile::Snap(int SnappingClient)
 			if(LaserIds[0] > LaserIds[1])
 				std::swap(LaserIds[0], LaserIds[1]);
 
-			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
-				LaserIds.at(0), PrevSnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+			if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
+			{
+				GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
+					LaserIds.at(0), PrevSnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 
-			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
-				LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+				GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
+					LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+			}
+			else
+			{
+				CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(GetId());
+				if(!pLaser)
+					return;
+
+				pLaser->m_FromX = (int)SnapPos.x;
+				pLaser->m_FromY = (int)SnapPos.y;
+				pLaser->m_ToX = (int)PrevSnapPos.x;
+				pLaser->m_ToY = (int)PrevSnapPos.y;
+				pLaser->m_TickOffset = 0;
+				pLaser->m_Type = LASERTYPE_GUN;
+				pLaser->m_Owner = m_Owner;
+				pLaser->m_Alpha = -1;
+				pLaser->m_Flags = COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD;
+			}
+
 			return;
 		}
 		if(m_GunType == GUNTYPE_HEART || Mixed)
@@ -460,8 +481,30 @@ void CProjectile::Snap(int SnappingClient)
 			int Type = POWERUP_HEALTH;
 			if(Mixed)
 				Type = m_MixedShield;
-			GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
-				GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
+
+			if(SnappingClient == SERVER_DEMO_CLIENT || !pSnapPl->m_SupportsCosmeticSnaps)
+			{
+				const int SnapVer = Server()->GetClientVersion(SnappingClient);
+				const bool SixUp = Server()->IsSixup(SnappingClient);
+
+				GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
+					GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
+			}
+			else
+			{
+				CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(GetId());
+				if(!pPickup)
+					return;
+
+				pPickup->m_X = (int)SnapPos.x;
+				pPickup->m_Y = (int)SnapPos.y;
+				pPickup->m_Type = Type;
+				pPickup->m_Subtype = 0;
+				pPickup->m_Owner = m_Owner;
+				pPickup->m_Alpha = -1;
+				pPickup->m_Rotation = 0;
+				pPickup->m_Flags = 0;
+			}
 			return;
 		}
 	}

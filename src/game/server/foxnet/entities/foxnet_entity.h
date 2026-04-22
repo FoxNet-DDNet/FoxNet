@@ -33,6 +33,9 @@ public:
 	CClientMask CosmeticMask(EItemType ItemType);
 	CClientMask TeamMask();
 
+	bool SnapCosmeticPickupPos(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Pos, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 0);
+	bool SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 0);
+	
 	bool SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Offset, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 1);
 	bool SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 1);
 	bool SnapCosmeticProjectile(int SnappingClient, int SnapId, int Owner, const vec2 &Offset, const vec2 &Target, int StartTick, int Type, int Alpha = -1, int Flags = 1);
@@ -43,5 +46,7 @@ public:
 	void TickPaused() override {}
 	void Snap(int SnappingClient) override {}
 };
+
+int OffsetToHeight(int TickOffset);
 
 #endif // GAME_SERVER_FOXNET_ENTITIES_FOXNET_ENTITY_H

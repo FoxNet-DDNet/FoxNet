@@ -97,6 +97,7 @@ void CLaserDeath::Snap(int SnappingClient)
 
 		vec2 LaserPos = m_SnapData.m_aPos[i];
 
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_SnapData.m_aIds[i], LaserPos, LaserPos, Server()->Tick(), -1, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		
+		SnapCosmeticLaserPos(SnappingClient, m_SnapData.m_aIds[i], m_Owner, LaserPos, LaserPos, 0, LASERTYPE_GUN, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

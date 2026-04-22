@@ -107,6 +107,6 @@ void CLovely::Snap(int SnappingClient)
 	{
 		if(m_aData[i].m_Lifespan == -1)
 			continue;
-		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aData[i].m_Id, m_aData[i].m_Pos, POWERUP_HEALTH, -1, -1, PICKUPFLAG_NO_PREDICT);
+		SnapCosmeticPickupPos(SnappingClient, m_aData[i].m_Id, PICKUPFLAG_NO_PREDICT, m_Owner, m_aData[i].m_Pos, POWERUP_HEALTH, 0);
 	}
 }

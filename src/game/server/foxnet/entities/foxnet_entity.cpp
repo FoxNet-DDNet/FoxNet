@@ -112,6 +112,32 @@ CClientMask CEntityOwned::TeamMask()
 	return pCharacter->TeamMask();
 }
 
+bool CEntityOwned::SnapCosmeticPickupPos(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Pos, int Type, int SubType, int Rotation, int Alpha, int Flags)
+{
+	if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
+	{
+		const int SnapVer = Server()->GetClientVersion(SnappingClient);
+		const bool SixUp = Server()->IsSixup(SnappingClient);
+
+		return GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
+	}
+
+	CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(SnapId);
+	if(!pPickup)
+		return false;
+
+
+	pPickup->m_X = (int)Pos.x;
+	pPickup->m_Y = (int)Pos.y;
+	pPickup->m_Type = Type;
+	pPickup->m_Subtype = SubType;
+	pPickup->m_Owner = Owner;
+	pPickup->m_Alpha = Alpha;
+	pPickup->m_Rotation = Rotation;
+	pPickup->m_Flags = Flags;
+	return true;
+}
+
 bool CEntityOwned::SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Offset, int Type, int SubType, int Rotation, int Alpha, int Flags)
 {
 	vec2 Pos = GetCharacter()->GetPredictedPos(SnappingClient, true);
@@ -163,6 +189,35 @@ int OffsetToHeight(int TickOffset)
 	case 8: return 2;
 	default: return 0;
 	}
+}
+
+bool CEntityOwned::SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha, int Flags)
+{
+	if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
+	{
+		if(Alpha == 0)
+			return false;
+		const int SnapVer = Server()->GetClientVersion(SnappingClient);
+		const bool SixUp = Server()->IsSixup(SnappingClient);
+
+		return GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, From, To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
+	}
+
+	CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(SnapId);
+	if(!pLaser)
+		return false;
+
+	pLaser->m_FromX = (int)From.x;
+	pLaser->m_FromY = (int)From.y;
+	pLaser->m_ToX = (int)To.x;
+	pLaser->m_ToY = (int)To.y;
+	pLaser->m_TickOffset = OffsetToHeight(TickOffset);
+	pLaser->m_Type = Type;
+	pLaser->m_Owner = Owner;
+	pLaser->m_Alpha = Alpha;
+	pLaser->m_Flags = Flags;
+
+	return true;
 }
 
 bool CEntityOwned::SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha, int Flags)

@@ -1253,6 +1253,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	}
 	case DEATHTYPE_LASER:
 	{
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death));
 		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask(EItemType::Death));
 		break;
 	}
