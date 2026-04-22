@@ -2028,6 +2028,8 @@ void CCharacter::HandleTiles(int Index)
 {
 	int MapIdx = Index;
 	// int PureMapIndex = Collision()->GetPureMapIndex(m_Pos);
+	m_LastTileIndex = m_TileIndex;
+	m_LastTileFIndex = m_TileFIndex;
 	m_TileIndex = Collision()->GetTileIndex(MapIdx);
 	m_TileFIndex = Collision()->GetFrontTileIndex(MapIdx);
 	m_MoveRestrictions = Collision()->GetMoveRestrictions(IsSwitchActiveCb, this, m_Pos, 18.0f, MapIdx);

@@ -88,6 +88,7 @@ public:
 	CLayers m_Layers;
 	CCollision m_Collision;
 	CTuningParams m_aTuningList[TuneZone::NUM];
+	float m_HookFireSpeed = 80.0f;
 
 	EMapType m_MapType = EMapType::None;
 

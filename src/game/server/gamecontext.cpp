@@ -3227,6 +3227,11 @@ void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 		float NewValue = pResult->GetFloat(1);
 		if(pSelf->GlobalTuning(MultiMapIndex)->Set(pParamName, NewValue) && pSelf->GlobalTuning(MultiMapIndex)->Get(pParamName, &NewValue))
 		{
+			if(g_Config.m_SvSetupDestroyer && str_comp(pParamName, "hook_fire_speed") == 0)
+			{
+				pSelf->m_vMultiMaps[MultiMapIndex]->m_HookFireSpeed = NewValue;
+			}
+
 			str_format(aBuf, sizeof(aBuf), "%s changed to %.2f (MapIdx=%d)", pParamName, NewValue, MultiMapIndex);
 			pSelf->SendTuningParams(-1);
 		}
@@ -4855,6 +4860,10 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	str_format(aBuf, sizeof(aBuf), "maps/%s.map.cfg", pMap->BaseName());
 	Console()->ExecuteFile(aBuf, IConsole::CLIENT_ID_NO_GAME);
 	Console()->SetMultiMapIndex(-1); // reset to default
+
+	// <FoxNet
+	m_vMultiMaps[MultiMapIdx]->m_HookFireSpeed = m_vMultiMaps[MultiMapIdx]->m_aTuningList[0].m_HookFireSpeed;
+	// FoxNet>
 }
 
 void CGameContext::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)

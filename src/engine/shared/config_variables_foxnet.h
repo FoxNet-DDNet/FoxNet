@@ -33,6 +33,7 @@ MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER
 MACRO_CONFIG_INT(SvPlaytimeMoney, sv_playtime_money, 500, 0, 5000, CFGFLAG_SERVER, "How much money a player should get every hour if playtime")
 
 // Bot Detection
+MACRO_CONFIG_INT(SvSetupDestroyer, sv_setup_destroyer, 0, 0, 1, CFGFLAG_SERVER, "Nudges players")
 MACRO_CONFIG_INT(SvAntiAdBot, sv_anti_ad_bot, 1, 0, 1, CFGFLAG_SERVER, "Anti chat ad bot")
 MACRO_CONFIG_INT(SvAntiBotBantime, sv_anti_bot_bantime, 240, 0, 34560, CFGFLAG_SERVER, "How long sv_anti_bot bans for if its set to 2")
 MACRO_CONFIG_INT(SvAutoBanJSClient, sv_auto_ban_jsclient, 1, 0, 1, CFGFLAG_SERVER, "JS Client is a bot client commonly used for chat spamming")
