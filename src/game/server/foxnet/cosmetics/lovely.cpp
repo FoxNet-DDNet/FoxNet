@@ -101,8 +101,6 @@ void CLovely::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
 	for(int i = 0; i < MAX_HEARTS; i++)
 	{
 		if(m_aData[i].m_Lifespan == -1)

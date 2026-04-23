@@ -87,9 +87,6 @@ void CLaserDeath::Snap(int SnappingClient)
 	if(!m_Mask.test(SnappingClient))
 		return;
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
 		if(Server()->Tick() < m_SnapData.m_StartTick[i])

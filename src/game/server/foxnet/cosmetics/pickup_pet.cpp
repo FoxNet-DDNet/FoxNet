@@ -88,9 +88,6 @@ void CPickupPet::Snap(int SnappingClient)
 		m_SwitchDelay = static_cast<int64_t>(Server()->Tick()) + Server()->TickSpeed();
 	}
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
 	if(g_Config.m_SvCorruptPickupPet)
 		m_CurType = NUM_POWERUPS;
 

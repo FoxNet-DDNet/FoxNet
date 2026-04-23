@@ -484,9 +484,6 @@ void CProjectile::Snap(int SnappingClient)
 
 			if(SnappingClient == SERVER_DEMO_CLIENT || !pSnapPl->m_SupportsCosmeticSnaps)
 			{
-				const int SnapVer = Server()->GetClientVersion(SnappingClient);
-				const bool SixUp = Server()->IsSixup(SnappingClient);
-
 				GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
 					GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
 			}
