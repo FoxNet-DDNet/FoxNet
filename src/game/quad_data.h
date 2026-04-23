@@ -4,7 +4,6 @@
 #include <base/vmath.h>
 
 class CQuad;
-class CMapItemLayerQuads;
 
 enum class EZoneType
 {
@@ -26,7 +25,6 @@ public:
 	int m_MapIndex = 0;
 
 	CQuad *m_pQuad = nullptr;
-	CMapItemLayerQuads *m_pLayer = nullptr;
 	EZoneType m_Type = EZoneType::Num;
 	uint8_t m_SubType = 0;
 	bool m_Animated = false;

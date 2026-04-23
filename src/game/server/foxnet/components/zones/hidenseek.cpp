@@ -1097,7 +1097,7 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		InitQuadData(QuadData, pQuadsLayer, &pQuads[NumQuads]);
+     InitQuadData(QuadData, &pQuads[NumQuads]);
 		QuadData.m_SubType = (uint8_t)SubType;
 		AddQuad(QuadData);
 

@@ -215,31 +215,30 @@ constexpr int intersect_line_circle(const vec2 LineStart, const vec2 LineEnd, co
 	}
 }
 
-inline bool InsideQuadrilateral(const vec2 &Point, const vec2 &A, const vec2 &B, const vec2 &C, const vec2 &D)
+inline bool InsideQuadrilateral(const vec2 &Point, const vec2 aPoints[4])
 {
 	// Ray-casting / crossing-number algorithm for a 4-vertex polygon.
-	const vec2 pts[4] = {A, B, C, D};
-	bool inside = false;
+	bool Inside = false;
 	for(int i = 0, j = 3; i < 4; j = i++)
 	{
-		const vec2 &p = pts[i], &pj = pts[j];
-		bool intersect = ((p.y > Point.y) != (pj.y > Point.y)) &&
+		const vec2 &p = aPoints[i], &pj = aPoints[j];
+		bool Intersect = ((p.y > Point.y) != (pj.y > Point.y)) &&
 				 (Point.x < (pj.x - p.x) * (Point.y - p.y) / (pj.y - p.y) + p.x);
-		if(intersect)
-			inside = !inside;
+		if(Intersect)
+			Inside = !Inside;
 	}
-	return inside;
+	return Inside;
 }
 
-inline bool InsideQuad(const vec2 &Pos, const vec2 Points[4], const vec2 &Size)
+inline bool InsideQuadrilateral(const vec2 &Pos, const vec2 aPoints[4], const vec2 &Size)
 {
-	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))
+	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y - Size.y), aPoints))
 		return true;
-	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y - Size.y), Points[0], Points[1], Points[2], Points[3]))
+	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y - Size.y), aPoints))
 		return true;
-	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y + Size.y), Points[0], Points[1], Points[2], Points[3]))
+	if(InsideQuadrilateral(vec2(Pos.x - Size.x, Pos.y + Size.y), aPoints))
 		return true;
-	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y + Size.y), Points[0], Points[1], Points[2], Points[3]))
+	if(InsideQuadrilateral(vec2(Pos.x + Size.x, Pos.y + Size.y), aPoints))
 		return true;
 	return false;
 }

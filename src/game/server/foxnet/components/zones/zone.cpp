@@ -5,6 +5,7 @@
 #include <base/vmath.h>
 
 #include <engine/map.h>
+#include <engine/server.h>
 
 #include <game/collision.h>
 #include <game/envelopeaccess.h>
@@ -17,7 +18,6 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
-#include <engine/server.h>
 
 void IZone::GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const
 {
@@ -157,10 +157,9 @@ void IZone::ReserveQuads(int AdditionalQuads)
 	m_vAnimatedQuadIndices.reserve(m_vAnimatedQuadIndices.size() + (size_t)AdditionalQuads);
 }
 
-void IZone::InitQuadData(CQuadData &QuadData, CMapItemLayerQuads *pQuadsLayer, CQuad *pQuad) const
+void IZone::InitQuadData(CQuadData &QuadData, CQuad *pQuad) const
 {
 	QuadData.m_pQuad = pQuad;
-	QuadData.m_pLayer = pQuadsLayer;
 	QuadData.m_Type = m_QuadType;
 	QuadData.m_MapIndex = m_MultiMapIndex;
 	QuadData.m_Animated = pQuad->m_PosEnv >= 0;
@@ -187,7 +186,7 @@ void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		InitQuadData(QuadData, pQuadsLayer, &pQuads[NumQuads]);
+		InitQuadData(QuadData, &pQuads[NumQuads]);
 		AddQuad(QuadData);
 	}
 }
@@ -201,7 +200,7 @@ CCollision *IZone::Collision() const
 }
 
 IServer *IZone::Server() const
-{ 
+{
 	return GameServer()->Server();
 }
 
@@ -212,14 +211,14 @@ bool IZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &S
 		if(!QuadData.AabbContains(Pos))
 			return false;
 	}
-	else 
+	else
 	{
 		if(!QuadData.AabbIntersects(Pos, Size))
 			return false;
 	}
 	const vec2 Points[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
-	
-	return ::InsideQuad(Pos, Points, Size);
+
+	return ::InsideQuadrilateral(Pos, Points, Size);
 }
 
 void IZone::UpdateCache()

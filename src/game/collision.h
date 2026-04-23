@@ -22,7 +22,6 @@ class CDoorTile;
 
 // <FoxNet
 class CQuad;
-class CMapItemLayerQuads;
 // FoxNet>
 
 enum

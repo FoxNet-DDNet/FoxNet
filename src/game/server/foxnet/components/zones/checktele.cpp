@@ -35,7 +35,7 @@ void CCheckpointFromZone::OnTick()
 			if(!pChr->IsAlive())
 				continue;
 
-			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
+			if(!InsideQuad(pChr->GetPos(), QuadData))
 				continue;
 
 			HandleTeleport(pChr);
@@ -45,7 +45,7 @@ void CCheckpointFromZone::OnTick()
 			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
 				continue;
 
-			if(!InsideQuad(pEnt->GetPos(), QuadData, vec2(0, 0)))
+			if(!InsideQuad(pEnt->GetPos(), QuadData))
 				continue;
 
 			HandleTeleport(pEnt);

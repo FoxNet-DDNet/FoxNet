@@ -186,8 +186,6 @@ void CCollidableZone::HandleCharacters()
 			for(const CQuadData &QuadData : Collision()->Quads())
 			{
 				const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
-				if(!QuadData.AabbIntersects(pChr->GetPos(), Size))
-					continue;
 
 				if(!InsideQuad(pChr->GetPos(), QuadData, Size))
 					continue;

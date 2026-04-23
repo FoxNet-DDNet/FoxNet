@@ -38,7 +38,7 @@ class IZone
 
 protected:
 	void ReserveQuads(int AdditionalQuads);
-	void InitQuadData(CQuadData &QuadData, CMapItemLayerQuads *pQuadsLayer, CQuad *pQuad) const;
+	void InitQuadData(CQuadData &QuadData, CQuad *pQuad) const;
 	void AddQuad(const CQuadData &QuadData);
 
 public:
@@ -60,7 +60,7 @@ public:
 	virtual void Init(CMapItemLayerQuads *pQuadsLayer);
 	virtual void OnTick() {}
 
-	virtual void OnClientDrop(int ClientId, const char *pReason) {};
+	virtual void OnClientDrop(int ClientId, const char *pReason) {}
 
 	virtual void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) {}
 

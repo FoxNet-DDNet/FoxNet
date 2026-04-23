@@ -51,7 +51,6 @@ void CRouletteZone::OnTick()
 		if(!pChr->IsAlive())
 			continue;
 
-		pChr->m_InsideQuadFreeze = false;
 		if(pChr->Core()->m_IsInFreeze)
 			continue;
 
@@ -104,7 +103,7 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		InitQuadData(QuadData, pQuadsLayer, &pQuads[NumQuads]);
+     InitQuadData(QuadData, &pQuads[NumQuads]);
 		QuadData.m_Type = EZoneType::Roulette;
 		QuadData.m_SubType = (uint8_t)SubType;
 		AddQuad(QuadData);

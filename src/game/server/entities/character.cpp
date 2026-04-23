@@ -3225,7 +3225,8 @@ void CCharacter::RouletteTileHandle()
 
 	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
 	{
-		if(!InsideQuadrilateral(CursorPos, QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]))
+		const vec2 aPoints[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+		if(!InsideQuadrilateral(CursorPos, aPoints))
 			continue;
 
 		if(pRoulette->AddClient(ClientId, Bet, RouletteOptions[QuadData.m_BetOption]))

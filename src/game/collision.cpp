@@ -1477,7 +1477,6 @@ void CCollision::InitQuads()
 
 			CQuadData QuadData;
 			QuadData.m_pQuad = &pQuads[i];
-			QuadData.m_pLayer = pQuadLayers;
 			if(!str_comp(QuadName, "QHook"))
 				QuadData.m_Type = EZoneType::Hookable;
 			else if(!str_comp(QuadName, "QUnHook"))
@@ -1668,7 +1667,8 @@ CQuadData *CCollision::GetQuadAt(vec2 Pos) const
 		if(!Quad.AabbContains(Pos))
 			continue;
 
-		if(InsideQuadrilateral(Pos, Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]))
+		const vec2 aPoints[4] = {Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]};
+		if(InsideQuadrilateral(Pos, aPoints))
 			return const_cast<CQuadData *>(&Quad);
 	}
 	return nullptr;
