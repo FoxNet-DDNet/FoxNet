@@ -732,17 +732,32 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 	int BaseColor = m_RainbowColor * 0x010000;
 	int Color = 0xff32;
 
+	bool RainbowHooked = GetCharacter()->m_IsRainbowHooked;
+	bool Local = SnappingClient == GetCid();
+
 	// only send rainbow updates to people close to you, to reduce network traffic
 	if(GameServer()->m_apPlayers[SnappingClient] && !GetCharacter()->NetworkClipped(SnappingClient))
 	{
-		if(GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
+		if(Local || GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
 		{
 			pClientInfo->m_UseCustomColor = 1;
-			if(Cosmetics()->m_RainbowBody || GetCharacter()->m_IsRainbowHooked)
+			if(Cosmetics()->m_RainbowBody)
 				pClientInfo->m_ColorBody = BaseColor + Color;
-			if(Cosmetics()->m_RainbowFeet || GetCharacter()->m_IsRainbowHooked)
+			if(Cosmetics()->m_RainbowFeet)
 				pClientInfo->m_ColorFeet = BaseColor + Color;
 		}
+
+		if(SnappingClient == GetCharacter()->m_PowerHookedId || GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
+		{
+			if(RainbowHooked)
+			{
+				pClientInfo->m_UseCustomColor = 1;
+				pClientInfo->m_ColorBody = BaseColor + Color;
+				pClientInfo->m_ColorFeet = BaseColor + Color;
+			}
+		}
+
+
 	}
 }
 
