@@ -756,8 +756,6 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 				pClientInfo->m_ColorFeet = BaseColor + Color;
 			}
 		}
-
-
 	}
 }
 

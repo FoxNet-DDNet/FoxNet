@@ -1469,6 +1469,8 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 
 	if(ClientId == ExceptId)
 		return false; // Explicitly excluded
+	if(Server()->ClientSlotEmpty(ClientId))
+		return false; // Server slot is no longer active
 	CPlayer *pClient = GetPlayer(ClientId);
 	if(!pClient)
 		return false; // Player doesn't exist
@@ -1574,7 +1576,11 @@ CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItem
 			continue;
 		}
 
-		CAccConfigs Configs = GetPlayer(ClientId)->Acc()->m_Configs;
+		CPlayer *pPlayer = GetPlayer(ClientId);
+		if(!pPlayer || Server()->ClientSlotEmpty(ClientId))
+			continue;
+
+		CAccConfigs Configs = pPlayer->Acc()->m_Configs;
 
 		bool ShowCosmetic = false;
 		if(Type == EItemType::Rainbow)
