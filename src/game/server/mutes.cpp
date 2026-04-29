@@ -212,7 +212,7 @@ void CGameContext::MuteWithMessage(const NETADDR *pAddr, int Seconds, const char
 		net_addr_str(pAddr, aAddrString, sizeof(aAddrString), false);
 
 		char aScriptArgs[128];
-		str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d \"%s\" \"%s\"", aAddrString, Seconds, pReason[0] != '\0' ? pReason : "No reason given", pDisplayName);
+		str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d \"%s\"", aAddrString, Seconds, pReason[0] != '\0' ? pReason : "No reason given");
 
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerMutes, aScriptArgs);
@@ -244,7 +244,7 @@ void CGameContext::VoteMuteWithMessage(const NETADDR *pAddr, int Seconds, const 
 		net_addr_str(pAddr, aAddrString, sizeof(aAddrString), false);
 
 		char aScriptArgs[128];
-		str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d \"%s\" \"%s\"", aAddrString, Seconds, pReason[0] != '\0' ? pReason : "No reason given", pDisplayName);
+		str_format(aScriptArgs, sizeof(aScriptArgs), "%s %d \"%s\"", aAddrString, Seconds, pReason[0] != '\0' ? pReason : "No reason given");
 
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerMutes, aScriptArgs);

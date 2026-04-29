@@ -549,5 +549,4 @@ std::mt19937 &Rng()
 	static std::mt19937 gen(rd());
 	return gen;
 }
-
 // FoxNet>
