@@ -334,11 +334,17 @@ void CPortal::Snap(int SnappingClient)
 		const CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 		if(!pSnapPlayer)
 			return;
-	}
 
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	if(!Teams.SetMaskWithFlags(SnappingClient, m_aData[0].m_Team, CGameTeams::IGNORE_SOLO))
-		return;
+		if(pSnapPlayer->MultiMapIdx() != MultiMapIdx())
+			return; // Different map
+
+		CCharacter *pChr = GameServer()->GetPlayerChar(SnappingClient);
+		if(pChr)
+		{
+			if(m_aData[0].m_Team != TEAM_SUPER && pChr->Team() != TEAM_SUPER && pChr->Team() != m_aData[0].m_Team)
+				return;
+		}
+	}
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
@@ -361,7 +367,7 @@ void CPortal::Snap(int SnappingClient)
 			From += m_aData[p].m_Pos;
 
 			GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient),
-				m_Snap[p].m_aIds[i], To, From, StartTick, m_Owner);
+				m_Snap[p].m_aIds[i], To, From, StartTick);
 		}
 
 		if(m_State == STATE_BOTH_SET)
@@ -379,7 +385,7 @@ void CPortal::Snap(int SnappingClient)
 				pProj->m_VelX = 0;
 				pProj->m_VelY = 0;
 				pProj->m_Type = WEAPON_HAMMER;
-				pProj->m_Owner = m_Owner;
+				pProj->m_Owner = -1;
 			}
 		}
 	}

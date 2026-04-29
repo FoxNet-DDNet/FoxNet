@@ -506,10 +506,6 @@ void CPickupDrop::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CPlayer *pSnapPlayer;
-	if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
-		return;
-
 	int Tick = Server()->Tick() - m_StartTick;
 
 	CGameTeams Teams = GameServer()->m_pController->Teams();
@@ -520,24 +516,24 @@ void CPickupDrop::Snap(int SnappingClient)
 	if(m_Lifetime < Server()->TickSpeed() * 10 && (Tick / (Server()->TickSpeed() / 4)) % 2 == 0)
 		return;
 
-	const int SnapVer = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
 	const int SubType = GameServer()->GetWeaponType(m_Type);
 
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, POWERUP_WEAPON, SubType, -1, PICKUPFLAG_NO_PREDICT);
+	const int Alpha = 100;
+
+	SnapCosmeticPickupPos(SnappingClient, GetId(), PICKUPFLAG_NO_PREDICT, m_Owner, m_Pos, POWERUP_WEAPON, SubType, 0, Alpha);
 
 	vec2 OffSet = vec2(0.0f, -32.0f);
 	if(m_Type == WEAPON_HEARTGUN)
 	{
-		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, POWERUP_HEALTH, 0, -1, PICKUPFLAG_NO_PREDICT);
+		SnapCosmeticPickupPos(SnappingClient, m_aIds[0], PICKUPFLAG_NO_PREDICT, m_Owner, m_Pos, POWERUP_HEALTH, SubType, 0, Alpha, 0);
 	}
 	else if(m_Type == WEAPON_LIGHTSABER)
 	{
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
+		SnapCosmeticLaserPos(SnappingClient, m_aIds[0], m_Owner, m_Pos + OffSet, m_Pos + OffSet, 0, LASERTYPE_GUN, 0, Alpha);
 	}
 	else if(m_Type == WEAPON_PORTALGUN)
 	{
-		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, Server()->Tick(), -1, LASERTYPE_GUN);
+		SnapCosmeticLaserPos(SnappingClient, m_aIds[0], m_Owner, m_Pos + OffSet, m_Pos + OffSet, 0, LASERTYPE_GUN, 0, Alpha);
 		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + OffSet;
 
 		CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIds[1]);

@@ -126,7 +126,6 @@ bool CEntityOwned::SnapCosmeticPickupPos(int SnappingClient, int SnapId, int Old
 	if(!pPickup)
 		return false;
 
-
 	pPickup->m_X = (int)Pos.x;
 	pPickup->m_Y = (int)Pos.y;
 	pPickup->m_Type = Type;
