@@ -4879,8 +4879,9 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	m_aClients[ClientId].m_DDNetVersionSettled = m_aClients[OrigId].m_DDNetVersionSettled;
 	// <FoxNet
 	size_t MultiMapIdx = GameServer()->GetMultiMapIdx(ClientId);
+	size_t MultiMapIdxOld = GameServer()->GetMultiMapIdx(OrigId);
 	const char *pMapName = GameServer()->Map(MultiMapIdx)->BaseName();
-	if(pMapName[0] != '\0')
+	if(MultiMapIdxOld != MultiMapIdx && pMapName[0] != '\0')
 		SendMapByName(ClientId, pMapName);
 
 	return true;
