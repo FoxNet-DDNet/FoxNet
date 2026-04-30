@@ -243,32 +243,29 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		GiveMoney(g_Config.m_SvLevelUpMoney, false);
 		LeveledUp = true;
 
-		const int Days = 7;
 		class CReward
 		{
 		public:
-			int m_Days = 7;
 			int m_MinMoney = 1000;
 			int m_MaxMoney = 10000;
 			int m_ItemCount = 1;
 			std::vector<EItemRarity> m_AllowedRarities = {EItemRarity::Common};
 
-			CReward(int Days, int MinMoney, int MaxMoney, int ItemCount, const std::vector<EItemRarity> &AllowedRarities) :
-				m_Days(Days), m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
+			CReward(int MinMoney, int MaxMoney, int ItemCount, const std::vector<EItemRarity> &AllowedRarities) :
+				m_MinMoney(MinMoney), m_MaxMoney(MaxMoney), m_ItemCount(ItemCount), m_AllowedRarities(AllowedRarities) {}
 			CReward() = default;
 		};
 
 		auto NewRewardMail = [this](CReward Reward) {
-			static std::mt19937 s_Gen(std::random_device{}());
 			char aCmd[256] = "";
 			char aCmdName[128] = "";
 			char aSubject[128] = "";
 			char aMessage[128] = "";
 
-			std::vector<const CItemConfig *> Items;
-			for(const auto &Item : GameServer()->m_Shop.Registry().Map())
+			std::vector<CItemConfig *> Items;
+			for(auto &Item : GameServer()->m_Shop.Registry().Map())
 			{
-				const CItemConfig &pCfg = Item.second;
+				CItemConfig &pCfg = const_cast<CItemConfig &>(Item.second);
 				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), pCfg.m_Rarity) != Reward.m_AllowedRarities.end() && pCfg.m_Price > 0)
 					Items.push_back(&pCfg);
 			}
@@ -276,29 +273,29 @@ bool CPlayer::CheckLevelUp(bool Silent)
 			if(!Items.empty())
 			{
 				std::uniform_int_distribution<int> Dis(0, Items.size() - 1);
+				std::uniform_int_distribution<int> DaysDis(1, 3);
 
-				std::vector<const CItemConfig *> pItems;
+				std::vector<CItemConfig *> pItems;
 				for(int i = 0; i < Reward.m_ItemCount; i++)
 				{
-					const CItemConfig *pItem = Items[Dis(s_Gen)];
+					CItemConfig *pItem = Items[Dis(Rng())];
+					int RandDays = DaysDis(Rng()) * 7;
+					pItem->m_DefaultDays = RandDays;
 					pItems.push_back(pItem);
 				}
 
-				std::uniform_int_distribution<> MoneyDis(Reward.m_MinMoney * 0.01f, Reward.m_MaxMoney * 0.01f);
-				int MoneyReward = MoneyDis(s_Gen) * 100; // Between 1.000 and 25.000
-				// Three commands with a literal %d placeholder each
-				// str_format(aCmd, sizeof(aCmd), "give_item_days %s %d %s;give_item_days %s %d %s;give_money %s %d", "%d", MoneyReward);
-				// str_format(aCmdName, sizeof(aCmdName), "%s for %d days\n %s for %d days\n %d%s", Reward->m_pName, Days, Reward2->m_pName, Days, MoneyReward, g_Config.m_SvCurrencyName);
+				std::uniform_int_distribution<int> MoneyDis(Reward.m_MinMoney / 100, Reward.m_MaxMoney / 100);
+				int MoneyReward = MoneyDis(Rng()) * 100;
 
 				str_copy(aCmd, "");
 				str_copy(aCmdName, "");
 				for(const CItemConfig *pItem : pItems)
 				{
 					char aTemp[128];
-					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", Days, pItem->m_pName);
+					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", pItem->m_DefaultDays, pItem->m_pName);
 					str_append(aCmd, aTemp, sizeof(aCmd));
 					char aTempName[128];
-					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", pItem->m_pName, Days);
+					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", pItem->m_pName, pItem->m_DefaultDays);
 					str_append(aCmdName, aTempName, sizeof(aCmdName));
 				}
 				char aMoneyCmd[128];
@@ -316,11 +313,11 @@ bool CPlayer::CheckLevelUp(bool Silent)
 
 		if(Acc()->m_Level == 5)
 		{
-			NewRewardMail(CReward(Days, 1000, 7500, 1, {EItemRarity::Common}));
+			NewRewardMail(CReward(1000, 7500, 1, {EItemRarity::Common}));
 		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
-			NewRewardMail(CReward(Days, 25000, 125000, 4, {
+			NewRewardMail(CReward(25000, 125000, 4, {
 									      EItemRarity::Common,
 									      EItemRarity::Uncommon,
 									      EItemRarity::Rare,
@@ -330,11 +327,11 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		}
 		else if(Acc()->m_Level % 50 == 0)
 		{
-			NewRewardMail(CReward(Days, 10000, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
+			NewRewardMail(CReward(10000, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
 		}
 		else if(Acc()->m_Level % 10 == 0)
 		{
-			NewRewardMail(CReward(Days, 5000, 10000, 2, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}));
+			NewRewardMail(CReward(5000, 10000, 2, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}));
 		}
 	}
 
