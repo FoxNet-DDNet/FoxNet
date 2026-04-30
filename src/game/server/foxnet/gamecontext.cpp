@@ -94,9 +94,15 @@ void CGameContext::FoxNetTick()
 		if(g_Config.m_SvSetupDestroyer && Server()->Tick() % (Server()->TickSpeed() * 5) == 0)
 		{
 			const float Default = m_vMultiMaps[Idx]->m_HookFireSpeed;
-			constexpr float r = 0.30f;
-			std::uniform_real_distribution<float> Range(-r, r);
+			constexpr float Min = 0.20f;
+			constexpr float Max = 0.40f;
+			std::uniform_real_distribution<float> Range(Min, Max);
+         std::uniform_int_distribution<int> Negative(0, 1);
+			int IsNegative = Negative(Rng());
 			float RandAdjust = Range(Rng());
+			if(IsNegative)
+				RandAdjust = -RandAdjust;
+
 			GlobalTuning(Idx)->Set("hook_fire_speed", std::max(0.0f, Default + RandAdjust));
 			SendTuningParams(-1);
 		}
