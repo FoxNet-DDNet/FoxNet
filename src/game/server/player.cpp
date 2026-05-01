@@ -225,6 +225,9 @@ void CPlayer::Tick()
 		str_format(aBuf, sizeof(aBuf), "'%s' would have timed out, but can use timeout protection now", Server()->ClientName(m_ClientId));
 		GameServer()->SendChat(-1, TEAM_ALL, aBuf);
 		Server()->ResetNetErrorString(m_ClientId);
+
+		if(Acc()->m_LoggedIn)
+			GameServer()->m_AccountManager.Logout(m_ClientId); // Logout the player to prevent any potential issues with the account system, such as being unable to log back in due to a stuck session
 	}
 
 	if(!GameServer()->m_pController->IsGamePaused())

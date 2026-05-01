@@ -2234,18 +2234,22 @@ void CServer::OnNetMsgReady(int ClientId)
 
 void CServer::OnNetMsgEnterGame(int ClientId)
 {
-	if(m_aClients[ClientId].m_State != CClient::STATE_READY)
+	const bool OverrideMapReload = m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_State == CClient::STATE_INGAME;
+	if(!OverrideMapReload && m_aClients[ClientId].m_State != CClient::STATE_READY)
 		return;
 	if(!GameServer()->IsClientReady(ClientId))
 		return;
 
-	log_info(
-		"server",
-		"player has entered the game. ClientId=%d addr=<{%s}> sixup=%d",
-		ClientId,
-		ClientAddrString(ClientId, true),
-		IsSixup(ClientId));
-	m_aClients[ClientId].m_State = CClient::STATE_INGAME;
+	if(!OverrideMapReload)
+	{
+		log_info(
+			"server",
+			"player has entered the game. ClientId=%d addr=<{%s}> sixup=%d",
+			ClientId,
+			ClientAddrString(ClientId, true),
+			IsSixup(ClientId));
+		m_aClients[ClientId].m_State = CClient::STATE_INGAME;
+	}
 	if(!IsSixup(ClientId))
 	{
 		SendServerInfo(ClientAddr(ClientId), -1, SERVERINFO_EXTENDED, false);
@@ -2256,7 +2260,8 @@ void CServer::OnNetMsgEnterGame(int ClientId)
 		GetServerInfoSixup(&ServerInfoMessage, false);
 		SendMsg(&ServerInfoMessage, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 	}
-	GameServer()->OnClientEnter(ClientId);
+	if(!OverrideMapReload)
+		GameServer()->OnClientEnter(ClientId);
 }
 
 void CServer::OnNetMsgRconCmd(int ClientId, const char *pCmd)
@@ -4861,6 +4866,17 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 		return false;
 	}
 
+	const int Flags = m_aClients[OrigId].m_Flags;
+	const int DDNetVersion = m_aClients[OrigId].m_DDNetVersion;
+	const bool GotDDNetVersionPacket = m_aClients[OrigId].m_GotDDNetVersionPacket;
+	const bool DDNetVersionSettled = m_aClients[OrigId].m_DDNetVersionSettled;
+	const CUuid ConnectionId = m_aClients[OrigId].m_ConnectionId;
+	char aDDNetVersionStr[sizeof(m_aClients[OrigId].m_aDDNetVersionStr)];
+	str_copy(aDDNetVersionStr, m_aClients[OrigId].m_aDDNetVersionStr);
+	const int MultiMapIdx = GameServer()->GetMultiMapIdx(ClientId);
+	const int OrigMultiMapIdx = GameServer()->GetMultiMapIdx(OrigId);
+	const char *pMapName = GameServer()->Map(MultiMapIdx)->BaseName();
+
 	// The login was on the current conn, logout should also be on the current conn
 	if(IsRconAuthed(OrigId))
 	{
@@ -4873,16 +4889,16 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 
 	DelClientCallback(OrigId, "Timeout Protection used", this);
 	m_aClients[ClientId].m_AuthKey = -1;
-	m_aClients[ClientId].m_Flags = m_aClients[OrigId].m_Flags;
-	m_aClients[ClientId].m_DDNetVersion = m_aClients[OrigId].m_DDNetVersion;
-	m_aClients[ClientId].m_GotDDNetVersionPacket = m_aClients[OrigId].m_GotDDNetVersionPacket;
-	m_aClients[ClientId].m_DDNetVersionSettled = m_aClients[OrigId].m_DDNetVersionSettled;
+	m_aClients[ClientId].m_Flags = Flags;
+	m_aClients[ClientId].m_DDNetVersion = DDNetVersion;
+	m_aClients[ClientId].m_GotDDNetVersionPacket = GotDDNetVersionPacket;
+	m_aClients[ClientId].m_DDNetVersionSettled = DDNetVersionSettled;
+	m_aClients[ClientId].m_ConnectionId = ConnectionId;
+	str_copy(m_aClients[ClientId].m_aDDNetVersionStr, aDDNetVersionStr);
 	// <FoxNet
-	size_t MultiMapIdx = GameServer()->GetMultiMapIdx(ClientId);
-	size_t MultiMapIdxOld = GameServer()->GetMultiMapIdx(OrigId);
-	const char *pMapName = GameServer()->Map(MultiMapIdx)->BaseName();
-	if(MultiMapIdxOld != MultiMapIdx && pMapName[0] != '\0')
+	if(OrigMultiMapIdx != MultiMapIdx && pMapName[0] != '\0')
 		SendMapByName(ClientId, pMapName);
+	// FoxNet>
 
 	return true;
 }
@@ -5052,7 +5068,6 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		SetCustomClient(ClientId, "JS-Client", Unpacker);
 		return true;
 	}
-
 	}
 	return false;
 }
