@@ -3463,8 +3463,8 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 
 	if(GetPlayer()->IsPaused())
 		return;
-
-	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo)
+	
+	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
 	{
 		vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
 		int Type = Core()->m_ActiveWeapon;
@@ -3585,7 +3585,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 	if(Type <= WEAPON_GUN)
 		Lifetime = 120;
 
-	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
+    CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
 
 	if(!Death)

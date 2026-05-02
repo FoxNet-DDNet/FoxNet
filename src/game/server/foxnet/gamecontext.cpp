@@ -1434,6 +1434,9 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 	const float Radius = pChr->GetProximityRadius() * 0.5f;
 	const vec2 CharPos = pChr->m_Pos;
 	const int ActivatedTeam = pChr->Team();
+
+
+	bool SetToPickupMask = false;
 	CClientMask Mask = pChr->TeamMask();
 
 	// deal damage
@@ -1449,6 +1452,12 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 
 		if(pPickup->Team() != ActivatedTeam && ActivatedTeam != TEAM_SUPER)
 			continue;
+
+		if(!SetToPickupMask)
+		{
+			Mask = pPickup->PickupMask(pChr->GetPlayer()->GetCid());
+			SetToPickupMask = true;
+		}
 
 		vec2 Dir;
 		if(length(pPickup->m_Pos - CharPos) > 0.0f)

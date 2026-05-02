@@ -316,6 +316,11 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HATITEMFLAGS]))
 			Configs.m_HatItemFlags = Value;
 
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_SHOWWEAPONDROPS]))
+			Configs.m_ShowWeaponDrops = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_WEAPONDROPSUSINGVOTENO]))
+			Configs.m_WeaponDropsUsingVoteNo = On;
+
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW]))
 			Configs.m_Cosmetics.m_ShowRainbow = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_COSMETIC_GUNS]))
@@ -347,6 +352,11 @@ static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccCo
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEPOWERUPS], Configs.m_HidePowerUps, pError, ErrorSize))
 		return false;
 	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_HATITEMFLAGS], Configs.m_HatItemFlags, pError, ErrorSize))
+		return false;
+
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_SHOWWEAPONDROPS], Configs.m_ShowWeaponDrops, pError, ErrorSize))
+		return false;
+	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_WEAPONDROPSUSINGVOTENO], Configs.m_WeaponDropsUsingVoteNo, pError, ErrorSize))
 		return false;
 
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_COSMETIC_RAINBOW], Configs.m_Cosmetics.m_ShowRainbow, pError, ErrorSize))

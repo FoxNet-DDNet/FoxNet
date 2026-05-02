@@ -34,8 +34,13 @@ enum Configs
 {
 	CONFIG_AUTLOGIN,
 	CONFIG_FASTINPUTS,
+
 	CONFIG_HIDEPOWERUPS,
 	CONFIG_HATITEMFLAGS,
+
+	CONFIG_SHOWWEAPONDROPS,
+	CONFIG_WEAPONDROPSUSINGVOTENO,
+
 	CONFIG_COSMETIC_RAINBOW,
 	CONFIG_COSMETIC_GUNS,
 	CONFIG_COSMETIC_INDICATORS,
@@ -52,6 +57,9 @@ constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
 
 	"HidePowerUps",
 	"HatItemFlags",
+
+	"ShowWeaponDrops",
+	"WeaponDropsUsingVoteNo",
 
 	"CosmeticShowRainbow",
 	"CosmeticShowGuns",
@@ -89,13 +97,16 @@ class CAccConfigs
 public:
 	bool m_AutoLogin = false;
 
-	// From TClient
+	// For better prediction on cosmetics
 	bool m_FastInputs = false;
 	int m_FastInputAmount = 20;
 	bool m_SentFastInput = false;
 
 	bool m_HidePowerUps = false;
 	int m_HatItemFlags = 0;
+
+	bool m_ShowWeaponDrops = true;
+	bool m_WeaponDropsUsingVoteNo = true;
 
 	class CCosmeticConfig
 	{

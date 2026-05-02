@@ -7,10 +7,10 @@
 #include <engine/shared/protocol.h>
 
 #include <game/mapitems.h>
-#include <game/server/foxnet/entities/foxnet_entity.h>
+#include <game/server/entity.h>
 #include <game/server/gameworld.h>
 
-class CPickupDrop : public CEntityOwned
+class CPickupDrop : public CEntity
 {
 	int m_StartTick;
 
@@ -38,8 +38,16 @@ class CPickupDrop : public CEntityOwned
 
 	bool CollectItem();
 	bool CheckArmor();
+	bool CanBeSeenBy(int ClientId, int Asker = -1);
+
+	int m_LastOwner;
+
+	bool SnapPickupDropPickup(int SnappingClient, int SnapId, int OldFlags, const vec2 &Pos, int Type, int SubType, int Rotation, int Alpha, int Flags);
+	bool SnapPickupDropLaser(int SnappingClient, int SnapId, const vec2 &From, const vec2 &To, int Type, int Alpha, int Flags);
 
 public:
+	CClientMask PickupMask(int Asker);
+
 	int Team() const { return m_Team; }
 	int TeleCheckpoint() const { return m_TeleCheckpoint; }
 	int MoveRestrictions() const { return m_MoveRestrictions; }
@@ -53,7 +61,7 @@ public:
 	void ForceSetPos(vec2 Pos) override;
 	int TuneZone() const override { return m_TuneZone; }
 
-	CPickupDrop(CGameWorld *pGameWorld, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
+	CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 
 	void Reset(bool PickedUp);
 	void Reset() override { Reset(false); }

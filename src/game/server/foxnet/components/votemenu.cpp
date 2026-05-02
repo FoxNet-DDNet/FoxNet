@@ -39,6 +39,9 @@ constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
 constexpr const char *SETTINGS_FAST_INPUTS = "Using Fast Inputs?";
 
+constexpr const char *SETTINGS_HIDE_WEAPON_DROPS = "Hide Weapon drops";
+constexpr const char *SETTINGS_ALLOW_DROPPING_WEAPONS = "Allow dropping weapons with F4";
+
 constexpr const char *SETTINGS_COSMETICS_ANY = "Any Type";
 constexpr const char *SETTINGS_COSMETICS_RAINBOW = "Rainbow";
 constexpr const char *SETTINGS_COSMETICS_GUNS = "Guns";
@@ -253,6 +256,18 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			}
 
 			Acc.m_Configs.m_FastInputs = !Acc.m_Configs.m_FastInputs;
+			return true;
+		}
+
+
+		if(IsOption(pVote, SETTINGS_HIDE_WEAPON_DROPS))
+		{
+			Acc.m_Configs.m_ShowWeaponDrops = !Acc.m_Configs.m_ShowWeaponDrops;
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_ALLOW_DROPPING_WEAPONS))
+		{
+			Acc.m_Configs.m_WeaponDropsUsingVoteNo = !Acc.m_Configs.m_WeaponDropsUsingVoteNo;
 			return true;
 		}
 
@@ -1060,6 +1075,11 @@ void CVoteMenu::PrepareSettings(int ClientId)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
 	AddVoteCheckBox(SETTINGS_FAST_INPUTS, pAcc->m_Configs.m_FastInputs);
+
+	AddVoteSeparator();
+
+	AddVoteCheckBox(SETTINGS_HIDE_WEAPON_DROPS, !pAcc->m_Configs.m_ShowWeaponDrops);
+	AddVoteCheckBox(SETTINGS_ALLOW_DROPPING_WEAPONS, pAcc->m_Configs.m_WeaponDropsUsingVoteNo);
 
 	AddVoteSeparator();
 
