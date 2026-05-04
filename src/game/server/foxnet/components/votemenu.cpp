@@ -511,7 +511,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			if(ReasonInt.has_value())
 				pPlayer->UseItem(pEmoticonGunName, ReasonInt.value());
 			else
-				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field");
+				GameServer()->SendChatTarget(ClientId, "Please specify the emote type using the reason field (e.g '1' for oop emote)");
 			return true;
 		}
 
