@@ -3,6 +3,7 @@
 #include <base/str.h>
 
 #include <game/server/player.h>
+#include <base/log.h>
 
 void CSavePlayerData::Save(CPlayer *pPlayer)
 {
@@ -28,6 +29,8 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 	m_Page = pPlayer->GetPage();
 	m_SubPage = pPlayer->GetSubPage();
 
+	log_info("test", "save %d", m_Page);
+
 	m_SupportsCosmeticSnaps = pPlayer->m_SupportsCosmeticSnaps;
 }
 
@@ -52,6 +55,7 @@ bool CSavePlayerData::Load(CPlayer *pPlayer) const
 	pPlayer->m_AccLoginAttempts = m_AccLoginAttempts;
 	pPlayer->m_AccRegisters = m_AccRegisters;
 
+	log_info("test", "load %d", m_Page);
 	pPlayer->SetPage(m_Page);
 	pPlayer->SetSubPage(m_SubPage);
 

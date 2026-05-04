@@ -1295,8 +1295,11 @@ void CGameContext::OnPreReload()
 		CPlayer *pPlayer = m_apPlayers[i];
 		if(!pPlayer)
 			continue;
+
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
+
+		m_AccountManager.Logout(i);
 	}
 }
 

@@ -187,6 +187,15 @@ void CPlayer::FoxNetReset()
 
 	Acc()->m_Inventory = CInventory();
 	m_vPickupDrops.clear();
+
+	if(GameServer()->m_apPersistentData[GetCid()])
+	{
+		GameServer()->m_apPersistentData[GetCid()]->Load(this);
+		delete GameServer()->m_apPersistentData[GetCid()];
+		GameServer()->m_apPersistentData[GetCid()] = nullptr;
+	}
+	if(!Acc()->m_LoggedIn)
+		GameServer()->m_AccountManager.ForceLogin(GetCid(), Acc()->m_aUsername, true, true);
 }
 
 void CPlayer::GivePlaytime(long Amount)

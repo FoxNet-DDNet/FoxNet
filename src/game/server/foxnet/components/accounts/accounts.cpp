@@ -485,10 +485,11 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	bool FastInput = Acc.m_Configs.m_FastInputs;
 	int FastInputAmount = Acc.m_Configs.m_FastInputAmount;
 	time_t Now = time(0);
+	const char *pPlayerName = Server()->ClientIngame(ClientId) ? Server()->ClientName(ClientId) : Res.m_PlayerName;
 
 	str_copy(Acc.m_aUsername, Res.m_aUsername);
 	Acc.m_RegisterDate = Res.m_RegisterDate;
-	str_copy(Acc.m_aName, Res.m_PlayerName);
+    str_copy(Acc.m_aName, pPlayerName);
 	str_copy(Acc.m_aLastName, Res.m_LastPlayerName);
 	str_copy(Acc.m_aCurrentIp, Server()->ClientAddrString(ClientId, false));
 	str_copy(Acc.m_aLastIp, Res.m_LastIP);
@@ -536,7 +537,7 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
 	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
-	str_copy(pUpd->m_PlayerName, Server()->ClientName(ClientId), sizeof(pUpd->m_PlayerName));
+   str_copy(pUpd->m_PlayerName, pPlayerName, sizeof(pUpd->m_PlayerName));
 	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();

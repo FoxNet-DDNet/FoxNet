@@ -516,7 +516,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 
 		// Options that use the reason field go above
-
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
