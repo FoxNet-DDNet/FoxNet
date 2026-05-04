@@ -94,10 +94,10 @@ void CGameContext::FoxNetTick()
 		if(g_Config.m_SvSetupDestroyer && Server()->Tick() % (Server()->TickSpeed() * 5) == 0)
 		{
 			const float Default = m_vMultiMaps[Idx]->m_HookFireSpeed;
-			constexpr float Min = 0.20f;
-			constexpr float Max = 0.40f;
+			constexpr float Min = 0.10f;
+			constexpr float Max = 0.30f;
 			std::uniform_real_distribution<float> Range(Min, Max);
-         std::uniform_int_distribution<int> Negative(0, 1);
+			std::uniform_int_distribution<int> Negative(0, 1);
 			int IsNegative = Negative(Rng());
 			float RandAdjust = Range(Rng());
 			if(IsNegative)
@@ -1437,7 +1437,6 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 	const float Radius = pChr->GetProximityRadius() * 0.5f;
 	const vec2 CharPos = pChr->m_Pos;
 	const int ActivatedTeam = pChr->Team();
-
 
 	bool SetToPickupMask = false;
 	CClientMask Mask = pChr->TeamMask();
