@@ -949,24 +949,42 @@ void CPlayer::SpectatePlayerName(const char *pName)
 void CPlayer::SetSpectatorId(int Id)
 {
 	CPlayer *pSpectator = Id >= 0 ? GameServer()->m_apPlayers[Id] : nullptr;
-	if(pSpectator && !Server()->IsRconAuthed(GetCid()))
+	if(pSpectator)
 	{
-		for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+		if(!!Server()->IsRconAuthed(GetCid()))
 		{
-			if(!pComponent->CanSpectateId(this, pSpectator))
+			for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+			{
+				if(!pComponent->CanSpectateId(this, pSpectator))
+					return;
+			}
+
+			if(pSpectator->m_Vanish && !m_Vanish)
+			{
+				SendChat("Invalid spectator id used");
 				return;
+			}
 		}
 
-		if(pSpectator->m_Vanish && !m_Vanish)
+		if(pSpectator->MultiMapIdx() != MultiMapIdx())
 		{
-			SendChat("Invalid spectator id used");
-			return;
-		}
-		else if(pSpectator->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
-		{
-			SendChat("You can't spectate players on different maps");
-			SendChat("use /join <name> to join their map");
-			return;
+			bool SentToMap = false;
+			if(CCharacter *pChr = GetCharacter())
+			{
+				if(pChr->m_DDRaceState == ERaceState::NONE)
+				{
+					SendToMap(pSpectator->MultiMapIdx());
+					SentToMap = true;
+				}
+			}
+			if(!SentToMap && !Server()->IsRconAuthed(GetCid()))
+			{
+				SendChat("You can't spectate players on different maps");
+				SendChatFmt("use /join %s to join their map", Server()->ClientName(pSpectator->GetCid()));
+
+				if(!g_Config.m_SvMultimapAllowInteraction)
+					return;
+			}
 		}
 	}
 
