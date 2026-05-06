@@ -1330,11 +1330,32 @@ void CGameContext::ConJoin(IConsole::IResult *pResult, void *pUserData)
 	if(!CheckClientId(pResult->m_ClientId))
 		return;
 
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+
 	const char *pName = pResult->GetString(0);
+
 	int Target = pSelf->FindClientIdByName(pName).value_or(-1);
 	if(Target == -1)
 	{
 		log_info("chatresp", "Player not found");
+		return;
+	}
+
+	int VictimId = pSelf->ClientIdByName(pName);
+	if(!CheckClientId(VictimId) || pSelf->Server()->ClientSlotEmpty(VictimId))
+	{
+		log_info("chatresp", "Player not found");
+		return;
+	}
+	CPlayer *pVictim = pSelf->m_apPlayers[VictimId];
+	if(!pVictim)
+		return;
+
+	if(pPlayer->MultiMapIdx() != pVictim->MultiMapIdx())
+	{
+		pPlayer->SendToMap(pVictim->MultiMapIdx());
 		return;
 	}
 

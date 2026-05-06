@@ -1879,39 +1879,6 @@ void CGameContext::ConMainMap(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->SendToMap(MainMapIdx);
 }
 
-void CGameContext::ConJoinNameOnMap(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int UserId = pResult->m_ClientId;
-	const char *pName = pResult->GetString(0);
-
-	if(!CheckClientId(UserId))
-		return;
-	if(pSelf->Server()->ClientSlotEmpty(UserId))
-		return;
-	CPlayer *pPlayer = pSelf->m_apPlayers[UserId];
-	if(!pPlayer)
-		return;
-
-	int VictimId = pSelf->ClientIdByName(pName);
-	if(!CheckClientId(VictimId) || pSelf->Server()->ClientSlotEmpty(VictimId))
-	{
-		pSelf->SendChatTarget(UserId, "That player doesn't exist.");
-		return;
-	}
-	CPlayer *pVictim = pSelf->m_apPlayers[VictimId];
-	if(!pVictim)
-		return;
-
-	if(pPlayer->MultiMapIdx() == pVictim->MultiMapIdx())
-	{
-		pSelf->SendChatTarget(UserId, "You are already on the same!");
-		return;
-	}
-
-	pPlayer->SendToMap(pVictim->MultiMapIdx());
-}
-
 void CGameContext::RegisterFoxNetCommands()
 {
 	// MultiMaps
@@ -2038,7 +2005,6 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
 	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
 	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
-	Console()->Register("join_map", "s[name]", CFGFLAG_CHAT, ConJoinNameOnMap, this, "Join a map by player name");
 
 	// Shop
 	Console()->Register("toggleitem", "s[item] ?i[value]", CFGFLAG_CHAT, ConToggleItem, this, "Toggle an Item, value is only needed for 2 items");

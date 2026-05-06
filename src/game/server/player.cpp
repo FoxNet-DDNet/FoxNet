@@ -965,7 +965,7 @@ void CPlayer::SetSpectatorId(int Id)
 		else if(pSpectator->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		{
 			SendChat("You can't spectate players on different maps");
-			SendChat("use /join_map <name> to join their map");
+			SendChat("use /join <name> to join their map");
 			return;
 		}
 	}
