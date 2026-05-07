@@ -602,6 +602,11 @@ public:
 	bool m_SupportsCosmeticSnaps;
 
 	int GetShowOthers();
+
+private:
+	mutable int m_CachedShowOthers = -1;
+	mutable int m_ShowOthersCacheTick = -1;
+
 	// FoxNet>
 };
 #endif

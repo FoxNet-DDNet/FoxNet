@@ -118,6 +118,9 @@ public:
 	// /spec
 	bool IsPaused() const { return m_Paused; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
+
+	CClientMask m_TeamMaskCached;
+	int64_t m_TeamMaskCachedTick;
 	CClientMask TeamMask();
 
 	void SetPosition(const vec2 &Position);

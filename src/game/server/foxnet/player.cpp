@@ -1326,11 +1326,25 @@ bool CPlayer::SendToMap(int Idx)
 
 int CPlayer::GetShowOthers()
 {
+	int CurrentTick = Server()->Tick();
+	
+	if(m_ShowOthersCacheTick == CurrentTick)
+	{
+		return m_CachedShowOthers;
+	}
+
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
 	{
 		int Value = pComponent->ShowOthers(this);
 		if(Value != -1)
+		{
+			m_CachedShowOthers = Value;
+			m_ShowOthersCacheTick = CurrentTick;
 			return Value;
+		}
 	}
+	
+	m_CachedShowOthers = m_ShowOthers;
+	m_ShowOthersCacheTick = CurrentTick;
 	return m_ShowOthers;
 }

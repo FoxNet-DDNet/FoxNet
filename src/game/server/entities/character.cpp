@@ -3007,7 +3007,17 @@ void CCharacter::Rescue()
 
 CClientMask CCharacter::TeamMask()
 {
-	return Teams()->TeamMask(Team(), MultiMapIdx(), -1, GetPlayer()->GetCid());
+	int CurrentTick = Server()->Tick();
+
+	if(m_TeamMaskCachedTick == CurrentTick)
+	{
+		return m_TeamMaskCached;
+	}
+
+	m_TeamMaskCached = Teams()->TeamMask(Team(), MultiMapIdx(), -1, GetPlayer()->GetCid());
+	m_TeamMaskCachedTick = CurrentTick;
+
+	return m_TeamMaskCached;
 }
 
 void CCharacter::SetPosition(const vec2 &Position)
