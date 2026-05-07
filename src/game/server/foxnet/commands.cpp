@@ -2060,13 +2060,13 @@ void CGameContext::ConchainScriptingBan(IConsole::IResult *pResult, void *pUserD
 	{
 		char aTempBuf[128];
 		str_copy(aTempBuf, pResult->GetString(i), sizeof(aTempBuf));
-		if(i == 0 && pResult->GetVictim() >= 0 && pResult->GetVictimAddrStr())
+		if(i == 0 && pResult->GetVictimAddrStr()[0])
 		{
 			char aIdBuf[32];
 			str_format(aIdBuf, sizeof(aIdBuf), "%s", pResult->GetVictimAddrStr());
 			str_copy(aTempBuf, aIdBuf, sizeof(aTempBuf));
 
-			if(pResult->GetVictim() == UserId)
+			if(pResult->GetVictim() >= 0 && pResult->GetVictim() == UserId)
 				return; // prevent self ban
 		}
 

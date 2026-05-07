@@ -86,7 +86,10 @@ void CServerBan::ConBanTimestampExt(IConsole::IResult *pResult, void *pUser)
 		if(ClientId < 0 || ClientId >= MAX_CLIENTS || pThis->Server()->m_aClients[ClientId].m_State == CServer::CClient::STATE_EMPTY)
 			log_info("net_ban", "ban error (invalid client id)");
 		else
+		{
+			pResult->SetVictimAddrStr(pThis->Server()->ClientAddrString(ClientId, false));
 			pThis->BanAddrTimestamp(pThis->Server()->ClientAddr(ClientId), Timestamp, pReason, false);
+		}
 	}
 	else
 		ConBanTimestamp(pResult, pUser);
@@ -255,6 +258,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 				pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
 			}
 
+			pResult->SetVictimAddrStr(pThis->Server()->ClientAddrString(ClientId, false));
 			pThis->BanAddr(pThis->Server()->ClientAddr(ClientId), Minutes * 60, pReason, false);
 		}
 	}
