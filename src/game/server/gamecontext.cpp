@@ -1267,7 +1267,7 @@ void CGameContext::OnTick()
 				bool SinglePlayer = true;
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if(m_apPlayers[i])
+					if(m_apPlayers[i] && Server()->ClientIngame(i))
 					{
 						apAddresses[i] = Server()->ClientAddr(i);
 						if(!pFirstAddress)
@@ -1286,7 +1286,7 @@ void CGameContext::OnTick()
 				int64_t Now = Server()->Tick();
 				for(int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if(!m_apPlayers[i] || aVoteChecked[i])
+					if(!m_apPlayers[i] || aVoteChecked[i] || apAddresses[i] == nullptr)
 						continue;
 
 					if((IsKickVote() || IsSpecVote()) && (m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||
@@ -1301,10 +1301,6 @@ void CGameContext::OnTick()
 					if((IsKickVote() || IsSpecVote()) && Now < m_apPlayers[i]->m_FirstVoteTick)
 						continue;
 
-					// connecting clients with spoofed ips can clog slots without being ingame
-					if(!Server()->ClientIngame(i))
-						continue;
-
 					// don't count votes by blacklisted clients
 					if(g_Config.m_SvDnsblVote && !m_pServer->DnsblWhite(i) && !SinglePlayer)
 						continue;
@@ -1316,7 +1312,7 @@ void CGameContext::OnTick()
 					// check for more players with the same ip (only use the vote of the one who voted first)
 					for(int j = i + 1; j < MAX_CLIENTS; j++)
 					{
-						if(!m_apPlayers[j] || aVoteChecked[j] || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0)
+						if(!m_apPlayers[j] || aVoteChecked[j] || apAddresses[j] == nullptr || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0)
 							continue;
 
 						// count the latest vote by this ip
@@ -1342,7 +1338,7 @@ void CGameContext::OnTick()
 						for(int j = i; j < MAX_CLIENTS; j++)
 						{
 							// no need to check ip address of current player
-							if(i != j && (!m_apPlayers[j] || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0))
+							if(i != j && (!m_apPlayers[j] || apAddresses[j] == nullptr || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0))
 								continue;
 
 							if(m_apPlayers[j] && !m_apPlayers[j]->IsAfk() && m_apPlayers[j]->GetTeam() != TEAM_SPECTATORS &&
