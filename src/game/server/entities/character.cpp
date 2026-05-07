@@ -2787,6 +2787,18 @@ bool CCharacter::FreezeForce(int Ticks)
 	return true;
 }
 
+bool CCharacter::FreezeTicks(int Ticks)
+{
+	if(Ticks <= 0 || m_Core.m_Super || m_Core.m_Invincible || m_FreezeTime > Ticks)
+		return false;
+	if(m_FreezeTime == 0 || m_Core.m_FreezeStart < Server()->Tick() - Server()->TickSpeed())
+	{
+		FreezeForce(Ticks);
+		return true;
+	}
+	return false;
+}
+
 bool CCharacter::Freeze(int Seconds)
 {
 	if(Seconds <= 0 || m_Core.m_Super || m_Core.m_Invincible || m_FreezeTime > Seconds * Server()->TickSpeed())

@@ -210,7 +210,7 @@ void CProjectile::Tick()
 			{
 				auto *pChr = static_cast<CCharacter *>(apEnts[i]);
 				if(pChr && (m_Layer != LAYER_SWITCH || (m_Layer == LAYER_SWITCH && m_Number > 0 && Switchers()[m_Number].m_aStatus[pChr->Team()])))
-					pChr->FreezeForce(m_FreezeTicks);
+					pChr->FreezeTicks(m_FreezeTicks);
 			}
 		}
 		else if(pTargetChr)

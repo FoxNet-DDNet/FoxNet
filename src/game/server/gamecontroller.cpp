@@ -260,7 +260,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 			Pos, // Pos
 			vec2(std::sin(Deg), std::cos(Deg)), // Dir
 			-2, // Span
-			true, // Freeze
+			g_Config.m_SvFreezeDelay * SERVER_TICK_SPEED, // Freeze
 			true, // Explosive
 			(g_Config.m_SvShotgunBulletSound) ? SOUND_GRENADE_EXPLODE : -1, // SoundImpact
 			vec2(std::sin(Deg), std::cos(Deg)), // InitDir
@@ -288,7 +288,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 			Pos, // Pos
 			vec2(std::sin(Deg), std::cos(Deg)), // Dir
 			-2, // Span
-			true, // Freeze
+			g_Config.m_SvFreezeDelay * SERVER_TICK_SPEED, // Freeze
 			false, // Explosive
 			SOUND_GRENADE_EXPLODE,
 			vec2(std::sin(Deg), std::cos(Deg)), // InitDir

@@ -222,7 +222,8 @@ public:
 	void FillAntibot(CAntibotCharacterData *pData);
 	void Pause(bool Pause);
 	// FoxNet
-	bool FreezeForce(int Seconds);
+	bool FreezeForce(int Ticks);
+	bool FreezeTicks(int Ticks);
 	bool Freeze(int Seconds);
 	bool Freeze();
 	bool Unfreeze();
