@@ -122,10 +122,11 @@ void CPlayer::LootBoxTick()
 		StarsString(pItem->m_Stars).c_str(),
 		pItem->m_pName);
 
-	if(GetCharacter())
-		GameServer()->CreateDeath(GetCharacter()->GetPos(), m_ClientId, GetCharacter()->TeamMask());
-
-	GameServer()->CreateSound(GetCharacter()->GetPos(), SOUND_WEAPON_SWITCH);
+	if(CCharacter *pChr = GetCharacter())
+	{
+		GameServer()->CreateDeath(pChr->GetPos(), m_ClientId, pChr->TeamMask());
+		GameServer()->CreateSound(pChr->GetPos(), SOUND_WEAPON_SWITCH);
+	}
 
 	SendBroadcast(aBuf);
 }
@@ -573,6 +574,12 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 	if(m_LootBoxData.m_Opening)
 	{
 		SendChat("You are already opening a loot case!");
+		return false;
+	}
+
+	if(GetTeam() == TEAM_SPECTATORS)
+	{
+		SendChat("You can't open loot cases while spectating.");
 		return false;
 	}
 

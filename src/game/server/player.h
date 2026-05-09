@@ -459,6 +459,8 @@ private:
 	bool HasImportantBroadcast() const;
 
 public:
+	bool OpeningLootBox() const { return m_LootBoxData.m_Opening; }
+
 	EArea m_Area = EArea::Game;
 	EArea m_LastArea = EArea::Game;
 	int64_t m_LastAreaMotd = 0;

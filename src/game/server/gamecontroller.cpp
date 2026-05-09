@@ -835,6 +835,12 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 		return;
 	}
 
+	if(pPlayer->OpeningLootBox())
+	{
+		GameServer()->SendChatTarget(pPlayer->GetCid(), "You can't change team while opening a loot box");
+		return;
+	}
+
 	pPlayer->SetTeam(Team);
 	int ClientId = pPlayer->GetCid();
 
