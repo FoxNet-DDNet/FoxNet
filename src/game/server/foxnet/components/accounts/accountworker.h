@@ -134,6 +134,12 @@ struct CAccDisable : ISqlData
 	bool m_Disable;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
+struct CAccDelete : ISqlData
+{
+	CAccDelete(std::shared_ptr<CAccResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
 struct CAccRemoveItem : ISqlData
 {
 	CAccRemoveItem() :
@@ -284,6 +290,7 @@ struct CAccountsWorker
 	static bool SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DisableAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool DeleteAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);

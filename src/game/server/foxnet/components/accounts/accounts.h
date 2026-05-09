@@ -190,6 +190,7 @@ class CAccounts : public CServerComponent
 	static void ConLogout(IConsole::IResult *pResult, void *pUserData);
 	static void ConProfile(IConsole::IResult *pResult, void *pUserData);
 	static void ConDisable(IConsole::IResult *pResult, void *pUserData);
+	static void ConDelete(IConsole::IResult *pResult, void *pUserData);
 	static void ConForcePassword(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceLogin(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceLogout(IConsole::IResult *pResult, void *pUserData);
@@ -216,6 +217,7 @@ public:
 
 	void SaveAccountsInfo(int ClientId, CAccountSession &AccInfo);
 	void DisableAccount(const char *pUsername, bool Disable);
+	void DeleteAccount(int ClientId, const char *pUsername);
 
 	void LogoutAllAccountsPort(int Port);
 	void ShowAccProfile(int ClientId, const char *pName);

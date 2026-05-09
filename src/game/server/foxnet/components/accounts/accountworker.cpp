@@ -192,6 +192,16 @@ static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &Ma
 	return true;
 }
 
+static bool DeleteRowsByUsername(IDbConnection *pSql, const char *pTable, const char *pUsername, int *pNumDeleted, char *pError, int ErrorSize)
+{
+	char aSql[256];
+	str_format(aSql, sizeof(aSql), "DELETE FROM %s WHERE Username = ?", pTable);
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pUsername);
+	return pSql->ExecuteUpdate(pNumDeleted, pError, ErrorSize);
+}
+
 static bool UpsertConfigBool(IDbConnection *pSql, const char *pUsername, const char *pKey, bool Value, char *pError, int ErrorSize)
 {
 	{
@@ -860,6 +870,44 @@ bool CAccountsWorker::DisableAccount(IDbConnection *pSql, const ISqlData *pData,
 	pSql->BindString(Param++, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+bool CAccountsWorker::DeleteAccount(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccDelete *>(pData);
+	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+		return false;
+
+	char aSql[256];
+	str_copy(aSql, "SELECT Username FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	pRes->m_Found = !End;
+
+	int NumDeleted = 0;
+	if(!DeleteRowsByUsername(pSql, "foxnet_account_mailbox", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
+	if(!DeleteRowsByUsername(pSql, "foxnet_account_config", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
+	if(!DeleteRowsByUsername(pSql, "foxnet_account_inventory", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
+	if(!DeleteRowsByUsername(pSql, "foxnet_accounts", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
+
+	if(pRes->m_Found)
+		pRes->AddMessage("Account deleted successfully");
+	else
+		pRes->AddMessage("Account doesn't exist");
+
+	pRes->m_Success = true;
+	pRes->m_Completed.store(true);
+	return true;
 }
 
 bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)

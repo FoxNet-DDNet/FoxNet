@@ -175,6 +175,14 @@ void CAccounts::ConDisable(IConsole::IResult *pResult, void *pUserData)
 	pSelf->DisableAccount(pUser, pValue);
 }
 
+void CAccounts::ConDelete(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const char *pUser = pResult->GetString(0);
+
+	pSelf->DeleteAccount(pResult->m_ClientId, pUser);
+}
+
 void CAccounts::ConForcePassword(IConsole::IResult *pResult, void *pUserData)
 {
 	CAccounts *pSelf = (CAccounts *)pUserData;
@@ -489,7 +497,7 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 
 	str_copy(Acc.m_aUsername, Res.m_aUsername);
 	Acc.m_RegisterDate = Res.m_RegisterDate;
-    str_copy(Acc.m_aName, pPlayerName);
+	str_copy(Acc.m_aName, pPlayerName);
 	str_copy(Acc.m_aLastName, Res.m_LastPlayerName);
 	str_copy(Acc.m_aCurrentIp, Server()->ClientAddrString(ClientId, false));
 	str_copy(Acc.m_aLastIp, Res.m_LastIP);
@@ -537,7 +545,7 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
 	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
-   str_copy(pUpd->m_PlayerName, pPlayerName, sizeof(pUpd->m_PlayerName));
+	str_copy(pUpd->m_PlayerName, pPlayerName, sizeof(pUpd->m_PlayerName));
 	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();
@@ -820,6 +828,39 @@ void CAccounts::DisableAccount(const char *pUsername, bool Disable)
 	pReq->m_Disable = Disable;
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	DbPool()->ExecuteWrite(CAccountsWorker::DisableAccount, std::move(pReq), "acc (un)disable");
+}
+
+void CAccounts::DeleteAccount(int ClientId, const char *pUsername)
+{
+	if(!DbPool() || !pUsername || !pUsername[0])
+		return;
+
+	auto pRes = std::make_shared<CAccResult>();
+	auto pReq = std::make_unique<CAccDelete>(pRes);
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+
+	AddPending(pRes, [this, ClientId, Username = std::string(pUsername)](CAccResult &Res) {
+		if(Res.m_Success && Res.m_Found)
+		{
+			for(int i = 0; i < MAX_CLIENTS; i++)
+			{
+				auto &Acc = GameServer()->m_aAccounts[i];
+				if(Acc.m_LoggedIn && str_comp(Acc.m_aUsername, Username.c_str()) == 0)
+					Logout(i);
+			}
+		}
+
+		const char *pMsg = Res.m_NumMessages > 0 ? Res.m_aaMessages[0] : "[Err] Failed to delete account";
+		if(ClientId >= 0)
+		{
+			if(!Server()->ClientSlotEmpty(ClientId))
+				GameServer()->SendChatTarget(ClientId, pMsg);
+		}
+		else
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "accounts", pMsg);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::DeleteAccount, std::move(pReq), "acc delete");
 }
 
 void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
@@ -1125,6 +1166,7 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConForceLogin, this, "Force Login player (id) into any account");
 	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConForceLogout, this, "Force logout an account thats currently active on the server");
 	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConDisable, this, "Disable an account");
+	Console()->Register("acc_delete", "s[username]", CFGFLAG_SERVER, ConDelete, this, "Delete an account and all related data");
 	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConForcePassword, this, "Disable an account");
 	Console()->Register("register", "s[username] s[password]", CFGFLAG_CHAT, ConRegister, this, "Register a account");
 	Console()->Register("password", "s[oldpass] s[password]", CFGFLAG_CHAT, ConPassword, this, "Change your password");
