@@ -328,12 +328,12 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		else if(Acc()->m_Level % 100 == 0)
 		{
 			NewRewardMail(CReward(25000, 125000, 4, {
-									      EItemRarity::Common,
-									      EItemRarity::Uncommon,
-									      EItemRarity::Rare,
-									      EItemRarity::Epic,
-									      EItemRarity::Mythic,
-								      }));
+									EItemRarity::Common,
+									EItemRarity::Uncommon,
+									EItemRarity::Rare,
+									EItemRarity::Epic,
+									EItemRarity::Mythic,
+								}));
 		}
 		else if(Acc()->m_Level % 50 == 0)
 		{
@@ -1296,6 +1296,8 @@ bool CPlayer::SendToMap(int Idx)
 		GameServer()->m_vMultiMaps[Idx]->m_CreatedEntities = true;
 	}
 
+	int CurMapIndex = MultiMapIdx();
+
 	if(Idx != DefaultMapIndex)
 	{
 		if(!Server()->SendMapByName(GetCid(), GameServer()->m_vMultiMaps[Idx]->m_pMap->BaseName()))
@@ -1307,6 +1309,12 @@ bool CPlayer::SendToMap(int Idx)
 		if(!Server()->SendMapByName(GetCid(), GameServer()->Map()->BaseName()))
 			return false;
 		m_MultiMapIndex = DefaultMapIndex;
+	}
+
+	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, CurMapIndex));
+	if(pRoulette)
+	{
+		pRoulette->OnClientReset(GetCid());
 	}
 
 	SetSpectatorId(-1);
@@ -1334,7 +1342,7 @@ bool CPlayer::SendToMap(int Idx)
 int CPlayer::GetShowOthers()
 {
 	int CurrentTick = Server()->Tick();
-	
+
 	if(m_ShowOthersCacheTick == CurrentTick)
 	{
 		return m_CachedShowOthers;
@@ -1350,7 +1358,7 @@ int CPlayer::GetShowOthers()
 			return Value;
 		}
 	}
-	
+
 	m_CachedShowOthers = m_ShowOthers;
 	m_ShowOthersCacheTick = CurrentTick;
 	return m_ShowOthers;

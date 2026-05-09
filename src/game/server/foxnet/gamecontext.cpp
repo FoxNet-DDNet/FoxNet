@@ -53,6 +53,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "entities/roulette.h"
 
 void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 {
@@ -912,6 +913,12 @@ void CGameContext::OnLogout(int ClientId)
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
+
+	CRoulette *pRoulette = static_cast<CRoulette *>(m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, pPlayer->MultiMapIdx()));
+	if(pRoulette)
+	{
+		pRoulette->OnClientReset(ClientId);
+	}
 
 	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		pPlayer->SetTeam(TEAM_SPECTATORS, false);

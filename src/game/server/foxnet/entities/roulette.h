@@ -61,6 +61,7 @@ class CRoulette : public CEntity
 
 	float m_RotationSpeed = 0.0f;
 	float m_Rotation = 0.0f;
+	int m_EndingField = -1;
 	RStates m_State = RStates::IDLE;
 
 	int m_StartDelay = 0;
@@ -82,8 +83,10 @@ class CRoulette : public CEntity
 		{12, COLOR_RED}, {35, COLOR_BLACK}, {3, COLOR_RED}, {26, COLOR_BLACK}};
 
 	void SetState(RStates State);
-	void EvaluateBets();
+	int CalculateEndingField(int SpinDuration, float SlowDownFactor) const;
+	void ClearClientBet(int ClientId);
 
+	int GetField(float Rotation) const;
 	int GetField() const;
 
 	void SendBroadcast(int ClientId);
@@ -99,6 +102,10 @@ public:
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
 
 	bool AddClient(int ClientId, int BetAmount, const char *pBetOption);
+
+	void OnClientReset(int ClientId);
+
+	void EvaluateBet(int ClientId, bool Quiet = false);
 	RStates State() const { return m_State; }
 
 	void Reset() override;
