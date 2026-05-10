@@ -471,7 +471,7 @@ public:
 
 	bool CanReport();
 
-	int m_BetAmount = -1;
+	int64_t m_BetAmount = -1;
 	int64_t m_LastBet = 0;
 
 	bool m_WeaponIndicator = true;
@@ -496,17 +496,17 @@ public:
 
 	bool CanUseMoney();
 
-	void GivePlaytime(long Amount);
-	void GiveXP(long Amount, const char *pMessage = "", bool Multiplier = true);
+	void GivePlaytime(int64_t Amount);
+	void GiveXP(int64_t Amount, const char *pMessage = "", bool Multiplier = true);
 	bool CheckLevelUp(bool Silent = false);
 
-	void GiveMoney(long Amount, bool Multiplier = true, bool Silent = false);
-	void TakeMoney(long Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
+	void GiveMoney(int64_t Amount, bool Multiplier = true, bool Silent = false);
+	void TakeMoney(int64_t Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
 	int64_t m_LastTransaction = 0;
-	void PayMoney(CPlayer *pReceiver, long Amount);
+	void PayMoney(CPlayer *pReceiver, int64_t Amount);
 
-	long GetDiscountedPrice(long Price);
+	int64_t GetDiscountedPrice(int64_t Price);
 
 	bool OwnsItem(const char *pItemName);
 	bool OwnsItem(EItemId ItemId);

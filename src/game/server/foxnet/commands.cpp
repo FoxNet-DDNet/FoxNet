@@ -26,6 +26,7 @@
 #include <game/server/score.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstdint>
 #include <ctime>
 
@@ -1453,8 +1454,8 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int Amount = pResult->GetInteger(0);
-	const int Money = pPlayer->Acc()->m_Money;
+	const int64_t Amount = pResult->GetInteger(0);
+	const int64_t Money = pPlayer->Acc()->m_Money;
 	if(Amount > Money)
 	{
 		pSelf->SendChatTarget(ClientId, "You don't have enough money to place that bet");
@@ -1468,9 +1469,9 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[64];
 	if(pPlayer->m_BetAmount <= 0)
-		str_format(aBuf, sizeof(aBuf), "You wagered %d%s", Amount, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You wagered %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 	else
-		str_format(aBuf, sizeof(aBuf), "You changed your wager to %d%s", Amount, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "You changed your wager to %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 
 	pSelf->SendChatTarget(ClientId, aBuf);
 

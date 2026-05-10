@@ -12,6 +12,8 @@
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
+#include <cinttypes>
+
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
 	// Clear current inventory & cosmetics
@@ -826,7 +828,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write
 		int Param = 1;
 		pSql->GetString(Param++, aUsername, sizeof(aUsername));
 		pSql->GetString(Param++, aPlayerName, sizeof(aPlayerName));
-		const long Metric = pSql->GetInt64(Param++);
+		const int64_t Metric = pSql->GetInt64(Param++);
 
 		const char *pName = aPlayerName[0] ? aPlayerName : aUsername;
 
@@ -836,7 +838,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write
 		}
 		else
 		{
-			str_format(aBuf, sizeof(aBuf), "%d. '%s' %s: %ld", Rank, pName, pMetric, Metric);
+			str_format(aBuf, sizeof(aBuf), "%d. '%s' %s: %" PRId64, Rank, pName, pMetric, Metric);
 		}
 
 		pRes->AddMessage(aBuf);

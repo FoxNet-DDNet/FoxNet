@@ -20,6 +20,7 @@
 #include <game/server/player.h>
 #include <game/teamscore.h>
 
+#include <cinttypes>
 #include <cmath>
 #include <random>
 #include <string>
@@ -83,9 +84,11 @@ int CRoulette::AmountOfCloseClients()
 	return Count;
 }
 
-bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
+bool CRoulette::AddClient(int ClientId, int64_t BetAmount, const char *pBetOption)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return false;
 
 	if(pPlayer->MultiMapIdx() != MultiMapIdx())
 		return false;
@@ -117,6 +120,12 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 		return false;
 	}
 
+	if(pPlayer->Acc()->m_Money < BetAmount)
+	{
+		GameServer()->SendChatTarget(ClientId, "You don't have enough money to place that bet anymore.");
+		return false;
+	}
+
 	bool ValidOption = false;
 	for(const char *pOptions : RouletteOptions)
 	{
@@ -133,6 +142,7 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 	}
 
 	SetState(RStates::PREPARING);
+	pPlayer->TakeMoney(BetAmount, true);
 
 	m_aClients[ClientId].m_BetAmount = BetAmount;
 	str_copy(m_aClients[ClientId].m_aBetOption, pBetOption);
@@ -142,7 +152,7 @@ bool CRoulette::AddClient(int ClientId, int BetAmount, const char *pBetOption)
 	m_TotalWager += BetAmount;
 
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "You placed a bet of %d on %s", BetAmount, pBetOption);
+	str_format(aBuf, sizeof(aBuf), "You placed a bet of %" PRId64 " on %s", BetAmount, pBetOption);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 	return true;
 }
@@ -151,7 +161,7 @@ void CRoulette::OnClientReset(int ClientId)
 {
 	if(m_State == RStates::IDLE)
 	{
-		ClearClientBet(ClientId);
+		ClearClientBet(ClientId, true);
 		return;
 	}
 
@@ -260,8 +270,15 @@ int CRoulette::CalculateEndingField(int SpinDuration, float SlowDownFactor) cons
 	}
 }
 
-void CRoulette::ClearClientBet(int ClientId)
+void CRoulette::ClearClientBet(int ClientId, bool Refund)
 {
+	if(Refund && m_aClients[ClientId].m_Active)
+	{
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(pPlayer && pPlayer->Acc()->m_LoggedIn)
+			pPlayer->GiveMoney(m_aClients[ClientId].m_BetAmount, false, true);
+	}
+
 	m_TotalWager -= m_aClients[ClientId].m_BetAmount;
 	if(m_TotalWager < 0)
 		m_TotalWager = 0;
@@ -286,7 +303,7 @@ void CRoulette::EvaluateBet(int ClientId, bool Quiet)
 	const int WinningField = m_EndingField;
 	const int Color = m_aFields[WinningField].m_Color;
 	const int Number = m_aFields[WinningField].m_Number;
-	const int Amount = m_aClients[ClientId].m_BetAmount;
+	const int64_t Amount = m_aClients[ClientId].m_BetAmount;
 
 	float PayoutMultiplier = 0;
 	if(str_comp(m_aClients[ClientId].m_aBetOption, "Black") == 0 && Color == COLOR_BLACK)
@@ -310,9 +327,7 @@ void CRoulette::EvaluateBet(int ClientId, bool Quiet)
 	if(pPlayer && pPlayer->Acc()->m_LoggedIn)
 	{
 		if(PayoutMultiplier > 0)
-			pPlayer->GiveMoney((Amount * PayoutMultiplier) - Amount, false);
-		else
-			pPlayer->TakeMoney(Amount);
+			pPlayer->GiveMoney((int64_t)(Amount * PayoutMultiplier), false);
 	}
 
 	ClearClientBet(ClientId);
@@ -334,6 +349,9 @@ void CRoulette::Reset()
 {
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("roulette", "Reset");
+
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		ClearClientBet(ClientId, true);
 
 	Server()->SnapFreeId(GetId());
 	GameWorld()->RemoveEntity(this);
@@ -398,7 +416,7 @@ void CRoulette::SendBroadcast(int ClientId)
 
 	if(pPlayer->Acc()->m_LoggedIn)
 	{
-		str_format(aBuf, sizeof(aBuf), "%ld%s", pPlayer->Acc()->m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "%" PRId64 "%s", pPlayer->Acc()->m_Money, g_Config.m_SvCurrencyName);
 		Messages.push_back(aBuf);
 
 		if(m_State == RStates::IDLE)
@@ -406,7 +424,7 @@ void CRoulette::SendBroadcast(int ClientId)
 			if(pPlayer->m_BetAmount <= 0)
 				str_copy(aBuf, "Wager: Nothing");
 			else
-				str_format(aBuf, sizeof(aBuf), "Wager: %d", pPlayer->m_BetAmount);
+				str_format(aBuf, sizeof(aBuf), "Wager: %" PRId64, pPlayer->m_BetAmount);
 			Messages.push_back(aBuf);
 		}
 	}
@@ -421,7 +439,7 @@ void CRoulette::SendBroadcast(int ClientId)
 
 		str_format(aBuf, sizeof(aBuf), "\nPlayers: %d", m_Betters);
 		Messages.push_back(aBuf);
-		str_format(aBuf, sizeof(aBuf), "Total Bets: %d\n", m_TotalWager);
+		str_format(aBuf, sizeof(aBuf), "Total Bets: %" PRId64 "\n", m_TotalWager);
 		Messages.push_back(aBuf);
 		if(m_StartDelay > 0)
 		{

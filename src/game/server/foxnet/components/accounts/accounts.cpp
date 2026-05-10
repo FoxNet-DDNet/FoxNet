@@ -24,6 +24,7 @@
 #include <game/server/player.h>
 
 #include <cstdint>
+#include <cinttypes>
 #include <ctime>
 #include <functional>
 #include <memory>
@@ -717,13 +718,13 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 			GameServer()->SendChatTarget(ClientId, aBuf);
 		}
 		GameServer()->SendChatTarget(ClientId, "├──────      Sᴛᴀᴛs");
-		str_format(aBuf, sizeof(aBuf), "│ Level %ld", Data.m_Level);
+        str_format(aBuf, sizeof(aBuf), "│ Level %" PRId64, Data.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ %ld%s", Data.m_Money, g_Config.m_SvCurrencyName);
+		str_format(aBuf, sizeof(aBuf), "│ %" PRId64 "%s", Data.m_Money, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %s Playtime", FormatPlaytime(Data.m_Playtime));
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "│ %ld Deaths", Data.m_Deaths);
+      str_format(aBuf, sizeof(aBuf), "│ %" PRId64 " Deaths", Data.m_Deaths);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 	};

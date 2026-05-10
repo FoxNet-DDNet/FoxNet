@@ -1,6 +1,7 @@
 #ifndef GAME_SERVER_FOXNET_COMPONENTS_SCRIPTING_IMPL_H
 #define GAME_SERVER_FOXNET_COMPONENTS_SCRIPTING_IMPL_H
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <variant>
@@ -20,7 +21,7 @@ private:
 	void AddFunctionInternal(const char *pName, const std::function<T(Args...)> &Function);
 
 public:
-	using Any = std::variant<std::nullptr_t, std::string, bool, int, float, long>;
+	using Any = std::variant<std::nullptr_t, std::string, bool, int, float, int64_t>;
 
 	static const char *Implementation();
 

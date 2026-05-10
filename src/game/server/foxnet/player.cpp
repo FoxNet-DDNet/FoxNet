@@ -32,8 +32,10 @@
 #include <game/teamscore.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <random>
 #include <string>
 #include <vector>
@@ -199,7 +201,7 @@ void CPlayer::FoxNetReset()
 		GameServer()->m_AccountManager.ForceLogin(GetCid(), Acc()->m_aUsername, true, true);
 }
 
-void CPlayer::GivePlaytime(long Amount)
+void CPlayer::GivePlaytime(int64_t Amount)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
@@ -208,19 +210,19 @@ void CPlayer::GivePlaytime(long Amount)
 	if(Acc()->m_Playtime % 60 == 0)
 	{
 		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "+%d%s for reaching %ld Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
+		str_format(aBuf, sizeof(aBuf), "+%d%s for reaching %" PRId64 " Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 		GiveMoney(g_Config.m_SvPlaytimeMoney, false);
 	}
 }
 
-void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
+void CPlayer::GiveXP(int64_t Amount, const char *pMessage, bool Multiplier)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
 
 	if(Multiplier)
-		Amount = (long)(Amount * StatMultiplier());
+		Amount = (int64_t)(Amount * StatMultiplier());
 
 	Acc()->m_XP += Amount;
 
@@ -228,7 +230,7 @@ void CPlayer::GiveXP(long Amount, const char *pMessage, bool Multiplier)
 
 	if(pMessage[0])
 	{
-		str_format(aBuf, sizeof(aBuf), "+%ld XP %s", Amount, pMessage);
+		str_format(aBuf, sizeof(aBuf), "+%" PRId64 " XP %s", Amount, pMessage);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 	}
 
@@ -315,7 +317,7 @@ bool CPlayer::CheckLevelUp(bool Silent)
 				str_format(aMoneyCmdName, sizeof(aMoneyCmdName), "%d%s", MoneyReward, g_Config.m_SvCurrencyName);
 				str_append(aCmdName, aMoneyCmdName, sizeof(aCmdName));
 
-				str_format(aSubject, sizeof(aSubject), "Level %ld Reward!", Acc()->m_Level);
+				str_format(aSubject, sizeof(aSubject), "Level %" PRId64 " Reward!", Acc()->m_Level);
 				str_format(aMessage, sizeof(aMessage), "You have been given %d random Item%s and some Money!", Reward.m_ItemCount, Reward.m_ItemCount > 1 ? "s" : "");
 				GameServer()->m_AccountManager.NewMail(m_ClientId, aSubject, aMessage, aCmdName, aCmd);
 			}
@@ -347,14 +349,14 @@ bool CPlayer::CheckLevelUp(bool Silent)
 
 	if(LeveledUp && !Silent)
 	{
-		str_format(aBuf, sizeof(aBuf), "You are now level %ld!", Acc()->m_Level);
+		str_format(aBuf, sizeof(aBuf), "You are now level %" PRId64 "!", Acc()->m_Level);
 		GameServer()->SendChatTarget(m_ClientId, aBuf);
 
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 		{
 			if(GameServer()->m_apPlayers[ClientId] && ClientId != m_ClientId)
 			{
-				str_format(aBuf, sizeof(aBuf), "'%s' leveled up to level %ld!", Server()->ClientName(m_ClientId), Acc()->m_Level);
+				str_format(aBuf, sizeof(aBuf), "'%s' leveled up to level %" PRId64 "!", Server()->ClientName(m_ClientId), Acc()->m_Level);
 				GameServer()->SendChatTarget(ClientId, aBuf);
 			}
 		}
@@ -368,33 +370,40 @@ bool CPlayer::CheckLevelUp(bool Silent)
 	return LeveledUp;
 }
 
-void CPlayer::GiveMoney(long Amount, bool Multiplier, bool Silent)
+void CPlayer::GiveMoney(int64_t Amount, bool Multiplier, bool Silent)
 {
 	if(!Acc()->m_LoggedIn)
 		return;
 
 	if(Multiplier)
-		Amount = (long)(Amount * StatMultiplier());
+		Amount = (int64_t)(Amount * StatMultiplier());
 
-	Acc()->m_Money += Amount;
+	const int64_t OldMoney = Acc()->m_Money;
+	int64_t NewMoney = OldMoney;
+	if(Amount >= 0)
+		NewMoney = minimum<int64_t>(std::numeric_limits<int64_t>::max() - OldMoney, Amount) + OldMoney;
+	else
+		NewMoney = maximum<int64_t>(0, OldMoney + Amount);
 
-	const char PlusMinus = Amount >= 0 ? '+' : '-';
+	Acc()->m_Money = NewMoney;
+	const int64_t AppliedAmount = NewMoney - OldMoney;
+
+	const char PlusMinus = AppliedAmount >= 0 ? '+' : '-';
 
 	CCharacter *pChr = GetCharacter();
-	if(pChr && !Silent)
+	if(pChr && !Silent && AppliedAmount != 0)
 	{
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
-		str_format(aText, sizeof(aText), "%c%ld", PlusMinus, std::abs(Amount));
+		str_format(aText, sizeof(aText), "%c%" PRId64, PlusMinus, AppliedAmount >= 0 ? AppliedAmount : -AppliedAmount);
 		new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER); // NOLINT(clang-analyzer-unix.Malloc)
-		if(Amount >= 0)
-			pChr->SetEmote(Amount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
+		pChr->SetEmote(AppliedAmount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 }
 
-void CPlayer::PayMoney(CPlayer *pReceiver, long Amount)
+void CPlayer::PayMoney(CPlayer *pReceiver, int64_t Amount)
 {
 	if(!Acc()->m_LoggedIn || !pReceiver || !pReceiver->Acc()->m_LoggedIn)
 		return;
@@ -421,14 +430,14 @@ void CPlayer::PayMoney(CPlayer *pReceiver, long Amount)
 	TakeMoney(Amount, false);
 	pReceiver->GiveMoney(Amount, false, false);
 
-	str_format(aBuf, sizeof(aBuf), "You paid %s %ld%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "You paid %s %" PRId64 "%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
 	GameServer()->SendChatTarget(m_ClientId, aBuf);
-	str_format(aBuf, sizeof(aBuf), "You received %ld%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
+	str_format(aBuf, sizeof(aBuf), "You received %" PRId64 "%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
 	GameServer()->SendChatTarget(pReceiver->GetCid(), aBuf);
 	m_LastTransaction = Server()->Tick();
 }
 
-long CPlayer::GetDiscountedPrice(long Price)
+int64_t CPlayer::GetDiscountedPrice(int64_t Price)
 {
 	float Discount = 0.0f;
 
@@ -437,7 +446,7 @@ long CPlayer::GetDiscountedPrice(long Price)
 	if(OwnsItem(EItemId::MVP))
 		Discount = 0.25f;
 
-	return (long)(Price * (1.0f - Discount));
+	return (int64_t)(Price * (1.0f - Discount));
 }
 
 bool CPlayer::CanUseMoney()

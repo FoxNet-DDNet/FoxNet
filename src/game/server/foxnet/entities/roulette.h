@@ -67,7 +67,7 @@ class CRoulette : public CEntity
 	int m_StartDelay = 0;
 
 	int m_Betters = 0;
-	int m_TotalWager = 0;
+	int64_t m_TotalWager = 0;
 
 	SClients m_aClients[MAX_CLIENTS];
 	const SFields m_aFields[MAX_FIELDS] = {
@@ -84,7 +84,7 @@ class CRoulette : public CEntity
 
 	void SetState(RStates State);
 	int CalculateEndingField(int SpinDuration, float SlowDownFactor) const;
-	void ClearClientBet(int ClientId);
+	void ClearClientBet(int ClientId, bool Refund = false);
 
 	int GetField(float Rotation) const;
 	int GetField() const;
@@ -101,7 +101,7 @@ public:
 
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
 
-	bool AddClient(int ClientId, int BetAmount, const char *pBetOption);
+	bool AddClient(int ClientId, int64_t BetAmount, const char *pBetOption);
 
 	void OnClientReset(int ClientId);
 

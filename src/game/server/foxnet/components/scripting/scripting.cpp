@@ -185,6 +185,7 @@ public:
 	{
 		return EscapeMessage(Str.c_str());
 	}
+
 	static CScriptingCtx::Any ToLower(const std::string &Str)
 	{
 		if(Str.empty())

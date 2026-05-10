@@ -26,17 +26,17 @@ struct CAccResult : ISqlResult
 	char m_LastPlayerName[MAX_NAME_LENGTH] = "";
 	char m_CurrentIP[46] = "";
 	char m_LastIP[46] = "";
-	long m_RegisterDate = 0;
+	int64_t m_RegisterDate = 0;
 	int m_LoggedIn = 0;
-	long m_LastLogin = 0;
+	int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;
-	long m_Playtime = 0;
-	long m_Deaths = 0;
-	long m_Kills = 0;
-	long m_Level = 0;
-	long m_XP = 0;
-	long m_Money = 0;
+	int64_t m_Playtime = 0;
+	int64_t m_Deaths = 0;
+	int64_t m_Kills = 0;
+	int64_t m_Level = 0;
+	int64_t m_XP = 0;
+	int64_t m_Money = 0;
 	bool m_Disabled = false;
 	CInventory m_Inventory;
 	CMailBox m_MailBox;
@@ -60,7 +60,7 @@ struct CAccRegisterRequest : ISqlData
 		ISqlData(std::move(pRes)) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PasswordHash[ACC_MAX_PASSW_LENGTH] = "";
-	long m_RegisterDate = 0;
+	int64_t m_RegisterDate = 0;
 };
 struct CAccLoginRequest : ISqlData
 {
@@ -94,7 +94,7 @@ struct CAccUpdLoginState : ISqlData
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
 	char m_CurrentIP[46] = "";
-	long m_LastLogin = 0;
+	int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;
 };
@@ -103,12 +103,12 @@ struct CAccSaveInfo : ISqlData
 	CAccSaveInfo() :
 		ISqlData(nullptr) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
-	long m_Playtime = 0;
-	long m_Deaths = 0;
-	long m_Kills = 0;
-	long m_Level = 0;
-	long m_XP = 0;
-	long m_Money = 0;
+	int64_t m_Playtime = 0;
+	int64_t m_Deaths = 0;
+	int64_t m_Kills = 0;
+	int64_t m_Level = 0;
+	int64_t m_XP = 0;
+	int64_t m_Money = 0;
 	CInventory m_Inventory;
 	CAccConfigs m_Configs;
 };

@@ -259,7 +259,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			return true;
 		}
 
-
 		if(IsOption(pVote, SETTINGS_HIDE_WEAPON_DROPS))
 		{
 			Acc.m_Configs.m_ShowWeaponDrops = !Acc.m_Configs.m_ShowWeaponDrops;
@@ -990,17 +989,17 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 				AddVoteText("│ Register Date: n/a");
 			}
 			AddVoteText(ConvertToSmallCaps("├─────────   Stats"));
-			str_format(aBuf, sizeof(aBuf), "│ Level [%ld]", pAcc->m_Level);
+			str_format(aBuf, sizeof(aBuf), "│ Level [%" PRId64 "]", pAcc->m_Level);
 			AddVoteText(aBuf);
-			int CurXp = pAcc->m_XP;
-			int NeededXp = GameServer()->m_AccountManager.NeededXP(pAcc->m_Level);
-			str_format(aBuf, sizeof(aBuf), "│ XP [%d/%d]", CurXp, NeededXp);
+			int64_t CurXp = pAcc->m_XP;
+			int NeededXp = GameServer()->m_AccountManager.NeededXP((int)pAcc->m_Level);
+			str_format(aBuf, sizeof(aBuf), "│ XP [%" PRId64 "/%d]", CurXp, NeededXp);
 			AddVoteText(aBuf);
 			str_format(aBuf, sizeof(aBuf), "│ Playtime: %s", FormatPlaytime(pAcc->m_Playtime));
 			AddVoteText(aBuf);
-			str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
+			str_format(aBuf, sizeof(aBuf), "│ Money: %" PRId64 "%s", pAcc->m_Money, g_Config.m_SvCurrencyName);
 			AddVoteText(aBuf);
-			str_format(aBuf, sizeof(aBuf), "│ Deaths: %ld", pAcc->m_Deaths);
+			str_format(aBuf, sizeof(aBuf), "│ Deaths: %" PRId64, pAcc->m_Deaths);
 			AddVoteText(aBuf);
 			AddVoteText(ConvertToSmallCaps("├─────────   Boosters"));
 			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPlayer->StatMultiplier());
@@ -1246,7 +1245,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 	char aBuf[VOTE_DESC_LENGTH];
 	AddVoteText(ConvertToSmallCaps("╭─────── Account Info"));
-	str_format(aBuf, sizeof(aBuf), "│ Money: %ld%s | Level %ld", pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
+	str_format(aBuf, sizeof(aBuf), "│ Money: %" PRId64 "%s | Level %" PRId64, pAcc->m_Money, g_Config.m_SvCurrencyName, pAcc->m_Level);
 	AddVoteText(aBuf);
 	AddVoteText("╰────────────");
 	AddVoteSeparator();
@@ -1341,7 +1340,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 				continue;
 			AmountShown++;
 			char aName[VOTE_DESC_LENGTH];
-			str_format(aName, sizeof(aName), "%s (%ld%s) [lvl %d]", Item.m_pName, pPlayer->GetDiscountedPrice(Item.m_Price), g_Config.m_SvCurrencyName, Item.m_MinLevel);
+			str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", Item.m_pName, pPlayer->GetDiscountedPrice(Item.m_Price), g_Config.m_SvCurrencyName, Item.m_MinLevel);
 
 			AddVoteText(aName, EPrefix::ARROWHEAD);
 		}
@@ -1376,7 +1375,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
-		long Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
+		int64_t Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
 
 		str_copy(aBuf, FormatItemVote(Price));
 		AddVoteText(aBuf);
@@ -1757,10 +1756,10 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(long Price)
+const char *CVoteMenu::FormatItemVote(int64_t Price)
 {
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%ld%s]", Price, g_Config.m_SvCurrencyName);
+	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%" PRId64 "%s]", Price, g_Config.m_SvCurrencyName);
 	return aBuf;
 }
 

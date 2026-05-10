@@ -13,6 +13,7 @@
 #include <game/server/player.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <vector>
 
 void CShop::ConListItems(IConsole::IResult *pResult, void *pUserData)
@@ -225,7 +226,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	{
 		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_pName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "You are currently Level %ld", Acc.m_Level);
+		str_format(aBuf, sizeof(aBuf), "You are currently Level %" PRId64, Acc.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		return false;
 	}

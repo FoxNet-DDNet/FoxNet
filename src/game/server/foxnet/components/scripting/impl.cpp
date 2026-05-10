@@ -139,8 +139,8 @@ static chaiscript::Boxed_Value Any2Boxed(const CScriptingCtx::Any &Any)
 		return chaiscript::const_var(std::get<int>(Any));
 	if(std::holds_alternative<float>(Any))
 		return chaiscript::const_var(std::get<float>(Any));
-	if(std::holds_alternative<long>(Any))
-		return chaiscript::const_var(std::get<long>(Any));
+	if(std::holds_alternative<int64_t>(Any))
+		return chaiscript::const_var(std::get<int64_t>(Any));
 	throw "Cannot convert Any to Boxed_Value";
 }
 

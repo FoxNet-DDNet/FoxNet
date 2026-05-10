@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -140,21 +141,21 @@ class CAccountSession
 {
 public:
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
-	long m_RegisterDate = 0;
+    int64_t m_RegisterDate = 0;
 	char m_aName[MAX_NAME_LENGTH] = "";
 	char m_aLastName[MAX_NAME_LENGTH] = "";
 	char m_aCurrentIp[NETADDR_MAXSTRSIZE] = "";
 	char m_aLastIp[NETADDR_MAXSTRSIZE] = "";
 	bool m_LoggedIn = false;
-	long m_LastLogin = 0;
+   int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;
-	long m_Playtime = 0; // Minutes
-	long m_Deaths = 0;
-	long m_Kills = 0;
-	long m_Level = 0;
-	long m_XP = 0;
-	long m_Money = 0;
+ int64_t m_Playtime = 0; // Minutes
+	int64_t m_Deaths = 0;
+	int64_t m_Kills = 0;
+	int64_t m_Level = 0;
+	int64_t m_XP = 0;
+	int64_t m_Money = 0;
 
 	CInventory m_Inventory;
 
@@ -162,7 +163,7 @@ public:
 	bool m_Disabled = false;
 
 	CMailBox m_MailBox;
-	long m_LastMailboxFetch = 0; // unix seconds of last successful fetch
+   int64_t m_LastMailboxFetch = 0; // unix seconds of last successful fetch
 	bool m_MailboxFetchPending = false;
 
 	CAccConfigs m_Configs;

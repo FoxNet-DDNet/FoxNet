@@ -159,7 +159,7 @@ class CVoteMenu : public CServerComponent
 	void SendVotes(int ClientId, const std::vector<std::string> &vDescriptions);
 
 	void ExecMailCmd(int ClientId, CMailBox::CMail &Mail);
-	const char *FormatItemVote(long Price);
+	const char *FormatItemVote(int64_t Price);
 
 	void AddVoteImpl(const char *pDesc);
 	void AddVoteText(const char *pDesc, EPrefix Prefix = EPrefix::NONE);
