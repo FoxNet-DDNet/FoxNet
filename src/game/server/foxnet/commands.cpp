@@ -1997,7 +1997,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
 
-	Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
+	// Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
 
 	// Casino/Map related
