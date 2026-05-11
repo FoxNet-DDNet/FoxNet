@@ -264,7 +264,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			Acc.m_Configs.m_ShowWeaponDrops = !Acc.m_Configs.m_ShowWeaponDrops;
 			return true;
 		}
-		if(IsOption(pVote, SETTINGS_ALLOW_DROPPING_WEAPONS))
+		if(Acc.m_LoggedIn && IsOption(pVote, SETTINGS_ALLOW_DROPPING_WEAPONS))
 		{
 			Acc.m_Configs.m_WeaponDropsUsingVoteNo = !Acc.m_Configs.m_WeaponDropsUsingVoteNo;
 			return true;
@@ -1077,7 +1077,8 @@ void CVoteMenu::PrepareSettings(int ClientId)
 	AddVoteSeparator();
 
 	AddVoteCheckBox(SETTINGS_HIDE_WEAPON_DROPS, !pAcc->m_Configs.m_ShowWeaponDrops);
-	AddVoteCheckBox(SETTINGS_ALLOW_DROPPING_WEAPONS, pAcc->m_Configs.m_WeaponDropsUsingVoteNo);
+	if(pAcc->m_LoggedIn)
+		AddVoteCheckBox(SETTINGS_ALLOW_DROPPING_WEAPONS, pAcc->m_Configs.m_WeaponDropsUsingVoteNo);
 
 	AddVoteSeparator();
 

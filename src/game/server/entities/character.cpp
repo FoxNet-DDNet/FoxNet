@@ -3573,6 +3573,12 @@ bool CCharacter::CanDropWeapon(int Type)
 	if(Type < 0 || Type >= NUM_EXTRA_WEAPONS)
 		return false;
 
+	if(!Acc()->m_LoggedIn)
+	{
+		GetPlayer()->SendChat("You need to be logged in to drop weapons.");
+		return false;
+	}
+
 	if(!m_Core.m_aWeapons[Type].m_Got)
 		return false;
 
