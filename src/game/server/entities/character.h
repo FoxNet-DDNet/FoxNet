@@ -119,9 +119,9 @@ public:
 	bool IsPaused() const { return m_Paused; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
-	CClientMask m_TeamMaskCached;
-	int64_t m_TeamMaskCachedTick;
 	CClientMask TeamMask();
+	CClientMask TeamMaskExceptSelfAndSixup();
+	CClientMask TeamMaskExceptSixup();
 
 	void SetPosition(const vec2 &Position);
 	void Move(vec2 RelPos);
@@ -139,6 +139,20 @@ public:
 	void ApplyMoveRestrictions();
 
 private:
+	class CMaskCache
+	{
+	public:
+		CClientMask m_Mask;
+		int64_t m_Tick = -1;
+
+		void GetMask(int ExceptId, int VersionFlags);
+	};
+
+	CClientMask GetCachedTeamMask(CMaskCache &Cache, int ExceptId, int VersionFlags);
+	CMaskCache m_TeamMaskCache;
+	CMaskCache m_TeamMaskExceptSelfAndSixupCache;
+	CMaskCache m_TeamMaskExceptSixupCache;
+
 	// player controlling this character
 	class CPlayer *m_pPlayer;
 
@@ -388,7 +402,6 @@ public:
 	float GetFireDelay(int Weapon);
 
 private:
-
 	void RouletteTileHandle();
 
 	bool CanDropWeapon(int Type);

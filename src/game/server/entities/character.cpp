@@ -1096,30 +1096,23 @@ void CCharacter::TickDeferred()
 
 	{
 		int Events = m_Core.m_TriggeredEvents;
-		int CID = m_pPlayer->GetCid();
-
-		// Some sounds are triggered client-side for the acting player (or for all players on Sixup)
-		// so we need to avoid duplicating them
-		CClientMask TeamMaskExceptSelfAndSixup = Teams()->TeamMask(Team(), MultiMapIdx(), CID, CID, CGameContext::FLAG_SIX);
-		// Some are triggered client-side but only on Sixup
-		CClientMask TeamMaskExceptSixup = Teams()->TeamMask(Team(), MultiMapIdx(), -1, CID, CGameContext::FLAG_SIX);
 
 		if(Events & COREEVENT_GROUND_JUMP)
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, TeamMaskExceptSelfAndSixup);
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, TeamMaskExceptSelfAndSixup());
 
 		if(Events & COREEVENT_HOOK_ATTACH_PLAYER)
 		{
 			// <FoxNet
 			OnPlayerHook();
 			// FoxNet>
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, TeamMaskExceptSixup);
+			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, TeamMaskExceptSixup());
 		}
 
 		if(Events & COREEVENT_HOOK_ATTACH_GROUND)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMaskExceptSelfAndSixup);
+			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, TeamMaskExceptSelfAndSixup());
 
 		if(Events & COREEVENT_HOOK_HIT_NOHOOK)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, TeamMaskExceptSelfAndSixup);
+			GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, TeamMaskExceptSelfAndSixup());
 
 		if(Events & COREEVENT_GROUND_JUMP)
 			m_TriggeredEvents7 |= protocol7::COREEVENTFLAG_GROUND_JUMP;
@@ -3019,17 +3012,29 @@ void CCharacter::Rescue()
 
 CClientMask CCharacter::TeamMask()
 {
-	int CurrentTick = Server()->Tick();
+	return GetCachedTeamMask(m_TeamMaskCache, -1, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP);
+}
 
-	if(m_TeamMaskCachedTick == CurrentTick)
-	{
-		return m_TeamMaskCached;
-	}
+CClientMask CCharacter::TeamMaskExceptSelfAndSixup()
+{
+	return GetCachedTeamMask(m_TeamMaskExceptSelfAndSixupCache, GetPlayer()->GetCid(), CGameContext::FLAG_SIX);
+}
 
-	m_TeamMaskCached = Teams()->TeamMask(Team(), MultiMapIdx(), -1, GetPlayer()->GetCid());
-	m_TeamMaskCachedTick = CurrentTick;
+CClientMask CCharacter::TeamMaskExceptSixup()
+{
+	return GetCachedTeamMask(m_TeamMaskExceptSixupCache, -1, CGameContext::FLAG_SIX);
+}
 
-	return m_TeamMaskCached;
+CClientMask CCharacter::GetCachedTeamMask(CMaskCache &Cache, int ExceptId, int VersionFlags)
+{
+	const int64_t CurrentTick = Server()->Tick();
+
+	if(Cache.m_Tick == CurrentTick)
+		return Cache.m_Mask;
+
+	Cache.m_Mask = Teams()->TeamMask(Team(), MultiMapIdx(), ExceptId, GetPlayer()->GetCid(), VersionFlags);
+	Cache.m_Tick = CurrentTick;
+	return Cache.m_Mask;
 }
 
 void CCharacter::SetPosition(const vec2 &Position)
@@ -3476,7 +3481,7 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 
 	if(GetPlayer()->IsPaused())
 		return;
-	
+
 	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
 	{
 		vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
@@ -3598,7 +3603,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 	if(Type <= WEAPON_GUN)
 		Lifetime = 120;
 
-    CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
+	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
 
 	if(!Death)
