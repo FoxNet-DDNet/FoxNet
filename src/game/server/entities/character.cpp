@@ -3461,6 +3461,9 @@ void CCharacter::SetCollidable(bool Active)
 
 void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 {
+	if(GameServer()->m_VoteCloseTime && (GetPlayer()->m_Vote == 0 || (GetPlayer()->m_Vote != 0 && (GetPlayer()->m_PlayerFlags & PLAYERFLAG_SCOREBOARD))))
+		return;
+
 	int Ability = GetPlayer()->Cosmetics()->m_Ability;
 
 	bool NoCooldown = !Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
@@ -3482,7 +3485,7 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	if(GetPlayer()->IsPaused())
 		return;
 
-	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
+	if(Acc()->m_LoggedIn && F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
 	{
 		vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
 		int Type = Core()->m_ActiveWeapon;
