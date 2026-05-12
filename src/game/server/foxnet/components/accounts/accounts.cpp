@@ -23,8 +23,8 @@
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
-#include <cstdint>
 #include <cinttypes>
+#include <cstdint>
 #include <ctime>
 #include <functional>
 #include <memory>
@@ -265,6 +265,11 @@ void CAccounts::AddPending(const std::shared_ptr<CAccResult> &pRes, std::functio
 	m_vPending.push_back({pRes, std::move(Cb)});
 }
 
+static bool IsExpectedPlayerStillInSlot(CGameContext *pGameServer, int ClientId, const CPlayer *pExpectedPlayer)
+{
+	return ClientId >= 0 && ClientId < MAX_CLIENTS && !pGameServer->Server()->ClientSlotEmpty(ClientId) && pGameServer->m_apPlayers[ClientId] == pExpectedPlayer;
+}
+
 SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
 {
 	SHA256_CTX Sha256Ctx;
@@ -315,14 +320,17 @@ void CAccounts::AutoLogin(int ClientId)
 		return;
 	if(!g_Config.m_SvAccounts)
 		return;
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return;
 	const char *pName = Server()->ClientName(ClientId);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByLastName>(pRes);
 	str_copy(pReq->m_LastPlayerName, pName, sizeof(pReq->m_LastPlayerName));
-	AddPending(pRes, [this, ClientId, Name = std::string(pName)](CAccResult &Res) {
+	AddPending(pRes, [this, ClientId, pExpectedPlayer, Name = std::string(pName)](CAccResult &Res) {
 		if(!Res.m_Success || !Res.m_Found || Res.m_LastLogin == 0)
 			return;
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
@@ -340,13 +348,16 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 {
 	if(!DbPool() || !pUsername[0])
 		return false;
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return false;
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByUser>(pRes);
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	AddPending(pRes, [this, ClientId, Silent, Auto](CAccResult &Res) {
+	AddPending(pRes, [this, ClientId, pExpectedPlayer, Silent, Auto](CAccResult &Res) {
 		if(!Res.m_Success || !Res.m_Found)
 			return;
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		if(Res.m_LoggedIn)
 		{
@@ -379,14 +390,17 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 		return;
 	if(!pUsername[0] || !pPassword[0])
 		return;
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return;
 	char HashedPassword[ACC_MAX_PASSW_LENGTH];
 	sha256_str(HashPassword(pPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccLoginRequest>(pRes);
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
-	AddPending(pRes, [this, ClientId](CAccResult &Res) {
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		if(!Res.m_Success || !Res.m_Found)
 		{
@@ -430,6 +444,9 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 {
 	if(!DbPool())
 		return false;
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return false;
 	if(!pUsername[0] || !pPassword[0])
 	{
 		GameServer()->SendChatTarget(ClientId, "[Err] Username or password is empty");
@@ -470,8 +487,8 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
 	time_t Now = time(0);
 	pReq->m_RegisterDate = Now;
-	AddPending(pRes, [this, ClientId](CAccResult &Res) {
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		if(!Res.m_Success)
 			GameServer()->SendChatTarget(ClientId, "[Err] Username is already taken");
@@ -651,8 +668,12 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 	str_copy(pReq->m_OldHash, HashedOld, sizeof(pReq->m_OldHash));
 	str_copy(pReq->m_NewHash, HashedNew, sizeof(pReq->m_NewHash));
 
-	AddPending(pRes, [this, ClientId](CAccResult &Res) {
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return false;
+
+	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		if(Res.m_NumMessages == 0)
 		{
@@ -718,13 +739,13 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 			GameServer()->SendChatTarget(ClientId, aBuf);
 		}
 		GameServer()->SendChatTarget(ClientId, "├──────      Sᴛᴀᴛs");
-        str_format(aBuf, sizeof(aBuf), "│ Level %" PRId64, Data.m_Level);
+		str_format(aBuf, sizeof(aBuf), "│ Level %" PRId64, Data.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %" PRId64 "%s", Data.m_Money, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %s Playtime", FormatPlaytime(Data.m_Playtime));
 		GameServer()->SendChatTarget(ClientId, aBuf);
-      str_format(aBuf, sizeof(aBuf), "│ %" PRId64 " Deaths", Data.m_Deaths);
+		str_format(aBuf, sizeof(aBuf), "│ %" PRId64 " Deaths", Data.m_Deaths);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 	};
@@ -796,8 +817,12 @@ void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 	str_copy(pReq->m_Type, pType, sizeof(pReq->m_Type));
 	pReq->m_Offset = Offset;
 
-	AddPending(pRes, [this, ClientId](CAccResult &Res) {
-		if(GameServer()->Server()->ClientSlotEmpty(ClientId))
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer)
+		return;
+
+	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
+		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
 		if(Res.m_NumMessages == 0)
 		{
