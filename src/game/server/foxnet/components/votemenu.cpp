@@ -1471,7 +1471,9 @@ void CVoteMenu::PrepareInventory(int ClientId)
 				FormatItemTime(Remaining, TimeBuf, sizeof(TimeBuf));
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
 			}
-
+			else
+				str_format(aVoteName, sizeof(aVoteName), "%s [→ ∞]", pItemName);
+			
 			if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
 			{
 				int OwnsAmount = InvEntry.m_Quantity;
