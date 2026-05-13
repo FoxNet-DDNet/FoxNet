@@ -105,7 +105,7 @@ public:
 
 	void OnClientReset(int ClientId);
 
-	void EvaluateBet(int ClientId, bool Quiet = false);
+	void EvaluateBet(int ClientId, bool Silent = false);
 	RStates State() const { return m_State; }
 
 	void Reset() override;

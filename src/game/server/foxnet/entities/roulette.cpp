@@ -244,10 +244,11 @@ int CRoulette::CalculateEndingField(int SpinDuration, float SlowDownFactor) cons
 	float Rotation = m_Rotation;
 	float RotationSpeed = m_RotationSpeed;
 	RStates State = RStates::SPINNING;
+	bool FirstSpinTick = true;
 
 	while(true)
 	{
-		if(State == RStates::SPINNING || State == RStates::STOPPING)
+		if((State == RStates::SPINNING || State == RStates::STOPPING) && !FirstSpinTick)
 			SpinDuration--;
 
 		if(State == RStates::SPINNING)
@@ -267,6 +268,8 @@ int CRoulette::CalculateEndingField(int SpinDuration, float SlowDownFactor) cons
 
 		if(SpinDuration <= 0 && State == RStates::SPINNING)
 			State = RStates::STOPPING;
+
+		FirstSpinTick = false;
 	}
 }
 
@@ -291,7 +294,7 @@ void CRoulette::ClearClientBet(int ClientId, bool Refund)
 	m_aClients[ClientId].m_Active = false;
 }
 
-void CRoulette::EvaluateBet(int ClientId, bool Quiet)
+void CRoulette::EvaluateBet(int ClientId, bool Silent)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return;
@@ -327,7 +330,7 @@ void CRoulette::EvaluateBet(int ClientId, bool Quiet)
 	if(pPlayer && pPlayer->Acc()->m_LoggedIn)
 	{
 		if(PayoutMultiplier > 0)
-			pPlayer->GiveMoney((int64_t)(Amount * PayoutMultiplier), false);
+			pPlayer->GiveMoney((int64_t)(Amount * PayoutMultiplier), false, Silent);
 	}
 
 	ClearClientBet(ClientId);
