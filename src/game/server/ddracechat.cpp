@@ -1100,7 +1100,7 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 	int TeamMultiMapIdx = m_pController->Teams().MultiMapIndex(Team);
 
 	char aError[512];
-	if(pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
+	if(pPlayer->m_LastDDRaceTeamChange != 0 && pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
 	{
 		log_info("chatresp", "You can't change teams that fast!");
 	}
