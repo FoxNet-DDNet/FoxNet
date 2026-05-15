@@ -324,7 +324,11 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 			SetDead(ClientId, false);
 
 		if(!Data.m_Alive)
+		{
+			if(!pChr->Core()->m_Solo)
+				pChr->SetSolo(true);
 			return;
+		}
 
 		if(Data.m_IsSeeker && Server()->Tick() - Data.m_LastMovement > MaxAfkSeconds * Server()->TickSpeed())
 		{
@@ -444,7 +448,9 @@ void CHideAndSeekZone::StartGame()
 	// move players to spawn points
 	for(CCharacter *pChr : m_vCandidates)
 	{
-		int ClientId = pChr->GetPlayer()->GetCid();
+		CPlayer *pPlayer = pChr->GetPlayer();
+
+		int ClientId = pPlayer->GetCid();
 		vec2 SpawnPos = GetRandomSpawnPos();
 		pChr->ForceSetPos(SpawnPos);
 		pChr->SetVelocity(vec2(0, 0));
@@ -454,10 +460,12 @@ void CHideAndSeekZone::StartGame()
 		{
 			pChr->FreezeForce(g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed());
 			pChr->SetTuneOverride(m_SeekerTuneZone);
+			pPlayer->SendChat("You are a Seeker");
 		}
 		else
 		{
 			pChr->SetTuneOverride(m_HiderTuneZone);
+			pPlayer->SendChat("You are a Hider");
 		}
 	}
 
@@ -662,7 +670,8 @@ bool CHideAndSeekZone::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 
 bool CHideAndSeekZone::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 {
-	if(m_aClientData[pPlayer->GetCid()].m_IsSeeker && !m_aClientData[pTarget->GetCid()].m_IsSeeker)
+	const bool PlayerIsAliveSeeker = m_aClientData[pPlayer->GetCid()].m_IsSeeker && m_aClientData[pPlayer->GetCid()].m_Alive;
+	if(PlayerIsAliveSeeker && !m_aClientData[pTarget->GetCid()].m_IsSeeker)
 	{
 		pPlayer->SendChat("You can't spectate hiders!");
 		return false; // Don't allow spectators to spectate hiders, they might be invisible
@@ -702,10 +711,13 @@ bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 	if(!m_aClientData[ClientId].m_Alive && IsSnapClientCandidate)
 		return false;
 
-	if(m_aClientData[ClientId].m_IsSeeker && IsSnapClientCandidate)
+ const bool ClientIsAliveSeeker = m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive;
+	const bool SnapClientIsAliveSeeker = m_aClientData[SnappingClient].m_IsSeeker && m_aClientData[SnappingClient].m_Alive;
+
+	if(ClientIsAliveSeeker && IsSnapClientCandidate)
 		return true;
 
-	if(m_aClientData[SnappingClient].m_IsSeeker)
+    if(SnapClientIsAliveSeeker)
 	{
 		if(pSnapChr)
 		{
@@ -864,6 +876,8 @@ void CHideAndSeekZone::OnCharacterHammerHit(int ClientId, int Target)
 {
 	if(!IsCandidate(ClientId) || !IsCandidate(Target))
 		return;
+   if(!m_aClientData[ClientId].m_Alive)
+		return;
 	if(m_aClientData[Target].m_Alive)
 	{
 		if(m_aClientData[ClientId].m_IsSeeker && !m_aClientData[Target].m_IsSeeker)
@@ -1007,7 +1021,13 @@ void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
 	m_aClientData[ClientId].m_Alive = false;
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 	if(pChr)
+    {
+		pChr->SetVelocity(vec2(0, 0));
+		pChr->ResetHook();
+		pChr->Unfreeze();
+		pChr->SetTuneOverride(-1);
 		pChr->SetSolo(true);
+ }
 	if(SendKillMsg)
 	{
 		for(CCharacter *pCandChar : m_vCandidates)
