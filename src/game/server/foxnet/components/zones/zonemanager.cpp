@@ -9,25 +9,25 @@
 #include "unfreeze.h"
 #include "zone.h"
 
+#include <base/log.h>
 #include <base/str.h>
 #include <base/system.h>
+#include <base/vmath.h>
 
+#include <engine/console.h>
 #include <engine/map.h>
+#include <engine/shared/config.h>
+
+#include <generated/protocol.h>
 
 #include <game/mapitems.h>
 #include <game/quad_data.h>
+#include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 
 #include <algorithm>
 #include <iterator>
 #include <vector>
-#include <base/log.h>
-#include <game/server/entity.h>
-#include <generated/protocol.h>
-#include <base/vmath.h>
-#include <engine/console.h>
-#include <engine/shared/config.h>
-#include <base/log.h>
 
 IZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
 {
@@ -107,18 +107,20 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			}
 			else if(!str_comp("QStopa", aLayerName))
 			{
-				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, false);
+				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_STOPA);
 				pZone->Init(pTilemap);
 				m_avpZones[(int)EZoneType::StopA].push_back(pZone);
 			}
 			if(!str_comp("QHook", aLayerName))
 			{
-				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_HOOK);
+				pZone->Init(pTilemap);
 				m_avpZones[(int)EZoneType::Hookable].push_back(pZone);
 			}
 			else if(!str_comp("QUnHook", aLayerName))
 			{
-				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, true);
+				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_UNHOOK);
+				pZone->Init(pTilemap);
 				m_avpZones[(int)EZoneType::Unhookable].push_back(pZone);
 			}
 			else if(!str_comp("QCfrm", aLayerName))
@@ -200,7 +202,7 @@ void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDem
 
 				const int &Id = m_vIds[Idx];
 
-				vec2 Pos = Quad.m_Pos[0];
+				vec2 Pos = Quad.m_aPoints[0];
 				if(NetworkClipped(GameServer(), SnappingClient, Pos))
 					continue;
 
@@ -219,7 +221,7 @@ void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDem
 			if(Idx > m_vIds.size() - 1)
 				return;
 			const int &Id = m_vIds[Idx];
-			vec2 Pos = Quad.m_Pos[0];
+			vec2 Pos = Quad.m_aPoints[0];
 			if(NetworkClipped(GameServer(), SnappingClient, Pos))
 				continue;
 			GameServer()->SnapLaserObject(CSnapContext(ClientVersion, Sixup, SnappingClient), Id, Pos, Pos, Server()->Tick(), -1, -1, -1, -1, LASERFLAG_NO_PREDICT);
@@ -236,7 +238,7 @@ void CZoneManager::SnapQuadIds()
 		for(IZone *pZone : vZones)
 		{
 			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
-		{
+			{
 				int Id = Server()->SnapNewId();
 				m_vIds.emplace_back(Id);
 			}
@@ -347,7 +349,6 @@ bool CZoneManager::CanDropWeapon(CCharacter *pChr, int Weapon)
 	}
 	return true;
 }
-
 
 void CZoneManager::OnCharacterSpawn(int ClientId, vec2 Pos)
 {

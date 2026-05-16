@@ -29,9 +29,9 @@ void CRouletteZone::OnTick()
 			{
 				if(!GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIndex()))
 				{
-					log_info("roulette", "Roulette created at %.2f, %.2f on map %" PRIzu, QuadData.m_Pos[4].x, QuadData.m_Pos[4].y, MultiMapIndex());
+					log_info("roulette", "Roulette created at %.2f, %.2f on map %" PRIzu, QuadData.m_aPoints[4].x, QuadData.m_aPoints[4].y, MultiMapIndex());
 
-					new CRoulette(&GameServer()->m_World, MultiMapIndex(), QuadData.m_Pos[4]);
+					new CRoulette(&GameServer()->m_World, MultiMapIndex(), QuadData.m_aPoints[4]);
 					m_CreatedWheel = true;
 				}
 				else
@@ -103,8 +103,7 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-     InitQuadData(QuadData, &pQuads[NumQuads]);
-		QuadData.m_Type = EZoneType::Roulette;
+		QuadData.Init(&pQuads[NumQuads]);
 		QuadData.m_SubType = (uint8_t)SubType;
 		AddQuad(QuadData);
 
@@ -122,7 +121,7 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 					BetQuadData.m_BetOption = (int)Type;
 					BetQuadData.m_MapIndex = MultiMapIndex();
 					for(size_t i = 0; i < std::size(BetQuadData.m_Pos); i++)
-						BetQuadData.m_Pos[i] = QuadData.m_Pos[i];
+						BetQuadData.m_Pos[i] = QuadData.m_aPoints[i];
 
 					m_vBetQuads.push_back(BetQuadData);
 					break;

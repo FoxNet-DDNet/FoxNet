@@ -107,8 +107,6 @@ void CGameContext::FoxNetTick()
 			GlobalTuning(Idx)->Set("hook_fire_speed", std::max(0.0f, Default + RandAdjust));
 			SendTuningParams(-1);
 		}
-
-		Collision(Idx)->UpdateQuads(GlobalTuning(Idx)->m_MovingTiles == 1.0f, m_pController->GetTime());
 	}
 
 	for(auto &pComponent : m_vpComponents)

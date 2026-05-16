@@ -161,7 +161,7 @@ namespace
 			if(!Quad.AabbContains(Pos))
 				continue;
 
-			const vec2 aPoints[4] = {Quad.m_Pos[0], Quad.m_Pos[1], Quad.m_Pos[3], Quad.m_Pos[2]};
+			const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[3], Quad.m_aPoints[2]};
 			if(InsideQuadrilateral(Pos, aPoints))
 				return true;
 		}

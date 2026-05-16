@@ -283,7 +283,7 @@ void CCharacter::SetDeepFrozen(bool Active)
 
 bool CCharacter::IsGrounded()
 {
-	const CQuadData *pHitQuad = nullptr;
+	const CColQuadData *pHitQuad = nullptr;
 	bool Standing = false;
 	if(Collision()->IsOnGround(m_Pos, GetProximityRadius(), &pHitQuad))
 		Standing = true;
@@ -589,8 +589,8 @@ void CCharacter::FireWeapon()
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, TeamMask()); // NOLINT(clang-analyzer-unix.Malloc)
 
 		Antibot()->OnHammerFire(m_pPlayer->GetCid());
-		RouletteTileHandle();
 		// <FoxNet
+		RouletteTileHandle();
 		if(m_Core.m_Passive)
 			break;
 		// FoxNet>
@@ -3243,7 +3243,7 @@ void CCharacter::RouletteTileHandle()
 
 	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
 	{
-		const vec2 aPoints[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[3], QuadData.m_Pos[2]};
+		const vec2 aPoints[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]};
 		if(!InsideQuadrilateral(CursorPos, aPoints))
 			continue;
 

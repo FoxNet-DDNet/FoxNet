@@ -11,7 +11,6 @@ using offset_ptr32 = unsigned int;
 
 #include <engine/graphics.h>
 
-#include <game/envelopeaccess.h>
 #include <game/map/envelope_manager.h>
 #include <game/map/render_component.h>
 #include <game/map/render_map.h>

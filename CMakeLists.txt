@@ -2220,8 +2220,8 @@ set_src(GAME_SHARED GLOB src/game
   alloc.h
   collision.cpp
   collision.h
-  envelopeaccess.cpp
-  envelopeaccess.h
+  envelopes.cpp
+  envelopes.h
   gamecore.cpp
   gamecore.h
   layers.cpp
@@ -2238,6 +2238,7 @@ set_src(GAME_SHARED GLOB src/game
   mapitems_ex_types.h
   prng.cpp
   prng.h
+  quad_data.cpp
   quad_data.h
   race_state.h
   team_state.h

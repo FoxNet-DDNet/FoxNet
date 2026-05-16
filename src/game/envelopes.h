@@ -1,5 +1,5 @@
-#ifndef GAME_ENVELOPEACCESS_H
-#define GAME_ENVELOPEACCESS_H
+#ifndef GAME_ENVELOPES_H
+#define GAME_ENVELOPES_H
 
 #include <base/vmath.h>
 
@@ -8,17 +8,17 @@ class CEnvPoint;
 class CEnvPointBezier;
 class CEnvPointBezier_upstream;
 
-class IEnvelopePointAccess
+class IEnvelopeAccess
 {
 public:
-	virtual ~IEnvelopePointAccess() = default;
+	virtual ~IEnvelopeAccess() = default;
 	virtual int NumPoints() const = 0;
 	virtual const CEnvPoint *GetPoint(int Index) const = 0;
 	virtual const CEnvPointBezier *GetBezier(int Index) const = 0;
 	int FindPointIndex(CFixedTime Time) const;
 };
 
-class CMapBasedEnvelopePointAccess : public IEnvelopePointAccess
+class CMapBasedEnvelopeAccess : public IEnvelopeAccess
 {
 	int m_StartPoint;
 	int m_NumPoints;
@@ -28,7 +28,7 @@ class CMapBasedEnvelopePointAccess : public IEnvelopePointAccess
 	CEnvPointBezier_upstream *m_pPointsBezierUpstream;
 
 public:
-	CMapBasedEnvelopePointAccess(class IMap *pMap);
+	CMapBasedEnvelopeAccess(class IMap *pMap);
 	void SetPointsRange(int StartPoint, int NumPoints);
 	int StartPoint() const;
 	int NumPoints() const override;
@@ -38,4 +38,4 @@ public:
 };
 
 float SolveBezier(float x, float p0, float p1, float p2, float p3);
-#endif // GAME_ENVELOPEACCESS_H
+#endif // GAME_ENVELOPES_H

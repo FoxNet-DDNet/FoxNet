@@ -14,7 +14,6 @@
 
 #include <generated/client_data.h>
 
-#include <game/envelopeaccess.h>
 #include <game/mapitems.h>
 #include <game/mapitems_ex.h>
 
@@ -23,136 +22,222 @@
 
 using namespace std::chrono_literals;
 
-//int IEnvelopePointAccess::FindPointIndex(CFixedTime Time) const
-//{
-//	// binary search for the interval around Time
-//	int Low = 0;
-//	int High = NumPoints() - 2;
-//	int FoundIndex = -1;
-//
-//	while(Low <= High)
-//	{
-//		int Mid = Low + (High - Low) / 2;
-//		const CEnvPoint *pMid = GetPoint(Mid);
-//		const CEnvPoint *pNext = GetPoint(Mid + 1);
-//		if(Time >= pMid->m_Time && Time < pNext->m_Time)
-//		{
-//			FoundIndex = Mid;
-//			break;
-//		}
-//		else if(Time < pMid->m_Time)
-//		{
-//			High = Mid - 1;
-//		}
-//		else
-//		{
-//			Low = Mid + 1;
-//		}
-//	}
-//	return FoundIndex;
-//}
-//
-//CMapBasedEnvelopePointAccess::CMapBasedEnvelopePointAccess(IMap *pMap)
-//{
-//	bool FoundBezierEnvelope = false;
-//	int EnvelopeStart, EnvelopeNum;
-//	pReader->GetType(MAPITEMTYPE_ENVELOPE, &EnvelopeStart, &EnvelopeNum);
-//	for(int EnvelopeIndex = 0; EnvelopeIndex < EnvelopeNum; EnvelopeIndex++)
-//	{
-//		CMapItemEnvelope *pEnvelope = static_cast<CMapItemEnvelope *>(pReader->GetItem(EnvelopeStart + EnvelopeIndex));
-//		if(pEnvelope->m_Version >= CMapItemEnvelope::VERSION_TEEWORLDS_BEZIER)
-//		{
-//			FoundBezierEnvelope = true;
-//			break;
-//		}
-//	}
-//
-//	if(FoundBezierEnvelope)
-//	{
-//		m_pPoints = nullptr;
-//		m_pPointsBezier = nullptr;
-//
-//		int EnvPointStart, FakeEnvPointNum;
-//		pMap->GetType(MAPITEMTYPE_ENVPOINTS, &EnvPointStart, &FakeEnvPointNum);
-//		if(FakeEnvPointNum > 0)
-//			m_pPointsBezierUpstream = static_cast<CEnvPointBezier_upstream *>(pMap->GetItem(EnvPointStart));
-//		else
-//			m_pPointsBezierUpstream = nullptr;
-//
-//		m_NumPointsMax = pMap->GetItemSize(EnvPointStart) / sizeof(CEnvPointBezier_upstream);
-//	}
-//	else
-//	{
-//		int EnvPointStart, FakeEnvPointNum;
-//		pMap->GetType(MAPITEMTYPE_ENVPOINTS, &EnvPointStart, &FakeEnvPointNum);
-//		if(FakeEnvPointNum > 0)
-//			m_pPoints = static_cast<CEnvPoint *>(pMap->GetItem(EnvPointStart));
-//		else
-//			m_pPoints = nullptr;
-//
-//		m_NumPointsMax = pMap->GetItemSize(EnvPointStart) / sizeof(CEnvPoint);
-//
-//		int EnvPointBezierStart, FakeEnvPointBezierNum;
-//		pMap->GetType(MAPITEMTYPE_ENVPOINTS_BEZIER, &EnvPointBezierStart, &FakeEnvPointBezierNum);
-//		const int NumPointsBezier = pMap->GetItemSize(EnvPointBezierStart) / sizeof(CEnvPointBezier);
-//		if(FakeEnvPointBezierNum > 0 && m_NumPointsMax == NumPointsBezier)
-//			m_pPointsBezier = static_cast<CEnvPointBezier *>(pMap->GetItem(EnvPointBezierStart));
-//		else
-//			m_pPointsBezier = nullptr;
-//
-//		m_pPointsBezierUpstream = nullptr;
-//	}
-//
-//	SetPointsRange(0, m_NumPointsMax);
-//}
-//
-//CMapBasedEnvelopePointAccess::CMapBasedEnvelopePointAccess(IMap *pMap) :
-//	CMapBasedEnvelopePointAccess(static_cast<CMap *>(pMap)->GetReader())
-//{
-//}
-//
-//void CMapBasedEnvelopePointAccess::SetPointsRange(int StartPoint, int NumPoints)
-//{
-//	m_StartPoint = std::clamp(StartPoint, 0, m_NumPointsMax);
-//	m_NumPoints = std::clamp(NumPoints, 0, maximum(m_NumPointsMax - StartPoint, 0));
-//}
-//
-//int CMapBasedEnvelopePointAccess::StartPoint() const
-//{
-//	return m_StartPoint;
-//}
-//
-//int CMapBasedEnvelopePointAccess::NumPoints() const
-//{
-//	return m_NumPoints;
-//}
-//
-//int CMapBasedEnvelopePointAccess::NumPointsMax() const
-//{
-//	return m_NumPointsMax;
-//}
-//
-//const CEnvPoint *CMapBasedEnvelopePointAccess::GetPoint(int Index) const
-//{
-//	if(Index < 0 || Index >= m_NumPoints)
-//		return nullptr;
-//	if(m_pPoints != nullptr)
-//		return &m_pPoints[Index + m_StartPoint];
-//	if(m_pPointsBezierUpstream != nullptr)
-//		return &m_pPointsBezierUpstream[Index + m_StartPoint];
-//	return nullptr;
-//}
+int IEnvelopePointAccess::FindPointIndex(CFixedTime Time) const
+{
+	// binary search for the interval around Time
+	int Low = 0;
+	int High = NumPoints() - 2;
+	int FoundIndex = -1;
 
-//const CEnvPointBezier *CMapBasedEnvelopePointAccess::GetBezier(int Index) const
-//{
-//	if(Index < 0 || Index >= m_NumPoints)
-//		return nullptr;
-//	if(m_pPointsBezier != nullptr)
-//		return &m_pPointsBezier[Index + m_StartPoint];
-//	if(m_pPointsBezierUpstream != nullptr)
-//		return &m_pPointsBezierUpstream[Index + m_StartPoint].m_Bezier;
-//	return nullptr;
-//}
+	while(Low <= High)
+	{
+		int Mid = Low + (High - Low) / 2;
+		const CEnvPoint *pMid = GetPoint(Mid);
+		const CEnvPoint *pNext = GetPoint(Mid + 1);
+		if(Time >= pMid->m_Time && Time < pNext->m_Time)
+		{
+			FoundIndex = Mid;
+			break;
+		}
+		else if(Time < pMid->m_Time)
+		{
+			High = Mid - 1;
+		}
+		else
+		{
+			Low = Mid + 1;
+		}
+	}
+	return FoundIndex;
+}
+
+CMapBasedEnvelopePointAccess::CMapBasedEnvelopePointAccess(IMap *pMap)
+{
+	bool FoundBezierEnvelope = false;
+	int EnvelopeStart, EnvelopeNum;
+	pMap->GetType(MAPITEMTYPE_ENVELOPE, &EnvelopeStart, &EnvelopeNum);
+	for(int EnvelopeIndex = 0; EnvelopeIndex < EnvelopeNum; EnvelopeIndex++)
+	{
+		CMapItemEnvelope *pEnvelope = static_cast<CMapItemEnvelope *>(pMap->GetItem(EnvelopeStart + EnvelopeIndex));
+		if(pEnvelope->m_Version >= CMapItemEnvelope::VERSION_TEEWORLDS_BEZIER)
+		{
+			FoundBezierEnvelope = true;
+			break;
+		}
+	}
+
+	if(FoundBezierEnvelope)
+	{
+		m_pPoints = nullptr;
+		m_pPointsBezier = nullptr;
+
+		int EnvPointStart, FakeEnvPointNum;
+		pMap->GetType(MAPITEMTYPE_ENVPOINTS, &EnvPointStart, &FakeEnvPointNum);
+		if(FakeEnvPointNum > 0)
+			m_pPointsBezierUpstream = static_cast<CEnvPointBezier_upstream *>(pMap->GetItem(EnvPointStart));
+		else
+			m_pPointsBezierUpstream = nullptr;
+
+		m_NumPointsMax = pMap->GetItemSize(EnvPointStart) / sizeof(CEnvPointBezier_upstream);
+	}
+	else
+	{
+		int EnvPointStart, FakeEnvPointNum;
+		pMap->GetType(MAPITEMTYPE_ENVPOINTS, &EnvPointStart, &FakeEnvPointNum);
+		if(FakeEnvPointNum > 0)
+			m_pPoints = static_cast<CEnvPoint *>(pMap->GetItem(EnvPointStart));
+		else
+			m_pPoints = nullptr;
+
+		m_NumPointsMax = pMap->GetItemSize(EnvPointStart) / sizeof(CEnvPoint);
+
+		int EnvPointBezierStart, FakeEnvPointBezierNum;
+		pMap->GetType(MAPITEMTYPE_ENVPOINTS_BEZIER, &EnvPointBezierStart, &FakeEnvPointBezierNum);
+		const int NumPointsBezier = pMap->GetItemSize(EnvPointBezierStart) / sizeof(CEnvPointBezier);
+		if(FakeEnvPointBezierNum > 0 && m_NumPointsMax == NumPointsBezier)
+			m_pPointsBezier = static_cast<CEnvPointBezier *>(pMap->GetItem(EnvPointBezierStart));
+		else
+			m_pPointsBezier = nullptr;
+
+		m_pPointsBezierUpstream = nullptr;
+	}
+
+	SetPointsRange(0, m_NumPointsMax);
+}
+
+void CMapBasedEnvelopePointAccess::SetPointsRange(int StartPoint, int NumPoints)
+{
+	m_StartPoint = std::clamp(StartPoint, 0, m_NumPointsMax);
+	m_NumPoints = std::clamp(NumPoints, 0, maximum(m_NumPointsMax - StartPoint, 0));
+}
+
+int CMapBasedEnvelopePointAccess::StartPoint() const
+{
+	return m_StartPoint;
+}
+
+int CMapBasedEnvelopePointAccess::NumPoints() const
+{
+	return m_NumPoints;
+}
+
+int CMapBasedEnvelopePointAccess::NumPointsMax() const
+{
+	return m_NumPointsMax;
+}
+
+const CEnvPoint *CMapBasedEnvelopePointAccess::GetPoint(int Index) const
+{
+	if(Index < 0 || Index >= m_NumPoints)
+		return nullptr;
+	if(m_pPoints != nullptr)
+		return &m_pPoints[Index + m_StartPoint];
+	if(m_pPointsBezierUpstream != nullptr)
+		return &m_pPointsBezierUpstream[Index + m_StartPoint];
+	return nullptr;
+}
+
+const CEnvPointBezier *CMapBasedEnvelopePointAccess::GetBezier(int Index) const
+{
+	if(Index < 0 || Index >= m_NumPoints)
+		return nullptr;
+	if(m_pPointsBezier != nullptr)
+		return &m_pPointsBezier[Index + m_StartPoint];
+	if(m_pPointsBezierUpstream != nullptr)
+		return &m_pPointsBezierUpstream[Index + m_StartPoint].m_Bezier;
+	return nullptr;
+}
+
+static float SolveBezier(float x, float p0, float p1, float p2, float p3)
+{
+	const double x3 = -p0 + 3.0 * p1 - 3.0 * p2 + p3;
+	const double x2 = 3.0 * p0 - 6.0 * p1 + 3.0 * p2;
+	const double x1 = -3.0 * p0 + 3.0 * p1;
+	const double x0 = p0 - x;
+
+	if(x3 == 0.0 && x2 == 0.0)
+	{
+		// linear
+		// a * t + b = 0
+		const double a = x1;
+		const double b = x0;
+
+		if(a == 0.0)
+			return 0.0f;
+		return -b / a;
+	}
+	else if(x3 == 0.0)
+	{
+		// quadratic
+		// t * t + b * t + c = 0
+		const double b = x1 / x2;
+		const double c = x0 / x2;
+
+		if(c == 0.0)
+			return 0.0f;
+
+		const double D = b * b - 4.0 * c;
+		const double SqrtD = std::sqrt(D);
+
+		const double t = (-b + SqrtD) / 2.0;
+
+		if(0.0 <= t && t <= 1.0001)
+			return t;
+		return (-b - SqrtD) / 2.0;
+	}
+	else
+	{
+		// cubic
+		// t * t * t + a * t * t + b * t * t + c = 0
+		const double a = x2 / x3;
+		const double b = x1 / x3;
+		const double c = x0 / x3;
+
+		// substitute t = y - a / 3
+		const double Substitute = a / 3.0;
+
+		// depressed form x^3 + px + q = 0
+		// cardano's method
+		const double p = b / 3.0 - a * a / 9.0;
+		const double q = (2.0 * a * a * a / 27.0 - a * b / 3.0 + c) / 2.0;
+
+		const double D = q * q + p * p * p;
+
+		if(D > 0.0)
+		{
+			// only one 'real' solution
+			const double s = std::sqrt(D);
+			return std::cbrt(s - q) - std::cbrt(s + q) - Substitute;
+		}
+		else if(D == 0.0)
+		{
+			// one single, one double solution or triple solution
+			const double s = std::cbrt(-q);
+			const double t = 2.0 * s - Substitute;
+
+			if(0.0 <= t && t <= 1.0001)
+				return t;
+			return (-s - Substitute);
+		}
+		else
+		{
+			// Casus irreducibilis ... ,_,
+			const double Phi = std::acos(-q / std::sqrt(-(p * p * p))) / 3.0;
+			const double s = 2.0 * std::sqrt(-p);
+
+			const double t1 = s * std::cos(Phi) - Substitute;
+
+			if(0.0 <= t1 && t1 <= 1.0001)
+				return t1;
+
+			const double t2 = -s * std::cos(Phi + pi / 3.0) - Substitute;
+
+			if(0.0 <= t2 && t2 <= 1.0001)
+				return t2;
+			return -s * std::cos(Phi - pi / 3.0) - Substitute;
+		}
+	}
+}
 
 void CRenderMap::Init(IGraphics *pGraphics, ITextRender *pTextRender)
 {
@@ -525,10 +610,19 @@ void CRenderMap::RenderTilemap(CTile *pTiles, int w, int h, float Scale, ColorRG
 	Graphics()->SetColor(Color);
 	const bool ColorOpaque = Color.a > 254.0f / 255.0f;
 
+	const bool ExtendTiles = (RenderFlags & TILERENDERFLAG_EXTEND) != 0;
+
 	int StartY = (int)(ScreenY0 / Scale) - 1;
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
+	if(!ExtendTiles)
+	{
+		StartY = std::max(0, StartY);
+		StartX = std::max(0, StartX);
+		EndY = std::min(h, EndY);
+		EndX = std::min(w, EndX);
+	}
 
 	// adjust the texture shift according to mipmap level
 	float TexSize = 1024.0f;
@@ -542,7 +636,7 @@ void CRenderMap::RenderTilemap(CTile *pTiles, int w, int h, float Scale, ColorRG
 			int mx = x;
 			int my = y;
 
-			if(RenderFlags & TILERENDERFLAG_EXTEND)
+			if(ExtendTiles)
 			{
 				if(mx < 0)
 					mx = 0;
@@ -552,17 +646,6 @@ void CRenderMap::RenderTilemap(CTile *pTiles, int w, int h, float Scale, ColorRG
 					my = 0;
 				if(my >= h)
 					my = h - 1;
-			}
-			else
-			{
-				if(mx < 0)
-					continue; // mx = 0;
-				if(mx >= w)
-					continue; // mx = w-1;
-				if(my < 0)
-					continue; // my = 0;
-				if(my >= h)
-					continue; // my = h-1;
 			}
 
 			int c = mx + my * w;
@@ -681,9 +764,13 @@ void CRenderMap::RenderTeleOverlay(CTeleTile *pTele, int w, int h, float Scale, 
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
-
 	if(EndX - StartX > Graphics()->ScreenWidth() / g_Config.m_GfxTextOverlay || EndY - StartY > Graphics()->ScreenHeight() / g_Config.m_GfxTextOverlay)
 		return; // its useless to render text at this distance
+
+	StartY = std::max(0, StartY);
+	StartX = std::max(0, StartX);
+	EndY = std::min(h, EndY);
+	EndX = std::min(w, EndX);
 
 	float Size = g_Config.m_ClTextEntitiesSize / 100.f;
 	char aBuf[16];
@@ -693,19 +780,7 @@ void CRenderMap::RenderTeleOverlay(CTeleTile *pTele, int w, int h, float Scale, 
 	{
 		for(int x = StartX; x < EndX; x++)
 		{
-			int mx = x;
-			int my = y;
-
-			if(mx < 0)
-				continue; // mx = 0;
-			if(mx >= w)
-				continue; // mx = w-1;
-			if(my < 0)
-				continue; // my = 0;
-			if(my >= h)
-				continue; // my = h-1;
-
-			int c = mx + my * w;
+			int c = x + y * w;
 
 			unsigned char Index = pTele[c].m_Number;
 			if(Index && IsTeleTileNumberUsedAny(pTele[c].m_Type))
@@ -716,7 +791,7 @@ void CRenderMap::RenderTeleOverlay(CTeleTile *pTele, int w, int h, float Scale, 
 				float Factor = std::clamp(Scale / ScaledWidth, 0.0f, 1.0f);
 				float LocalSize = Size * Factor;
 				float ToCenterOffset = (1 - LocalSize) / 2.f;
-				TextRender()->Text((mx + 0.5f) * Scale - (ScaledWidth * Factor) / 2.0f, (my + ToCenterOffset) * Scale, LocalSize * Scale, aBuf);
+				TextRender()->Text((x + 0.5f) * Scale - (ScaledWidth * Factor) / 2.0f, (y + ToCenterOffset) * Scale, LocalSize * Scale, aBuf);
 			}
 		}
 	}
@@ -733,9 +808,13 @@ void CRenderMap::RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, floa
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
-
 	if(EndX - StartX > Graphics()->ScreenWidth() / g_Config.m_GfxTextOverlay || EndY - StartY > Graphics()->ScreenHeight() / g_Config.m_GfxTextOverlay)
 		return; // its useless to render text at this distance
+
+	StartY = std::max(0, StartY);
+	StartX = std::max(0, StartX);
+	EndY = std::min(h, EndY);
+	EndX = std::min(w, EndX);
 
 	float Size = g_Config.m_ClTextEntitiesSize / 100.f;
 	float ToCenterOffset = (1 - Size) / 2.f;
@@ -746,19 +825,7 @@ void CRenderMap::RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, floa
 	{
 		for(int x = StartX; x < EndX; x++)
 		{
-			int mx = x;
-			int my = y;
-
-			if(mx < 0)
-				continue; // mx = 0;
-			if(mx >= w)
-				continue; // mx = w-1;
-			if(my < 0)
-				continue; // my = 0;
-			if(my >= h)
-				continue; // my = h-1;
-
-			int c = mx + my * w;
+			int c = x + y * w;
 
 			int Force = (int)pSpeedup[c].m_Force;
 			int MaxSpeed = (int)pSpeedup[c].m_MaxSpeed;
@@ -774,18 +841,18 @@ void CRenderMap::RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, floa
 					Graphics()->SetColor(1.0f, 1.0f, 1.0f, Alpha);
 					Graphics()->SelectSprite(SPRITE_SPEEDUP_ARROW);
 					Graphics()->QuadsSetRotation(pSpeedup[c].m_Angle * (pi / 180.0f));
-					Graphics()->DrawSprite(mx * Scale + 16, my * Scale + 16, 35.0f);
+					Graphics()->DrawSprite(x * Scale + 16, y * Scale + 16, 35.0f);
 					Graphics()->QuadsEnd();
 
 					// draw force and max speed
 					if(OverlayRenderFlag & OVERLAYRENDERFLAG_TEXT)
 					{
 						str_format(aBuf, sizeof(aBuf), "%d", Force);
-						TextRender()->Text(mx * Scale, (my + 0.5f + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
+						TextRender()->Text(x * Scale, (y + 0.5f + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
 						if(MaxSpeed)
 						{
 							str_format(aBuf, sizeof(aBuf), "%d", MaxSpeed);
-							TextRender()->Text(mx * Scale, (my + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
+							TextRender()->Text(x * Scale, (y + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
 						}
 					}
 				}
@@ -795,13 +862,13 @@ void CRenderMap::RenderSpeedupOverlay(CSpeedupTile *pSpeedup, int w, int h, floa
 					if(OverlayRenderFlag & OVERLAYRENDERFLAG_TEXT)
 					{
 						float LineSpacing = Size * Scale / 3.f;
-						float BaseY = (my + ToCenterOffset) * Scale;
+						float BaseY = (y + ToCenterOffset) * Scale;
 						str_format(aBuf, sizeof(aBuf), "%d", Force);
-						TextRender()->Text(mx * Scale, BaseY, LineSpacing, aBuf);
+						TextRender()->Text(x * Scale, BaseY, LineSpacing, aBuf);
 						str_format(aBuf, sizeof(aBuf), "%d", MaxSpeed);
-						TextRender()->Text(mx * Scale, BaseY + LineSpacing, LineSpacing, aBuf);
+						TextRender()->Text(x * Scale, BaseY + LineSpacing, LineSpacing, aBuf);
 						str_format(aBuf, sizeof(aBuf), "%d", Angle);
-						TextRender()->Text(mx * Scale, BaseY + 2 * LineSpacing, LineSpacing, aBuf);
+						TextRender()->Text(x * Scale, BaseY + 2 * LineSpacing, LineSpacing, aBuf);
 					}
 				}
 			}
@@ -823,9 +890,13 @@ void CRenderMap::RenderSwitchOverlay(CSwitchTile *pSwitch, int w, int h, float S
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
-
 	if(EndX - StartX > Graphics()->ScreenWidth() / g_Config.m_GfxTextOverlay || EndY - StartY > Graphics()->ScreenHeight() / g_Config.m_GfxTextOverlay)
 		return; // its useless to render text at this distance
+
+	StartY = std::max(0, StartY);
+	StartX = std::max(0, StartX);
+	EndY = std::min(h, EndY);
+	EndX = std::min(w, EndX);
 
 	float Size = g_Config.m_ClTextEntitiesSize / 100.f;
 	float ToCenterOffset = (1 - Size) / 2.f;
@@ -836,32 +907,20 @@ void CRenderMap::RenderSwitchOverlay(CSwitchTile *pSwitch, int w, int h, float S
 	{
 		for(int x = StartX; x < EndX; x++)
 		{
-			int mx = x;
-			int my = y;
-
-			if(mx < 0)
-				continue; // mx = 0;
-			if(mx >= w)
-				continue; // mx = w-1;
-			if(my < 0)
-				continue; // my = 0;
-			if(my >= h)
-				continue; // my = h-1;
-
-			int c = mx + my * w;
+			int c = x + y * w;
 
 			unsigned char Index = pSwitch[c].m_Number;
 			if(Index && IsSwitchTileNumberUsed(pSwitch[c].m_Type))
 			{
 				str_format(aBuf, sizeof(aBuf), "%d", Index);
-				TextRender()->Text(mx * Scale, (my + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
+				TextRender()->Text(x * Scale, (y + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
 			}
 
 			unsigned char Delay = pSwitch[c].m_Delay;
 			if(Delay && IsSwitchTileDelayUsed(pSwitch[c].m_Type))
 			{
 				str_format(aBuf, sizeof(aBuf), "%d", Delay);
-				TextRender()->Text(mx * Scale, (my + 0.5f + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
+				TextRender()->Text(x * Scale, (y + 0.5f + ToCenterOffset / 2) * Scale, Size * Scale / 2.f, aBuf);
 			}
 		}
 	}
@@ -881,9 +940,13 @@ void CRenderMap::RenderTuneOverlay(CTuneTile *pTune, int w, int h, float Scale, 
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
-
 	if(EndX - StartX > Graphics()->ScreenWidth() / g_Config.m_GfxTextOverlay || EndY - StartY > Graphics()->ScreenHeight() / g_Config.m_GfxTextOverlay)
 		return; // its useless to render text at this distance
+
+	StartY = std::max(0, StartY);
+	StartX = std::max(0, StartX);
+	EndY = std::min(h, EndY);
+	EndX = std::min(w, EndX);
 
 	float Size = g_Config.m_ClTextEntitiesSize / 200.f;
 	char aBuf[16];
@@ -893,19 +956,7 @@ void CRenderMap::RenderTuneOverlay(CTuneTile *pTune, int w, int h, float Scale, 
 	{
 		for(int x = StartX; x < EndX; x++)
 		{
-			int mx = x;
-			int my = y;
-
-			if(mx < 0)
-				continue; // mx = 0;
-			if(mx >= w)
-				continue; // mx = w-1;
-			if(my < 0)
-				continue; // my = 0;
-			if(my >= h)
-				continue; // my = h-1;
-
-			int c = mx + my * w;
+			int c = x + y * w;
 
 			unsigned char Index = pTune[c].m_Number;
 			if(Index)
@@ -916,7 +967,7 @@ void CRenderMap::RenderTuneOverlay(CTuneTile *pTune, int w, int h, float Scale, 
 				float Factor = std::clamp(Scale / ScaledWidth, 0.0f, 1.0f);
 				float LocalSize = Size * Factor;
 				float ToCenterOffset = (1 - LocalSize) / 2.f;
-				TextRender()->Text((mx + 0.5f) * Scale - (ScaledWidth * Factor) / 2.0f, (my + ToCenterOffset) * Scale, LocalSize * Scale, aBuf);
+				TextRender()->Text((x + 0.5f) * Scale - (ScaledWidth * Factor) / 2.0f, (y + ToCenterOffset) * Scale, LocalSize * Scale, aBuf);
 			}
 		}
 	}
@@ -940,10 +991,19 @@ void CRenderMap::RenderTelemap(CTeleTile *pTele, int w, int h, float Scale, Colo
 		Graphics()->QuadsBegin();
 	Graphics()->SetColor(Color);
 
+	bool ExtendTiles = (RenderFlags & TILERENDERFLAG_EXTEND) != 0;
+
 	int StartY = (int)(ScreenY0 / Scale) - 1;
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
+	if(!ExtendTiles)
+	{
+		StartY = std::max(0, StartY);
+		StartX = std::max(0, StartX);
+		EndY = std::min(h, EndY);
+		EndX = std::min(w, EndX);
+	}
 
 	// adjust the texture shift according to mipmap level
 	float TexSize = 1024.0f;
@@ -956,7 +1016,7 @@ void CRenderMap::RenderTelemap(CTeleTile *pTele, int w, int h, float Scale, Colo
 			int mx = x;
 			int my = y;
 
-			if(RenderFlags & TILERENDERFLAG_EXTEND)
+			if(ExtendTiles)
 			{
 				if(mx < 0)
 					mx = 0;
@@ -966,17 +1026,6 @@ void CRenderMap::RenderTelemap(CTeleTile *pTele, int w, int h, float Scale, Colo
 					my = 0;
 				if(my >= h)
 					my = h - 1;
-			}
-			else
-			{
-				if(mx < 0)
-					continue; // mx = 0;
-				if(mx >= w)
-					continue; // mx = w-1;
-				if(my < 0)
-					continue; // my = 0;
-				if(my >= h)
-					continue; // my = h-1;
 			}
 
 			int c = mx + my * w;
@@ -1057,10 +1106,19 @@ void CRenderMap::RenderSwitchmap(CSwitchTile *pSwitchTile, int w, int h, float S
 		Graphics()->QuadsBegin();
 	Graphics()->SetColor(Color);
 
+	bool ExtendTiles = (RenderFlags & TILERENDERFLAG_EXTEND) != 0;
+
 	int StartY = (int)(ScreenY0 / Scale) - 1;
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
+	if(!ExtendTiles)
+	{
+		StartY = std::max(0, StartY);
+		StartX = std::max(0, StartX);
+		EndY = std::min(h, EndY);
+		EndX = std::min(w, EndX);
+	}
 
 	// adjust the texture shift according to mipmap level
 	float TexSize = 1024.0f;
@@ -1073,7 +1131,7 @@ void CRenderMap::RenderSwitchmap(CSwitchTile *pSwitchTile, int w, int h, float S
 			int mx = x;
 			int my = y;
 
-			if(RenderFlags & TILERENDERFLAG_EXTEND)
+			if(ExtendTiles)
 			{
 				if(mx < 0)
 					mx = 0;
@@ -1083,17 +1141,6 @@ void CRenderMap::RenderSwitchmap(CSwitchTile *pSwitchTile, int w, int h, float S
 					my = 0;
 				if(my >= h)
 					my = h - 1;
-			}
-			else
-			{
-				if(mx < 0)
-					continue; // mx = 0;
-				if(mx >= w)
-					continue; // mx = w-1;
-				if(my < 0)
-					continue; // my = 0;
-				if(my >= h)
-					continue; // my = h-1;
 			}
 
 			int c = mx + my * w;
@@ -1217,10 +1264,19 @@ void CRenderMap::RenderTunemap(CTuneTile *pTune, int w, int h, float Scale, Colo
 		Graphics()->QuadsBegin();
 	Graphics()->SetColor(Color);
 
+	bool ExtendTiles = (RenderFlags & TILERENDERFLAG_EXTEND) != 0;
+
 	int StartY = (int)(ScreenY0 / Scale) - 1;
 	int StartX = (int)(ScreenX0 / Scale) - 1;
 	int EndY = (int)(ScreenY1 / Scale) + 1;
 	int EndX = (int)(ScreenX1 / Scale) + 1;
+	if(!ExtendTiles)
+	{
+		StartY = std::max(0, StartY);
+		StartX = std::max(0, StartX);
+		EndY = std::min(h, EndY);
+		EndX = std::min(w, EndX);
+	}
 
 	// adjust the texture shift according to mipmap level
 	float TexSize = 1024.0f;
@@ -1233,7 +1289,7 @@ void CRenderMap::RenderTunemap(CTuneTile *pTune, int w, int h, float Scale, Colo
 			int mx = x;
 			int my = y;
 
-			if(RenderFlags & TILERENDERFLAG_EXTEND)
+			if(ExtendTiles)
 			{
 				if(mx < 0)
 					mx = 0;
@@ -1243,17 +1299,6 @@ void CRenderMap::RenderTunemap(CTuneTile *pTune, int w, int h, float Scale, Colo
 					my = 0;
 				if(my >= h)
 					my = h - 1;
-			}
-			else
-			{
-				if(mx < 0)
-					continue; // mx = 0;
-				if(mx >= w)
-					continue; // mx = w-1;
-				if(my < 0)
-					continue; // my = 0;
-				if(my >= h)
-					continue; // my = h-1;
 			}
 
 			int c = mx + my * w;

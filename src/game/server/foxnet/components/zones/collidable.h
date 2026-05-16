@@ -9,20 +9,29 @@
 
 class CQuadData;
 
+enum CollidableZoneType
+{
+	COLLZONE_STOPA,
+	COLLZONE_HOOK,
+	COLLZONE_UNHOOK,
+};
+
 class CCollidableZone : public IZone
 {
-	void CollidableImpl(const CQuadData &QuadData, CEntity *pEnt);
+	void CollidableImpl(CEntity *pEnt, const vec2 aPoints[4]);
 
 	void HandleCharacters();
 	void HandlePickups();
 
-	bool m_Solid = false;
+	uint8_t m_Type;
 
 public:
-	CCollidableZone(CGameContext *pGameContext, size_t MapIndex, bool Solid) :
+	void Init(CMapItemLayerQuads *pQuadsLayer) override;
+
+	CCollidableZone(CGameContext *pGameContext, size_t MapIndex, uint8_t Type) :
 		IZone(pGameContext, MapIndex)
 	{
-		m_Solid = Solid;
+		m_Type = Type;
 	}
 	void OnTick() override;
 };

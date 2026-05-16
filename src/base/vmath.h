@@ -243,6 +243,14 @@ inline bool InsideQuadrilateral(const vec2 &Pos, const vec2 aPoints[4], const ve
 	return false;
 }
 
+inline void Rotate(const vec2 &Center, vec2 *pPoint, const float &Rotation)
+{
+	float x = pPoint->x - Center.x;
+	float y = pPoint->y - Center.y;
+	pPoint->x = (x * cosf(Rotation) - y * sinf(Rotation) + Center.x);
+	pPoint->y = (x * sinf(Rotation) + y * cosf(Rotation) + Center.y);
+}
+
 // ------------------------------------
 template<Numeric T>
 class vector3_base

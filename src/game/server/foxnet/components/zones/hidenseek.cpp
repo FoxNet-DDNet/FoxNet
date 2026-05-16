@@ -2,6 +2,7 @@
 
 #include <base/log.h>
 #include <base/math.h>
+#include <base/mem.h>
 #include <base/net.h>
 #include <base/str.h>
 #include <base/system.h>
@@ -14,11 +15,13 @@
 #include <generated/protocol.h>
 
 #include <game/gamecore.h>
+#include <game/mapitems.h>
 #include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/entities/projectile.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/teamscore.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -27,9 +30,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include <base/mem.h>
-#include <game/mapitems.h>
-#include <game/teamscore.h>
 
 // ToDo @qxdFox:
 // ~~Dont allow weapon drops~~
@@ -44,7 +44,6 @@
 // add infection
 // allow hiders to pass trough eachother?
 // ~~pistol should freeze if it touches player~~
-
 
 // ~~if seeker doesnt move for too long, choose new one (or end game if its a 1v1)~~
 
@@ -487,7 +486,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 {
 	int NumSeekers = 0;
 	int NumHiders = 0;
-	for (CCharacter *pChr : m_vCandidates)
+	for(CCharacter *pChr : m_vCandidates)
 	{
 		if(m_aClientData[pChr->GetPlayer()->GetCid()].m_IsSeeker)
 			NumSeekers++;
@@ -711,13 +710,13 @@ bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 	if(!m_aClientData[ClientId].m_Alive && IsSnapClientCandidate)
 		return false;
 
- const bool ClientIsAliveSeeker = m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive;
+	const bool ClientIsAliveSeeker = m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive;
 	const bool SnapClientIsAliveSeeker = m_aClientData[SnappingClient].m_IsSeeker && m_aClientData[SnappingClient].m_Alive;
 
 	if(ClientIsAliveSeeker && IsSnapClientCandidate)
 		return true;
 
-    if(SnapClientIsAliveSeeker)
+	if(SnapClientIsAliveSeeker)
 	{
 		if(pSnapChr)
 		{
@@ -876,7 +875,7 @@ void CHideAndSeekZone::OnCharacterHammerHit(int ClientId, int Target)
 {
 	if(!IsCandidate(ClientId) || !IsCandidate(Target))
 		return;
-   if(!m_aClientData[ClientId].m_Alive)
+	if(!m_aClientData[ClientId].m_Alive)
 		return;
 	if(m_aClientData[Target].m_Alive)
 	{
@@ -998,7 +997,6 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 	if(pNewSeeker)
 		pNewSeeker->SendChat("You are the new seeker!");
 
-
 	for(CCharacter *pCandChar : m_vCandidates)
 	{
 		if(pCandChar->GetPlayer()->GetCid() != NewSeekerId)
@@ -1021,13 +1019,13 @@ void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
 	m_aClientData[ClientId].m_Alive = false;
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 	if(pChr)
-    {
+	{
 		pChr->SetVelocity(vec2(0, 0));
 		pChr->ResetHook();
 		pChr->Unfreeze();
 		pChr->SetTuneOverride(-1);
 		pChr->SetSolo(true);
- }
+	}
 	if(SendKillMsg)
 	{
 		for(CCharacter *pCandChar : m_vCandidates)
@@ -1117,7 +1115,7 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-     InitQuadData(QuadData, &pQuads[NumQuads]);
+		QuadData.Init(&pQuads[NumQuads]);
 		QuadData.m_SubType = (uint8_t)SubType;
 		AddQuad(QuadData);
 
@@ -1126,7 +1124,7 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 			for(int j = 0; j < 4; j++)
 			{
 				vec2 Pos;
-				if(!GameServer()->GetNearestAirPos(QuadData.m_Pos[j], &Pos, MaxSpawnPointOffset))
+				if(!GameServer()->GetNearestAirPos(QuadData.m_aPoints[j], &Pos, MaxSpawnPointOffset))
 					continue;
 
 				m_vSpawnPoints.push_back(Pos);

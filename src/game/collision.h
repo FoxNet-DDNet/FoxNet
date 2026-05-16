@@ -21,7 +21,11 @@ class CTuneTile;
 class CDoorTile;
 
 // <FoxNet
-class CQuad;
+class CColQuadData : public CQuadData
+{
+public:
+	int m_TileIndex;
+};
 // FoxNet>
 
 enum
@@ -47,18 +51,18 @@ public:
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
-	bool CheckPoint(float x, float y, const CQuadData **ppHitQuad = nullptr) const { return IsSolid(round_to_int(x), round_to_int(y), ppHitQuad); }
-	bool CheckPoint(vec2 Pos, const CQuadData **ppHitQuad = nullptr) const { return CheckPoint(Pos.x, Pos.y, ppHitQuad); }
+	bool CheckPoint(float x, float y, const CColQuadData **ppHitQuad = nullptr) const { return IsSolid(round_to_int(x), round_to_int(y), ppHitQuad); }
+	bool CheckPoint(vec2 Pos, const CColQuadData **ppHitQuad = nullptr) const { return CheckPoint(Pos.x, Pos.y, ppHitQuad); }
 	int GetCollisionAt(float x, float y) const { return GetTile(round_to_int(x), round_to_int(y)); }
 	int GetWidth() const { return m_Width; }
 	int GetHeight() const { return m_Height; }
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
 	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr) const;
-	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CQuadData **ppOutQuad = nullptr) const;
+	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CColQuadData **ppOutQuad = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	bool MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
-	bool TestBox(vec2 Pos, vec2 Size, const CQuadData **ppHitQuad = nullptr) const;
-	bool IsOnGround(vec2 Pos, float Size, const CQuadData **ppHitQuad = nullptr) const;
+	bool TestBox(vec2 Pos, vec2 Size, const CColQuadData **ppHitQuad = nullptr) const;
+	bool IsOnGround(vec2 Pos, float Size, const CColQuadData **ppHitQuad = nullptr) const;
 
 	// DDRace
 	void SetCollisionAt(float x, float y, int Index);
@@ -103,7 +107,7 @@ public:
 	int GetSwitchNumber(int Index) const;
 	int GetSwitchDelay(int Index) const;
 
-	int IsSolid(int x, int y, const CQuadData **ppHitQuad = nullptr) const;
+	int IsSolid(int x, int y, const CColQuadData **ppHitQuad = nullptr) const;
 	bool IsThrough(int x, int y, int OffsetX, int OffsetY, vec2 Pos0, vec2 Pos1) const;
 	bool IsHookBlocker(int x, int y, vec2 Pos0, vec2 Pos1) const;
 	int IsWallJump(int Index) const;
@@ -171,23 +175,20 @@ private:
 	// TILE_TELEINEVIL, TILE_TELECHECK, TILE_TELECHECKIN, TILE_TELECHECKINEVIL
 	std::map<int, std::vector<vec2>> m_TeleOthers;
 
+	// <FoxNet
 	bool m_HasSolidQuads = false;
-	std::vector<CQuadData> m_vPrevQuads;
-	std::vector<CQuadData> m_vQuads;
-
 	bool m_UseMovingTiles = false;
-
-public:
-	const std::vector<CQuadData> &Quads() const { return m_vQuads; }
-
-	void InitQuads();
-	void UpdateQuads(bool UseMovingTiles, float Time);
+	std::vector<int> m_vAnimatedQuadIndices;
+	std::vector<CColQuadData> m_vPrevQuads;
+	std::vector<CColQuadData> m_vQuads;
 	void UnloadQuads();
-	CQuadData *GetQuadAt(vec2 Pos) const;
-	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
+public:
+	const std::vector<CColQuadData> &Quads() const { return m_vQuads; }
 
-	int PosToIndex(vec2 Pos) const;
-	vec2 IndexToPos(int Index) const;
+	void AddQuad(CQuadData &QuadData, int TileIndex);
+	void UpdateQuads(bool UseMovingTiles, float Time);
+	CColQuadData *GetQuadAt(vec2 Pos) const;
+	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
 	// FoxNet>
 };
 

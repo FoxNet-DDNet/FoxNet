@@ -311,7 +311,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 		bool GoingThroughTele = false;
 		int TeleNr = 0;
 
-		const CQuadData *pHitQuad = nullptr;
+		const CColQuadData *pHitQuad = nullptr;
 		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, nullptr, &TeleNr, &pHitQuad);
 
 		if(Hit)
@@ -373,7 +373,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				if(pHitQuad)
 				{
 					m_pHookedQuad = pHitQuad;
-					const vec2 Pivot = pHitQuad->m_Pos[4];
+					const vec2 Pivot = pHitQuad->m_aPoints[4];
 					const float Ang = pHitQuad->m_Angle;
 					// local = R(-ang) * (world_hit - pivot)
 					m_HookQuadLocal = RotateVec(NewPos - Pivot, -Ang);
@@ -434,7 +434,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			m_pHookedQuad = m_pCollision->ResolveCurrentQuad(m_pHookedQuad);
 			if(m_pHookedQuad)
 			{
-				const vec2 Pivot = m_pHookedQuad->m_Pos[4];
+				const vec2 Pivot = m_pHookedQuad->m_aPoints[4];
 				const float Ang = m_pHookedQuad->m_Angle;
 				m_HookPos = Pivot + RotateVec(m_HookQuadLocal, Ang);
 			}

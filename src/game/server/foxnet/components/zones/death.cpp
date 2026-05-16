@@ -46,7 +46,8 @@ void CDeathZone::OnTick()
 			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
 				continue;
 
-			if(!InsideQuad(pEnt->GetPos(), QuadData, vec2(0, 0)))
+			vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
+			if(!InsideQuad(pEnt->GetPos(), QuadData, Size / 3.0f))
 				continue;
 
 			pEnt->Reset();

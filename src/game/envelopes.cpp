@@ -1,17 +1,21 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
-#include "envelopeaccess.h"
-
-#include <base/vmath.h>
-
-#include <engine/shared/datafile.h>
-#include <engine/shared/map.h>
+#include "envelopes.h"
 
 #include <game/mapitems.h>
 #include <game/mapitems_ex.h>
 
-int IEnvelopePointAccess::FindPointIndex(CFixedTime Time) const
+#include <base/math.h>
+
+#include <engine/map.h>
+
+#include <game/mapitems.h>
+
+#include <algorithm>
+#include <cmath>
+
+int IEnvelopeAccess::FindPointIndex(CFixedTime Time) const
 {
 	// binary search for the interval around Time
 	int Low = 0;
@@ -40,7 +44,7 @@ int IEnvelopePointAccess::FindPointIndex(CFixedTime Time) const
 	return FoundIndex;
 }
 
-CMapBasedEnvelopePointAccess::CMapBasedEnvelopePointAccess(IMap *pMap)
+CMapBasedEnvelopeAccess::CMapBasedEnvelopeAccess(IMap *pMap)
 {
 	bool FoundBezierEnvelope = false;
 	int EnvelopeStart, EnvelopeNum;
@@ -94,28 +98,28 @@ CMapBasedEnvelopePointAccess::CMapBasedEnvelopePointAccess(IMap *pMap)
 	SetPointsRange(0, m_NumPointsMax);
 }
 
-void CMapBasedEnvelopePointAccess::SetPointsRange(int StartPoint, int NumPoints)
+void CMapBasedEnvelopeAccess::SetPointsRange(int StartPoint, int NumPoints)
 {
 	m_StartPoint = std::clamp(StartPoint, 0, m_NumPointsMax);
 	m_NumPoints = std::clamp(NumPoints, 0, maximum(m_NumPointsMax - StartPoint, 0));
 }
 
-int CMapBasedEnvelopePointAccess::StartPoint() const
+int CMapBasedEnvelopeAccess::StartPoint() const
 {
 	return m_StartPoint;
 }
 
-int CMapBasedEnvelopePointAccess::NumPoints() const
+int CMapBasedEnvelopeAccess::NumPoints() const
 {
 	return m_NumPoints;
 }
 
-int CMapBasedEnvelopePointAccess::NumPointsMax() const
+int CMapBasedEnvelopeAccess::NumPointsMax() const
 {
 	return m_NumPointsMax;
 }
 
-const CEnvPoint *CMapBasedEnvelopePointAccess::GetPoint(int Index) const
+const CEnvPoint *CMapBasedEnvelopeAccess::GetPoint(int Index) const
 {
 	if(Index < 0 || Index >= m_NumPoints)
 		return nullptr;
@@ -126,7 +130,7 @@ const CEnvPoint *CMapBasedEnvelopePointAccess::GetPoint(int Index) const
 	return nullptr;
 }
 
-const CEnvPointBezier *CMapBasedEnvelopePointAccess::GetBezier(int Index) const
+const CEnvPointBezier *CMapBasedEnvelopeAccess::GetBezier(int Index) const
 {
 	if(Index < 0 || Index >= m_NumPoints)
 		return nullptr;

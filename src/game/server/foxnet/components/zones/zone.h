@@ -34,11 +34,9 @@ class IZone
 		int m_PosEnv = -1;
 		int m_PosEnvOffset = 0;
 	};
-	void GetAnimationTransform(int MultiMapIndex, float GlobalTime, int Env, vec2 &Position, float &Angle) const;
 
 protected:
 	void ReserveQuads(int AdditionalQuads);
-	void InitQuadData(CQuadData &QuadData, CQuad *pQuad) const;
 	void AddQuad(const CQuadData &QuadData);
 
 public:

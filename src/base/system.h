@@ -38,7 +38,6 @@ void UnescapeNewlines(char *pBuf);
 const char *EscapeMessage(const char *pMessage);
 const char *GetParsedArgument(const char *pStr, int Index, bool Rest);
 
-void Rotate(vec2 Center, vec2 *pPoint, float Rotation);
 std::string SanitizeMessage(const char *pMessage);
 
 std::mt19937 &Rng();
