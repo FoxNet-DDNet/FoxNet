@@ -1033,6 +1033,7 @@ void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
 		pChr->ResetHook();
 		pChr->Unfreeze();
 		pChr->SetTuneOverride(-1);
+		pChr->UnSpawnSolo(false);
 		pChr->SetSolo(true);
 	}
 	if(SendKillMsg)
