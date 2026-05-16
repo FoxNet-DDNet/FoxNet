@@ -125,8 +125,10 @@ void CLaser::DoBounce()
 	}
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
+	const vec2 BounceFrom = m_Pos;
+	const CColQuadData *pHitQuad = nullptr;
 
-	Res = Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z);
+	Res = Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z, &pHitQuad);
 
 	if(Res)
 	{
@@ -138,17 +140,30 @@ void CLaser::DoBounce()
 
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
-
-			int f = 0;
-			if(Res == -1)
+			bool QuadBounce = false;
+			if(pHitQuad && (Res == TILE_SOLID || Res == TILE_NOHOOK))
 			{
-				f = Collision()->GetTile(round_to_int(Coltile.x), round_to_int(Coltile.y));
-				Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), TILE_SOLID);
+				vec2 BounceDir;
+				if(Collision()->GetQuadBounceDir(pHitQuad, BounceFrom, Coltile, m_Dir, &BounceDir))
+				{
+					TempDir = BounceDir * length(TempDir);
+					QuadBounce = true;
+				}
 			}
-			Collision()->MovePoint(&TempPos, &TempDir, 1.0f, nullptr);
-			if(Res == -1)
+
+			if(!QuadBounce)
 			{
-				Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), f);
+				int f = 0;
+				if(Res == -1)
+				{
+					f = Collision()->GetTile(round_to_int(Coltile.x), round_to_int(Coltile.y));
+					Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), TILE_SOLID);
+				}
+				Collision()->MovePoint(&TempPos, &TempDir, 1.0f, nullptr);
+				if(Res == -1)
+				{
+					Collision()->SetCollisionAt(round_to_int(Coltile.x), round_to_int(Coltile.y), f);
+				}
 			}
 			m_Pos = TempPos;
 			m_Dir = normalize(TempDir);

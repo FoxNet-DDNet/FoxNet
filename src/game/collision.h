@@ -57,7 +57,7 @@ public:
 	int GetWidth() const { return m_Width; }
 	int GetHeight() const { return m_Height; }
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
-	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr) const;
+	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CColQuadData **ppOutQuad = nullptr) const;
 	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CColQuadData **ppOutQuad = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	bool MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
@@ -182,12 +182,14 @@ private:
 	std::vector<CColQuadData> m_vPrevQuads;
 	std::vector<CColQuadData> m_vQuads;
 	void UnloadQuads();
+
 public:
 	const std::vector<CColQuadData> &Quads() const { return m_vQuads; }
 
 	void AddQuad(CQuadData &QuadData, int TileIndex);
 	void UpdateQuads(bool UseMovingTiles, float Time);
 	CColQuadData *GetQuadAt(vec2 Pos) const;
+	bool GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const;
 	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
 	// FoxNet>
 };

@@ -446,8 +446,11 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 	return 0;
 }
 
-int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr) const
+int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, const CColQuadData **ppOutQuad) const
 {
+	if(ppOutQuad)
+		*ppOutQuad = nullptr;
+
 	float Distance = distance(Pos0, Pos1);
 	int End(Distance + 1);
 	vec2 Last = Pos0;
@@ -476,12 +479,21 @@ int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollisio
 			return TILE_TELEINWEAPON;
 		}
 
-		if(CheckPoint(ix, iy))
+		const CColQuadData *pHitQuad = nullptr;
+		if(CheckPoint(ix, iy, &pHitQuad))
 		{
 			if(pOutCollision)
 				*pOutCollision = Pos;
 			if(pOutBeforeCollision)
 				*pOutBeforeCollision = Last;
+
+			if(pHitQuad)
+			{
+				if(ppOutQuad)
+					*ppOutQuad = pHitQuad;
+				return pHitQuad->m_TileIndex;
+			}
+
 			return GetCollisionAt(ix, iy);
 		}
 
@@ -1456,11 +1468,68 @@ CColQuadData *CCollision::GetQuadAt(vec2 Pos) const
 		if(!Quad.AabbContains(Pos))
 			continue;
 
-        const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[2], Quad.m_aPoints[3]};
+		const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[2], Quad.m_aPoints[3]};
 		if(InsideQuadrilateral(Pos, aPoints))
 			return const_cast<CColQuadData *>(&Quad);
 	}
 	return nullptr;
+}
+
+bool CCollision::GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const
+{
+	if(!pQuad || !pOutDir)
+		return false;
+
+	vec2 Incoming = CollisionPos - From;
+	if(length_squared(Incoming) <= 1e-6f)
+		Incoming = Dir;
+	if(length_squared(Incoming) <= 1e-6f)
+		return false;
+	Incoming = normalize(Incoming);
+
+	const vec2 aPoints[4] = {pQuad->m_aPoints[0], pQuad->m_aPoints[1], pQuad->m_aPoints[2], pQuad->m_aPoints[3]};
+
+	bool Found = false;
+	float BestDist2 = 0.0f;
+	float BestImpact = 0.0f;
+	vec2 BestNormal = vec2(0.0f, 0.0f);
+
+	for(int i = 0; i < 4; i++)
+	{
+		const vec2 FromPoint = aPoints[i];
+		const vec2 ToPoint = aPoints[(i + 1) % 4];
+		const vec2 Edge = ToPoint - FromPoint;
+		if(length_squared(Edge) <= 1e-6f)
+			continue;
+
+		vec2 ClosestPoint;
+		if(!closest_point_on_line(FromPoint, ToPoint, CollisionPos, ClosestPoint))
+			continue;
+
+		vec2 Normal = normalize(vec2(-Edge.y, Edge.x));
+		if(dot(Incoming, Normal) > 0.0f)
+			Normal = -Normal;
+
+		const float Impact = -dot(Incoming, Normal);
+		const float Dist2 = length_squared(ClosestPoint - CollisionPos);
+		if(!Found || Dist2 < BestDist2 - 0.01f || (absolute(Dist2 - BestDist2) <= 0.01f && Impact > BestImpact))
+		{
+			BestDist2 = Dist2;
+			BestImpact = Impact;
+			BestNormal = Normal;
+			Found = true;
+		}
+	}
+
+	if(!Found)
+		return false;
+
+	vec2 Reflected = Dir - BestNormal * (2.0f * dot(Dir, BestNormal));
+	if(length_squared(Reflected) <= 1e-6f)
+		return false;
+
+	*pOutDir = normalize(Reflected);
+	return true;
 }
 
 const CQuadData *CCollision::ResolveCurrentQuad(const CQuadData *pQuad) const
