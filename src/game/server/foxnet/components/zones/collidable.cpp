@@ -250,7 +250,8 @@ void CCollidableZone::HandlePickups()
 			{
 				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
 
-		
+				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
+					continue;
 				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
 
 				CollidableImpl(pEnt, Points);
@@ -262,7 +263,8 @@ void CCollidableZone::HandlePickups()
 			{
 				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
 
-		
+				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
+					continue;
 
 				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
 
