@@ -486,12 +486,21 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 {
 	int NumSeekers = 0;
 	int NumHiders = 0;
+	char aHiderName[MAX_NAME_LENGTH] = "";
+	char aSeekerName[MAX_NAME_LENGTH] = "";
 	for(CCharacter *pChr : m_vCandidates)
 	{
-		if(m_aClientData[pChr->GetPlayer()->GetCid()].m_IsSeeker)
+		int Id =pChr->GetPlayer()->GetCid();
+		if(m_aClientData[Id].m_IsSeeker)
+		{
 			NumSeekers++;
+			str_copy(aSeekerName, Server()->ClientName(Id));
+		}
 		else
+		{
 			NumHiders++;
+			str_copy(aHiderName, Server()->ClientName(Id));
+		}
 	}
 
 	for(CCharacter *pChr : m_vCandidates)
@@ -508,7 +517,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 			if(NumHiders != 1)
 				pPlayer->SendChat("The Hiders won the game!");
 			else
-				pPlayer->SendChatFmt("'%s' won the game!", Server()->ClientName(pPlayer->GetCid()));
+				pPlayer->SendChatFmt("'%s' won the game!", aHiderName);
 
 			// Xp for hiders gets given based on how long they werent hidden for
 			if(!Data.m_IsSeeker)
@@ -531,7 +540,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 			if(NumSeekers != 1)
 				pPlayer->SendChat("The Seeker won the game!");
 			else
-				pPlayer->SendChatFmt("'%s' won the game!", Server()->ClientName(pPlayer->GetCid()));
+				pPlayer->SendChatFmt("'%s' won the game!", aSeekerName);
 			if(Data.m_IsSeeker)
 			{
 				if(g_Config.m_SvHideSeekGiveXp)
