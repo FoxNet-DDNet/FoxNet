@@ -20,7 +20,7 @@ void CQuadData::Init(CQuad *pQuad)
    UpdateAabb();
 }
 
-void CQuadData::UpdatePositionEnvelope(float Time, IMap *pMap)
+void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 {
 	auto GetAnimationTransform = [&](vec2 &Position, float &Angle) {
 		Position.x = 0.0f;
@@ -28,7 +28,7 @@ void CQuadData::UpdatePositionEnvelope(float Time, IMap *pMap)
 		Angle = 0.0f;
 
 		const int Env = m_pQuad->m_PosEnv;
-		const float Offset = m_pQuad->m_PosEnvOffset / 1000.0;
+		const double Offset = m_pQuad->m_PosEnvOffset / 1000.0;
 
 		if(Env < 0)
 			return;

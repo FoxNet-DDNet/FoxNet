@@ -1437,7 +1437,7 @@ void CCollision::AddQuad(CQuadData &QuadData, int TileIndex)
 	m_HasSolidQuads = true;
 }
 
-void CCollision::UpdateQuads(bool UseMovingTiles, float Time)
+void CCollision::UpdateQuads(bool UseMovingTiles, double Time)
 {
 	m_UseMovingTiles = UseMovingTiles;
 	if(!m_UseMovingTiles)
