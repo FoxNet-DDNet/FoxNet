@@ -479,9 +479,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		else if(SubPage == SUB_SHOP_ITEMINFO)
 		{
-			long Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
-
-			if(IsOption(pVote, FormatItemVote(Price)))
+			if(IsOption(pVote, FormatItemVote(pPlayer, *Data.m_pLastItemInfo)))
 			{
 				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_pName);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
@@ -1376,9 +1374,8 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
-		int64_t Price = pPlayer->GetDiscountedPrice(Data.m_pLastItemInfo->m_Price);
 
-		str_copy(aBuf, FormatItemVote(Price));
+		str_copy(aBuf, FormatItemVote(pPlayer, *pItem));
 		AddVoteText(aBuf);
 
 		str_format(aBuf, sizeof(aBuf), "↳ Requires level %d", pItem->m_MinLevel);
@@ -1473,7 +1470,7 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			}
 			else
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ ∞]", pItemName);
-			
+
 			if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
 			{
 				int OwnsAmount = InvEntry.m_Quantity;
@@ -1759,10 +1756,15 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 	return false;
 }
 
-const char *CVoteMenu::FormatItemVote(int64_t Price)
+const char *CVoteMenu::FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item)
 {
+	int64_t Price = pPlayer->GetDiscountedPrice(Item.m_Price);
 	static char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "Buy Item for 30 days [%" PRId64 "%s]", Price, g_Config.m_SvCurrencyName);
+	if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
+
+		str_format(aBuf, sizeof(aBuf), "Buy Item [%" PRId64 "%s]", Item.m_DefaultDays, Price, g_Config.m_SvCurrencyName);
+	else
+		str_format(aBuf, sizeof(aBuf), "Buy Item for %d days [%" PRId64 "%s]", Item.m_DefaultDays, Price, g_Config.m_SvCurrencyName);
 	return aBuf;
 }
 

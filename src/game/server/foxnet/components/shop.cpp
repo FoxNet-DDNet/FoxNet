@@ -187,8 +187,8 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 {
 	char aBuf[256];
 
-	const CItemConfig *Cfg = FindItem(pName);
-	if(!Cfg)
+	const CItemConfig *pCfg = FindItem(pName);
+	if(!pCfg)
 		return false;
 
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
@@ -206,7 +206,7 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
-	if(Cfg->m_Price <= 0)
+	if(pCfg->m_Price <= 0)
 	{
 		GameServer()->SendChatTarget(ClientId, "Invalid Item.");
 		return false;
@@ -222,20 +222,20 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, "Try again later");
 		return false;
 	}
-	if(Acc.m_Level < Cfg->m_MinLevel)
+	if(Acc.m_Level < pCfg->m_MinLevel)
 	{
-		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", Cfg->m_MinLevel, Cfg->m_pName);
+		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", pCfg->m_MinLevel, pCfg->m_pName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "You are currently Level %" PRId64, Acc.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		return false;
 	}
 
-	int Price = pPlayer->GetDiscountedPrice(Cfg->m_Price);
+	int Price = pPlayer->GetDiscountedPrice(pCfg->m_Price);
 
 	if(Acc.m_Money < Price)
 	{
-		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", Cfg->m_pName);
+		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", pCfg->m_pName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -243,12 +243,12 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 	}
 
 	pPlayer->TakeMoney(Price, true);
-	GiveItem(ClientId, Cfg, -1, "Shop");
+	GiveItem(ClientId, pCfg, pCfg->m_DefaultDays, "Shop");
 
-	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", Cfg->m_pName);
+	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", pCfg->m_pName);
 	GameServer()->SendChatTarget(ClientId, aBuf);
 
-	if(Cfg->m_Group == EExclusiveGroup::Hat)
+	if(pCfg->m_Group == EExclusiveGroup::Hat)
 	{
 		int TypeHat = (int)pPlayer->Cosmetics()->m_HatType;
 		if(TypeHat <= (int)EHatType::Ninja && TypeHat > (int)EHatType::None)
