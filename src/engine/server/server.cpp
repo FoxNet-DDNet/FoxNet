@@ -3412,13 +3412,7 @@ int CServer::Run()
 	}
 
 	// <FoxNet
-	if(Config()->m_SvExecBasedOnPort)
-	{
-		char aExecFile[IO_MAX_PATH_LENGTH];
-		str_format(aExecFile, sizeof(aExecFile), "port/%d.cfg", this->Port());
-		Console()->ExecuteFile(aExecFile, IConsole::CLIENT_ID_UNSPECIFIED);
-	}
-	if(g_Config.m_SvScriptStartup[0])
+	if(Config()->m_SvScriptStartup[0])
 	{
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptStartup, this->Port());

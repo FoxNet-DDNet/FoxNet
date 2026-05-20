@@ -147,8 +147,6 @@ MACRO_CONFIG_INT(SvReportsMinPlaytimeForBypass, sv_reports_min_playtime_for_bypa
 MACRO_CONFIG_INT(SvLogWhispers, sv_log_whispers, 0, 0, 1, CFGFLAG_SERVER, "Whether to enable logging of whispers")
 MACRO_CONFIG_INT(SvLogExtra, sv_log_extra, 0, 0, 2, CFGFLAG_SERVER, "Whether to enable extra logging")
 
-MACRO_CONFIG_INT(SvExecBasedOnPort, sv_execute_based_on_port, 0, 0, 1, CFGFLAG_SERVER, "Executes a file based on Port, if port=8303 -> execs /port/8303.cfg")
-
 // Random Stuff
 MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER, "Display everyones position at their cursor")
 MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER, "Set everyones snapping velocity to 0 (disables interpolation on the client)")
