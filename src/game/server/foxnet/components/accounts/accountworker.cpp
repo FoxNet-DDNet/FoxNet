@@ -501,7 +501,8 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 		"    LoggedIn = 1, "
 		"    LastLogin = ?, "
 		"    Port = ?, "
-		"    ClientId = ? "
+		"    ClientId = ?, "
+		"    ServerInstance = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -511,7 +512,8 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 	pSql->BindInt64(3, p->m_LastLogin);
 	pSql->BindInt(4, p->m_Port);
 	pSql->BindInt(5, p->m_ClientId);
-	pSql->BindString(6, p->m_aUsername);
+	pSql->BindString(6, p->m_aInstance);
+	pSql->BindString(7, p->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
@@ -557,7 +559,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	char aSql[512];
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
-		"SET LoggedIn = 0, Port = 0, ClientId = -1, "
+		"SET LoggedIn = 0, Port = 0, ClientId = -1, ServerInstance = '', "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"    Playtime = ?, Deaths = ?, Kills = ?, "
 		"    Level = ?, XP = ?, Money = ? "

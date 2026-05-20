@@ -220,7 +220,7 @@ public:
 	void DisableAccount(const char *pUsername, bool Disable);
 	void DeleteAccount(int ClientId, const char *pUsername);
 
-	void LogoutAllAccountsPort(int Port);
+	void LogoutAllAccountsPort(int Port, const char *pInstance);
 	void ShowAccProfile(int ClientId, const char *pName);
 
 	void SaveAllAccounts();

@@ -22,6 +22,7 @@
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/foxnet/fontconvert.h>
 
 #include <cinttypes>
 #include <cstdint>
@@ -280,7 +281,7 @@ SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
 
 void CAccounts::OnInit()
 {
-	LogoutAllAccountsPort(Server()->Port());
+	LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
 void CAccounts::OnClientDrop(int ClientId, const char *pReason)
@@ -565,6 +566,7 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
 	str_copy(pUpd->m_PlayerName, pPlayerName, sizeof(pUpd->m_PlayerName));
 	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
+	str_copy(pUpd->m_aInstance, g_Config.m_SvAccountsInstance, sizeof(pUpd->m_aInstance));
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();
 	pUpd->m_ClientId = ClientId;
@@ -600,7 +602,7 @@ void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo)
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
 }
 
-void CAccounts::LogoutAllAccountsPort(int Port)
+void CAccounts::LogoutAllAccountsPort(int Port, const char *pInstance)
 {
 	if(!DbPool())
 		return;
@@ -609,21 +611,25 @@ void CAccounts::LogoutAllAccountsPort(int Port)
 		CSqlLogoutByPort() :
 			ISqlData(nullptr) {}
 		int m_Port;
+		char m_aInstance[64] = "";
 	};
 	auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool {
 		const auto *p = dynamic_cast<const CSqlLogoutByPort *>(pData);
 		char aSql[256];
 		str_copy(aSql,
-			"UPDATE foxnet_accounts SET LastPlayerName = PlayerName, LastIP = CurrentIP, LoggedIn = 0, Port = 0, ClientId = -1 WHERE Port = ?",
+			"UPDATE foxnet_accounts SET LastPlayerName = PlayerName, LastIP = CurrentIP, LoggedIn = 0, Port = 0, ClientId = -1, ServerInstance = '' WHERE Port = ? AND ServerInstance = ?",
 			sizeof(aSql));
 		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 			return false;
 		pSql->BindInt(1, p->m_Port);
+		pSql->BindString(2, p->m_aInstance);
 		int NumUpdated = 0;
 		return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 	};
 	auto pReq = std::make_unique<CSqlLogoutByPort>();
 	pReq->m_Port = Port;
+	if(pInstance)
+		str_copy(pReq->m_aInstance, pInstance, sizeof(pReq->m_aInstance));
 	DbPool()->ExecuteWrite(Fn, std::move(pReq), "acc bulk logout by port");
 }
 
@@ -675,12 +681,13 @@ bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const cha
 	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
-		if(Res.m_NumMessages == 0)
+		if(Res.m_NumMessages.load(std::memory_order_acquire) == 0)
 		{
 			GameServer()->SendChatTarget(ClientId, "[Err] Password change result unknown");
 			return;
 		}
-		for(int i = 0; i < Res.m_NumMessages; i++)
+		int NumMessages = Res.m_NumMessages.load(std::memory_order_acquire);
+		for(int i = 0; i < NumMessages; i++)
 			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
 	});
 
@@ -708,7 +715,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		return;
 	auto SendProfile = [this, ClientId, NameCopy = std::string(pName)](const CAccResult &Data) {
 		char aBuf[128];
-		GameServer()->SendChatTarget(ClientId, "╭──────     Pʀᴏғɪʟᴇ");
+		GameServer()->SendChatTarget(ClientId, ConvertToSmallCaps("╭──────     Profile"));
 		const char *UseName = Data.m_LoggedIn ? NameCopy.c_str() : (Data.m_PlayerName[0] ? Data.m_PlayerName : Data.m_aUsername);
 		str_format(aBuf, sizeof(aBuf), "│ Name: %s", UseName);
 		GameServer()->SendChatTarget(ClientId, aBuf);
@@ -738,7 +745,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 				str_copy(aBuf, "│ Last seen less than an hour ago", sizeof(aBuf));
 			GameServer()->SendChatTarget(ClientId, aBuf);
 		}
-		GameServer()->SendChatTarget(ClientId, "├──────      Sᴛᴀᴛs");
+		GameServer()->SendChatTarget(ClientId, ConvertToSmallCaps("├──────     Stats"));
 		str_format(aBuf, sizeof(aBuf), "│ Level %" PRId64, Data.m_Level);
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		str_format(aBuf, sizeof(aBuf), "│ %" PRId64 "%s", Data.m_Money, g_Config.m_SvCurrencyName);
@@ -756,7 +763,7 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		AddPending(pRes2, [this, ClientId, pNameStr, SendProfile](CAccResult &Res2) {
 			if(!Res2.m_Success || !Res2.m_Found)
 			{
-				GameServer()->SendChatTarget(ClientId, "╭─────────       Pʀᴏғɪʟᴇ");
+				GameServer()->SendChatTarget(ClientId, ConvertToSmallCaps("╭─────────       Profile"));
 				char aBuf[128];
 				str_format(aBuf, sizeof(aBuf), "│ Account \"%s\" doesn't exist", pNameStr.c_str());
 				GameServer()->SendChatTarget(ClientId, aBuf);
@@ -824,12 +831,13 @@ void CAccounts::Top5(int ClientId, const char *pType, int Offset)
 	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
-		if(Res.m_NumMessages == 0)
+		if(Res.m_NumMessages.load(std::memory_order_acquire) == 0)
 		{
 			GameServer()->SendChatTarget(ClientId, "[Err] unknown error occurred");
 			return;
 		}
-		for(int i = 0; i < Res.m_NumMessages; i++)
+		int NumMessages = Res.m_NumMessages.load(std::memory_order_acquire);
+		for(int i = 0; i < NumMessages; i++)
 			GameServer()->SendChatTarget(ClientId, Res.m_aaMessages[i]);
 	});
 
@@ -876,7 +884,7 @@ void CAccounts::DeleteAccount(int ClientId, const char *pUsername)
 			}
 		}
 
-		const char *pMsg = Res.m_NumMessages > 0 ? Res.m_aaMessages[0] : "[Err] Failed to delete account";
+		const char *pMsg = Res.m_NumMessages.load(std::memory_order_acquire) > 0 ? Res.m_aaMessages[0] : "[Err] Failed to delete account";
 		if(ClientId >= 0)
 		{
 			if(!Server()->ClientSlotEmpty(ClientId))

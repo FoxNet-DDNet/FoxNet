@@ -109,6 +109,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		"  LastLogin %s DEFAULT 0, "
 		"  Port INTEGER DEFAULT 0, "
 		"  ClientId INTEGER DEFAULT -1, "
+		"  ServerInstance VARCHAR(16) COLLATE %s DEFAULT '', "
 		"  Playtime %s DEFAULT 0, "
 		"  Deaths %s DEFAULT 0, "
 		"  Kills %s DEFAULT 0, "
@@ -126,6 +127,7 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		BinaryCollate(),
 		BinaryCollate(),
 		Int64Type(),
+		BinaryCollate(),
 		Int64Type(),
 		Int64Type(),
 		Int64Type(),

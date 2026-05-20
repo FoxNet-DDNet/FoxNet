@@ -27,6 +27,7 @@ MACRO_CONFIG_INT(SvAccountsForced, sv_accounts_forced, 0, 0, 1, CFGFLAG_SERVER, 
 MACRO_CONFIG_INT(SvAccountsAllowRegister, sv_accounts_allow_register, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Whether to allow new account registrations")
 MACRO_CONFIG_INT(SvAccountsMaxLoginAttempts, sv_accounts_max_login_attempts, 5, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of login attempts before a ban")
 MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of register attempts before a ban")
+MACRO_CONFIG_STR(SvAccountsInstance, sv_accounts_instance, 16, "", CFGFLAG_SERVER | CFGFLAG_SAVE, "Unique account instance/region identifier for shared databases (e.g. eu-1, us-1)")
 
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER, "How much money a player should get if they level up")

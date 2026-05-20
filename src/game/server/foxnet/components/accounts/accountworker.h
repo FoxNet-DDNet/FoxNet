@@ -42,15 +42,18 @@ struct CAccResult : ISqlResult
 	CMailBox m_MailBox;
 	CAccConfigs m_Configs;
 
-	int m_NumMessages = 0;
+	std::atomic<int> m_NumMessages{0};
 	char m_aaMessages[MAX_MESSAGES][MAX_MESSAGE_LEN]{};
 
 	void AddMessage(const char *pMsg)
 	{
-		if(m_NumMessages >= MAX_MESSAGES || !pMsg || !pMsg[0])
+		if(!pMsg || !pMsg[0])
 			return;
-		str_copy(m_aaMessages[m_NumMessages], pMsg, sizeof(m_aaMessages[m_NumMessages]));
-		m_NumMessages++;
+		int Current = m_NumMessages.load(std::memory_order_acquire);
+		if(Current >= MAX_MESSAGES)
+			return;
+		str_copy(m_aaMessages[Current], pMsg, sizeof(m_aaMessages[Current]));
+		m_NumMessages.store(Current + 1, std::memory_order_release);
 	}
 };
 
@@ -94,6 +97,7 @@ struct CAccUpdLoginState : ISqlData
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
 	char m_CurrentIP[46] = "";
+	char m_aInstance[16] = "";
 	int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;

@@ -2222,7 +2222,7 @@ void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData,
 				if(pPlayer->Acc()->m_LoggedIn && pSelf->m_AccountManager.Logout(ClientId))
 					pSelf->SendChatTarget(ClientId, "You have been logged out because accounts have been disabled on this server.");
 
-				pSelf->m_AccountManager.LogoutAllAccountsPort(pSelf->Server()->Port());
+				pSelf->m_AccountManager.LogoutAllAccountsPort(pSelf->Server()->Port(), g_Config.m_SvAccountsInstance);
 			}
 			else
 				pSelf->m_AccountManager.AutoLogin(ClientId); // try to login all clients

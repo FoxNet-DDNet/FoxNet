@@ -1,6 +1,7 @@
 
 #include "entities/pickupdrop.h"
 #include "entities/powerup.h"
+#include "entities/roulette.h"
 #include "fontconvert.h"
 #include "persistent_data.h"
 
@@ -53,7 +54,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "entities/roulette.h"
 
 void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 {
@@ -1286,7 +1286,7 @@ bool CGameContext::IncludedInServerInfo(int ClientId)
 
 void CGameContext::OnPreShutdown()
 {
-	m_AccountManager.LogoutAllAccountsPort(Server()->Port()); // Save all info before CPlayer is destroyed
+	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance); // Save all info before CPlayer is destroyed
 }
 
 void CGameContext::OnPreReload()
@@ -1299,9 +1299,8 @@ void CGameContext::OnPreReload()
 
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
-
-		m_AccountManager.Logout(i);
 	}
+	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
 void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) const
