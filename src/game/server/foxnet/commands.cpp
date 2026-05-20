@@ -2222,12 +2222,13 @@ void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData,
 				if(pPlayer->Acc()->m_LoggedIn && pSelf->m_AccountManager.Logout(ClientId))
 					pSelf->SendChatTarget(ClientId, "You have been logged out because accounts have been disabled on this server.");
 
-				pSelf->m_AccountManager.LogoutAllAccountsPort(pSelf->Server()->Port(), g_Config.m_SvAccountsInstance);
+				pSelf->m_AccountManager.Logout(ClientId);
 			}
 			else
 				pSelf->m_AccountManager.AutoLogin(ClientId); // try to login all clients
 		}
 	}
+	pSelf->m_AccountManager.LogoutAllAccountsPort(pSelf->Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
 void CGameContext::ConchainResendVoteMenu(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
