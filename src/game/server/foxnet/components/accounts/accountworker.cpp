@@ -944,8 +944,11 @@ bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Wri
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
-bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
+    if(w != Write::NORMAL)
+		return true;
+
 	const auto *p = dynamic_cast<const CAccChangePassword *>(pData);
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
 	if(!p || !pRes)
@@ -970,8 +973,11 @@ bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData,
 	return true;
 }
 
-bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
+   if(w != Write::NORMAL)
+		return true;
+
 	const auto *p = dynamic_cast<const CAccSetPassword *>(pData);
 	char aSql[256];
 	str_copy(aSql,
