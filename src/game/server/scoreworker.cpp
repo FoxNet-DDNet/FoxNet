@@ -18,6 +18,16 @@ static const CUuid UUID_NO_SAVE_ID =
 	{{0x6b, 0x40, 0x7e, 0x81, 0x8b, 0x77, 0x3e, 0x04,
 		0xa2, 0x07, 0x8d, 0xa1, 0x7f, 0x37, 0xd0, 0x00}};
 
+static int GetIntOrDefault(IDbConnection *pSqlServer, int Col, int DefaultValue = 0)
+{
+	return pSqlServer->IsNull(Col) ? DefaultValue : pSqlServer->GetInt(Col);
+}
+
+static float GetFloatOrDefault(IDbConnection *pSqlServer, int Col, float DefaultValue = 0.0f)
+{
+	return pSqlServer->IsNull(Col) ? DefaultValue : pSqlServer->GetFloat(Col);
+}
+
 CScorePlayerResult::CScorePlayerResult()
 {
 	SetVariant(Variant::DIRECT);
@@ -109,10 +119,10 @@ bool CTeamrank::GetSqlTop5Team(IDbConnection *pSqlServer, bool *pEnd, char *pErr
 	for(*Line = StartLine; *Line < StartLine + Count; (*Line)++)
 	{
 		bool Last = false;
-		float Time = pSqlServer->GetFloat(2);
+		float Time = GetFloatOrDefault(pSqlServer, 2);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aTime, sizeof(aTime));
-		int Rank = pSqlServer->GetInt(3);
-		int TeamSize = pSqlServer->GetInt(4);
+		int Rank = GetIntOrDefault(pSqlServer, 3);
+		int TeamSize = GetIntOrDefault(pSqlServer, 4);
 
 		char aNames[2300] = {0};
 		for(int i = 0; i < TeamSize; i++)
@@ -167,7 +177,7 @@ bool CScoreWorker::LoadBestTime(IDbConnection *pSqlServer, const ISqlData *pGame
 	}
 	if(!End)
 	{
-		pResult->m_CurrentRecord = pSqlServer->GetFloat(1);
+		pResult->m_CurrentRecord = GetFloatOrDefault(pSqlServer, 1);
 	}
 
 	return true;
@@ -215,13 +225,13 @@ bool CScoreWorker::LoadPlayerData(IDbConnection *pSqlServer, const ISqlData *pGa
 		if(!pSqlServer->IsNull(1))
 		{
 			// get the best time
-			float Time = pSqlServer->GetFloat(1);
+			float Time = GetFloatOrDefault(pSqlServer, 1);
 			pResult->m_Data.m_Info.m_Time = Time;
 		}
 
 		for(int i = 0; i < NUM_CHECKPOINTS; i++)
 		{
-			pResult->m_Data.m_Info.m_aTimeCp[i] = pSqlServer->GetFloat(i + 2);
+			pResult->m_Data.m_Info.m_aTimeCp[i] = GetFloatOrDefault(pSqlServer, i + 2);
 		}
 	}
 
@@ -290,10 +300,10 @@ bool CScoreWorker::LoadPlayerTimeCp(IDbConnection *pSqlServer, const ISqlData *p
 	if(!End)
 	{
 		pResult->SetVariant(CScorePlayerResult::PLAYER_TIMECP);
-		pResult->m_Data.m_Info.m_Time = pSqlServer->GetFloat(1);
+		pResult->m_Data.m_Info.m_Time = GetFloatOrDefault(pSqlServer, 1);
 		for(int i = 0; i < NUM_CHECKPOINTS; i++)
 		{
-			pResult->m_Data.m_Info.m_aTimeCp[i] = pSqlServer->GetFloat(i + 2);
+			pResult->m_Data.m_Info.m_aTimeCp[i] = GetFloatOrDefault(pSqlServer, i + 2);
 		}
 		str_copy(pResult->m_Data.m_Info.m_aRequestedPlayer, pPlayer, sizeof(pResult->m_Data.m_Info.m_aRequestedPlayer));
 	}
@@ -431,14 +441,14 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		pSqlServer->GetString(2, aServer, sizeof(aServer));
 		char aMapper[128];
 		pSqlServer->GetString(3, aMapper, sizeof(aMapper));
-		int Points = pSqlServer->GetInt(4);
-		int Stars = pSqlServer->GetInt(5);
-		int Finishes = pSqlServer->GetInt(6);
-		int Finishers = pSqlServer->GetInt(7);
-		float Median = !pSqlServer->IsNull(8) ? pSqlServer->GetInt(8) : -1.0f;
-		int Stamp = pSqlServer->GetInt(9);
-		int Ago = pSqlServer->GetInt(10);
-		float OwnTime = !pSqlServer->IsNull(11) ? pSqlServer->GetFloat(11) : -1.0f;
+		int Points = GetIntOrDefault(pSqlServer, 4);
+		int Stars = GetIntOrDefault(pSqlServer, 5);
+		int Finishes = GetIntOrDefault(pSqlServer, 6);
+		int Finishers = GetIntOrDefault(pSqlServer, 7);
+		float Median = !pSqlServer->IsNull(8) ? GetIntOrDefault(pSqlServer, 8) : -1.0f;
+		int Stamp = GetIntOrDefault(pSqlServer, 9);
+		int Ago = GetIntOrDefault(pSqlServer, 10);
+		float OwnTime = GetFloatOrDefault(pSqlServer, 11, -1.0f);
 
 		char aAgoString[40] = "\0";
 		char aReleasedString[60] = "\0";
@@ -584,7 +594,7 @@ bool CScoreWorker::SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameDat
 		{
 			return false;
 		}
-		int NumFinished = pSqlServer->GetInt(1);
+		int NumFinished = GetIntOrDefault(pSqlServer, 1);
 		if(NumFinished == 0)
 		{
 			str_format(aBuf, sizeof(aBuf), "SELECT Points FROM %s_maps WHERE Map=?", pSqlServer->GetPrefix());
@@ -601,7 +611,7 @@ bool CScoreWorker::SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameDat
 			}
 			if(!End2)
 			{
-				int Points = pSqlServer->GetInt(1);
+				int Points = GetIntOrDefault(pSqlServer, 1);
 				if(!pSqlServer->AddPoints(pData->m_aName, Points, pError, ErrorSize))
 				{
 					return false;
@@ -751,7 +761,7 @@ bool CScoreWorker::SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGam
 			bool SearchTeamEnd = false;
 			while(!SearchTeamEnd)
 			{
-				Time = pSqlServer->GetFloat(3);
+				Time = GetFloatOrDefault(pSqlServer, 3);
 				if(!Teamrank.NextSqlResult(pSqlServer, &SearchTeamEnd, pError, ErrorSize))
 				{
 					return false;
@@ -865,7 +875,7 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 	}
 	else
 	{
-		str_format(aRegionalRank, sizeof(aRegionalRank), "rank %d", pSqlServer->GetInt(1));
+		str_format(aRegionalRank, sizeof(aRegionalRank), "rank %d", GetIntOrDefault(pSqlServer, 1));
 	}
 
 	const char *pAny = "%";
@@ -885,8 +895,8 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 
 	if(!End)
 	{
-		int Rank = pSqlServer->GetInt(1);
-		float Time = pSqlServer->GetFloat(2);
+		int Rank = GetIntOrDefault(pSqlServer, 1);
+		float Time = GetFloatOrDefault(pSqlServer, 2);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aBuf, sizeof(aBuf));
 
 		if(g_Config.m_SvHideScore)
@@ -898,7 +908,7 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 		{
 			pResult->m_MessageKind = CScorePlayerResult::ALL;
 			// CEIL and FLOOR are not supported in SQLite
-			int BetterThanPercent = std::floor(100.0f - 100.0f * pSqlServer->GetFloat(3));
+			int BetterThanPercent = std::floor(100.0f - 100.0f * GetFloatOrDefault(pSqlServer, 3));
 
 			if(str_comp_nocase(pData->m_aRequestingPlayer, pData->m_aName) == 0)
 			{
@@ -974,11 +984,11 @@ bool CScoreWorker::ShowTeamRank(IDbConnection *pSqlServer, const ISqlData *pGame
 	}
 	if(!End)
 	{
-		float Time = pSqlServer->GetFloat(3);
+		float Time = GetFloatOrDefault(pSqlServer, 3);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aBuf, sizeof(aBuf));
-		int Rank = pSqlServer->GetInt(4);
+		int Rank = GetIntOrDefault(pSqlServer, 4);
 		// CEIL and FLOOR are not supported in SQLite
-		int BetterThanPercent = std::floor(100.0f - 100.0f * pSqlServer->GetFloat(5));
+		int BetterThanPercent = std::floor(100.0f - 100.0f * GetFloatOrDefault(pSqlServer, 5));
 		CTeamrank Teamrank;
 		if(!Teamrank.NextSqlResult(pSqlServer, &End, pError, ErrorSize))
 		{
@@ -1064,9 +1074,9 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	{
 		char aName[MAX_NAME_LENGTH];
 		pSqlServer->GetString(1, aName, sizeof(aName));
-		float Time = pSqlServer->GetFloat(2);
+		float Time = GetFloatOrDefault(pSqlServer, 2);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aTime, sizeof(aTime));
-		int Rank = pSqlServer->GetInt(3);
+		int Rank = GetIntOrDefault(pSqlServer, 3);
 		str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
 			"%d. %s Time: %s", Rank, aName, aTime);
 
@@ -1099,9 +1109,9 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	{
 		char aName[MAX_NAME_LENGTH];
 		pSqlServer->GetString(1, aName, sizeof(aName));
-		float Time = pSqlServer->GetFloat(2);
+		float Time = GetFloatOrDefault(pSqlServer, 2);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aTime, sizeof(aTime));
-		int Rank = pSqlServer->GetInt(3);
+		int Rank = GetIntOrDefault(pSqlServer, 3);
 		str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
 			"%d. %s Time: %s", Rank, aName, aTime);
 		Line++;
@@ -1258,9 +1268,9 @@ bool CScoreWorker::ShowPlayerTeamTop5(IDbConnection *pSqlServer, const ISqlData 
 
 		for(Line = 1; Line < 6; Line++) // print
 		{
-			float Time = pSqlServer->GetFloat(3);
+			float Time = GetFloatOrDefault(pSqlServer, 3);
 			str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aBuf, sizeof(aBuf));
-			int Rank = pSqlServer->GetInt(4);
+			int Rank = GetIntOrDefault(pSqlServer, 4);
 			CTeamrank Teamrank;
 			bool Last;
 			if(!Teamrank.NextSqlResult(pSqlServer, &Last, pError, ErrorSize))
@@ -1366,10 +1376,10 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 
 	do
 	{
-		float Time = pSqlServer->GetFloat(1);
+		float Time = GetFloatOrDefault(pSqlServer, 1);
 		str_time_float(Time, ETimeFormat::HOURS_CENTISECS, aBuf, sizeof(aBuf));
-		int Ago = pSqlServer->GetInt(2);
-		int Stamp = pSqlServer->GetInt(3);
+		int Ago = GetIntOrDefault(pSqlServer, 2);
+		int Stamp = GetIntOrDefault(pSqlServer, 3);
 		char aServer[5];
 		pSqlServer->GetString(4, aServer, sizeof(aServer));
 		char aServerFormatted[8] = "\0";
@@ -1442,8 +1452,8 @@ bool CScoreWorker::ShowPoints(IDbConnection *pSqlServer, const ISqlData *pGameDa
 	}
 	if(!End)
 	{
-		int Rank = pSqlServer->GetInt(1);
-		int Count = pSqlServer->GetInt(2);
+		int Rank = GetIntOrDefault(pSqlServer, 1);
+		int Count = GetIntOrDefault(pSqlServer, 2);
 		char aName[MAX_NAME_LENGTH];
 		pSqlServer->GetString(3, aName, sizeof(aName));
 		pResult->m_MessageKind = CScorePlayerResult::ALL;
@@ -1491,8 +1501,8 @@ bool CScoreWorker::ShowTopPoints(IDbConnection *pSqlServer, const ISqlData *pGam
 	int Line = 1;
 	while(pSqlServer->Step(&End, pError, ErrorSize) && !End)
 	{
-		int Rank = pSqlServer->GetInt(1);
-		int Points = pSqlServer->GetInt(2);
+		int Rank = GetIntOrDefault(pSqlServer, 1);
+		int Points = GetIntOrDefault(pSqlServer, 2);
 		char aName[MAX_NAME_LENGTH];
 		pSqlServer->GetString(3, aName, sizeof(aName));
 		str_format(paMessages[Line], sizeof(paMessages[Line]),
@@ -1832,7 +1842,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 		return true;
 	}
 
-	int Since = pSqlServer->GetInt(2);
+	int Since = GetIntOrDefault(pSqlServer, 2);
 	if(Since < g_Config.m_SvSaveSwapGamesDelay)
 	{
 		str_format(pResult->m_aMessage, sizeof(pResult->m_aMessage),
@@ -1922,11 +1932,11 @@ bool CScoreWorker::GetSaves(IDbConnection *pSqlServer, const ISqlData *pGameData
 	}
 	if(!End)
 	{
-		int NumSaves = pSqlServer->GetInt(1);
+		int NumSaves = GetIntOrDefault(pSqlServer, 1);
 		char aLastSavedString[60] = "\0";
 		if(!pSqlServer->IsNull(2))
 		{
-			int Ago = pSqlServer->GetInt(2);
+			int Ago = GetIntOrDefault(pSqlServer, 2);
 			char aAgoString[40] = "\0";
 			sqlstr::AgoTimeToString(Ago, aAgoString, sizeof(aAgoString));
 			str_format(aLastSavedString, sizeof(aLastSavedString), ", last saved %s ago", aAgoString);
@@ -2035,7 +2045,7 @@ bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlD
 	bool End2;
 	if(!pSqlServer->Step(&End2, pError, ErrorSize))
 		return false;
-	int MapPoints = End2 ? 0 : pSqlServer->GetInt(1);
+	int MapPoints = End2 ? 0 : GetIntOrDefault(pSqlServer, 1);
 
 	str_format(aBuf, sizeof(aBuf),
 		"UPDATE %s_points SET Points = Points - ? WHERE Name = ?",
@@ -2081,7 +2091,7 @@ bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const I
 	bool End;
 	if(!pSqlServer->Step(&End, pError, ErrorSize))
 		return false;
-	int NumRemaining = pSqlServer->GetInt(1);
+	int NumRemaining = GetIntOrDefault(pSqlServer, 1);
 
 	int NumUpdatedPoints = 0;
 	if(NumRemaining == 0)
@@ -2096,7 +2106,7 @@ bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const I
 		bool End2;
 		if(!pSqlServer->Step(&End2, pError, ErrorSize))
 			return false;
-		int MapPoints = End2 ? 0 : pSqlServer->GetInt(1);
+		int MapPoints = End2 ? 0 : GetIntOrDefault(pSqlServer, 1);
 
 		str_format(aBuf, sizeof(aBuf),
 			"UPDATE %s_points SET Points = Points - ? WHERE Name = ?",
@@ -2167,8 +2177,8 @@ bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGame
 	{
 		pSqlServer->GetString(1, pReq->m_aServer, sizeof(pReq->m_aServer));
 		pSqlServer->GetString(2, pReq->m_aMapper, sizeof(pReq->m_aMapper));
-		pReq->m_Points = pSqlServer->GetInt(3);
-		pReq->m_Stars = pSqlServer->GetInt(4);
+		pReq->m_Points = GetIntOrDefault(pSqlServer, 3);
+		pReq->m_Stars = GetIntOrDefault(pSqlServer, 4);
 		pSqlServer->GetString(5, pReq->m_aTimestamp, sizeof(pReq->m_aTimestamp));
 
 		if(pReq->m_pGameServer)

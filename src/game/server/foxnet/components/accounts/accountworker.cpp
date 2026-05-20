@@ -14,6 +14,16 @@
 
 #include <cinttypes>
 
+static int GetIntOrDefault(IDbConnection *pSql, int Col, int DefaultValue = 0)
+{
+	return pSql->IsNull(Col) ? DefaultValue : pSql->GetInt(Col);
+}
+
+static int64_t GetInt64OrDefault(IDbConnection *pSql, int Col, int64_t DefaultValue = 0)
+{
+	return pSql->IsNull(Col) ? DefaultValue : pSql->GetInt64(Col);
+}
+
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
 	// Clear current inventory & cosmetics
@@ -34,10 +44,10 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	{
 		char aItemName[64];
 		pSql->GetString(1, aItemName, sizeof(aItemName));
-		const int Quantity = pSql->GetInt(2);
-		const int Value = pSql->GetInt(3);
-		const int64_t AcquiredAt = pSql->GetInt64(4);
-		const int64_t ExpiresAt = pSql->GetInt64(5);
+		const int Quantity = GetIntOrDefault(pSql, 2);
+		const int Value = GetIntOrDefault(pSql, 3);
+		const int64_t AcquiredAt = GetInt64OrDefault(pSql, 4);
+		const int64_t ExpiresAt = GetInt64OrDefault(pSql, 5);
 
 		auto &Entry = Inv.Entry(aItemName);
 		Entry.m_Quantity = Quantity;
@@ -180,13 +190,13 @@ static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &Ma
 	while(!End)
 	{
 		CMailBox::CMail Mail;
-		Mail.m_MailId = pSql->GetInt64(1);
+		Mail.m_MailId = GetInt64OrDefault(pSql, 1);
 		pSql->GetString(2, Mail.m_aSubject, sizeof(Mail.m_aSubject));
 		pSql->GetString(3, Mail.m_aMessage, sizeof(Mail.m_aMessage));
 		pSql->GetString(4, Mail.m_aCmd, sizeof(Mail.m_aCmd));
 		pSql->GetString(5, Mail.m_aCmdName, sizeof(Mail.m_aCmdName));
-		Mail.m_UsedCmd = pSql->GetInt(6) != 0;
-		Mail.m_Unread = pSql->GetInt(7) != 0;
+		Mail.m_UsedCmd = GetIntOrDefault(pSql, 6) != 0;
+		Mail.m_Unread = GetIntOrDefault(pSql, 7) != 0;
 		MailBox.m_vMails.push_back(Mail);
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
@@ -315,7 +325,7 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 	{
 		char aKey[65] = {0};
 		pSql->GetString(1, aKey, sizeof(aKey));
-		const int Value = pSql->GetInt(2);
+		const int Value = GetIntOrDefault(pSql, 2);
 		const bool On = Value != 0;
 
 		if(!str_comp(aKey, g_apAccConfigNames[CONFIG_AUTLOGIN]))
@@ -446,22 +456,22 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	{
 		int Param = 1;
 		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pRes->m_RegisterDate = GetInt64OrDefault(pSql, Param++);
 		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
 		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
 		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(Param++);
-		pRes->m_LastLogin = pSql->GetInt64(Param++);
-		pRes->m_Port = pSql->GetInt(Param++);
-		pRes->m_ClientId = pSql->GetInt(Param++);
-		pRes->m_Playtime = pSql->GetInt64(Param++);
-		pRes->m_Deaths = pSql->GetInt64(Param++);
-		pRes->m_Kills = pSql->GetInt64(Param++);
-		pRes->m_Level = pSql->GetInt64(Param++);
-		pRes->m_XP = pSql->GetInt64(Param++);
-		pRes->m_Money = pSql->GetInt64(Param++);
-		pRes->m_Disabled = pSql->GetInt(Param++);
+		pRes->m_LoggedIn = GetIntOrDefault(pSql, Param++);
+		pRes->m_LastLogin = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Port = GetIntOrDefault(pSql, Param++);
+		pRes->m_ClientId = GetIntOrDefault(pSql, Param++);
+		pRes->m_Playtime = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Deaths = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Kills = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Level = GetInt64OrDefault(pSql, Param++);
+		pRes->m_XP = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Money = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Disabled = GetIntOrDefault(pSql, Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 	}
@@ -649,7 +659,7 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		"SELECT Username, RegisterDate, PlayerName, LastPlayerName, CurrentIP, LastIP, "
 		"LoggedIn, LastLogin, Port, ClientId, Playtime, Deaths, Kills, "
 		"Level, XP, Money, Disabled "
-		"FROM foxnet_accounts WHERE LastPlayerName = ?"
+		"FROM foxnet_accounts WHERE LastPlayerName = ? "
 		"ORDER BY LastLogin DESC "
 		"LIMIT 1",
 		sizeof(aSql));
@@ -665,22 +675,22 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 	{
 		int Param = 1;
 		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pRes->m_RegisterDate = GetInt64OrDefault(pSql, Param++);
 		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
 		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
 		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(Param++);
-		pRes->m_LastLogin = pSql->GetInt64(Param++);
-		pRes->m_Port = pSql->GetInt(Param++);
-		pRes->m_ClientId = pSql->GetInt(Param++);
-		pRes->m_Playtime = pSql->GetInt64(Param++);
-		pRes->m_Deaths = pSql->GetInt64(Param++);
-		pRes->m_Kills = pSql->GetInt64(Param++);
-		pRes->m_Level = pSql->GetInt64(Param++);
-		pRes->m_XP = pSql->GetInt64(Param++);
-		pRes->m_Money = pSql->GetInt64(Param++);
-		pRes->m_Disabled = pSql->GetInt(Param++);
+		pRes->m_LoggedIn = GetIntOrDefault(pSql, Param++);
+		pRes->m_LastLogin = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Port = GetIntOrDefault(pSql, Param++);
+		pRes->m_ClientId = GetIntOrDefault(pSql, Param++);
+		pRes->m_Playtime = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Deaths = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Kills = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Level = GetInt64OrDefault(pSql, Param++);
+		pRes->m_XP = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Money = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Disabled = GetIntOrDefault(pSql, Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
@@ -719,22 +729,22 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 	{
 		int Param = 1;
 		pSql->GetString(Param++, pRes->m_aUsername, sizeof(pRes->m_aUsername));
-		pRes->m_RegisterDate = pSql->GetInt64(Param++);
+		pRes->m_RegisterDate = GetInt64OrDefault(pSql, Param++);
 		pSql->GetString(Param++, pRes->m_PlayerName, sizeof(pRes->m_PlayerName));
 		pSql->GetString(Param++, pRes->m_LastPlayerName, sizeof(pRes->m_LastPlayerName));
 		pSql->GetString(Param++, pRes->m_CurrentIP, sizeof(pRes->m_CurrentIP));
 		pSql->GetString(Param++, pRes->m_LastIP, sizeof(pRes->m_LastIP));
-		pRes->m_LoggedIn = pSql->GetInt(Param++);
-		pRes->m_LastLogin = pSql->GetInt64(Param++);
-		pRes->m_Port = pSql->GetInt(Param++);
-		pRes->m_ClientId = pSql->GetInt(Param++);
-		pRes->m_Playtime = pSql->GetInt64(Param++);
-		pRes->m_Deaths = pSql->GetInt64(Param++);
-		pRes->m_Kills = pSql->GetInt64(Param++);
-		pRes->m_Level = pSql->GetInt64(Param++);
-		pRes->m_XP = pSql->GetInt64(Param++);
-		pRes->m_Money = pSql->GetInt64(Param++);
-		pRes->m_Disabled = pSql->GetInt(Param++);
+		pRes->m_LoggedIn = GetIntOrDefault(pSql, Param++);
+		pRes->m_LastLogin = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Port = GetIntOrDefault(pSql, Param++);
+		pRes->m_ClientId = GetIntOrDefault(pSql, Param++);
+		pRes->m_Playtime = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Deaths = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Kills = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Level = GetInt64OrDefault(pSql, Param++);
+		pRes->m_XP = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Money = GetInt64OrDefault(pSql, Param++);
+		pRes->m_Disabled = GetIntOrDefault(pSql, Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
@@ -765,14 +775,17 @@ bool CAccountsWorker::SelectPortByUsername(IDbConnection *pSql, const ISqlData *
 		return false;
 	if(!End)
 	{
-		pRes->m_Port = pSql->GetInt(1);
+		pRes->m_Port = GetIntOrDefault(pSql, 1);
 		pRes->m_Success = true;
 	}
 	pRes->m_Completed.store(true);
 	return true;
 }
-bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
+	if(w != Write::NORMAL)
+		return true;
+
 	const auto *pReq = dynamic_cast<const CAccShowTop5 *>(pData);
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
 	if(!pReq || !pRes)
@@ -828,7 +841,7 @@ bool CAccountsWorker::ShowTop5(IDbConnection *pSql, const ISqlData *pData, Write
 		int Param = 1;
 		pSql->GetString(Param++, aUsername, sizeof(aUsername));
 		pSql->GetString(Param++, aPlayerName, sizeof(aPlayerName));
-		const int64_t Metric = pSql->GetInt64(Param++);
+		const int64_t Metric = GetInt64OrDefault(pSql, Param++);
 
 		const char *pName = aPlayerName[0] ? aPlayerName : aUsername;
 
@@ -985,7 +998,7 @@ bool CAccountsWorker::SetMailRead(IDbConnection *pSql, const ISqlData *pData, Wr
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 	int Param = 1;
-	pSql->BindInt(Param++, pReq->m_Read);
+	pSql->BindInt(Param++, pReq->m_Read ? 0 : 1);
 	pSql->BindString(Param++, pReq->m_aUsername);
 	pSql->BindInt64(Param++, pReq->m_MailId);
 
@@ -1107,7 +1120,7 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 		bool End = true;
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
-		MailId = End ? 1 : pSql->GetInt64(1);
+		MailId = End ? 1 : GetInt64OrDefault(pSql, 1);
 	}
 
 	char aInsert[512];

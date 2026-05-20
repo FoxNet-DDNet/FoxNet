@@ -9,10 +9,10 @@
 
 #include <game/server/player.h>
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -79,10 +79,10 @@ public:
 	{
 	public:
 		int64_t m_MailId;
-		char m_aSubject[64];
-		char m_aMessage[512];
-		char m_aCmd[256];
-		char m_aCmdName[128];
+		char m_aSubject[512];
+		char m_aMessage[2048];
+		char m_aCmd[4096];
+		char m_aCmdName[4096];
 		bool m_UsedCmd;
 		bool m_Unread;
 	};
@@ -141,16 +141,16 @@ class CAccountSession
 {
 public:
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
-    int64_t m_RegisterDate = 0;
+	int64_t m_RegisterDate = 0;
 	char m_aName[MAX_NAME_LENGTH] = "";
 	char m_aLastName[MAX_NAME_LENGTH] = "";
 	char m_aCurrentIp[NETADDR_MAXSTRSIZE] = "";
 	char m_aLastIp[NETADDR_MAXSTRSIZE] = "";
 	bool m_LoggedIn = false;
-   int64_t m_LastLogin = 0;
+	int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;
- int64_t m_Playtime = 0; // Minutes
+	int64_t m_Playtime = 0; // Minutes
 	int64_t m_Deaths = 0;
 	int64_t m_Kills = 0;
 	int64_t m_Level = 0;
@@ -163,7 +163,7 @@ public:
 	bool m_Disabled = false;
 
 	CMailBox m_MailBox;
-   int64_t m_LastMailboxFetch = 0; // unix seconds of last successful fetch
+	int64_t m_LastMailboxFetch = 0; // unix seconds of last successful fetch
 	bool m_MailboxFetchPending = false;
 
 	CAccConfigs m_Configs;

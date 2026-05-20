@@ -109,6 +109,11 @@ public:
 	bool AddPoints(const char *pPlayer, int Points, char *pError, int ErrorSize) override;
 
 private:
+	struct SMyBool
+	{
+		my_bool m_Value;
+	};
+
 	class CStmtDeleter
 	{
 	public:
@@ -135,6 +140,11 @@ private:
 	std::unique_ptr<MYSQL_STMT, CStmtDeleter> m_pStmt = nullptr;
 	std::vector<MYSQL_BIND> m_vStmtParameters;
 	std::vector<UParameterExtra> m_vStmtParameterExtras;
+	std::vector<MYSQL_BIND> m_vStmtResults;
+	std::vector<unsigned long> m_vStmtResultLengths;
+	std::vector<SMyBool> m_vStmtResultIsNull;
+	std::vector<SMyBool> m_vStmtResultErrors;
+	std::vector<unsigned char> m_vStmtResultDummy;
 
 	// copy of m_Config vars
 	CMysqlConfig m_Config;
@@ -360,6 +370,11 @@ bool CMysqlConnection::PrepareStatement(const char *pStmt, char *pError, int Err
 		mem_zero(m_vStmtParameters.data(), sizeof(m_vStmtParameters[0]) * m_vStmtParameters.size());
 		mem_zero(m_vStmtParameterExtras.data(), sizeof(m_vStmtParameterExtras[0]) * m_vStmtParameterExtras.size());
 	}
+	m_vStmtResults.clear();
+	m_vStmtResultLengths.clear();
+	m_vStmtResultIsNull.clear();
+	m_vStmtResultErrors.clear();
+	m_vStmtResultDummy.clear();
 	return true;
 }
 
@@ -482,6 +497,33 @@ bool CMysqlConnection::Step(bool *pEnd, char *pError, int ErrorSize)
 			str_copy(pError, m_aErrorDetail, ErrorSize);
 			return false;
 		}
+
+		unsigned NumColumns = mysql_stmt_field_count(m_pStmt.get());
+		m_vStmtResults.resize(NumColumns);
+		m_vStmtResultLengths.resize(NumColumns);
+		m_vStmtResultIsNull.resize(NumColumns);
+		m_vStmtResultErrors.resize(NumColumns);
+		m_vStmtResultDummy.resize(NumColumns);
+		if(NumColumns)
+		{
+			mem_zero(m_vStmtResults.data(), sizeof(m_vStmtResults[0]) * m_vStmtResults.size());
+			for(unsigned i = 0; i < NumColumns; i++)
+			{
+				m_vStmtResults[i].buffer_type = MYSQL_TYPE_STRING;
+				m_vStmtResults[i].buffer = &m_vStmtResultDummy[i];
+				m_vStmtResults[i].buffer_length = sizeof(m_vStmtResultDummy[i]);
+				m_vStmtResults[i].length = &m_vStmtResultLengths[i];
+				m_vStmtResults[i].is_null = &m_vStmtResultIsNull[i].m_Value;
+				m_vStmtResults[i].is_unsigned = false;
+				m_vStmtResults[i].error = &m_vStmtResultErrors[i].m_Value;
+			}
+			if(mysql_stmt_bind_result(m_pStmt.get(), m_vStmtResults.data()))
+			{
+				StoreErrorStmt("bind_result");
+				str_copy(pError, m_aErrorDetail, ErrorSize);
+				return false;
+			}
+		}
 	}
 	int Result = mysql_stmt_fetch(m_pStmt.get());
 	if(Result == 1)
@@ -523,23 +565,8 @@ bool CMysqlConnection::ExecuteUpdate(int *pNumUpdated, char *pError, int ErrorSi
 bool CMysqlConnection::IsNull(int Col)
 {
 	Col -= 1;
-
-	MYSQL_BIND Bind;
-	my_bool IsNull;
-	mem_zero(&Bind, sizeof(Bind));
-	Bind.buffer_type = MYSQL_TYPE_NULL;
-	Bind.buffer = nullptr;
-	Bind.buffer_length = 0;
-	Bind.length = nullptr;
-	Bind.is_null = &IsNull;
-	Bind.is_unsigned = false;
-	Bind.error = nullptr;
-	if(mysql_stmt_fetch_column(m_pStmt.get(), &Bind, Col, 0))
-	{
-		StoreErrorStmt("fetch_column:null");
-		dbg_assert_failed("Error in IsNull(%d): error fetching column %s", Col + 1, m_aErrorDetail);
-	}
-	return IsNull;
+	dbg_assert(0 <= Col && Col < (int)m_vStmtResultIsNull.size(), "Error in IsNull: index out of bounds: %d", Col + 1);
+	return m_vStmtResultIsNull[Col].m_Value != 0;
 }
 
 float CMysqlConnection::GetFloat(int Col)
@@ -642,7 +669,10 @@ void CMysqlConnection::GetString(int Col, char *pBuffer, int BufferSize)
 		dbg_assert_failed("Error in GetString(%d): error fetching column %s", Col + 1, m_aErrorDetail);
 	}
 	dbg_assert(!IsNull, "Error in GetString(%d): NULL", Col + 1);
-	dbg_assert(!Error, "Error in GetString(%d): truncation occurred", Col + 1);
+ if(Error)
+	{
+		dbg_msg("mysql", "GetString(%d): truncation occurred", Col + 1);
+	}
 }
 
 int CMysqlConnection::GetBlob(int Col, unsigned char *pBuffer, int BufferSize)
