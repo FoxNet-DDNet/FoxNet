@@ -816,7 +816,7 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 	}
 
 	float BestScore = -1.0f;
-	vec2 BestPos;
+	vec2 BestPos = vec2(0.0f, 0.0f);
 	for(int k = 0; k < 32; ++k)
 	{
 		vec2 Pos;
