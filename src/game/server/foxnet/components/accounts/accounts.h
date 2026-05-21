@@ -211,16 +211,16 @@ public:
 	bool ForceLogin(int ClientId, const char *pUsername, bool Silent = false, bool Auto = false);
 
 	void Login(int ClientId, const char *pUsername, const char *pPassword);
-	bool Logout(int ClientId); // immediate
+	bool Logout(int ClientId, bool WaitForCompletion = false); // immediate
 
 	void OnLogin(int ClientId, struct CAccResult &Res);
-	void OnLogout(int ClientId, CAccountSession &AccInfo);
+	void OnLogout(int ClientId, CAccountSession &AccInfo, bool WaitForCompletion = false);
 
 	void SaveAccountsInfo(int ClientId, CAccountSession &AccInfo);
 	void DisableAccount(const char *pUsername, bool Disable);
 	void DeleteAccount(int ClientId, const char *pUsername);
 
-	void LogoutAllAccountsPort(int Port, const char *pInstance);
+	void LogoutAllAccountsPort(int Port, const char *pInstance, bool WaitForCompletion = false);
 	void ShowAccProfile(int ClientId, const char *pName);
 
 	void SaveAllAccounts();

@@ -19,17 +19,19 @@
 
 #include <game/server/foxnet/components/shop.h>
 #include <game/server/foxnet/components/votemenu.h>
+#include <game/server/foxnet/fontconvert.h>
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-#include <game/server/foxnet/fontconvert.h>
 
+#include <chrono>
 #include <cinttypes>
 #include <cstdint>
 #include <ctime>
 #include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -269,6 +271,30 @@ void CAccounts::AddPending(const std::shared_ptr<CAccResult> &pRes, std::functio
 static bool IsExpectedPlayerStillInSlot(CGameContext *pGameServer, int ClientId, const CPlayer *pExpectedPlayer)
 {
 	return ClientId >= 0 && ClientId < MAX_CLIENTS && !pGameServer->Server()->ClientSlotEmpty(ClientId) && pGameServer->m_apPlayers[ClientId] == pExpectedPlayer;
+}
+
+static bool WaitForSqlCompletion(const std::shared_ptr<ISqlResult> &pResult, const char *pName)
+{
+	if(!pResult)
+		return false;
+
+	constexpr int64_t TimeoutSeconds = 10;
+	const int64_t Start = time_get();
+	const int64_t Timeout = TimeoutSeconds * time_freq();
+	while(!pResult->m_Completed.load(std::memory_order_acquire))
+	{
+		if(time_get() - Start >= Timeout)
+		{
+			log_error("sql", "%s timed out during shutdown", pName);
+			return false;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
+	if(!pResult->m_Success)
+		log_error("sql", "%s failed during shutdown", pName);
+
+	return pResult->m_Success;
 }
 
 SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
@@ -573,11 +599,11 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLoginState, std::move(pUpd), "acc update login");
 }
 
-bool CAccounts::Logout(int ClientId)
+bool CAccounts::Logout(int ClientId, bool WaitForCompletion)
 {
 	if(GameServer()->m_aAccounts[ClientId].m_LoggedIn)
 	{
-		OnLogout(ClientId, GameServer()->m_aAccounts[ClientId]);
+		OnLogout(ClientId, GameServer()->m_aAccounts[ClientId], WaitForCompletion);
 		GameServer()->OnLogout(ClientId);
 		GameServer()->m_aAccounts[ClientId] = CAccountSession();
 		return true;
@@ -585,11 +611,15 @@ bool CAccounts::Logout(int ClientId)
 	return false;
 }
 
-void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo)
+void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo, bool WaitForCompletion)
 {
 	if(!DbPool())
 		return;
+	std::shared_ptr<CAccResult> pRes;
+	if(WaitForCompletion)
+		pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSaveInfo>();
+	pReq->m_pResult = pRes;
 	str_copy(pReq->m_aUsername, AccInfo.m_aUsername, sizeof(pReq->m_aUsername));
 	pReq->m_Playtime = AccInfo.m_Playtime;
 	pReq->m_Deaths = AccInfo.m_Deaths;
@@ -600,9 +630,11 @@ void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo)
 	pReq->m_Inventory = AccInfo.m_Inventory;
 	pReq->m_Configs = AccInfo.m_Configs;
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
+	if(WaitForCompletion)
+		WaitForSqlCompletion(pRes, "acc update logout");
 }
 
-void CAccounts::LogoutAllAccountsPort(int Port, const char *pInstance)
+void CAccounts::LogoutAllAccountsPort(int Port, const char *pInstance, bool WaitForCompletion)
 {
 	if(!DbPool())
 		return;
@@ -626,11 +658,17 @@ void CAccounts::LogoutAllAccountsPort(int Port, const char *pInstance)
 		int NumUpdated = 0;
 		return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 	};
+	std::shared_ptr<CAccResult> pRes;
+	if(WaitForCompletion)
+		pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CSqlLogoutByPort>();
+	pReq->m_pResult = pRes;
 	pReq->m_Port = Port;
 	if(pInstance)
 		str_copy(pReq->m_aInstance, pInstance, sizeof(pReq->m_aInstance));
 	DbPool()->ExecuteWrite(Fn, std::move(pReq), "acc bulk logout by port");
+	if(WaitForCompletion)
+		WaitForSqlCompletion(pRes, "acc bulk logout by port");
 }
 
 bool CAccounts::ChangePassword(int ClientId, const char *pOldPassword, const char *pNewPassword)

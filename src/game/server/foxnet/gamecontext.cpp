@@ -1292,10 +1292,10 @@ void CGameContext::OnPreShutdown()
 		if(!pPlayer)
 			continue;
 
-		m_AccountManager.Logout(i);
+		m_AccountManager.Logout(i, true);
 	}
 
-	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance); // Save all info before CPlayer is destroyed
+	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance, true); // Save all info before CPlayer is destroyed
 }
 
 void CGameContext::OnPreReload()
