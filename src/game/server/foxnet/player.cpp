@@ -209,9 +209,7 @@ void CPlayer::GivePlaytime(int64_t Amount)
 	Acc()->m_Playtime++;
 	if(Acc()->m_Playtime % 60 == 0)
 	{
-		char aBuf[256];
-		str_format(aBuf, sizeof(aBuf), "+%d%s for reaching %" PRId64 " Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
-		GameServer()->SendChatTarget(m_ClientId, aBuf);
+		SendChatFmt("+%d%s for reaching %" PRId64 " Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
 		GiveMoney(g_Config.m_SvPlaytimeMoney, false);
 	}
 }
@@ -226,13 +224,8 @@ void CPlayer::GiveXP(int64_t Amount, const char *pMessage, bool Multiplier)
 
 	Acc()->m_XP += Amount;
 
-	char aBuf[256];
-
 	if(pMessage[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "+%" PRId64 " XP %s", Amount, pMessage);
-		GameServer()->SendChatTarget(m_ClientId, aBuf);
-	}
+		SendChatFmt("+%" PRId64 " XP %s", Amount, pMessage);
 
 	CheckLevelUp();
 }
@@ -240,7 +233,6 @@ void CPlayer::GiveXP(int64_t Amount, const char *pMessage, bool Multiplier)
 bool CPlayer::CheckLevelUp(bool Silent)
 {
 	bool LeveledUp = false;
-	char aBuf[256];
 
 	// Level up as long as we have enough XP for the current level
 	while(true)
@@ -349,15 +341,14 @@ bool CPlayer::CheckLevelUp(bool Silent)
 
 	if(LeveledUp && !Silent)
 	{
-		str_format(aBuf, sizeof(aBuf), "You are now level %" PRId64 "!", Acc()->m_Level);
-		GameServer()->SendChatTarget(m_ClientId, aBuf);
+		SendChatFmt("You are now level %" PRId64 "!", Acc()->m_Level);
 
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 		{
-			if(GameServer()->m_apPlayers[ClientId] && ClientId != m_ClientId)
+			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+			if(pPlayer && ClientId != m_ClientId)
 			{
-				str_format(aBuf, sizeof(aBuf), "'%s' leveled up to level %" PRId64 "!", Server()->ClientName(m_ClientId), Acc()->m_Level);
-				GameServer()->SendChatTarget(ClientId, aBuf);
+				pPlayer->SendChatFmt("'%s' leveled up to level %" PRId64 "!", Server()->ClientName(m_ClientId), Acc()->m_Level);
 			}
 		}
 
@@ -409,31 +400,36 @@ void CPlayer::PayMoney(CPlayer *pReceiver, int64_t Amount)
 		return;
 	if(Amount <= 0)
 		return;
+
+	if(!CanUseMoney())
+	{
+		SendChat("You can't use money right now");
+		return;
+	}
+
 	if(Acc()->m_Level < 10)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "You need to be at least level 10 to do transactions.");
+		SendChat("You need to be at least level 10 to do transactions.");
 		return;
 	}
 	if(Acc()->m_Money < Amount)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "You don't have enough money to do this transaction.");
+		SendChat("You don't have enough money to do this transaction.");
 		return;
 	}
+
 	constexpr int Cooldown = 300; // 5 minutes cooldown between transactions to prevent abuse
 	if(m_LastTransaction != 0 && Server()->Tick() - m_LastTransaction < Server()->TickSpeed() * Cooldown)
 	{
-		GameServer()->SendChatTarget(m_ClientId, "You need to wait a bit before doing another transaction.");
+		SendChat("You need to wait a bit before doing another transaction.");
 		return;
 	}
-	char aBuf[256];
 
 	TakeMoney(Amount, false);
 	pReceiver->GiveMoney(Amount, false, false);
 
-	str_format(aBuf, sizeof(aBuf), "You paid %s %" PRId64 "%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
-	GameServer()->SendChatTarget(m_ClientId, aBuf);
-	str_format(aBuf, sizeof(aBuf), "You received %" PRId64 "%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
-	GameServer()->SendChatTarget(pReceiver->GetCid(), aBuf);
+	SendChatFmt("You paid %s %" PRId64 "%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
+	pReceiver->SendChatFmt("You received %" PRId64 "%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
 	m_LastTransaction = Server()->Tick();
 }
 
@@ -1018,16 +1014,11 @@ void CPlayer::SetAbility(int Type)
 
 	Cosmetics()->m_Ability = Type;
 
-	int ClientId = GetCid();
-
 	if(Cosmetics()->m_Ability <= ABILITY_NONE)
 		return;
 
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Ability set to %s", GetAbilityName(Cosmetics()->m_Ability));
-	GameServer()->SendChatTarget(ClientId, aBuf);
-
-	GameServer()->SendChatTarget(ClientId, "Use f3 (Vote Yes) to use your Ability");
+	SendChatFmt("Ability set to %s", GetAbilityName(Cosmetics()->m_Ability));
+	SendChat("Use f3 (Vote Yes) to use your Ability");
 }
 
 void CPlayer::DisableAllCosmetics()
@@ -1114,6 +1105,7 @@ void CPlayer::SendChat(const char *pMsg)
 {
 	GameServer()->SendChatTarget(GetCid(), pMsg);
 }
+
 void CPlayer::SendChatFmt(const char *pFmt, ...)
 {
 	char aBuf[1024];

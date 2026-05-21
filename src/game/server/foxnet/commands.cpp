@@ -66,29 +66,29 @@ void CGameContext::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
 		return;
 	if(!pPlayer->Acc()->m_LoggedIn)
 	{
-		pSelf->SendChatTarget(UserId, "You need to be logged in for this.");
+		pPlayer->SendChat("You need to be logged in for this.");
 		return;
 	}
 	int Victim = pSelf->ClientIdByName(pName);
 	if(!CheckClientId(Victim))
 	{
-		pSelf->SendChatTarget(UserId, "Player not found");
+		pPlayer->SendChat("Player not found");
 		return;
 	}
 	CPlayer *pVictim = pSelf->m_apPlayers[Victim];
 	if(!pVictim)
 	{
-		pSelf->SendChatTarget(UserId, "Player not found");
+		pPlayer->SendChat("Player not found");
 		return;
 	}
 	if(Victim == UserId)
 	{
-		pSelf->SendChatTarget(UserId, "You can't pay yourself");
+		pPlayer->SendChat("You can't pay yourself");
 		return;
 	}
 	if(!pVictim->Acc()->m_LoggedIn)
 	{
-		pSelf->SendChatTarget(UserId, "Player isn't logged in");
+		pPlayer->SendChat("Player isn't logged in");
 		return;
 	}
 
@@ -1388,8 +1388,8 @@ void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
 
 	if(!pResult->NumArguments())
 	{
-		pSelf->SendChatTarget(pResult->m_ClientId, "You need to specify your client prediction margin");
-		pSelf->SendChatTarget(pResult->m_ClientId, "10 is the default.");
+		pPlayer->SendChat("You need to specify your client prediction margin");
+		pPlayer->SendChat("10 is the default.");
 		return;
 	}
 
@@ -1408,9 +1408,9 @@ void CGameContext::ConPowerups(IConsole::IResult *pResult, void *pUserData)
 
 	pPlayer->SetHidePowerUps(!pPlayer->Acc()->m_Configs.m_HidePowerUps);
 	if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
-		pSelf->SendChatTarget(pResult->m_ClientId, "Powerups are now hidden");
+		pPlayer->SendChat("Powerups are now hidden");
 	else
-		pSelf->SendChatTarget(pResult->m_ClientId, "Powerups are now shown");
+		pPlayer->SendChat("Powerups are now shown");
 }
 
 void CGameContext::ConCosmetics(IConsole::IResult *pResult, void *pUserData)
@@ -1423,9 +1423,9 @@ void CGameContext::ConCosmetics(IConsole::IResult *pResult, void *pUserData)
 
 	pPlayer->Acc()->m_Configs.ToggleCosmetics();
 	if(pPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowRainbow)
-		pSelf->SendChatTarget(pResult->m_ClientId, "All Cosmetics are now shown");
+		pPlayer->SendChat("All Cosmetics are now shown");
 	else
-		pSelf->SendChatTarget(pResult->m_ClientId, "All Cosmetics are now hidden");
+		pPlayer->SendChat("All Cosmetics are now hidden");
 }
 
 void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
@@ -1444,13 +1444,13 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 
 	if(!pPlayer->Acc()->m_LoggedIn)
 	{
-		pSelf->SendChatTarget(ClientId, "You need to be logged in for this");
+		pPlayer->SendChat("You need to be logged in for this");
 		return;
 	}
 
 	if(pPlayer->m_Area == EArea::Game)
 	{
-		pSelf->SendChatTarget(ClientId, "You need to be in an area where you can place a bet");
+		pPlayer->SendChat("You need to be in an area where you can place a bet");
 		return;
 	}
 
@@ -1458,7 +1458,7 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 	const int64_t Money = pPlayer->Acc()->m_Money;
 	if(Amount > Money)
 	{
-		pSelf->SendChatTarget(ClientId, "You don't have enough money to place that bet");
+		pPlayer->SendChat("You don't have enough money to place that bet");
 		return;
 	}
 
@@ -1467,13 +1467,10 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_BetAmount == Amount)
 		return;
 
-	char aBuf[64];
 	if(pPlayer->m_BetAmount <= 0)
-		str_format(aBuf, sizeof(aBuf), "You wagered %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
+		pPlayer->SendChatFmt("You wagered %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 	else
-		str_format(aBuf, sizeof(aBuf), "You changed your wager to %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
-
-	pSelf->SendChatTarget(ClientId, aBuf);
+		pPlayer->SendChatFmt("You changed your wager to %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 
 	pPlayer->m_BetAmount = Amount;
 	pPlayer->m_LastBet = pSelf->Server()->Tick();
@@ -1492,7 +1489,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 
 	if(!g_Config.m_DcReportsWebhookUrl[0] || !g_Config.m_SvAccounts)
 	{
-		pSelf->SendChatTarget(ClientId, "Reporting is not enabled on this server.");
+		pPlayer->SendChat("Reporting is not enabled on this server.");
 		return;
 	}
 
@@ -1502,19 +1499,19 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 
 	if(!str_comp_nocase(pAgainst, pFrom))
 	{
-		pSelf->SendChatTarget(ClientId, "You can't report yourself.");
+		pPlayer->SendChat("You can't report yourself.");
 		return;
 	}
 
 	if(!pPlayer->Acc()->m_LoggedIn)
 	{
-		pSelf->SendChatTarget(ClientId, "You need to be logged in for this.");
+		pPlayer->SendChat("You need to be logged in for this.");
 		return;
 	}
 
 	if(!pPlayer->CanReport())
 	{
-		pSelf->SendChatTarget(ClientId, "You need to wait a bit until you can report.");
+		pPlayer->SendChat("You need to wait a bit until you can report.");
 		return;
 	}
 
@@ -1534,7 +1531,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 	}
 	if(!Found)
 	{
-		pSelf->SendChatTarget(ClientId, "Player not found.");
+		pPlayer->SendChat("Player not found.");
 		return;
 	}
 
@@ -1557,7 +1554,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
 
 	pPlayer->m_LastReport = pSelf->Server()->Tick();
-	pSelf->SendChatTarget(ClientId, "Report sent!");
+	pPlayer->SendChat("Report sent!");
 }
 
 void CGameContext::ConLaserText(IConsole::IResult *pResult, void *pUserData)
@@ -2220,7 +2217,7 @@ void CGameContext::ConchainAccounts(IConsole::IResult *pResult, void *pUserData,
 			{
 				pPlayer->SetPage(PAGE_MAIN);
 				if(pPlayer->Acc()->m_LoggedIn && pSelf->m_AccountManager.Logout(ClientId))
-					pSelf->SendChatTarget(ClientId, "You have been logged out because accounts have been disabled on this server.");
+					pPlayer->SendChat("You have been logged out because accounts have been disabled on this server.");
 
 				pSelf->m_AccountManager.Logout(ClientId);
 			}
@@ -2267,7 +2264,7 @@ void CGameContext::ConchainAccountsForced(IConsole::IResult *pResult, void *pUse
 				continue;
 			if(pPl->Acc()->m_LoggedIn)
 				continue;
-			pSelf->SendChatTarget(pPl->GetCid(), "You have been moved to spectators because accounts are now forced on this server.");
+			pPl->SendChat("You have been moved to spectators because accounts are now forced on this server.");
 			pPl->SetTeam(TEAM_SPECTATORS, false);
 		}
 	}
