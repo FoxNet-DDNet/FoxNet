@@ -2936,12 +2936,17 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 	if(Server()->WouldClientNameChange(ClientId, pMsg->m_pName) && !ProcessSpamProtection(ClientId))
 	{
 		//<FoxNet
-		if(!NameDetection(ClientId, pMsg->m_pName, true))
+		if(!m_AccountManager.CanUseProtectedName(ClientId, pMsg->m_pName))
+		{
+			SendChatTarget(ClientId, "That name is protected by another account.");
+		}
+		else if(!NameDetection(ClientId, pMsg->m_pName, true))
 		{ // FoxNet>
 			char aOldName[MAX_NAME_LENGTH];
 			str_copy(aOldName, Server()->ClientName(ClientId), sizeof(aOldName));
 
 			Server()->SetClientName(ClientId, pMsg->m_pName);
+			str_copy(m_aAccounts[ClientId].m_aRequestedName, Server()->ClientName(ClientId), sizeof(m_aAccounts[ClientId].m_aRequestedName));
 
 			char aChatText[256];
 			str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientId));
@@ -3155,9 +3160,16 @@ void CGameContext::OnStartInfoNetMessage(const CNetMsg_Cl_StartInfo *pMsg, int C
 		return;
 
 	pPlayer->m_LastChangeInfo = Server()->Tick();
+	str_copy(m_aAccounts[ClientId].m_aRequestedName, pMsg->m_pName, sizeof(m_aAccounts[ClientId].m_aRequestedName));
 
 	// set start infos
-	Server()->SetClientName(ClientId, pMsg->m_pName);
+   char aGuestName[MAX_NAME_LENGTH];
+	str_format(aGuestName, sizeof(aGuestName), "Guest%d", ClientId);
+	Server()->SetClientName(ClientId, aGuestName);
+   if(pMsg->m_pName[0] && m_AccountManager.CanUseProtectedName(ClientId, pMsg->m_pName))
+		Server()->SetClientName(ClientId, pMsg->m_pName);
+    else if(pMsg->m_pName[0])
+		SendChatTarget(ClientId, "That name is protected by another account.");
 	// trying to set client name can delete the player object, check if it still exists
 	if(!m_apPlayers[ClientId])
 	{

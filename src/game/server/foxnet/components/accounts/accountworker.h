@@ -57,6 +57,16 @@ struct CAccResult : ISqlResult
 	}
 };
 
+struct CAccProtectedNamesResult : ISqlResult
+{
+	std::vector<std::pair<std::string, std::string>> m_vEntries;
+};
+
+struct CAccRemoveProtectedNameResult : CAccResult
+{
+	std::vector<std::string> m_vAffectedUsers;
+};
+
 struct CAccRegisterRequest : ISqlData
 {
 	CAccRegisterRequest(std::shared_ptr<CAccResult> pRes) :
@@ -167,6 +177,27 @@ struct CAccSetPassword : ISqlData
 		ISqlData(nullptr) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_aNewPasswordHash[ACC_MAX_PASSW_LENGTH] = "";
+};
+
+struct CAccLoadProtectedNames : ISqlData
+{
+	CAccLoadProtectedNames(std::shared_ptr<CAccProtectedNamesResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+};
+
+struct CAccSetProtectedNameReq : ISqlData
+{
+	CAccSetProtectedNameReq(std::shared_ptr<CAccResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aProtectedName[MAX_NAME_LENGTH] = "";
+};
+
+struct CAccRemoveProtectedNameReq : ISqlData
+{
+	CAccRemoveProtectedNameReq(std::shared_ptr<CAccRemoveProtectedNameResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aProtectedName[MAX_NAME_LENGTH] = "";
 };
 
 struct CAccMailAcknowledge : CAccResult
@@ -298,6 +329,9 @@ struct CAccountsWorker
 	static bool RemoveItem(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool LoadProtectedNames(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize);
+	static bool SetProtectedName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool RemoveProtectedName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool ClaimAllMailRewards(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);

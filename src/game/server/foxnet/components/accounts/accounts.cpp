@@ -35,6 +35,8 @@
 #include <utility>
 #include <vector>
 
+constexpr int PROTECTED_NAMES_REFRESH_INTERVAL_MINUTES = 5;
+
 void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 {
 	CAccounts *pSelf = (CAccounts *)pUserData;
@@ -214,6 +216,18 @@ void CAccounts::ConForceLogout(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Logout(ClientId);
 }
 
+void CAccounts::ConSetProtectedName(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	pSelf->SetProtectedName(pResult->GetString(0), pResult->GetString(1), pResult->m_ClientId);
+}
+
+void CAccounts::ConRemoveProtectedName(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	pSelf->RemoveProtectedName(pResult->GetString(0), pResult->m_ClientId);
+}
+
 void CAccounts::ConTop5Money(IConsole::IResult *pResult, void *pUserData)
 {
 	CAccounts *pSelf = (CAccounts *)pUserData;
@@ -308,6 +322,7 @@ SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
 void CAccounts::OnInit()
 {
 	LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
+	LoadProtectedNames();
 }
 
 void CAccounts::OnClientDrop(int ClientId, const char *pReason)
@@ -317,8 +332,27 @@ void CAccounts::OnClientDrop(int ClientId, const char *pReason)
 
 void CAccounts::OnTick()
 {
+	if(m_pProtectedNamesResult && m_pProtectedNamesResult->m_Completed.load(std::memory_order_acquire))
+	{
+		if(m_pProtectedNamesResult->m_Success)
+		{
+			m_ProtectedNamesByUser.clear();
+			for(const auto &Entry : m_pProtectedNamesResult->m_vEntries)
+				m_ProtectedNamesByUser[Entry.first] = Entry.second;
+		}
+		m_pProtectedNamesResult.reset();
+	}
+
+	if(!m_pProtectedNamesResult &&
+		(m_LastProtectedNamesRefreshTick == 0 ||
+			Server()->Tick() >= m_LastProtectedNamesRefreshTick + Server()->TickSpeed() * 60 * PROTECTED_NAMES_REFRESH_INTERVAL_MINUTES))
+	{
+		LoadProtectedNames();
+	}
+
 	if(m_vPending.empty())
 	{
+		EnforceProtectedNames();
 		FetchMailBox();
 		return;
 	}
@@ -339,6 +373,103 @@ void CAccounts::OnTick()
 		if(Ready.second)
 			Ready.second(*Ready.first);
 	}
+	EnforceProtectedNames();
+	FetchMailBox();
+}
+
+void CAccounts::LoadProtectedNames()
+{
+	if(!DbPool())
+		return;
+	if(m_pProtectedNamesResult)
+		return;
+	auto pRes = std::make_shared<CAccProtectedNamesResult>();
+	auto pReq = std::make_unique<CAccLoadProtectedNames>(pRes);
+	m_pProtectedNamesResult = pRes;
+	m_LastProtectedNamesRefreshTick = Server()->Tick();
+	DbPool()->Execute(CAccountsWorker::LoadProtectedNames, std::move(pReq), "acc load protected names");
+}
+
+bool CAccounts::TryGetProtectedName(const CInventory &Inventory, char *pBuf, int BufSize) const
+{
+	auto It = Inventory.m_Map.find(ITEM_NAME_PROTECTION);
+	if(It == Inventory.m_Map.end() || It->second.m_Quantity <= 0 || It->second.m_aMeta[0] == '\0')
+		return false;
+	str_copy(pBuf, It->second.m_aMeta, BufSize);
+	return true;
+}
+
+bool CAccounts::IsProtectedNameAvailable(const char *pName, const char *pUsername) const
+{
+	if(!pName || !pName[0])
+		return false;
+	for(const auto &Entry : m_ProtectedNamesByUser)
+	{
+		if(pUsername && str_comp(Entry.first.c_str(), pUsername) == 0)
+			continue;
+		if(str_utf8_comp_confusable(Entry.second.c_str(), pName) == 0)
+			return false;
+	}
+	return true;
+}
+
+bool CAccounts::CanUseProtectedName(int ClientId, const char *pName) const
+{
+	if(!CheckClientId(ClientId))
+		return false;
+	const auto &Acc = GameServer()->m_aAccounts[ClientId];
+	const char *pUsername = Acc.m_LoggedIn ? Acc.m_aUsername : nullptr;
+	return IsProtectedNameAvailable(pName, pUsername);
+}
+
+void CAccounts::SetProtectedNameCache(const char *pUsername, const char *pName)
+{
+	if(!pUsername || !pUsername[0] || !pName || !pName[0])
+		return;
+	m_ProtectedNamesByUser[pUsername] = pName;
+}
+
+void CAccounts::ClearProtectedName(const char *pUsername)
+{
+	if(!pUsername || !pUsername[0])
+		return;
+	m_ProtectedNamesByUser.erase(pUsername);
+}
+
+bool CAccounts::RenameAwayFromProtectedName(int ClientId)
+{
+	char aCandidate[MAX_NAME_LENGTH];
+	for(int i = 0; i < 32; i++)
+	{
+		if(i == 0)
+			str_format(aCandidate, sizeof(aCandidate), "[FAKE%d]", ClientId);
+		else
+			str_format(aCandidate, sizeof(aCandidate), "[FAKE%d_%d]", ClientId, i);
+		if(!IsProtectedNameAvailable(aCandidate))
+			continue;
+		Server()->SetClientName(ClientId, aCandidate);
+		if(IsProtectedNameAvailable(Server()->ClientName(ClientId)))
+			return true;
+	}
+	return false;
+}
+
+void CAccounts::EnforceProtectedNames()
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(Server()->ClientSlotEmpty(i) || !Server()->ClientIngame(i))
+			continue;
+
+		auto &Acc = GameServer()->m_aAccounts[i];
+		const char *pCurrentName = Server()->ClientName(i);
+
+		if(IsProtectedNameAvailable(pCurrentName, Acc.m_LoggedIn ? Acc.m_aUsername : nullptr))
+			continue;
+
+		RenameAwayFromProtectedName(i);
+		GameServer()->SendChatTarget(i, "That name is protected by another account.");
+	}
 }
 
 void CAccounts::AutoLogin(int ClientId)
@@ -350,7 +481,7 @@ void CAccounts::AutoLogin(int ClientId)
 	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pExpectedPlayer)
 		return;
-	const char *pName = Server()->ClientName(ClientId);
+	const char *pName = GameServer()->m_aAccounts[ClientId].m_aRequestedName[0] ? GameServer()->m_aAccounts[ClientId].m_aRequestedName : Server()->ClientName(ClientId);
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByLastName>(pRes);
 	str_copy(pReq->m_LastPlayerName, pName, sizeof(pReq->m_LastPlayerName));
@@ -587,6 +718,12 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	Acc.m_Money = Res.m_Money;
 	Acc.m_LoginTick = Server()->Tick();
 	Acc.m_Inventory = Res.m_Inventory;
+	char aProtectedName[MAX_NAME_LENGTH] = "";
+	if(TryGetProtectedName(Acc.m_Inventory, aProtectedName, sizeof(aProtectedName)))
+	{
+		SetProtectedNameCache(Acc.m_aUsername, aProtectedName);
+		str_copy(Acc.m_aProtectedName, aProtectedName);
+	}
 
 	Acc.m_Configs = Res.m_Configs;
 	if(NeedsOverride)
@@ -598,6 +735,12 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	Acc.m_MailBox = Res.m_MailBox;
 	Acc.m_LastMailboxFetch = Now;
 	Acc.m_MailboxFetchPending = false;
+	if(Acc.m_aRequestedName[0] != '\0' && CanUseProtectedName(ClientId, Acc.m_aRequestedName))
+	{
+		Server()->SetClientName(ClientId, Acc.m_aRequestedName);
+		pPlayerName = Server()->ClientName(ClientId);
+		str_copy(Acc.m_aName, pPlayerName, sizeof(Acc.m_aName));
+	}
 	GameServer()->OnLogin(ClientId);
 
 	// Apply equipped items to player cosmetics
@@ -943,6 +1086,7 @@ void CAccounts::DeleteAccount(int ClientId, const char *pUsername)
 	AddPending(pRes, [this, ClientId, Username = std::string(pUsername)](CAccResult &Res) {
 		if(Res.m_Success && Res.m_Found)
 		{
+			ClearProtectedName(Username.c_str());
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				auto &Acc = GameServer()->m_aAccounts[i];
@@ -968,10 +1112,121 @@ void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
 {
 	if(!DbPool())
 		return;
+	if(str_comp(pItemName, ITEM_NAME_PROTECTION) == 0)
+	{
+		ClearProtectedName(pUsername);
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			auto &Acc = GameServer()->m_aAccounts[i];
+			if(!Acc.m_LoggedIn || str_comp(Acc.m_aUsername, pUsername) != 0)
+				continue;
+			auto &Entry = Acc.m_Inventory.Entry(ITEM_NAME_PROTECTION);
+			Entry.m_Quantity = 0;
+			Entry.m_ExpiresAt = 0;
+			Entry.m_aMeta[0] = '\0';
+		}
+	}
 	auto pReq = std::make_unique<CAccRemoveItem>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_aItemName, pItemName, sizeof(pReq->m_aItemName));
 	DbPool()->ExecuteWrite(CAccountsWorker::RemoveItem, std::move(pReq), "acc remove item");
+}
+
+void CAccounts::RemoveProtectedName(const char *pName, int ClientId)
+{
+	if(!DbPool() || !pName || !pName[0])
+		return;
+
+	auto pRes = std::make_shared<CAccRemoveProtectedNameResult>();
+	auto pReq = std::make_unique<CAccRemoveProtectedNameReq>(pRes);
+	str_copy(pReq->m_aProtectedName, pName, sizeof(pReq->m_aProtectedName));
+
+	AddPending(pRes, [this, ClientId, ProtectedName = std::string(pName)](CAccResult &BaseRes) {
+		auto *pRes = static_cast<CAccRemoveProtectedNameResult *>(&BaseRes);
+		const char *pMsg = pRes->m_NumMessages.load(std::memory_order_acquire) > 0 ? pRes->m_aaMessages[0] : "Failed to remove protected name";
+		if(pRes->m_Success)
+		{
+			for(const auto &Username : pRes->m_vAffectedUsers)
+			{
+				ClearProtectedName(Username.c_str());
+				for(int i = 0; i < MAX_CLIENTS; i++)
+				{
+					auto &Acc = GameServer()->m_aAccounts[i];
+					if(!Acc.m_LoggedIn || str_comp(Acc.m_aUsername, Username.c_str()) != 0)
+						continue;
+
+					auto &Entry = Acc.m_Inventory.Entry(ITEM_NAME_PROTECTION);
+					Entry.m_Quantity = 0;
+					Entry.m_ExpiresAt = 0;
+					Entry.m_aMeta[0] = '\0';
+					Acc.m_aProtectedName[0] = '\0';
+				}
+			}
+
+			for(int i = 0; i < MAX_CLIENTS; i++)
+			{
+				auto &Acc = GameServer()->m_aAccounts[i];
+				if(!Acc.m_LoggedIn || str_comp(Acc.m_aProtectedName, ProtectedName.c_str()) != 0)
+					continue;
+				Acc.m_aProtectedName[0] = '\0';
+			}
+		}
+
+		if(ClientId >= 0 && !Server()->ClientSlotEmpty(ClientId))
+			GameServer()->SendChatTarget(ClientId, pMsg);
+		else
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "accounts", pMsg);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::RemoveProtectedName, std::move(pReq), "acc remove protected name");
+}
+
+void CAccounts::SetProtectedName(const char *pUsername, const char *pName, int ClientId)
+{
+	if(!DbPool() || !pUsername || !pUsername[0] || !pName || !pName[0])
+		return;
+
+	if(!IsProtectedNameAvailable(pName, pUsername))
+	{
+		if(ClientId >= 0 && !Server()->ClientSlotEmpty(ClientId))
+			GameServer()->SendChatTarget(ClientId, "That protected name is already owned by another account.");
+		else
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "accounts", "protected name is already owned by another account");
+		return;
+	}
+
+	auto pRes = std::make_shared<CAccResult>();
+	auto pReq = std::make_unique<CAccSetProtectedNameReq>(pRes);
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aProtectedName, pName, sizeof(pReq->m_aProtectedName));
+
+	AddPending(pRes, [this, ClientId, Username = std::string(pUsername), ProtectedName = std::string(pName)](CAccResult &Res) {
+		const char *pMsg = Res.m_NumMessages.load(std::memory_order_acquire) > 0 ? Res.m_aaMessages[0] : "Failed to update protected name";
+		if(Res.m_Success)
+		{
+			SetProtectedNameCache(Username.c_str(), ProtectedName.c_str());
+			for(int i = 0; i < MAX_CLIENTS; i++)
+			{
+				auto &Acc = GameServer()->m_aAccounts[i];
+				if(!Acc.m_LoggedIn || str_comp(Acc.m_aUsername, Username.c_str()) != 0)
+					continue;
+				auto &Entry = Acc.m_Inventory.Entry(ITEM_NAME_PROTECTION);
+				Entry.m_Quantity = 1;
+				Entry.m_ExpiresAt = ForeverDays;
+				str_copy(Entry.m_aMeta, ProtectedName.c_str(), sizeof(Entry.m_aMeta));
+				((CServer *)Server())->OverrideClientName(i, ProtectedName.c_str());
+				str_copy(Acc.m_aName, ProtectedName.c_str(), sizeof(Acc.m_aName));
+				str_copy(Acc.m_aProtectedName, ProtectedName.c_str());
+			}
+		}
+
+		if(ClientId >= 0 && !Server()->ClientSlotEmpty(ClientId))
+			GameServer()->SendChatTarget(ClientId, pMsg);
+		else
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "accounts", pMsg);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::SetProtectedName, std::move(pReq), "acc set protected name");
 }
 
 int CAccounts::NeededXP(int Level)
@@ -1266,6 +1521,8 @@ void CAccounts::OnConsoleInit()
 {
 	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConForceLogin, this, "Force Login player (id) into any account");
 	Console()->Register("force_logout", "i[id]", CFGFLAG_SERVER, ConForceLogout, this, "Force logout an account thats currently active on the server");
+	Console()->Register("acc_set_protected_name", "s[username] r[name]", CFGFLAG_SERVER, ConSetProtectedName, this, "Change an account's protected name");
+	Console()->Register("remove_name_prot", "r[name]", CFGFLAG_SERVER, ConRemoveProtectedName, this, "Remove a protected name from any account");
 	Console()->Register("acc_disable", "s[username] ?i[disable]", CFGFLAG_SERVER, ConDisable, this, "Disable an account");
 	Console()->Register("acc_delete", "s[username]", CFGFLAG_SERVER, ConDelete, this, "Delete an account and all related data");
 	Console()->Register("acc_password", "s[username] r[variable]", CFGFLAG_SERVER, ConForcePassword, this, "Disable an account");

@@ -40,7 +40,7 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 	Inv.Reset();
 
 	char aSql[128];
-	str_copy(aSql, "SELECT ItemName, Quantity, Value, AcquiredAt, ExpiresAt FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
+	str_copy(aSql, "SELECT ItemName, Quantity, Value, AcquiredAt, ExpiresAt, Meta FROM foxnet_account_inventory WHERE Username = ?", sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
 
@@ -58,12 +58,15 @@ static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername
 		const int Value = GetIntOrDefault(pSql, 3);
 		const int64_t AcquiredAt = GetInt64OrDefault(pSql, 4);
 		const int64_t ExpiresAt = GetInt64OrDefault(pSql, 5);
+		char aMeta[256] = "";
+		pSql->GetString(6, aMeta, sizeof(aMeta));
 
 		auto &Entry = Inv.Entry(aItemName);
 		Entry.m_Quantity = Quantity;
 		Entry.m_Value = Value;
 		Entry.m_AcquiredAt = AcquiredAt;
 		Entry.m_ExpiresAt = ExpiresAt;
+		str_copy(Entry.m_aMeta, aMeta, sizeof(Entry.m_aMeta));
 		if(!pSql->Step(&End, pError, ErrorSize))
 			return false;
 	}
@@ -89,10 +92,16 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		int64_t Acq;
 		int64_t Exp;
 	};
+	struct SMeta
+	{
+		const char *pName;
+		const char *pMeta;
+	};
 
 	std::vector<SEquip> vEquip;
 	std::vector<SQty> vQty;
 	std::vector<STime> vTime;
+	std::vector<SMeta> vMeta;
 
 	for(const auto &Item : Inv.m_Map)
 	{
@@ -101,6 +110,7 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 
 		vQty.push_back({Name.c_str(), Entry.m_Quantity});
 		vEquip.push_back({Name.c_str(), Entry.m_Value});
+		vMeta.push_back({Name.c_str(), Entry.m_aMeta});
 
 		if(Entry.m_Quantity > 0)
 			vTime.push_back({Name.c_str(), Entry.m_AcquiredAt, Entry.m_ExpiresAt});
@@ -151,6 +161,19 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 		str_append(aUpd, " ELSE ExpiresAt END", sizeof(aUpd));
 	}
 
+	str_append(aUpd, ", ", sizeof(aUpd));
+	if(!vMeta.empty())
+	{
+		str_append(aUpd, "Meta = CASE ItemName", sizeof(aUpd));
+		for(size_t m = 0; m < vMeta.size(); m++)
+			str_append(aUpd, " WHEN ? THEN ?", sizeof(aUpd));
+		str_append(aUpd, " ELSE Meta END", sizeof(aUpd));
+	}
+	else
+	{
+		str_append(aUpd, "Meta = Meta", sizeof(aUpd));
+	}
+
 	str_append(aUpd, " WHERE Username = ?", sizeof(aUpd));
 
 	if(!pSql->PrepareStatement(aUpd, pError, ErrorSize))
@@ -179,6 +202,11 @@ static bool UpdateItemValues(IDbConnection *pSql, const char *pUsername, const C
 	{
 		pSql->BindString(Bind++, t.pName);
 		pSql->BindInt64(Bind++, t.Exp);
+	}
+	for(const auto &m : vMeta)
+	{
+		pSql->BindString(Bind++, m.pName);
+		pSql->BindString(Bind++, m.pMeta);
 	}
 
 	pSql->BindString(Bind++, pUsername);
@@ -550,7 +578,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		char aIns[256];
 		str_format(aIns, sizeof(aIns),
 			"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-			"VALUES (?, ?, ?, ?, ?, '')",
+			"VALUES (?, ?, ?, ?, ?, ?)",
 			pSql->InsertIgnore());
 		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 			return false;
@@ -559,6 +587,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		pSql->BindInt(3, E.m_Quantity);
 		pSql->BindInt64(4, E.m_AcquiredAt);
 		pSql->BindInt64(5, E.m_ExpiresAt);
+		pSql->BindString(6, E.m_aMeta);
 		int NumIns = 0;
 		if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 			return false;
@@ -610,7 +639,7 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 		char aIns[256];
 		str_format(aIns, sizeof(aIns),
 			"%s INTO foxnet_account_inventory (Username, ItemName, Quantity, AcquiredAt, ExpiresAt, Meta) "
-			"VALUES (?, ?, ?, ?, ?, '')",
+			"VALUES (?, ?, ?, ?, ?, ?)",
 			pSql->InsertIgnore());
 		if(!pSql->PrepareStatement(aIns, pError, ErrorSize))
 			return false;
@@ -619,6 +648,7 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 		pSql->BindInt(3, Entry.m_Quantity);
 		pSql->BindInt64(4, Entry.m_AcquiredAt);
 		pSql->BindInt64(5, Entry.m_ExpiresAt);
+		pSql->BindString(6, Entry.m_aMeta);
 		int NumIns = 0;
 		if(!pSql->ExecuteUpdate(&NumIns, pError, ErrorSize))
 			return false;
@@ -648,6 +678,141 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
+
+bool CAccountsWorker::LoadProtectedNames(IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize)
+{
+	auto *pRes = dynamic_cast<CAccProtectedNamesResult *>(pData->m_pResult.get());
+	if(!pRes)
+		return false;
+
+	char aSql[256];
+	str_copy(aSql,
+		"SELECT Username, Meta FROM foxnet_account_inventory WHERE ItemName = ? AND Quantity > 0 AND Meta <> ''",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, ITEM_NAME_PROTECTION);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	while(!End)
+	{
+		char aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+		char aProtectedName[MAX_NAME_LENGTH] = "";
+		pSql->GetString(1, aUsername, sizeof(aUsername));
+		pSql->GetString(2, aProtectedName, sizeof(aProtectedName));
+		if(aUsername[0] != '\0' && aProtectedName[0] != '\0')
+			pRes->m_vEntries.emplace_back(aUsername, aProtectedName);
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+	}
+
+	pRes->m_Success = true;
+	pRes->m_Completed.store(true);
+	return true;
+}
+
+bool CAccountsWorker::SetProtectedName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccSetProtectedNameReq *>(pData);
+	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+		return false;
+
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_inventory SET Meta = ? WHERE Username = ? AND ItemName = ? AND Quantity > 0",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aProtectedName);
+	pSql->BindString(2, pReq->m_aUsername);
+	pSql->BindString(3, ITEM_NAME_PROTECTION);
+
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	if(NumUpdated <= 0)
+	{
+		pRes->AddMessage("Account doesn't own Name Protection");
+		pRes->m_Success = false;
+		pRes->m_Completed.store(true);
+		return true;
+	}
+
+	str_copy(aSql,
+		"UPDATE foxnet_accounts SET LastPlayerName = PlayerName, PlayerName = ? WHERE Username = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aProtectedName);
+	pSql->BindString(2, pReq->m_aUsername);
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	pRes->AddMessage("Updated protected name");
+	pRes->m_Success = true;
+	pRes->m_Completed.store(true);
+	return true;
+}
+
+bool CAccountsWorker::RemoveProtectedName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccRemoveProtectedNameReq *>(pData);
+	auto *pRes = dynamic_cast<CAccRemoveProtectedNameResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+		return false;
+
+	char aSql[256];
+	str_copy(aSql,
+		"SELECT Username FROM foxnet_account_inventory "
+		"WHERE ItemName = ? AND Quantity > 0 AND Meta = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, ITEM_NAME_PROTECTION);
+	pSql->BindString(2, pReq->m_aProtectedName);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	while(!End)
+	{
+		char aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+		pSql->GetString(1, aUsername, sizeof(aUsername));
+		if(aUsername[0] != '\0')
+			pRes->m_vAffectedUsers.emplace_back(aUsername);
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+	}
+
+	str_copy(aSql,
+		"DELETE FROM foxnet_account_inventory "
+		"WHERE ItemName = ? AND Quantity > 0 AND Meta = ?",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, ITEM_NAME_PROTECTION);
+	pSql->BindString(2, pReq->m_aProtectedName);
+
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	if(NumUpdated > 0)
+		pRes->AddMessage("Removed protected name");
+	else
+		pRes->AddMessage("Protected name not found");
+
+	pRes->m_Success = true;
+	pRes->m_Completed.store(true);
+	return true;
+}
+
 bool CAccountsWorker::SetPlayerName(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *p = dynamic_cast<const CAccSetNameReq *>(pData);

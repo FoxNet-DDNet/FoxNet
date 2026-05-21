@@ -48,16 +48,16 @@ void CItemRegistry::Init()
 		"Rainbow Feet", "R_F",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		1250, 1, 1, EItemRarity::Common, "Makes your feet rainbow",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_RainbowFeet = true; },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_RainbowFeet = false; },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.Cosmetics()->m_RainbowFeet = true; },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.Cosmetics()->m_RainbowFeet = false; },
 		30}); // Default Days
 
 	Add({EItemId::RainbowBody, EItemType::Rainbow,
 		"Rainbow Body", "R_B",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		2000, 4, 1, EItemRarity::Common, "Makes your body rainbow",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_RainbowBody = true; },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_RainbowBody = false; },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.Cosmetics()->m_RainbowBody = true; },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.Cosmetics()->m_RainbowBody = false; },
 		30});
 
 	Add({EItemId::RainbowHook, EItemType::Rainbow,
@@ -73,8 +73,8 @@ void CItemRegistry::Init()
 		"Sparkle", "E_S",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		1500, 5, 1, EItemRarity::Common, "Makes you sparkle",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetSparkle(true); },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetSparkle(false); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetSparkle(true); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetSparkle(false); },
 		30});
 
 	Add({EItemId::Lovely, EItemType::Effect,
@@ -109,37 +109,43 @@ void CItemRegistry::Init()
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHalo(false); },
 		30});
 
+	Add({EItemId::NameProtection, EItemType::Other,
+		ITEM_NAME_PROTECTION, "NP",
+		EItemFlag::None, EExclusiveGroup::None,
+		50000, 25, 3, EItemRarity::Epic, "Permanently protect your CURRENT ingame name",
+		nullptr, nullptr, ForeverDays});
+
 	// Guns (value-based + types)
 	Add({EItemId::EmoticonGun, EItemType::Gun,
 		"Emoticon Gun", "G_E",
 		EItemFlag::Equippable, EExclusiveGroup::None, // can be combined with type guns in original
 		16500, 10, 2, EItemRarity::Rare, "Shoot emotions at people",
-		[](CPlayer &pl, const CItemConfig &, int overrideValue) {
-			if(overrideValue < 0) // toggle
+		[](CPlayer &pl, const CItemConfig &, int OverrideValue) {
+			if(OverrideValue < 0) // toggle
 			{
-				int cur = pl.Cosmetics()->m_EmoticonGun;
-				pl.SetEmoticonGun(cur ? 0 : 1);
+				int Cur = pl.Cosmetics()->m_EmoticonGun;
+				pl.SetEmoticonGun(Cur ? 0 : 1);
 			}
 			else
 			{
-				int maxIdx = std::max(1, NUM_EMOTICONS - 1);
-				int v = overrideValue;
-				if(v < 0)
-					v = 0;
-				if(v > maxIdx)
-					v = maxIdx;
-				pl.SetEmoticonGun(v);
+				int MaxIdx = std::max(1, NUM_EMOTICONS - 1);
+				int Wanted = OverrideValue;
+				if(Wanted < 0)
+					Wanted = 0;
+				if(Wanted > MaxIdx)
+					Wanted = MaxIdx;
+				pl.SetEmoticonGun(Wanted);
 			}
 		},
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetEmoticonGun(0); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetEmoticonGun(0); },
 		30});
 
 	Add({EItemId::PhaseGun, EItemType::Gun,
 		"Phase Gun", "G_P",
 		EItemFlag::Equippable, EExclusiveGroup::None,
 		8250, 5, 2, EItemRarity::Uncommon, "Your bullets defy physics",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetPhaseGun(true); },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetPhaseGun(false); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetPhaseGun(true); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetPhaseGun(false); },
 		30});
 
 	Add({EItemId::HeartGun, EItemType::Gun,
@@ -180,16 +186,22 @@ void CItemRegistry::Init()
 		"Clockwise Indicator", "I_C",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
 		4500, 5, 5, EItemRarity::Common, "Gun Hit -> turns Clockwise",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_CLOCKWISE); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_CLOCKWISE) pl.SetDamageIndType(INDTYPE_NONE); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetDamageIndType(INDTYPE_CLOCKWISE); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_DamageIndType == INDTYPE_CLOCKWISE)
+				Player.SetDamageIndType(INDTYPE_NONE);
+		},
 		30});
 
 	Add({EItemId::IndicatorCounterclockwise, EItemType::Indicator,
 		"Counter Clockwise Indicator", "I_CC",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
 		4500, 5, 5, EItemRarity::Common, "Gun Hit -> turns Counter-Clockwise",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_COUNTERWISE); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_COUNTERWISE) pl.SetDamageIndType(INDTYPE_NONE); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetDamageIndType(INDTYPE_COUNTERWISE); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_DamageIndType == INDTYPE_COUNTERWISE)
+				Player.SetDamageIndType(INDTYPE_NONE);
+		},
 		30});
 
 	Add({EItemId::IndicatorInwardTurning, EItemType::Indicator,
@@ -245,8 +257,11 @@ void CItemRegistry::Init()
 		"Indicator Death", "D_I",
 		EItemFlag::Equippable, EExclusiveGroup::DeathEffect,
 		7500, 10, 4, EItemRarity::Uncommon, "Creates an octagon of damage indicators",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDeathEffect(DEATHTYPE_DAMAGEIND); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DeathEffect==DEATHTYPE_DAMAGEIND) pl.SetDeathEffect(DEATHTYPE_NONE); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetDeathEffect(DEATHTYPE_DAMAGEIND); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_DeathEffect == DEATHTYPE_DAMAGEIND)
+				Player.SetDeathEffect(DEATHTYPE_NONE);
+		},
 		30});
 
 	Add({EItemId::DeathLaser, EItemType::Death,
@@ -262,16 +277,22 @@ void CItemRegistry::Init()
 		"Star Trail", "T_S",
 		EItemFlag::Equippable, EExclusiveGroup::Trail,
 		8000, 7, 4, EItemRarity::Uncommon, "The Stars shall follow you",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetTrail(TRAILTYPE_STAR); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_Trail==TRAILTYPE_STAR) pl.SetTrail(TRAILTYPE_NONE); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetTrail(TRAILTYPE_STAR); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_Trail == TRAILTYPE_STAR)
+				Player.SetTrail(TRAILTYPE_NONE);
+		},
 		30});
 
 	Add({EItemId::TrailDot, EItemType::Trail,
 		"Dot Trail", "T_D",
 		EItemFlag::Equippable, EExclusiveGroup::Trail,
 		8000, 7, 4, EItemRarity::Uncommon, "A trail made out of small dots",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetTrail(TRAILTYPE_DOT); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_Trail==TRAILTYPE_DOT) pl.SetTrail(TRAILTYPE_NONE); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetTrail(TRAILTYPE_DOT); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_Trail == TRAILTYPE_DOT)
+				Player.SetTrail(TRAILTYPE_NONE);
+		},
 		30});
 
 	// Hats
@@ -279,56 +300,70 @@ void CItemRegistry::Init()
 		"Hammer Hat", "Hm_H",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Hammer above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Hammer); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Hammer) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Hammer); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_HatType == EHatType::Hammer)
+				Player.SetHatType(EHatType::None);
+		},
 		30});
 
 	Add({EItemId::GunHat, EItemType::Hat,
 		"Gun Hat", "H_G",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Gun above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Gun); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Gun) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Gun); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_HatType == EHatType::Gun)
+				Player.SetHatType(EHatType::None);
+		},
 		30});
 
 	Add({EItemId::ShotgunHat, EItemType::Hat,
 		"Shotgun Hat", "H_SG",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Shotgun above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Shotgun); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Shotgun) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Shotgun); },
+		[](CPlayer &Player, const CItemConfig &, int) { 
+			if(Player.Cosmetics()->m_HatType == EHatType::Shotgun)
+				Player.SetHatType(EHatType::None); },
 		30});
 
 	Add({EItemId::GrenadeHat, EItemType::Hat,
 		"Grenade Hat", "H_GR",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Grenade above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Grenade); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Grenade) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Grenade); },
+		[](CPlayer &Player, const CItemConfig &, int) { 
+			if(Player.Cosmetics()->m_HatType == EHatType::Grenade) 
+				Player.SetHatType(EHatType::None); },
 		30});
 
 	Add({EItemId::LaserHat, EItemType::Hat,
 		"Laser Hat", "H_L",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Laser above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Laser); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Laser) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Laser); },
+		[](CPlayer &Player, const CItemConfig &, int) {
+			if(Player.Cosmetics()->m_HatType == EHatType::Laser) 
+				Player.SetHatType(EHatType::None); },
 		30});
 
 	Add({EItemId::NinjaHat, EItemType::Hat,
 		"Ninja Hat", "H_N",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		4000, 5, 5, EItemRarity::Common, "Ninja weapon above your head",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Ninja); },
-		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Ninja) pl.SetHatType(EHatType::None); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHatType(EHatType::Ninja); },
+		[](CPlayer &Player, const CItemConfig &, int) { 
+			if(Player.Cosmetics()->m_HatType == EHatType::Ninja)
+				Player.SetHatType(EHatType::None); },
 		30});
 
 	Add({EItemId::HeartHat, EItemType::Hat,
 		"Heart Hat", "H_H",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		15000, 12, 3, EItemRarity::Rare, "A hat of Hearts",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(true); },
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHeartHat(false); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHeartHat(true); },
+		[](CPlayer &Player, const CItemConfig &, int) { Player.SetHeartHat(false); },
 		30});
 
 	Add({EItemId::PartyHat, EItemType::Hat,

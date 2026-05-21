@@ -18,6 +18,7 @@
 
 #include <game/server/foxnet/components/shop.h>
 
+#include <cstring>
 #include <memory>
 #include <optional>
 
@@ -157,13 +158,15 @@ public:
 	int m_Value = 0;
 	int64_t m_AcquiredAt = 0;
 	int64_t m_ExpiresAt = ForeverDays;
+	char m_aMeta[256] = "";
 
 	bool operator==(const CInventoryEntry &Other) const
 	{
 		return m_Quantity == Other.m_Quantity &&
 		       m_Value == Other.m_Value &&
 		       m_AcquiredAt == Other.m_AcquiredAt &&
-		       m_ExpiresAt == Other.m_ExpiresAt;
+		       m_ExpiresAt == Other.m_ExpiresAt &&
+		       std::strcmp(m_aMeta, Other.m_aMeta) == 0;
 	}
 	bool operator!=(const CInventoryEntry &Other) const
 	{

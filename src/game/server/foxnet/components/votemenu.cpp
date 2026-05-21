@@ -1502,6 +1502,17 @@ void CVoteMenu::PrepareInventory(int ClientId)
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
+			else if(Item.m_Id == EItemId::NameProtection)
+			{
+				CVoteData Data;
+				Data.m_ItemType = Type;
+				Data.m_pItem = &Item;
+				Data.m_VoteType = VOTE_TYPE_TEXT;
+				str_format(aVoteName, sizeof(aVoteName), "Name Prot [→ '%s']", Acc.m_aProtectedName);
+				str_copy(Data.m_aVoteName, aVoteName);
+
+				Votes.push_back(Data);
+			}
 			else if(!HasFlag(pItem->m_Flags, EItemFlag::Equippable))
 			{
 				CVoteData Data;
@@ -1523,9 +1534,9 @@ void CVoteMenu::PrepareInventory(int ClientId)
 				Data.m_Max = NUM_EMOTICONS;
 				if(Remaining > 0)
 				{
-					char Suffix[VOTE_DESC_LENGTH];
-					str_format(Suffix, sizeof(Suffix), "[→ %s]", TimeBuf);
-					str_copy(Data.m_aSuffixDesc, Suffix);
+					char aSuffix[VOTE_DESC_LENGTH];
+					str_format(aSuffix, sizeof(aSuffix), "[→ %s]", TimeBuf);
+					str_copy(Data.m_aSuffixDesc, aSuffix);
 				}
 				else
 				{

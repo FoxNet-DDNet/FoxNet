@@ -242,6 +242,20 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
+	if(pCfg->m_Id == EItemId::NameProtection)
+	{
+		if(Acc.m_Inventory.Owns(pCfg->m_pName))
+		{
+			GameServer()->SendChatTarget(ClientId, "You already own Name Protection.");
+			return false;
+		}
+		if(!GameServer()->m_AccountManager.IsProtectedNameAvailable(Server()->ClientName(ClientId), Acc.m_aUsername))
+		{
+			GameServer()->SendChatTarget(ClientId, "Your current name is already protected by another account.");
+			return false;
+		}
+	}
+
 	if(pCfg->m_Id == EItemId::MaxCosmeticsUpgrade)
 	{
 		auto &Entry = Acc.m_Inventory.Entry(pCfg->m_pName);

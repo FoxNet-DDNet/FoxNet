@@ -13,6 +13,8 @@ constexpr int MaxItemStars = 5;
 constexpr int UnbuyablePrice = -1;
 constexpr int ForeverDays = -1;
 
+constexpr const char *ITEM_NAME_PROTECTION = "Name Protection";
+
 enum class EItemId
 {
 	RainbowFeet,
@@ -50,6 +52,7 @@ enum class EItemId
 	Lovely,
 	RotatingBall,
 	Halo,
+	NameProtection,
 	Booster,
 	VIP,
 	MVP,

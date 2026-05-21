@@ -14,9 +14,11 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 struct CAccResult;
+struct CAccProtectedNamesResult;
 class CDbConnectionPool;
 class CGameContext;
 class IDbConnection;
@@ -147,6 +149,8 @@ public:
 	char m_aCurrentIp[NETADDR_MAXSTRSIZE] = "";
 	char m_aLastIp[NETADDR_MAXSTRSIZE] = "";
 	bool m_LoggedIn = false;
+	char m_aRequestedName[MAX_NAME_LENGTH] = "";
+	char m_aProtectedName[MAX_NAME_LENGTH] = "";
 	int64_t m_LastLogin = 0;
 	int m_Port = 0;
 	int m_ClientId = -1;
@@ -181,6 +185,9 @@ class CAccounts : public CServerComponent
 	SHA256_DIGEST HashPassword(const char *pPassword);
 
 	std::vector<CPendingAccResult> m_vPending;
+	std::unordered_map<std::string, std::string> m_ProtectedNamesByUser;
+	std::shared_ptr<CAccProtectedNamesResult> m_pProtectedNamesResult;
+	int64_t m_LastProtectedNamesRefreshTick = 0;
 	void AddPending(const std::shared_ptr<CAccResult> &pRes, std::function<void(CAccResult &)> &&Cb);
 
 	CDbConnectionPool *DbPool();
@@ -195,6 +202,12 @@ class CAccounts : public CServerComponent
 	static void ConForcePassword(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceLogin(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceLogout(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetProtectedName(IConsole::IResult *pResult, void *pUserData);
+	static void ConRemoveProtectedName(IConsole::IResult *pResult, void *pUserData);
+
+	void LoadProtectedNames();
+	void EnforceProtectedNames();
+	bool RenameAwayFromProtectedName(int ClientId);
 
 	static void ConTop5Money(IConsole::IResult *pResult, void *pUserData);
 	static void ConTop5Level(IConsole::IResult *pResult, void *pUserData);
@@ -219,6 +232,13 @@ public:
 	void SaveAccountsInfo(int ClientId, CAccountSession &AccInfo);
 	void DisableAccount(const char *pUsername, bool Disable);
 	void DeleteAccount(int ClientId, const char *pUsername);
+	void SetProtectedName(const char *pUsername, const char *pName, int ClientId = -1);
+	void RemoveProtectedName(const char *pName, int ClientId = -1);
+	void SetProtectedNameCache(const char *pUsername, const char *pName);
+	void ClearProtectedName(const char *pUsername);
+	bool IsProtectedNameAvailable(const char *pName, const char *pUsername = nullptr) const;
+	bool CanUseProtectedName(int ClientId, const char *pName) const;
+	bool TryGetProtectedName(const CInventory &Inventory, char *pBuf, int BufSize) const;
 
 	void LogoutAllAccountsPort(int Port, const char *pInstance, bool WaitForCompletion = false);
 	void ShowAccProfile(int ClientId, const char *pName);
