@@ -24,6 +24,16 @@ static int64_t GetInt64OrDefault(IDbConnection *pSql, int Col, int64_t DefaultVa
 	return pSql->IsNull(Col) ? DefaultValue : pSql->GetInt64(Col);
 }
 
+static bool ConsumeRemainingRows(IDbConnection *pSql, bool *pEnd, char *pError, int ErrorSize)
+{
+	while(!*pEnd)
+	{
+		if(!pSql->Step(pEnd, pError, ErrorSize))
+			return false;
+	}
+	return true;
+}
+
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
 	// Clear current inventory & cosmetics
@@ -474,6 +484,8 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 		pRes->m_Disabled = GetIntOrDefault(pSql, Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
 	}
 	if(pRes->m_Found)
 	{
@@ -696,6 +708,9 @@ bool CAccountsWorker::SelectByLastPlayerName(IDbConnection *pSql, const ISqlData
 		pRes->m_Found = true;
 		pRes->m_Success = true;
 
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+
 		if(!LoadConfigs(pSql, pRes->m_aUsername, pRes->m_Configs, pError, ErrorSize))
 			return false;
 		if(!LoadInventoryAndEquipment(pSql, pRes->m_aUsername, pRes->m_Inventory, pError, ErrorSize))
@@ -749,6 +764,8 @@ bool CAccountsWorker::SelectByUsername(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_Disabled = GetIntOrDefault(pSql, Param++);
 		pRes->m_Found = true;
 		pRes->m_Success = true;
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
 
 		if(!LoadConfigs(pSql, pRes->m_aUsername, pRes->m_Configs, pError, ErrorSize))
 			return false;
@@ -779,6 +796,8 @@ bool CAccountsWorker::SelectPortByUsername(IDbConnection *pSql, const ISqlData *
 	{
 		pRes->m_Port = GetIntOrDefault(pSql, 1);
 		pRes->m_Success = true;
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
 	}
 	pRes->m_Completed.store(true);
 	return true;
@@ -906,6 +925,8 @@ bool CAccountsWorker::DeleteAccount(IDbConnection *pSql, const ISqlData *pData, 
 	if(!pSql->Step(&End, pError, ErrorSize))
 		return false;
 	pRes->m_Found = !End;
+	if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+		return false;
 
 	int NumDeleted = 0;
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_mailbox", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
@@ -946,7 +967,7 @@ bool CAccountsWorker::RemoveItem(IDbConnection *pSql, const ISqlData *pData, Wri
 
 bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
-    if(w != Write::NORMAL)
+	if(w != Write::NORMAL)
 		return true;
 
 	const auto *p = dynamic_cast<const CAccChangePassword *>(pData);
@@ -975,7 +996,7 @@ bool CAccountsWorker::ChangePassword(IDbConnection *pSql, const ISqlData *pData,
 
 bool CAccountsWorker::SetPassword(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
-   if(w != Write::NORMAL)
+	if(w != Write::NORMAL)
 		return true;
 
 	const auto *p = dynamic_cast<const CAccSetPassword *>(pData);
