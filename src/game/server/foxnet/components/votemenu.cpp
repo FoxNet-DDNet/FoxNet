@@ -1761,7 +1761,6 @@ const char *CVoteMenu::FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item)
 	int64_t Price = pPlayer->GetDiscountedPrice(Item.m_Price);
 	static char aBuf[64];
 	if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
-
 		str_format(aBuf, sizeof(aBuf), "Buy Item [%" PRId64 "%s]", Price, g_Config.m_SvCurrencyName);
 	else
 		str_format(aBuf, sizeof(aBuf), "Buy Item for %d days [%" PRId64 "%s]", Item.m_DefaultDays, Price, g_Config.m_SvCurrencyName);

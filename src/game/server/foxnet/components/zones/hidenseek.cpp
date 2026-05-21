@@ -1029,7 +1029,6 @@ void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 	if(pChr)
 	{
-		pChr->SetVelocity(vec2(0, 0));
 		pChr->ResetHook();
 		pChr->Unfreeze();
 		pChr->SetTuneOverride(-1);
