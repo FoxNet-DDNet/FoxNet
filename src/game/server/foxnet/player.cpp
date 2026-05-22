@@ -9,9 +9,12 @@
 #include "cosmetics/pickup_pet.h"
 #include "cosmetics/rotating_ball.h"
 #include "cosmetics/staff_ind.h"
+#include "entities/roulette.h"
 #include "entities/text/text.h"
 #include "item_registry.h"
 
+#include <base/log.h>
+#include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
 #include <base/vmath.h>
@@ -27,13 +30,16 @@
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/components/shop.h>
 #include <game/server/gamecontext.h>
+#include <game/server/gameworld.h>
 #include <game/server/player.h>
 #include <game/server/teams.h>
 #include <game/teamscore.h>
 
 #include <algorithm>
 #include <cinttypes>
+#include <cstdarg>
 #include <cstdint>
+#include <ctime>
 #include <iterator>
 #include <limits>
 #include <random>
@@ -46,6 +52,16 @@ CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 
 void CPlayer::FoxNetTick()
 {
+	if(!Acc()->m_LoggedIn && m_RetryAutoLogin)
+	{
+		constexpr int AutoLoginCooldown = round_to_int((int)SERVER_TICK_SPEED * 3); // 3 seconds cooldown between auto login attempts
+		if(m_LastAutoLoginAttempt.has_value() && m_LastAutoLoginAttempt.value() + AutoLoginCooldown < Server()->Tick())
+		{
+			GameServer()->m_AccountManager.AutoLogin(GetCid());
+			m_LastAutoLoginAttempt.reset();
+		}
+	}
+
 	if(m_LootBoxData.m_Opening)
 		LootBoxTick();
 
@@ -160,6 +176,9 @@ void CPlayer::ExpireItems()
 }
 void CPlayer::FoxNetReset()
 {
+	m_LastAutoLoginAttempt.reset();
+	m_RetryAutoLogin = false;
+
 	m_LastTransaction = 0;
 	m_vReceivedConditionals.clear();
 

@@ -364,8 +364,25 @@ void CAccounts::AutoLogin(int ClientId)
 			return;
 		if(str_comp(Res.m_LastPlayerName, Name.c_str()) != 0)
 			return;
-		if(Res.m_LoggedIn || !Res.m_Configs.m_AutoLogin)
+		if(!Res.m_Configs.m_AutoLogin)
 			return;
+		if(Res.m_LoggedIn)
+		{
+			if(!pExpectedPlayer->m_RetryAutoLogin)
+			{
+				pExpectedPlayer->m_LastAutoLoginAttempt = Server()->Tick();
+				pExpectedPlayer->m_RetryAutoLogin = true;
+				pExpectedPlayer->SendChat("Auto-login failed, retrying in a bit.");
+			}
+			else
+				pExpectedPlayer->SendChat("Auto-login failed, account is already logged in.");
+
+			return;
+		}
+
+		pExpectedPlayer->m_LastAutoLoginAttempt.reset();
+		pExpectedPlayer->m_RetryAutoLogin = false;
+
 		ForceLogin(ClientId, Res.m_aUsername, true, true);
 	});
 	DbPool()->Execute(CAccountsWorker::SelectByLastPlayerName, std::move(pReq), "acc select by last name");

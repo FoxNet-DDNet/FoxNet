@@ -605,6 +605,9 @@ public:
 
 	int GetShowOthers();
 
+	std::optional<int64_t> m_LastAutoLoginAttempt;
+	bool m_RetryAutoLogin = false;
+
 private:
 	mutable int m_CachedShowOthers = -1;
 	mutable int m_ShowOthersCacheTick = -1;

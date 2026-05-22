@@ -1750,11 +1750,6 @@ void CGameContext::OnClientEnter(int ClientId)
 			return; // kicked
 	}
 
-	// <FoxNet
-	if(!m_aAccounts[ClientId].m_LoggedIn)
-		m_AccountManager.AutoLogin(ClientId);
-	// FoxNet>
-
 	if(!Server()->ClientPrevIngame(ClientId))
 	{
 		if(g_Config.m_SvWelcome[0] != 0)
@@ -1785,6 +1780,15 @@ void CGameContext::OnClientEnter(int ClientId)
 	}
 
 	CPlayer *pNewPlayer = m_apPlayers[ClientId];
+	// <FoxNet
+	if(!m_aAccounts[ClientId].m_LoggedIn)
+	{
+		m_AccountManager.AutoLogin(ClientId);
+		pNewPlayer->m_LastAutoLoginAttempt = Server()->Tick();
+	}
+	// FoxNet>
+
+
 	mem_zero(&m_aLastPlayerInput[ClientId], sizeof(m_aLastPlayerInput[ClientId]));
 	m_aPlayerHasInput[ClientId] = false;
 
