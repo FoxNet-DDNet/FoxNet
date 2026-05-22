@@ -42,4 +42,6 @@ std::string SanitizeMessage(const char *pMessage);
 
 std::mt19937 &Rng();
 
+const char *FormatServerInsntance(const char *pPrefix);
+
 #endif

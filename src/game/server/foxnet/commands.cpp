@@ -1549,10 +1549,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		pReportText);
 
 	char aNameBuf[32];
-	if(g_Config.m_SvAccountsInstance[0] != '\0')
-		str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d | %s)", pSelf->Server()->Port(), g_Config.m_SvAccountsInstance);
-	else
-		str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d)", pSelf->Server()->Port());
+	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d%s)", pSelf->Server()->Port(), FormatServerInsntance("| "));
 
 	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
 

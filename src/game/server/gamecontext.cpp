@@ -1413,7 +1413,7 @@ void CGameContext::OnTick()
 							GetClientVersion(m_VoteVictim),
 							GetClientVersionStr(m_VoteVictim));
 						char aTitle[32];
-						str_format(aTitle, sizeof(aTitle), "[BAN] - Vote kick (%d)", Server()->Port());
+						str_format(aTitle, sizeof(aTitle), "[BAN] - Vote kick (%d%s)", Server()->Port(), FormatServerInsntance("| "));
 						Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 					}
 				}

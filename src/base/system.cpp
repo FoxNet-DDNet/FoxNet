@@ -41,6 +41,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <engine/shared/config.h>
 
 // <FoxNet
 char str_lowercase(char c)
@@ -541,4 +542,14 @@ std::mt19937 &Rng()
 	static std::mt19937 gen(rd());
 	return gen;
 }
-// FoxNet>
+
+const char *FormatServerInsntance(const char *pPrefix)
+{
+	static char aBuf[256];
+	if(g_Config.m_SvAccountsInstance[0] != '\0')
+		str_format(aBuf, sizeof(aBuf), "%s%s", pPrefix, g_Config.m_SvAccountsInstance);
+	else
+		str_copy(aBuf, "", sizeof(aBuf));
+	return aBuf;
+}
+	// FoxNet>

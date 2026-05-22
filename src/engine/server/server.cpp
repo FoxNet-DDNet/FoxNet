@@ -138,7 +138,7 @@ void CServerBan::ConBanClientId(IConsole::IResult *pResult, void *pUser)
 			pThis->Server()->GetClientVersion(Victim),
 			pThis->Server()->GetClientVersionStr(Victim));
 		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d)", pThis->Server()->Port());
+		str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d%s)", pThis->Server()->Port(), FormatServerInsntance("| "));
 		pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
 	}
 
@@ -254,7 +254,7 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 					pThis->Server()->GetClientVersion(ClientId),
 					pThis->Server()->GetClientVersionStr(ClientId));
 				char aTitle[32];
-				str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d)", pThis->Server()->Port());
+				str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d%s)", pThis->Server()->Port(), FormatServerInsntance("| "));
 				pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
 			}
 
@@ -1868,7 +1868,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[40];
-			str_format(aTitle, sizeof(aTitle), "[BAN] - Stressing network (%d)", Port());
+			str_format(aTitle, sizeof(aTitle), "[BAN] - Stressing network (%d%s)", Port(), FormatServerInsntance("| "));
 			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);

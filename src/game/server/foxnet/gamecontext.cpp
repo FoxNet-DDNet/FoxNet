@@ -740,7 +740,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[32];
-			str_format(aTitle, sizeof(aTitle), "[BAN] - Chat Detection (%d)", Server()->Port());
+			str_format(aTitle, sizeof(aTitle), "[BAN] - Chat Detection (%d%s)", Server()->Port(), FormatServerInsntance("| "));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 			char aCmdBuf[512];
 			str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pClientAddr, BanDuration, Reason);
@@ -845,7 +845,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
 			char aTitle[32];
-			str_format(aTitle, sizeof(aTitle), "[BAN] - Name Detection (%d)", Server()->Port());
+			str_format(aTitle, sizeof(aTitle), "[BAN] - Name Detection (%d%s)", Server()->Port(), FormatServerInsntance("| "));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 			char aCmdBuf[512];

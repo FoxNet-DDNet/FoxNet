@@ -73,7 +73,7 @@ void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
 		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d)", pSelf->Server()->Port());
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d%s)", pSelf->Server()->Port(), FormatServerInsntance("| "));
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 		char aCmdBuf[512];
 		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/register's");
@@ -138,7 +138,7 @@ void CAccounts::ConLogin(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Server()->GetClientVersion(ClientId),
 			pSelf->Server()->GetClientVersionStr(ClientId));
 		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d)", pSelf->Server()->Port());
+		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d%s)", pSelf->Server()->Port(), FormatServerInsntance("| "));
 		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
 		char aCmdBuf[512];
