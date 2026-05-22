@@ -4984,7 +4984,7 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_AIODOB:
 	{
-		SetCustomClient(ClientId, "A-Client", Unpacker);
+		SetCustomClient(ClientId, "Aiodob", Unpacker);
 		return true;
 	}
 
@@ -5051,7 +5051,25 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 
 	case NETMSG_IAM_HOSHIRO:
 	{
-		SetCustomClient(ClientId, "Meow", Unpacker);
+		SetCustomClient(ClientId, "M-Client", Unpacker);
+		return true;
+	}
+
+	case NETMSG_IAM_BEST:
+	{
+		SetCustomClient(ClientId, "B-Client", Unpacker);
+		return true;
+	}
+
+	case NETMSG_IAM_VILA:
+	{
+		SetCustomClient(ClientId, "Vila", Unpacker);
+		return true;
+	}
+
+	case NETMSG_IAM_LION:
+	{
+		SetCustomClient(ClientId, "Lion", Unpacker);
 		return true;
 	}
 

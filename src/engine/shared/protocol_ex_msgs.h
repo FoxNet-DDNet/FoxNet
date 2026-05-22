@@ -52,21 +52,24 @@ UUID(NETMSG_FOXNET_FASTINPUTS, "cl-foxnet-fastinputs@foxnet-ddnet.github.io")
 UUID(NETMSG_FOXNET_COSMETIC_SNAPS, "cosmetic-snaps@foxnet-ddnet.github.io")
 
 // Client Identification
-UUID(NETMSG_IAM_QXD, "i-am-qxd@qxdFox.github.io")
-UUID(NETMSG_IAM_TATER, "iamtater@sjrc6.github.io")
-UUID(NETMSG_IAM_CACTUS, "iamcactus@denchik.top")
-UUID(NETMSG_IAM_AIODOB, "i-am-aiodob@qxdFox.github.io")
-UUID(NETMSG_IAM_FEX, "i-am-fex@faffa81.github.io")
-UUID(NETMSG_IAM_STA, "i-am-StA@stormaxs.github.io/sta.github.io")
-UUID(NETMSG_IAM_PULSE, "i-am-pulse@pulse-client.xyz")
-UUID(NETMSG_IAM_SCLIENT, "i-am-sclient@sclient.site")
-UUID(NETMSG_IAM_CHILLERBOT, "i-am-chillerbot@chillerbot.github.io")
-UUID(NETMSG_IAM_KOSHKA, "i-am-koshka@koshkaclient.fun")
-UUID(NETMSG_IAM_RUSHIE, "i-am-rushie@RushieClient.github.io")
-UUID(NETMSG_IAM_DUCKCLIENT, "i-am-duckclient@pointer31.github.io")
-UUID(NETMSG_IAM_AXIS, "i-am-axis@Ametic.github.io")
-UUID(NETMSG_IAM_KAIZO, "i-am-kaizo-client-pluskz@m0rekz.github.io")
-UUID(NETMSG_IAM_HOSHIRO, "meowclient@meowclient.github.io")
+UUID(NETMSG_IAM_QXD, "i-am-qxd@qxdFox.github.io") // T-Client
+UUID(NETMSG_IAM_TATER, "iamtater@sjrc6.github.io") // Tater Client
+UUID(NETMSG_IAM_CACTUS, "iamcactus@denchik.top") // Cactus Client
+UUID(NETMSG_IAM_AIODOB, "i-am-aiodob@qxdFox.github.io") // Aiodob Client
+UUID(NETMSG_IAM_FEX, "i-am-fex@faffa81.github.io") // Fex Client
+UUID(NETMSG_IAM_STA, "i-am-StA@stormaxs.github.io/sta.github.io") // StA Client
+UUID(NETMSG_IAM_PULSE, "i-am-pulse@pulse-client.xyz") // Pulse Client
+UUID(NETMSG_IAM_SCLIENT, "i-am-sclient@sclient.site") // SClient
+UUID(NETMSG_IAM_CHILLERBOT, "i-am-chillerbot@chillerbot.github.io") // Chillerbot-UX
+UUID(NETMSG_IAM_KOSHKA, "i-am-koshka@koshkaclient.fun") // Koshka Client
+UUID(NETMSG_IAM_RUSHIE, "i-am-rushie@RushieClient.github.io") // Rushie Client
+UUID(NETMSG_IAM_DUCKCLIENT, "i-am-duckclient@pointer31.github.io") // Duck Client
+UUID(NETMSG_IAM_AXIS, "i-am-axis@Ametic.github.io") // Axis Client
+UUID(NETMSG_IAM_KAIZO, "i-am-kaizo-client-pluskz@m0rekz.github.io") // Kaizo Client
+UUID(NETMSG_IAM_HOSHIRO, "meowclient@meowclient.github.io") // Meow Client
+UUID(NETMSG_IAM_BEST, "i-am-bestclient@bestclient.fun") // Best Client
+UUID(NETMSG_IAM_VILA, "i-am-vila@vila.teeworlds.ru") // Villa Client
+UUID(NETMSG_IAM_LION, "info@awb-clan.com") // https://github.com/DDNetGores/client
 
 UUID(NETMSG_IAM_JSCLIENT, "i-am-npm-package@swarfey.gitlab.io")
 UUID(NETMSG_IAM_NOFIS, "i-am-TNC@thenofis.github.io/thenofis.github.io")
