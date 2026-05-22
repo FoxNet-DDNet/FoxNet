@@ -66,6 +66,7 @@ UUID(NETMSG_IAM_RUSHIE, "i-am-rushie@RushieClient.github.io")
 UUID(NETMSG_IAM_DUCKCLIENT, "i-am-duckclient@pointer31.github.io")
 UUID(NETMSG_IAM_AXIS, "i-am-axis@Ametic.github.io")
 UUID(NETMSG_IAM_KAIZO, "i-am-kaizo-client-pluskz@m0rekz.github.io")
+UUID(NETMSG_IAM_HOSHIRO, "meowclient@meowclient.github.io")
 
 UUID(NETMSG_IAM_JSCLIENT, "i-am-npm-package@swarfey.gitlab.io")
 UUID(NETMSG_IAM_NOFIS, "i-am-TNC@thenofis.github.io/thenofis.github.io")

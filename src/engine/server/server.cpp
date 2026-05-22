@@ -5049,6 +5049,12 @@ bool CServer::FoxNetNetMsg(int ClientId, int Msg, CUnpacker Unpacker)
 		return true;
 	}
 
+	case NETMSG_IAM_HOSHIRO:
+	{
+		SetCustomClient(ClientId, "Meow", Unpacker);
+		return true;
+	}
+
 	case NETMSG_IAM_NOFIS:
 	{
 		SetCustomClient(ClientId, "Nofis", Unpacker);
