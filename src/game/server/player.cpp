@@ -299,7 +299,7 @@ void CPlayer::PostTick()
 
 	if(m_PlayerFlags & PLAYERFLAG_SCOREBOARD)
 	{
-		for(int i = 0; i < MAX_CLIENTS; ++i)
+		for(int i = 0; i < Server()->MaxClients(); ++i)
 		{
 			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
 				m_aCurLatency[i] = GameServer()->m_apPlayers[i]->m_Latency.m_Min;
@@ -418,7 +418,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(m_ClientId == SnappingClient)
 	{
 		// send extended spectator info even when playing, this allows demo to record camera settings for local player
-		const int SpectatingClient = ((Team != TEAM_SPECTATORS && !m_Paused) || m_SpectatorId < 0 || m_SpectatorId >= MAX_CLIENTS) ? TranslatedId : m_SpectatorId;
+		const int SpectatingClient = ((Team != TEAM_SPECTATORS && !m_Paused) || m_SpectatorId < 0 || m_SpectatorId >= Server()->MaxClients()) ? TranslatedId : m_SpectatorId;
 		const CPlayer *pSpecPlayer = GameServer()->m_apPlayers[SpectatingClient];
 
 		if(pSpecPlayer)

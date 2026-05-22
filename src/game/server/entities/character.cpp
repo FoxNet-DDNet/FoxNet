@@ -64,6 +64,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
@@ -385,7 +386,7 @@ void CCharacter::HandleNinja()
 		{
 			CEntity *apEnts[MAX_CLIENTS];
 			float Radius = GetProximityRadius() * 2.0f;
-			int Num = GameServer()->m_World.FindEntities(OldPos, Radius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
+			int Num = GameServer()->m_World.FindEntities(OldPos, Radius, apEnts, Server()->MaxClients(), CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 
 			// check that we're not in solo part
 			if(Teams()->m_Core.GetSolo(m_pPlayer->GetCid()))
@@ -433,7 +434,7 @@ void CCharacter::HandleNinja()
 				// Hit a player, give them damage and stuffs...
 				GameServer()->CreateSound(pChr->m_Pos, SOUND_NINJA_HIT, TeamMask());
 				// set their velocity to fast upward (for now)
-				dbg_assert(m_NumObjectsHit < MAX_CLIENTS, "m_aHitObjects overflow");
+				dbg_assert(m_NumObjectsHit < Server()->MaxClients(), "m_aHitObjects overflow");
 				m_aHitObjects[m_NumObjectsHit++] = ClientId;
 
 				pChr->TakeDamage(vec2(0, -10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, m_pPlayer->GetCid(), WEAPON_NINJA);
@@ -608,7 +609,7 @@ void CCharacter::FireWeapon()
 
 		CEntity *apEnts[MAX_CLIENTS];
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
+		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, apEnts, Server()->MaxClients(), CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
 
 		for(int i = 0; i < Num; ++i)
 		{
@@ -1577,7 +1578,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	// Multimap
 	{
-		CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < MAX_CLIENTS) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+		CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 
 		if(SnapPlayer)
 		{
@@ -1663,7 +1664,7 @@ void CCharacter::Snap(int SnappingClient)
 	// <FoxNet
 	pDDNetCharacter->m_TuneZoneOverride = m_TuneZoneOverride;
 
-	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < MAX_CLIENTS) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 
 	if(SnapPlayer)
 	{
@@ -2336,7 +2337,7 @@ void CCharacter::HandleTiles(int Index)
 
 		if((g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO || (Team != TEAM_FLOCK && !Teams()->TeamFlock(Team))) && Team != TEAM_SUPER)
 		{
-			for(int i = 0; i < MAX_CLIENTS; i++)
+			for(int i = 0; i < Server()->MaxClients(); i++)
 			{
 				if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
 				{
@@ -2362,7 +2363,7 @@ void CCharacter::HandleTiles(int Index)
 
 		if((g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO || (Team != TEAM_FLOCK && !Teams()->TeamFlock(Team))) && Team != TEAM_SUPER)
 		{
-			for(int i = 0; i < MAX_CLIENTS; i++)
+			for(int i = 0; i < Server()->MaxClients(); i++)
 			{
 				if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
 				{
@@ -2959,7 +2960,7 @@ void CCharacter::DDRaceInit()
 
 	if(Teams()->TeamLocked(Team) && !Teams()->TeamFlock(Team))
 	{
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int i = 0; i < Server()->MaxClients(); i++)
 		{
 			if(Teams()->m_Core.Team(i) == Team && i != m_Core.m_Id && GameServer()->m_apPlayers[i])
 			{
@@ -3353,7 +3354,7 @@ void CCharacter::DoTelekinesis()
 			return; // no one close
 		if(!pClosest->IsAlive())
 			return; // dead
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int i = 0; i < Server()->MaxClients(); i++)
 		{
 			CCharacter *pChr = GameServer()->GetPlayerChar(i);
 			if(pChr && pChr->m_TelekinesisId == pClosest->GetPlayer()->GetCid())

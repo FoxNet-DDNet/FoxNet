@@ -121,7 +121,7 @@ void CGameContext::FoxNetTick()
 	if(Server()->Tick() % (Server()->TickSpeed() * 60 * 15) == 0)
 		m_AccountManager.SaveAllAccounts();
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ++ClientId)
 	{
 		CPlayer *pPlayer = m_apPlayers[ClientId];
 		if(!pPlayer)
@@ -359,7 +359,7 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 
 	bool aWasOnMap[MAX_CLIENTS] = {false};
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ++ClientId)
 	{
 		if(Server()->ClientSlotEmpty(ClientId))
 			continue;
@@ -394,7 +394,7 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(Idx);
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ++ClientId)
 	{
 		if(!aWasOnMap[ClientId])
 			continue;
@@ -543,7 +543,7 @@ void CGameContext::ClearVotes(int ClientId)
 {
 	if(ClientId == -1)
 	{
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int i = 0; i < Server()->MaxClients(); i++)
 		{
 			if(m_apPlayers[i] && !Server()->ClientSlotEmpty(i))
 				ClearVotes(i);
@@ -860,7 +860,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 
 void CGameContext::OnLogin(int ClientId)
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return;
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
@@ -906,7 +906,7 @@ void CGameContext::OnLogin(int ClientId)
 
 void CGameContext::OnLogout(int ClientId)
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return;
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
@@ -1079,7 +1079,7 @@ const char *CGameContext::HookTypeName(int HookType)
 
 void CGameContext::UnsetTelekinesis(int ClientId)
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		CCharacter *pChr = GetPlayerChar(i);
 		if(pChr && pChr->m_TelekinesisId == ClientId)
@@ -1092,7 +1092,7 @@ void CGameContext::UnsetTelekinesis(int ClientId)
 
 bool CGameContext::SendFakeTuningParams(int ClientId, const CTuningParams &FakeTuning, bool RealTune)
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS || !GetPlayerChar(ClientId))
+	if(ClientId < 0 || ClientId >= Server()->MaxClients() || !GetPlayerChar(ClientId))
 		return false;
 
 	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
@@ -1113,7 +1113,7 @@ bool CGameContext::SendFakeTuningParams(int ClientId, const CTuningParams &FakeT
 
 bool CGameContext::ResetFakeTunes(int ClientId, int Zone)
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS || !GetPlayerChar(ClientId))
+	if(ClientId < 0 || ClientId >= Server()->MaxClients() || !GetPlayerChar(ClientId))
 		return false;
 
 	GetPlayerChar(ClientId)->SetFakeTuned(false);
@@ -1208,7 +1208,7 @@ bool CGameContext::RandomMapVote()
 
 bool CGameContext::SendServerAlert(const char *pMessage, int ClientId) const
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return false;
 	if(Server()->ClientSlotEmpty(ClientId))
 		return false;
@@ -1286,7 +1286,7 @@ bool CGameContext::IncludedInServerInfo(int ClientId)
 
 void CGameContext::OnPreShutdown()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		CPlayer *pPlayer = m_apPlayers[i];
 		if(!pPlayer)
@@ -1300,7 +1300,7 @@ void CGameContext::OnPreShutdown()
 
 void CGameContext::OnPreReload()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		CPlayer *pPlayer = m_apPlayers[i];
 		if(!pPlayer)
@@ -1315,7 +1315,7 @@ void CGameContext::OnPreReload()
 
 void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) const
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return;
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
@@ -1374,7 +1374,7 @@ int CGameContext::NumPlayersInTeam(int Team) const
 	CGameTeams &Teams = m_pController->Teams();
 
 	int Count = 0;
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		CPlayer *pPlayer = m_apPlayers[i];
 		if(Server()->ClientSlotEmpty(i) || !pPlayer)
@@ -1496,7 +1496,7 @@ void CGameContext::OnHammerHit(CCharacter *pChr, vec2 StartPos, float HammerStre
 
 bool CGameContext::SetPredictEventsFlag(int ClientId) const
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return false;
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	if(!pPlayer)
@@ -1513,12 +1513,23 @@ bool CGameContext::SetPredictEventsFlag(int ClientId) const
 	if(pPlayer->Cosmetics()->m_EmoticonGun)
 		return false;
 
+	for(int i = 0; i < Server()->MaxClients(); i++)
+	{
+		if(i == ClientId)
+			continue;
+		CPlayer *pOtherPlayer = m_apPlayers[i];
+		if(!pOtherPlayer)
+			continue;
+		if(pOtherPlayer->Cosmetics()->m_PhaseGun)
+			return false;
+	}
+
 	return true;
 }
 
 bool CGameContext::CanUseCmd(int ClientId, const char *pCmd)
 {
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return false;
 
 	if(Server()->ClientSlotEmpty(ClientId))
@@ -1542,7 +1553,7 @@ bool CGameContext::CanUseCmd(int ClientId, const char *pCmd)
 
 int CGameContext::ClientIdByName(const char *pName) const
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		if(Server()->ClientSlotEmpty(i))
 			continue;

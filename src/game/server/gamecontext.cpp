@@ -1788,7 +1788,6 @@ void CGameContext::OnClientEnter(int ClientId)
 	}
 	// FoxNet>
 
-
 	mem_zero(&m_aLastPlayerInput[ClientId], sizeof(m_aLastPlayerInput[ClientId]));
 	m_aPlayerHasInput[ClientId] = false;
 

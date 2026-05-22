@@ -362,7 +362,7 @@ bool CPlayer::CheckLevelUp(bool Silent)
 	{
 		SendChatFmt("You are now level %" PRId64 "!", Acc()->m_Level);
 
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
 		{
 			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 			if(pPlayer && ClientId != m_ClientId)
@@ -1269,7 +1269,7 @@ float CPlayer::StatMultiplier()
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
 	{
 		if(Server()->ClientSlotEmpty(ClientId))
 			continue;
@@ -1338,7 +1338,7 @@ bool CPlayer::SendToMap(int Idx)
 	}
 
 	SetSpectatorId(-1);
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
 	{
 		if(Server()->ClientSlotEmpty(ClientId))
 			continue;
