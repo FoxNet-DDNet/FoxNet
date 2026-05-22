@@ -394,8 +394,10 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				{
 					str_copy(Data.m_aMetaData, std::to_string(i).c_str());
 					SetSubPage(ClientId, SUB_MAILBOX_VIEW);
+
+					if(Acc.m_MailBox.m_vMails[i].m_Unread)
+						GameServer()->m_AccountManager.SetMailRead(Acc.m_aUsername, Acc.m_MailBox.m_vMails[i].m_MailId, true);
 					Acc.m_MailBox.m_vMails[i].m_Unread = false;
-					GameServer()->m_AccountManager.SetMailRead(Acc.m_aUsername, Acc.m_MailBox.m_vMails[i].m_MailId, false);
 					return true;
 				}
 			}
