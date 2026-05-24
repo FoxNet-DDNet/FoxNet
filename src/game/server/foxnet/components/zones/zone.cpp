@@ -87,7 +87,7 @@ void IZone::UpdateCache()
 	for(int QuadIndex : m_vAnimatedQuadIndices)
 	{
 		CQuadData &QuadData = m_vQuads[QuadIndex];
-		QuadData.UpdatePositionEnvelope(Time, GameServer()->Layers()->Map());
+		QuadData.UpdatePositionEnvelope(Time, Collision()->Layers()->Map());
 		QuadData.UpdateAabb();
 	}
 }
