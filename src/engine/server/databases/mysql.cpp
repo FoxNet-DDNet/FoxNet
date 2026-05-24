@@ -125,6 +125,7 @@ private:
 	void StoreErrorStmt(const char *pContext);
 	bool ConnectImpl();
 	bool PrepareAndExecuteStatement(const char *pStmt);
+	bool ResetStatement();
 
 	union UParameterExtra
 	{
@@ -204,6 +205,17 @@ bool CMysqlConnection::PrepareAndExecuteStatement(const char *pStmt)
 	return true;
 }
 
+bool CMysqlConnection::ResetStatement()
+{
+	m_pStmt = std::unique_ptr<MYSQL_STMT, CStmtDeleter>(mysql_stmt_init(&m_Mysql));
+	if(!m_pStmt)
+	{
+		StoreErrorMysql("stmt_init");
+		return false;
+	}
+	return true;
+}
+
 void CMysqlConnection::Print(IConsole *pConsole, const char *pMode)
 {
 	char aBuf[512];
@@ -236,18 +248,37 @@ bool CMysqlConnection::ConnectImpl()
 {
 	if(m_HaveConnection)
 	{
-        if(m_pStmt && mysql_stmt_field_count(m_pStmt.get()) != 0 && mysql_stmt_free_result(m_pStmt.get()))
+      if(m_pStmt && mysql_stmt_field_count(m_pStmt.get()) != 0 && mysql_stmt_free_result(m_pStmt.get()))
 		{
-			StoreErrorStmt("free_result");
+            StoreErrorStmt("free_result");
 			dbg_msg("mysql", "can't free last result %s", m_aErrorDetail);
 		}
+		if(m_pStmt && mysql_stmt_reset(m_pStmt.get()))
+		{
+			StoreErrorStmt("reset");
+			dbg_msg("mysql", "can't reset statement %s", m_aErrorDetail);
+		}
+
+		unsigned long OldThreadId = mysql_thread_id(&m_Mysql);
 		if(!mysql_select_db(&m_Mysql, m_Config.m_aDatabase))
 		{
-			// Success.
-			return true;
+			if(mysql_thread_id(&m_Mysql) != OldThreadId)
+			{
+				dbg_msg("mysql", "connection was reestablished automatically, refreshing statement handle");
+				if(!ResetStatement())
+				{
+					return false;
+				}
+				if(!PrepareAndExecuteStatement("SET CHARACTER SET utf8mb4"))
+				{
+					return false;
+				}
+			}
+           return true;
 		}
-		StoreErrorMysql("select_db");
-		dbg_msg("mysql", "ping error, trying to reconnect %s", m_aErrorDetail);
+        StoreErrorMysql("select_db");
+		dbg_msg("mysql", "connection check failed, trying to reconnect %s", m_aErrorDetail);
+		m_pStmt = nullptr;
 		mysql_close(&m_Mysql);
 		mem_zero(&m_Mysql, sizeof(m_Mysql));
 		mysql_init(&m_Mysql);
@@ -275,7 +306,10 @@ bool CMysqlConnection::ConnectImpl()
 	}
 	m_HaveConnection = true;
 
-	m_pStmt = std::unique_ptr<MYSQL_STMT, CStmtDeleter>(mysql_stmt_init(&m_Mysql));
+	if(!ResetStatement())
+	{
+		return false;
+	}
 
 	// Apparently MYSQL_SET_CHARSET_NAME is not enough
 	if(!PrepareAndExecuteStatement("SET CHARACTER SET utf8mb4"))
@@ -669,7 +703,7 @@ void CMysqlConnection::GetString(int Col, char *pBuffer, int BufferSize)
 		dbg_assert_failed("Error in GetString(%d): error fetching column %s", Col + 1, m_aErrorDetail);
 	}
 	dbg_assert(!IsNull, "Error in GetString(%d): NULL", Col + 1);
- if(Error)
+	if(Error)
 	{
 		dbg_msg("mysql", "GetString(%d): truncation occurred", Col + 1);
 	}
