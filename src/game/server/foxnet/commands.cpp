@@ -1548,7 +1548,7 @@ void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 		pAgainstPl ? pAgainstPl->Acc()->m_aUsername : "No Account",
 		pReportText);
 
-	char aNameBuf[32];
+	char aNameBuf[48];
 	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d%s)", pSelf->Server()->Port(), FormatServerInsntance(" | "));
 
 	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);

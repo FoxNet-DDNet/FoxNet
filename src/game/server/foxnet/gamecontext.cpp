@@ -739,7 +739,7 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				Server()->GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
-			char aTitle[32];
+			char aTitle[48];
 			str_format(aTitle, sizeof(aTitle), "[BAN] - Chat Detection (%d%s)", Server()->Port(), FormatServerInsntance(" | "));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 			char aCmdBuf[512];

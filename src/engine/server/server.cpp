@@ -1856,18 +1856,16 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 			str_format(aBanBuf, sizeof(aBanBuf),
 				"`%s` [||%s||] was banned for 10 minutes for stressing the network.\n"
-				"%.2f/%.2f bytes/tick, %.2f/%.2f KB/s\n"
+				"%.2f/%.2f KB/s\n"
 				"ver: %s (%d) [%s]",
 				ClientName(ClientId),
 				ClientAddrString(ClientId, false),
-				TrafficBytesPerTick,
-				LimitBytesPerTick,
 				TrafficKBps,
 				LimitKBps,
 				GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
-			char aTitle[40];
+			char aTitle[48];
 			str_format(aTitle, sizeof(aTitle), "[BAN] - Stressing network (%d%s)", Port(), FormatServerInsntance(" | "));
 			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
