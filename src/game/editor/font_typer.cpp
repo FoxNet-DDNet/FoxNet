@@ -190,13 +190,13 @@ void CFontTyper::TextModeOff()
 
 void CFontTyper::SetCursor()
 {
-	m_TextIndex.x = (int)(Ui()->MouseWorldX() / 32);
-	m_TextIndex.y = (int)(Ui()->MouseWorldY() / 32);
+	m_TextIndex.x = (int)(Editor()->MapView()->MouseWorldPos().x / 32);
+	m_TextIndex.y = (int)(Editor()->MapView()->MouseWorldPos().y / 32);
 	m_TextLineLen = 0;
 	m_CursorRenderTime = time_get_nanoseconds() - 501ms;
 }
 
-void CFontTyper::OnRender(CUIRect View)
+void CFontTyper::Render()
 {
 	if(m_ConfirmActivatePopupContext.m_Result == CUi::SConfirmPopupContext::CONFIRMED)
 	{

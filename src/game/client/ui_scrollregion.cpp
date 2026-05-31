@@ -2,7 +2,6 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "ui_scrollregion.h"
 
-#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/client.h>
@@ -205,8 +204,7 @@ void CScrollRegion::End()
 bool CScrollRegion::AddRect(const CUIRect &Rect, bool ShouldScrollHere)
 {
 	m_LastAddedRect = Rect;
-	// Round up and add magic to fix pixel clipping at the end of the scrolling area
-	m_ContentH = maximum(std::ceil(Rect.y + Rect.h - (m_ClipRect.y + m_ContentScrollOff.y)) + HEIGHT_MAGIC_FIX, m_ContentH);
+	m_ContentH = maximum(Rect.y + Rect.h - (m_ClipRect.y + m_ContentScrollOff.y), m_ContentH);
 	if(ShouldScrollHere)
 		ScrollHere();
 	return !RectClipped(Rect);

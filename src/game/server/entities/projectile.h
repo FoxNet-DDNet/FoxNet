@@ -21,8 +21,12 @@ public:
 	CProjectile(CGameWorld *pGameWorld, int MultiMapIdx, int Type, int Owner, vec2 Pos, vec2 Dir,
 		int Span, int FreezeTicks, bool Explosive, int SoundImpact, vec2 InitDir, int Layer = 0, int Number = 0);
 
-	vec2 GetPos(float Time, int ClientId = -1);
-	void FillInfo(CNetObj_Projectile *pProj);
+	vec2 GetPos(float Time);
+
+	CNetObj_Projectile NetInfoVanilla() const;
+	bool NetIsInfoLegacyCompatible() const;
+	CNetObj_DDRaceProjectile NetInfoLegacy() const;
+	CNetObj_DDNetProjectile NetInfo() const;
 
 	void Reset() override;
 	void Tick() override;
@@ -64,8 +68,6 @@ public:
 	// FoxNet>
 
 	void SetBouncing(int Value);
-	bool FillExtraInfoLegacy(CNetObj_DDRaceProjectile *pProj);
-	void FillExtraInfo(CNetObj_DDNetProjectile *pProj);
 
 	bool CanCollide(int ClientId) override;
 	int GetOwnerId() const override { return m_Owner; }

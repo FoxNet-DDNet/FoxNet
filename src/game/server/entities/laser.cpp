@@ -5,15 +5,17 @@
 #include "character.h"
 
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 
 #include <generated/protocol.h>
 
 #include <game/mapitems.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamemodes/ddnet.h>
+#include <game/server/player.h>
 
 CLaser::CLaser(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Type) :
-	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_LASER, true)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -29,9 +31,11 @@ CLaser::CLaser(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Direction
 	m_ZeroEnergyBounceInLastTick = false;
 	m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	m_TeamMask = pOwnerChar ? pOwnerChar->TeamMask() : CClientMask();
 	m_BelongsToPracticeTeam = pOwnerChar && pOwnerChar->Teams()->IsPractice(pOwnerChar->Team());
 
+	CPlayer *pOwnerPlayer = (Owner >= 0 && Owner < MAX_CLIENTS) ? GameServer()->m_apPlayers[m_Owner] : nullptr;
+	m_InteractState.Init(Owner, pOwnerPlayer ? pOwnerPlayer->GetUniqueCid() : 0);
+	SyncInteractState();
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }
@@ -39,6 +43,7 @@ CLaser::CLaser(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, vec2 Direction
 bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	static const vec2 StackedLaserShotgunBugSpeed = vec2(-2147483648.0f, -2147483648.0f);
+	SyncInteractState();
 	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	CCharacter *pHit;
@@ -49,8 +54,9 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	else
 		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : nullptr, m_Owner, pOwnerChar);
 
-	if(!pHit || (pHit == pOwnerChar && g_Config.m_SvOldLaser) || (pHit != pOwnerChar && pOwnerChar ? (pOwnerChar->LaserHitDisabled() && m_Type == WEAPON_LASER) || (pOwnerChar->ShotgunHitDisabled() && m_Type == WEAPON_SHOTGUN) : !g_Config.m_SvHit))
+	if(!pHit || !m_InteractState.CanHit(GameServer(), pHit->GetPlayer()->GetCid()))
 		return false;
+
 	// <FoxNet
 	if(pOwnerChar && pOwnerChar->Core()->m_Passive)
 		return false;
@@ -59,6 +65,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	if(pHit && !pHit->Core()->m_Hittable)
 		return false;
 	// FoxNet>
+
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
@@ -197,7 +204,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > BounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, m_TeamMask);
+			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, m_InteractState.CanSeeMask(GameServer()));
 		}
 	}
 	else
@@ -277,6 +284,7 @@ void CLaser::Reset()
 
 void CLaser::Tick()
 {
+	SyncInteractState();
 	if((g_Config.m_SvDestroyLasersOnDeath || m_BelongsToPracticeTeam) && m_Owner >= 0)
 	{
 		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -298,34 +306,47 @@ void CLaser::TickPaused()
 
 void CLaser::Snap(int SnappingClient)
 {
-	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
-		return;
-	CCharacter *pOwnerChar = nullptr;
-	if(m_Owner >= 0)
-		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	if(!pOwnerChar)
+	if((NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From)) || !GetId().has_value())
 		return;
 
-	pOwnerChar = nullptr;
-	CClientMask TeamMask = CClientMask().set();
-
-	if(m_Owner >= 0)
-		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-
-	if(pOwnerChar && pOwnerChar->IsAlive())
-		TeamMask = pOwnerChar->TeamMask();
-
-	if(SnappingClient != SERVER_DEMO_CLIENT && !TeamMask.test(SnappingClient))
+	if(SnappingClient != SERVER_DEMO_CLIENT && !m_InteractState.CanSee(GameServer(), SnappingClient))
 		return;
 
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	int LaserType = m_Type == WEAPON_LASER ? LASERTYPE_RIFLE : (m_Type == WEAPON_SHOTGUN ? LASERTYPE_SHOTGUN : -1);
 
-	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient), GetId(),
+	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient), GetId().value(),
 		m_Pos, m_From, m_EvalTick, m_Owner, LaserType, 0, m_Number);
 }
 
 void CLaser::SwapClients(int Client1, int Client2)
 {
 	m_Owner = m_Owner == Client1 ? Client2 : (m_Owner == Client2 ? Client1 : m_Owner);
+}
+
+void CLaser::SyncInteractState()
+{
+	CPlayer *pOwnerPlayer = (m_Owner >= 0 && m_Owner < MAX_CLIENTS) ? GameServer()->m_apPlayers[m_Owner] : nullptr;
+	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+
+	// as long as the owner is connected
+	// refill the state on tick
+	// as soon as the owner disconnects keep that state
+	if(pOwnerPlayer)
+	{
+		bool NoHitOthers = g_Config.m_SvHit;
+		if(pOwnerChar)
+			NoHitOthers = (m_Type == WEAPON_LASER && pOwnerChar->LaserHitDisabled()) || (m_Type == WEAPON_SHOTGUN && pOwnerChar->ShotgunHitDisabled());
+		bool NoHitSelf = g_Config.m_SvOldLaser || (m_Bounces == 0 && !m_WasTele);
+		m_InteractState.FillOwnerConnected(
+			pOwnerChar && pOwnerChar->IsAlive(),
+			pOwnerPlayer ? GameServer()->GetDDRaceTeam(m_Owner) : 0,
+			pOwnerChar && pOwnerChar->Core()->m_Solo,
+			NoHitOthers,
+			NoHitSelf);
+	}
+	else
+	{
+		m_InteractState.FillOwnerDisconnected();
+	}
 }

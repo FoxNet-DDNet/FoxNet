@@ -1,8 +1,11 @@
 #if defined(CONF_BACKEND_VULKAN)
 
+#include <base/dbg.h>
 #include <base/log.h>
 #include <base/math.h>
-#include <base/system.h>
+#include <base/mem.h>
+#include <base/str.h>
+#include <base/time.h>
 
 #include <engine/client/backend/backend_base.h>
 #include <engine/client/backend/vulkan/backend_vulkan.h>
@@ -2597,9 +2600,6 @@ protected:
 
 		if(Requires2DTextureArray)
 		{
-			int Image3DWidth = Width;
-			int Image3DHeight = Height;
-
 			int ConvertWidth = Width;
 			int ConvertHeight = Height;
 
@@ -2620,40 +2620,31 @@ protected:
 				pData = pNewTexData;
 			}
 
-			bool Needs3DTexDel = false;
+			int Image3DWidth, Image3DHeight;
 			uint8_t *pTexData3D = static_cast<uint8_t *>(malloc((size_t)PixelSize * ConvertWidth * ConvertHeight));
-			if(!Texture2DTo3D(pData, ConvertWidth, ConvertHeight, PixelSize, 16, 16, pTexData3D, Image3DWidth, Image3DHeight))
+			Texture2DTo3D(pData, ConvertWidth, ConvertHeight, PixelSize, 16, 16, pTexData3D, Image3DWidth, Image3DHeight);
+
+			const size_t ImageDepth2DArray = (size_t)16 * 16;
+			VkExtent3D ImgSize{(uint32_t)Image3DWidth, (uint32_t)Image3DHeight, 1};
+			if(RequiresMipMaps)
 			{
-				free(pTexData3D);
-				pTexData3D = nullptr;
+				MipMapLevelCount = ImageMipLevelCount(ImgSize);
+				if(!m_OptimalRGBAImageBlitting)
+					MipMapLevelCount = 1;
 			}
-			Needs3DTexDel = true;
 
-			if(pTexData3D != nullptr)
-			{
-				const size_t ImageDepth2DArray = (size_t)16 * 16;
-				VkExtent3D ImgSize{(uint32_t)Image3DWidth, (uint32_t)Image3DHeight, 1};
-				if(RequiresMipMaps)
-				{
-					MipMapLevelCount = ImageMipLevelCount(ImgSize);
-					if(!m_OptimalRGBAImageBlitting)
-						MipMapLevelCount = 1;
-				}
+			if(!CreateTextureImage(ImageIndex, Texture.m_Img3D, Texture.m_Img3DMem, pTexData3D, Format, Image3DWidth, Image3DHeight, ImageDepth2DArray, PixelSize, MipMapLevelCount))
+				return false;
+			VkFormat ImgFormat = Format;
+			VkImageView ImgView = CreateTextureImageView(Texture.m_Img3D, ImgFormat, VK_IMAGE_VIEW_TYPE_2D_ARRAY, ImageDepth2DArray, MipMapLevelCount);
+			Texture.m_Img3DView = ImgView;
+			VkSampler ImgSampler = GetTextureSampler(SUPPORTED_SAMPLER_TYPE_2D_TEXTURE_ARRAY);
+			Texture.m_Sampler3D = ImgSampler;
 
-				if(!CreateTextureImage(ImageIndex, Texture.m_Img3D, Texture.m_Img3DMem, pTexData3D, Format, Image3DWidth, Image3DHeight, ImageDepth2DArray, PixelSize, MipMapLevelCount))
-					return false;
-				VkFormat ImgFormat = Format;
-				VkImageView ImgView = CreateTextureImageView(Texture.m_Img3D, ImgFormat, VK_IMAGE_VIEW_TYPE_2D_ARRAY, ImageDepth2DArray, MipMapLevelCount);
-				Texture.m_Img3DView = ImgView;
-				VkSampler ImgSampler = GetTextureSampler(SUPPORTED_SAMPLER_TYPE_2D_TEXTURE_ARRAY);
-				Texture.m_Sampler3D = ImgSampler;
+			if(!CreateNew3DTexturedStandardDescriptorSets(ImageIndex))
+				return false;
 
-				if(!CreateNew3DTexturedStandardDescriptorSets(ImageIndex))
-					return false;
-
-				if(Needs3DTexDel)
-					free(pTexData3D);
-			}
+			free(pTexData3D);
 		}
 		return true;
 	}
@@ -6805,19 +6796,22 @@ public:
 		uint32_t Width;
 		uint32_t Height;
 		CImageInfo::EImageFormat Format;
+
 		if(GetPresentedImageDataImpl(Width, Height, Format, m_vScreenshotHelper, true, {}))
 		{
-			const size_t ImgSize = (size_t)Width * (size_t)Height * CImageInfo::PixelSize(Format);
-			pCommand->m_pImage->m_pData = static_cast<uint8_t *>(malloc(ImgSize));
-			mem_copy(pCommand->m_pImage->m_pData, m_vScreenshotHelper.data(), ImgSize);
+			pCommand->m_pImage->m_Width = (int)Width;
+			pCommand->m_pImage->m_Height = (int)Height;
+			pCommand->m_pImage->m_Format = Format;
+			pCommand->m_pImage->Allocate();
+			mem_copy(pCommand->m_pImage->m_pData, m_vScreenshotHelper.data(), pCommand->m_pImage->DataSize());
 		}
 		else
 		{
+			pCommand->m_pImage->m_Width = 0;
+			pCommand->m_pImage->m_Height = 0;
+			pCommand->m_pImage->m_Format = CImageInfo::FORMAT_UNDEFINED;
 			pCommand->m_pImage->m_pData = nullptr;
 		}
-		pCommand->m_pImage->m_Width = (int)Width;
-		pCommand->m_pImage->m_Height = (int)Height;
-		pCommand->m_pImage->m_Format = Format;
 
 		return true;
 	}

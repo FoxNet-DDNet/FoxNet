@@ -1,11 +1,15 @@
 #include "backend_opengl.h"
 
+#include <base/dbg.h>
 #include <base/detect.h>
 #include <base/log.h>
-#include <base/system.h>
+#include <base/mem.h>
+#include <base/str.h>
 
 #include <engine/client/backend_sdl.h>
 #include <engine/graphics.h>
+
+#include <cstdint>
 
 #if defined(BACKEND_AS_OPENGL_ES) || !defined(CONF_BACKEND_OPENGL_ES)
 
@@ -861,9 +865,6 @@ void CCommandProcessorFragment_OpenGL::TextureCreate(int Slot, int Width, int He
 				glBindSampler(0, 0);
 			}
 
-			uint8_t *pImageData3D = static_cast<uint8_t *>(malloc((size_t)Width * Height * PixelSize));
-			int Image3DWidth, Image3DHeight;
-
 			int ConvertWidth = Width;
 			int ConvertHeight = Height;
 
@@ -872,7 +873,7 @@ void CCommandProcessorFragment_OpenGL::TextureCreate(int Slot, int Width, int He
 				int NewWidth = maximum<int>(HighestBit(ConvertWidth), 16);
 				int NewHeight = maximum<int>(HighestBit(ConvertHeight), 16);
 				uint8_t *pNewTexData = ResizeImage(pTexData, ConvertWidth, ConvertHeight, NewWidth, NewHeight, GLFormatToPixelSize(GLFormat));
-				log_debug("gfx/opengl", "3D/2D array texture was resized");
+				log_debug("gfx/opengl", "3D/2D array texture was resized. Slot=%d Size=(%d, %d) Resized=(%d, %d)", Slot, ConvertWidth, ConvertHeight, NewWidth, NewHeight);
 
 				ConvertWidth = NewWidth;
 				ConvertHeight = NewHeight;
@@ -881,11 +882,10 @@ void CCommandProcessorFragment_OpenGL::TextureCreate(int Slot, int Width, int He
 				pTexData = pNewTexData;
 			}
 
-			if(Texture2DTo3D(pTexData, ConvertWidth, ConvertHeight, PixelSize, 16, 16, pImageData3D, Image3DWidth, Image3DHeight))
-			{
-				glTexImage3D(Target, 0, GLStoreFormat, Image3DWidth, Image3DHeight, 256, 0, GLFormat, GL_UNSIGNED_BYTE, pImageData3D);
-			}
-
+			int Image3DWidth, Image3DHeight;
+			uint8_t *pImageData3D = static_cast<uint8_t *>(malloc((size_t)PixelSize * ConvertWidth * ConvertHeight));
+			Texture2DTo3D(pTexData, ConvertWidth, ConvertHeight, PixelSize, 16, 16, pImageData3D, Image3DWidth, Image3DHeight);
+			glTexImage3D(Target, 0, GLStoreFormat, Image3DWidth, Image3DHeight, 256, 0, GLFormat, GL_UNSIGNED_BYTE, pImageData3D);
 			free(pImageData3D);
 		}
 	}
@@ -1004,9 +1004,16 @@ void CCommandProcessorFragment_OpenGL::Cmd_Screenshot(const CCommandBuffer::SCom
 	int w = aViewport[2];
 	int h = aViewport[3];
 
-	// we allocate one more row to use when we are flipping the texture
-	unsigned char *pPixelData = (unsigned char *)malloc((size_t)w * (h + 1) * 4);
-	unsigned char *pTempRow = pPixelData + w * h * 4;
+	pCommand->m_pImage->m_Width = w;
+	pCommand->m_pImage->m_Height = h;
+	pCommand->m_pImage->m_Format = CImageInfo::FORMAT_RGBA;
+	pCommand->m_pImage->Allocate();
+
+	uint8_t *pPixelData = pCommand->m_pImage->m_pData;
+
+	// we create a tmp row to use when we are flipping the texture
+	std::vector<uint8_t> vTmpRow(w * 4);
+	uint8_t *pTempRow = vTmpRow.data();
 
 	// fetch the pixels
 	GLint Alignment;
@@ -1027,12 +1034,6 @@ void CCommandProcessorFragment_OpenGL::Cmd_Screenshot(const CCommandBuffer::SCom
 			pPixelData[(h - y - 1) * w * 4 + x * 4 + 3] = 255;
 		}
 	}
-
-	// fill in the information
-	pCommand->m_pImage->m_Width = w;
-	pCommand->m_pImage->m_Height = h;
-	pCommand->m_pImage->m_Format = CImageInfo::FORMAT_RGBA;
-	pCommand->m_pImage->m_pData = pPixelData;
 }
 
 CCommandProcessorFragment_OpenGL::CCommandProcessorFragment_OpenGL()

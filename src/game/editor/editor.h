@@ -125,6 +125,7 @@ class CEditor : public IEditor, public IEnvelopeEval
 	CFileBrowser m_FileBrowser;
 	CPrompt m_Prompt;
 	CFontTyper m_FontTyper;
+	CQuadKnife m_QuadKnife;
 
 	bool m_EditorWasUsedBefore = false;
 
@@ -135,8 +136,6 @@ class CEditor : public IEditor, public IEnvelopeEval
 	IGraphics::CTextureHandle m_SpeedupTexture;
 	IGraphics::CTextureHandle m_SwitchTexture;
 	IGraphics::CTextureHandle m_TuneTexture;
-
-	int GetTextureUsageFlag() const;
 
 	enum EPreviewState
 	{
@@ -165,6 +164,8 @@ public:
 	const CEditorMap *Map() const { return &m_Map; }
 	CMapView *MapView() { return &m_MapView; }
 	const CMapView *MapView() const { return &m_MapView; }
+	CQuadKnife *QuadKnife() { return &m_QuadKnife; }
+	const CQuadKnife *QuadKnife() const { return &m_QuadKnife; }
 	CLayerSelector *LayerSelector() { return &m_LayerSelector; }
 
 	void FillGameTiles(EGameTileOp FillTile) const;
@@ -230,9 +231,9 @@ public:
 		m_ShowTileInfo = SHOW_TILE_OFF;
 		m_ShowDetail = true;
 		m_Animate = false;
-		m_AnimateStart = 0;
-		m_AnimateTime = 0;
-		m_AnimateSpeed = 1;
+		m_AnimateStart = 0.0f;
+		m_AnimateTime = 0.0f;
+		m_AnimateSpeed = 1.0f;
 		m_AnimateUpdatePopup = false;
 
 		for(size_t i = 0; i < std::size(m_aSavedColors); ++i)
@@ -266,27 +267,6 @@ public:
 		m_BrushDrawDestructive = true;
 	}
 
-	class CHoverTile
-	{
-	public:
-		CHoverTile(int Group, int Layer, int x, int y, const CTile Tile) :
-			m_Group(Group),
-			m_Layer(Layer),
-			m_X(x),
-			m_Y(y),
-			m_Tile(Tile)
-		{
-		}
-
-		int m_Group;
-		int m_Layer;
-		int m_X;
-		int m_Y;
-		const CTile m_Tile;
-	};
-	std::vector<CHoverTile> m_vHoverTiles;
-	const std::vector<CHoverTile> &HoverTiles() const { return m_vHoverTiles; }
-
 	void Init() override;
 	void OnUpdate() override;
 	void OnRender() override;
@@ -301,7 +281,6 @@ public:
 	void ResetIngameMoved() override { m_IngameMoved = false; }
 
 	void HandleCursorMovement();
-	void OnMouseMove(vec2 MousePos);
 	void MouseAxisLock(vec2 &CursorRel);
 	vec2 m_MouseAxisInitialPos = vec2(0.0f, 0.0f);
 	enum class EAxisLock
@@ -338,6 +317,7 @@ public:
 	void LoadCurrentMap();
 	void Render();
 
+	void UpdateBrushPicker();
 	void RenderPressedKeys(CUIRect View);
 	void RenderSavingIndicator(CUIRect View);
 	void FreeDynamicPopupMenus();
@@ -425,13 +405,8 @@ public:
 	bool m_GuiActive;
 
 	bool m_PreviewZoom;
-	float m_MouseWorldScale = 1.0f; // Mouse (i.e. UI) scale relative to the World (selected Group)
-	vec2 m_MouseWorldPos = vec2(0.0f, 0.0f);
-	vec2 m_MouseWorldNoParaPos = vec2(0.0f, 0.0f);
-	vec2 m_MouseDeltaWorld = vec2(0.0f, 0.0f);
 	const void *m_pContainerPanned;
 	const void *m_pContainerPannedLast;
-	char m_MapEditorId; // UI element ID for the main map editor
 
 	enum EShowTile
 	{
@@ -443,7 +418,7 @@ public:
 	bool m_ShowDetail;
 
 	bool m_Animate;
-	int64_t m_AnimateStart;
+	float m_AnimateStart;
 	float m_AnimateTime;
 	float m_AnimateSpeed;
 	bool m_AnimateUpdatePopup;
@@ -476,7 +451,8 @@ public:
 	};
 	EQuadEnvelopePointOperation m_QuadEnvelopePointOperation = EQuadEnvelopePointOperation::NONE;
 
-	bool m_ShowPicker;
+	bool m_ShowPicker = false;
+	bool m_ShowPickerToggle = false;
 
 	// Color palette and pipette
 	ColorRGBA m_aSavedColors[8];
@@ -627,10 +603,6 @@ public:
 	void DoQuadPoint(int LayerIndex, const std::shared_ptr<CLayerQuads> &pLayer, CQuad *pQuad, int QuadIndex, int v);
 	void UpdateHotQuadPoint(const CLayerQuads *pLayer);
 
-	float TriangleArea(vec2 A, vec2 B, vec2 C);
-	bool IsInTriangle(vec2 Point, vec2 A, vec2 B, vec2 C);
-	void DoQuadKnife(int QuadIndex);
-
 	void DoSoundSource(int LayerIndex, CSoundSource *pSource, int Index);
 	void UpdateHotSoundSource(const CLayerSounds *pLayer);
 
@@ -653,7 +625,6 @@ public:
 		};
 		CPoint m_aPoints[NUM_POINTS];
 	};
-	void DoMapEditor(CUIRect View);
 	void DoToolbarLayers(CUIRect Toolbar);
 	void DoToolbarImages(CUIRect Toolbar);
 	void DoToolbarSounds(CUIRect Toolbar);
@@ -699,7 +670,35 @@ public:
 
 	static bool IsVanillaImage(const char *pImage);
 
+	enum class ELayerOperation
+	{
+		NONE,
+		CLICK,
+		LAYER_DRAG,
+		GROUP_DRAG,
+	};
+	class CRenderLayersState
+	{
+	public:
+		CScrollRegion m_ScrollRegion;
+		ELayerOperation m_Operation;
+		ELayerOperation m_PreviousOperation;
+		const void *m_pDraggedButton;
+		float m_InitialMouseY;
+		float m_InitialCutHeight;
+		bool m_ScrollToSelectionNext;
+		int m_InitialGroupIndex;
+		std::vector<int> m_vInitialLayerIndices;
+		const char m_AddGroupButtonId = 0;
+		const char m_CollapseAllButtonId = 0;
+		const SPopupMenuId m_PopupGroupId = {};
+		SLayerPopupContext m_LayerPopupContext;
+
+		void Reset();
+	};
+	CRenderLayersState m_RenderLayersState;
 	void RenderLayers(CUIRect LayersBox);
+
 	void RenderImagesList(CUIRect Toolbox);
 	void RenderSelectedImage(CUIRect View) const;
 	void RenderSounds(CUIRect Toolbox);
@@ -771,6 +770,7 @@ public:
 	unsigned char m_SwitchDelay;
 	unsigned char m_ViewSwitch;
 
+	// Adjust must be -1, 0 or 1
 	void AdjustBrushSpecialTiles(bool UseNextFree, int Adjust = 0);
 
 private:

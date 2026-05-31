@@ -2,7 +2,9 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "controls.h"
 
+#include <base/dbg.h>
 #include <base/math.h>
+#include <base/mem.h>
 #include <base/time.h>
 #include <base/vmath.h>
 
@@ -384,7 +386,7 @@ void CControls::OnRender()
 
 bool CControls::OnCursorMove(float x, float y, IInput::ECursorType CursorType)
 {
-	if(GameClient()->m_Snap.m_pGameInfoObj && (GameClient()->m_Snap.m_pGameInfoObj->m_GameStateFlags & GAMESTATEFLAG_PAUSED))
+	if(GameClient()->IsWorldPaused())
 		return false;
 
 	if(CursorType == IInput::CURSOR_JOYSTICK && g_Config.m_InpControllerAbsolute && GameClient()->m_Snap.m_pGameInfoObj && !GameClient()->m_Snap.m_SpecInfo.m_Active)

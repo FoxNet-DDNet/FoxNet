@@ -63,7 +63,6 @@ void CServerBan::InitServerBan(IConsole *pConsole, IStorage *pStorage, CServer *
 
 	m_pServer = pServer;
 
-	// overwrites base command, todo: improve this
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanTimestampExt, this, "Ban ip/client id until an absolute UNIX timestamp");
 	Console()->Register("banid", "v[id] i[minutes] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanClientId, this, "Ban player with ip/client id for x minutes for any reason");
 
@@ -263,7 +262,13 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 		}
 	}
 	else
-		ConBan(pResult, pUser);
+	{
+		NETADDR Addr;
+		if(net_addr_from_str(&Addr, pStr) == 0)
+			pThis->BanAddr(&Addr, Minutes * 60, pReason, false);
+		else
+			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban error (invalid network address)");
+	}
 }
 
 void CServerBan::ConBanRegion(IConsole::IResult *pResult, void *pUser)
@@ -347,13 +352,16 @@ void CServer::CClient::Reset()
 	FreeClientOverrideMap(*this);
 }
 
-CServer::CServer()
+CServer::CServer() :
+	m_pSnapshotDelta(CSnapshotDelta_New()),
+	m_pSnapshotDeltaSixup(CSnapshotDelta_New()),
+	m_pSnapshotBuilder(CSnapshotBuilder_New())
 {
 	m_pConfig = &g_Config;
 	for(int i = 0; i < MAX_CLIENTS; i++)
-		m_aDemoRecorder[i] = CDemoRecorder(&m_SnapshotDelta, true);
-	m_aDemoRecorder[RECORDER_MANUAL] = CDemoRecorder(&m_SnapshotDelta, false);
-	m_aDemoRecorder[RECORDER_AUTO] = CDemoRecorder(&m_SnapshotDelta, false);
+		m_aDemoRecorder[i] = CDemoRecorder(&*m_pSnapshotDelta, true);
+	m_aDemoRecorder[RECORDER_MANUAL] = CDemoRecorder(&*m_pSnapshotDelta, false);
+	m_aDemoRecorder[RECORDER_AUTO] = CDemoRecorder(&*m_pSnapshotDelta, false);
 
 	m_pGameServer = nullptr;
 
@@ -1140,18 +1148,18 @@ void CServer::DoSnapshot()
 	if(m_aDemoRecorder[RECORDER_MANUAL].IsRecording() || m_aDemoRecorder[RECORDER_AUTO].IsRecording())
 	{
 		// create snapshot for demo recording
-		char aData[CSnapshot::MAX_SIZE];
+		CSnapshotBuffer Data;
 
 		// build snap and possibly add some messages
-		m_SnapshotBuilder.Init();
+		m_pSnapshotBuilder->Init(false);
 		GameServer()->OnSnap(-1, IsGlobalSnap, true);
-		int SnapshotSize = m_SnapshotBuilder.Finish(aData);
+		int SnapshotSize = m_pSnapshotBuilder->Finish(Data);
 
 		// write snapshot
 		if(m_aDemoRecorder[RECORDER_MANUAL].IsRecording())
-			m_aDemoRecorder[RECORDER_MANUAL].RecordSnapshot(Tick(), aData, SnapshotSize);
+			m_aDemoRecorder[RECORDER_MANUAL].RecordSnapshot(Tick(), Data.AsSnapshot(), SnapshotSize);
 		if(m_aDemoRecorder[RECORDER_AUTO].IsRecording())
-			m_aDemoRecorder[RECORDER_AUTO].RecordSnapshot(Tick(), aData, SnapshotSize);
+			m_aDemoRecorder[RECORDER_AUTO].RecordSnapshot(Tick(), Data.AsSnapshot(), SnapshotSize);
 	}
 
 	// create snapshots for all clients
@@ -1181,30 +1189,29 @@ void CServer::DoSnapshot()
 		}
 
 		{
-			m_SnapshotBuilder.Init(m_aClients[i].m_Sixup);
+			m_pSnapshotBuilder->Init(m_aClients[i].m_Sixup);
 
 			// only snap events on global ticks
 			GameServer()->OnSnap(i, IsGlobalSnap, m_aDemoRecorder[i].IsRecording());
 
 			// finish snapshot
-			char aData[CSnapshot::MAX_SIZE];
-			CSnapshot *pData = (CSnapshot *)aData; // Fix compiler warning for strict-aliasing
-			int SnapshotSize = m_SnapshotBuilder.Finish(pData);
+			CSnapshotBuffer Data;
+			int SnapshotSize = m_pSnapshotBuilder->Finish(Data);
 
 			if(m_aDemoRecorder[i].IsRecording())
 			{
 				// write snapshot
-				m_aDemoRecorder[i].RecordSnapshot(Tick(), aData, SnapshotSize);
+				m_aDemoRecorder[i].RecordSnapshot(Tick(), Data.AsSnapshot(), SnapshotSize);
 			}
 
-			int Crc = pData->Crc();
+			int Crc = Data.AsSnapshot()->Crc();
 
 			// remove old snapshots
 			// keep 3 seconds worth of snapshots
 			m_aClients[i].m_Snapshots.PurgeUntil(m_CurrentGameTick - TickSpeed() * 3);
 
 			// save the snapshot
-			m_aClients[i].m_Snapshots.Add(m_CurrentGameTick, time_get(), SnapshotSize, pData, 0, nullptr);
+			m_aClients[i].m_Snapshots.Add(m_CurrentGameTick, time_get(), SnapshotSize, Data.AsSnapshot(), 0, nullptr);
 
 			// find snapshot that we can perform delta against
 			int DeltaTick = -1;
@@ -1222,10 +1229,9 @@ void CServer::DoSnapshot()
 			}
 
 			// create delta
-			m_SnapshotDelta.SetStaticsize(protocol7::NETEVENTTYPE_SOUNDWORLD, m_aClients[i].m_Sixup);
-			m_SnapshotDelta.SetStaticsize(protocol7::NETEVENTTYPE_DAMAGE, m_aClients[i].m_Sixup);
-			char aDeltaData[CSnapshot::MAX_SIZE];
-			int DeltaSize = m_SnapshotDelta.CreateDelta(pDeltashot, pData, aDeltaData);
+			CSnapshotDelta *const pSnapshotDelta = IsSixup(i) ? &*m_pSnapshotDeltaSixup : &*m_pSnapshotDelta;
+			int32_t aDeltaData[CSnapshot::MAX_SIZE / sizeof(int32_t)];
+			int DeltaSize = pSnapshotDelta->CreateDelta(*pDeltashot, *Data.AsSnapshot(), rust::Slice(aDeltaData, std::size(aDeltaData)));
 
 			if(DeltaSize)
 			{
@@ -3363,14 +3369,14 @@ int CServer::Run()
 	m_UPnP.Open(BindAddr);
 #endif
 
-	if(!m_Http.Init(std::chrono::seconds{2}))
+	if(!m_pHttp->Init(std::chrono::seconds{2}))
 	{
 		log_error("server", "Failed to initialize the HTTP client.");
 		return -1;
 	}
 
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
-	m_pRegister = CreateRegister(&g_Config, m_pConsole, m_pEngine, &m_Http, g_Config.m_SvRegisterPort > 0 ? g_Config.m_SvRegisterPort : this->Port(), m_NetServer.GetGlobalToken());
+	m_pRegister = CreateRegister(&g_Config, m_pConsole, m_pEngine, m_pHttp, g_Config.m_SvRegisterPort > 0 ? g_Config.m_SvRegisterPort : this->Port(), m_NetServer.GetGlobalToken());
 
 	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, ClientRejoinCallback, DelClientCallback, this);
 
@@ -3482,6 +3488,8 @@ int CServer::Run()
 					m_ServerInfoFirstRequest = 0;
 					Kernel()->ReregisterInterface(GameServer());
 					Console()->StoreCommands(true);
+					GameServer()->OnInit(m_pPersistentData);
+					Console()->StoreCommands(false);
 
 					for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 					{
@@ -3502,8 +3510,6 @@ int CServer::Run()
 						}
 					}
 
-					GameServer()->OnInit(m_pPersistentData);
-					Console()->StoreCommands(false);
 					if(ErrorShutdown())
 					{
 						break;
@@ -3732,6 +3738,7 @@ int CServer::Run()
 	m_pRegister->OnShutdown();
 	m_Econ.Shutdown();
 	m_Fifo.Shutdown();
+	m_pHttp->Shutdown();
 	Engine()->ShutdownJobs();
 
 	GameServer()->OnShutdown(nullptr);
@@ -4629,10 +4636,9 @@ void CServer::RegisterCommands()
 {
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 	m_pGameServer = Kernel()->RequestInterface<IGameServer>();
+	m_pHttp = Kernel()->RequestInterface<IEngineHttp>();
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 	m_pAntibot = Kernel()->RequestInterface<IEngineAntibot>();
-
-	Kernel()->RegisterInterface(static_cast<IHttp *>(&m_Http), false);
 
 	// register console commands
 	Console()->Register("kick", "i[id] ?r[reason]", CFGFLAG_SERVER, ConKick, this, "Kick player with specified id for any reason");
@@ -4706,7 +4712,7 @@ void CServer::RegisterCommands()
 	Console()->SetCanUseCommandCallback(CanClientUseCommandCallback, this);
 }
 
-int CServer::SnapNewId()
+std::optional<int> CServer::SnapNewId()
 {
 	return m_IdPool.NewId();
 }
@@ -4716,14 +4722,19 @@ void CServer::SnapFreeId(int Id)
 	m_IdPool.FreeId(Id);
 }
 
-void *CServer::SnapNewItem(int Type, int Id, int Size)
+bool CServer::SnapNewItem(int Type, int Id, rust::Slice<const int32_t> Data)
 {
-	return m_SnapshotBuilder.NewItem(Type, Id, Size);
+	return m_pSnapshotBuilder->NewItem(Type, Id, Data);
 }
 
 void CServer::SnapSetStaticsize(int ItemType, int Size)
 {
-	m_SnapshotDelta.SetStaticsize(ItemType, Size);
+	m_pSnapshotDelta->SetStaticsize(ItemType, Size);
+}
+
+void CServer::SnapSetStaticsize7(int ItemType, int Size)
+{
+	m_pSnapshotDeltaSixup->SetStaticsize(ItemType, Size);
 }
 
 CServer *CreateServer() { return new CServer(); }

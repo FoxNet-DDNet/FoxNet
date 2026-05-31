@@ -4,9 +4,11 @@
 #include "menus.h"
 #include "skins.h"
 
+#include <base/dbg.h>
+#include <base/fs.h>
 #include <base/log.h>
 #include <base/math.h>
-#include <base/system.h>
+#include <base/str.h>
 
 #include <engine/font_icons.h>
 #include <engine/graphics.h>
@@ -1234,16 +1236,15 @@ void CMenus::RenderSettingsGraphics(CUIRect MainView)
 
 void CMenus::RenderSettingsSound(CUIRect MainView)
 {
-	static int s_SndEnable = g_Config.m_SndEnable;
-
 	CUIRect Button;
 	MainView.HSplitTop(20.0f, &Button, &MainView);
 	if(DoButton_CheckBox(&g_Config.m_SndEnable, Localize("Use sounds"), g_Config.m_SndEnable, &Button))
 	{
 		g_Config.m_SndEnable ^= 1;
 		UpdateMusicState();
-		m_NeedRestartSound = g_Config.m_SndEnable && !s_SndEnable;
 	}
+
+	m_NeedRestartSound = g_Config.m_SndEnable && !Sound()->IsSoundEnabled();
 
 	if(!g_Config.m_SndEnable)
 		return;
@@ -1329,7 +1330,7 @@ void CMenus::RenderLanguageSettings(CUIRect MainView)
 	const float CreditsMargin = 10.0f;
 
 	CUIRect List, CreditsScroll;
-	MainView.HSplitBottom(4.0f * CreditsFontSize + 2.0f * CreditsMargin + CScrollRegion::HEIGHT_MAGIC_FIX, &List, &CreditsScroll);
+	MainView.HSplitBottom(4.0f * CreditsFontSize + 2.0f * CreditsMargin, &List, &CreditsScroll);
 	List.HSplitBottom(5.0f, &List, nullptr);
 
 	RenderLanguageSelection(List);

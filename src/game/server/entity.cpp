@@ -7,6 +7,8 @@
 #include "gameworld.h"
 #include "player.h"
 
+#include <game/server/gameworld.h>
+
 #include <base/math.h>
 #include <base/vmath.h>
 
@@ -18,7 +20,7 @@
 //////////////////////////////////////////////////
 // Entity
 //////////////////////////////////////////////////
-CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, bool SnapFreeId, vec2 Pos, int ProximityRadius)
 {
 	m_pGameWorld = pGameWorld;
 	m_MultiMapIndex = MultiMapIdx;
@@ -29,7 +31,8 @@ CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, vec2 Pos,
 	m_ProximityRadius = ProximityRadius;
 
 	m_MarkedForDestroy = false;
-	m_Id = Server()->SnapNewId();
+	if(SnapFreeId)
+		m_Id = Server()->SnapNewId();
 
 	m_pPrevTypeEntity = nullptr;
 	m_pNextTypeEntity = nullptr;
@@ -38,7 +41,8 @@ CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, vec2 Pos,
 CEntity::~CEntity()
 {
 	GameWorld()->RemoveEntity(this);
-	Server()->SnapFreeId(m_Id);
+	if(m_Id.has_value())
+		Server()->SnapFreeId(m_Id.value());
 }
 
 CCollision *CEntity::Collision()

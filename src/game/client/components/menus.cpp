@@ -4,9 +4,12 @@
 #include "menus.h"
 
 #include <base/color.h>
+#include <base/dbg.h>
+#include <base/fs.h>
 #include <base/log.h>
 #include <base/math.h>
-#include <base/system.h>
+#include <base/str.h>
+#include <base/time.h>
 #include <base/vmath.h>
 
 #include <engine/client.h>
@@ -2410,10 +2413,6 @@ void CMenus::SetActive(bool Active)
 	{
 		GameClient()->OnRelease();
 	}
-}
-
-void CMenus::OnReset()
-{
 }
 
 void CMenus::OnShutdown()

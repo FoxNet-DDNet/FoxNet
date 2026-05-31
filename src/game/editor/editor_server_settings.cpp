@@ -3,7 +3,8 @@
 #include "editor.h"
 
 #include <base/color.h>
-#include <base/system.h>
+#include <base/dbg.h>
+#include <base/str.h>
 
 #include <engine/font_icons.h>
 #include <engine/keys.h>
@@ -1224,22 +1225,27 @@ void CMapSettingsBackend::CContext::UpdateFromString(const char *pStr)
 	m_vCurrentArgs.clear();
 	m_CommentOffset = -1;
 
-	const char *pIterator = pStr;
-
 	// Check for comment
 	const char *pEnd = pStr;
-	int InString = 0;
+	bool InString = false;
+	bool IsEscaping = false;
 
 	while(*pEnd)
 	{
-		if(*pEnd == '"')
-			InString ^= 1;
-		else if(*pEnd == '\\') // Escape sequences
+		if(IsEscaping)
 		{
-			if(pEnd[1] == '"')
-				pEnd++;
+			IsEscaping = false;
 		}
-		else if(!InString)
+		else if(*pEnd == '"')
+		{
+			InString = !InString;
+		}
+		else if(InString && *pEnd == '\\') // escape sequences
+		{
+			IsEscaping = true;
+		}
+
+		if(!InString)
 		{
 			if(*pEnd == '#') // Found comment
 			{
@@ -1257,11 +1263,11 @@ void CMapSettingsBackend::CContext::UpdateFromString(const char *pStr)
 	// End command at start of comment, if any
 	char aInputString[256];
 	str_copy(aInputString, pStr, m_CommentOffset != -1 ? m_CommentOffset + 1 : sizeof(aInputString));
-	pIterator = aInputString;
+	const char *pIterator = aInputString;
 
 	// Get the command/setting
 	m_aCommand[0] = '\0';
-	while(pIterator && *pIterator != ' ' && *pIterator != '\0')
+	while(*pIterator != ' ' && *pIterator != '\0')
 		pIterator++;
 
 	str_copy(m_aCommand, aInputString, (pIterator - aInputString) + 1);

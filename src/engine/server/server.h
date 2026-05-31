@@ -36,6 +36,7 @@ class CLogMessage;
 class CMsgPacker;
 class CPacker;
 class IEngine;
+class IEngineHttp;
 class ILogger;
 
 class CServerBan : public CNetBan
@@ -69,6 +70,7 @@ class CServer : public IServer
 	class IGameServer *m_pGameServer;
 	class CConfig *m_pConfig;
 	class IConsole *m_pConsole;
+	IEngineHttp *m_pHttp;
 	class IStorage *m_pStorage;
 	class IEngineAntibot *m_pAntibot;
 	class IRegister *m_pRegister;
@@ -230,14 +232,14 @@ public:
 	CClient m_aClients[MAX_CLIENTS];
 	int m_aIdMap[MAX_CLIENTS * VANILLA_MAX_CLIENTS];
 
-	CSnapshotDelta m_SnapshotDelta;
-	CSnapshotBuilder m_SnapshotBuilder;
+	rust::Box<CSnapshotDelta> m_pSnapshotDelta;
+	rust::Box<CSnapshotDelta> m_pSnapshotDeltaSixup;
+	rust::Box<CSnapshotBuilder> m_pSnapshotBuilder;
 	CSnapIdPool m_IdPool;
 	CNetServer m_NetServer;
 	CEcon m_Econ;
 	CFifo m_Fifo;
 	CServerBan m_ServerBan;
-	CHttp m_Http;
 
 	int64_t m_GameStartTime;
 
@@ -497,10 +499,11 @@ public:
 
 	void RegisterCommands();
 
-	int SnapNewId() override;
+	std::optional<int> SnapNewId() override;
 	void SnapFreeId(int Id) override;
-	void *SnapNewItem(int Type, int Id, int Size) override;
+	bool SnapNewItem(int Type, int Id, rust::Slice<const int32_t> Data) override;
 	void SnapSetStaticsize(int ItemType, int Size) override;
+	void SnapSetStaticsize7(int ItemType, int Size) override;
 
 	// DDRace
 
