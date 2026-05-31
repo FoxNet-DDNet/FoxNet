@@ -227,9 +227,9 @@ void CPortal::HandleTele()
 			pChr->ForceSetPos(Target);
 			vec2 Vel = pChr->GetVelocity();
 			constexpr float MaxVel = 125.0f;
-			if(abs(Vel.x) > MaxVel)
+			if(std::abs(Vel.x) > MaxVel)
 				pChr->SetRawVelocity(vec2(MaxVel * (Vel.x > 0 ? 1 : -1), Vel.y));
-			if(abs(Vel.y) > MaxVel)
+			if(std::abs(Vel.y) > MaxVel)
 				pChr->SetRawVelocity(vec2(Vel.x, MaxVel * (Vel.y > 0 ? 1 : -1)));
 
 			pChr->ReleaseHook();

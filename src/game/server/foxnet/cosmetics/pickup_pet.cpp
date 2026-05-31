@@ -109,7 +109,7 @@ void CPickupPet::FollowMode()
 	m_aSpeed = 0.1f;
 	bool LookingLeft = GetCharacter()->Core()->m_Angle > 402;
 
-	if(abs(GetCharacter()->Core()->m_Vel.x) < 2.5f)
+	if(std::abs(GetCharacter()->Core()->m_Vel.x) < 2.5f)
 	{
 		if(GetCharacter()->IsGrounded())
 			Offset.y += 10.0f * sin(Server()->Tick() * 1.0f * pi / Server()->TickSpeed());
@@ -161,15 +161,15 @@ void CPickupPet::FollowMode()
 
 	for(int i = -20; i <= 0; i++)
 	{
-		float ExtraOffset = abs(i);
+		float ExtraOffset = std::abs(i);
 
-		if(TargetPos.x < m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * 32.0f, 0.0f)))
+		if(TargetPos.x < m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(std::abs(i) / 10.0f * 32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * 32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)
 				Offset.y += 48.0f;
 		}
-		else if(TargetPos.x > m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(abs(i) / 10.0f * -32.0f, 0.0f)))
+		else if(TargetPos.x > m_aPos.x && GetCollision()->CheckPoint(m_aPos + vec2(std::abs(i) / 10.0f * -32.0f, 0.0f)))
 		{
 			Offset.x = ExtraOffset / 10.0f * -32.0f;
 			if(i == 0 && OneBlockUp && !OneBlockDown)

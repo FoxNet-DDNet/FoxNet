@@ -173,7 +173,7 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 	vec2 HatTo[NumPoints] = {vec2(-13.5f, -14.0f), vec2(17.0f, -9.0f)};
 	int Flags[NumPoints] = {COSMETIC_FLAG_ANCHORED, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD};
 
-	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
+	bool Still = std::abs(pOwnerChr->GetVelocity().x) < 0.01f && std::abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 
 	if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
 	{
@@ -240,7 +240,7 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 		COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD,
 		COSMETIC_FLAG_ANCHORED};
 
-	bool Still = abs(pOwnerChr->GetVelocity().x) < 0.01f && abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
+	bool Still = std::abs(pOwnerChr->GetVelocity().x) < 0.01f && std::abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
 	for(int i = 0; i < NumPoints; i++)
 	{
 		Rotate(Center, &HatFrom[i], 0.2f);
