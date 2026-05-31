@@ -48,6 +48,7 @@ class CPortal : public CEntityOwned
 	int m_Lifetime; // In ticks
 
 	bool m_aCanTeleport[MAX_CLIENTS];
+	int m_aBlockedPortal[MAX_CLIENTS];
 
 	enum States
 	{

@@ -41,6 +41,8 @@ CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 {
 	m_Pos = Pos;
 	m_State = STATE_NONE;
+	std::fill(std::begin(m_aCanTeleport), std::end(m_aCanTeleport), true);
+	std::fill(std::begin(m_aBlockedPortal), std::end(m_aBlockedPortal), -1);
 
 	for(int p = 0; p < NUM_PORTALS; p++)
 	{
@@ -185,16 +187,51 @@ void CPortal::HandleTele()
 			continue;
 
 		const bool InP0 = PointInCircle(pChr->m_Pos, m_aData[0].m_Pos, m_aData[0].m_PortalRadius);
-		const bool InP1 = !InP0 && PointInCircle(pChr->m_Pos, m_aData[1].m_Pos, m_aData[1].m_PortalRadius);
+		const bool InP1 = PointInCircle(pChr->m_Pos, m_aData[1].m_Pos, m_aData[1].m_PortalRadius);
 
-		if(InP0 || InP1)
+		int &BlockedPortal = m_aBlockedPortal[ClientId];
+		if(BlockedPortal != -1)
+		{
+			const bool InBlockedPortal = BlockedPortal == 0 ? InP0 : InP1;
+			if(InBlockedPortal)
+				continue;
+
+			BlockedPortal = -1;
+			m_aCanTeleport[ClientId] = true;
+		}
+
+		int EnterPortal = -1;
+		if(InP0 && InP1)
+		{
+			const float DistP0 = length_squared(pChr->m_Pos - m_aData[0].m_Pos);
+			const float DistP1 = length_squared(pChr->m_Pos - m_aData[1].m_Pos);
+			EnterPortal = DistP0 <= DistP1 ? 0 : 1;
+		}
+		else if(InP0)
+		{
+			EnterPortal = 0;
+		}
+		else if(InP1)
+		{
+			EnterPortal = 1;
+		}
+
+		if(EnterPortal != -1)
 		{
 			bool &CanTele = m_aCanTeleport[ClientId];
 			if(!CanTele)
 				continue;
 
-			const vec2 Target = InP0 ? m_aData[1].m_Pos : m_aData[0].m_Pos;
+			const int ExitPortal = EnterPortal == 0 ? 1 : 0;
+			const vec2 Target = m_aData[ExitPortal].m_Pos;
 			pChr->ForceSetPos(Target);
+			vec2 Vel = pChr->GetVelocity();
+			constexpr float MaxVel = 125.0f;
+			if(abs(Vel.x) > MaxVel)
+				pChr->SetRawVelocity(vec2(MaxVel * (Vel.x > 0 ? 1 : -1), Vel.y));
+			if(abs(Vel.y) > MaxVel)
+				pChr->SetRawVelocity(vec2(Vel.x, MaxVel * (Vel.y > 0 ? 1 : -1)));
+
 			pChr->ReleaseHook();
 
 			for(int i = 0; i < MAX_CLIENTS; i++)
@@ -209,7 +246,6 @@ void CPortal::HandleTele()
 				if(pOtherChr->Core()->HookedPlayer() == ClientId)
 					pOtherChr->ReleaseHook();
 			}
-			CanTele = false;
 
 			if(distance(m_aData[0].m_Pos, m_aData[1].m_Pos) > 650.0f)
 			{
@@ -220,10 +256,14 @@ void CPortal::HandleTele()
 			{
 				GameServer()->CreateSound(Target, SOUND_WEAPON_SPAWN, pChr->TeamMask());
 			}
+
+			CanTele = false;
+			BlockedPortal = ExitPortal;
 		}
 		else
 		{
 			m_aCanTeleport[ClientId] = true;
+			BlockedPortal = -1;
 		}
 	}
 }
@@ -389,7 +429,7 @@ void CPortal::Snap(int SnappingClient)
 				Proj.m_Owner = -1;
 
 				if(m_Snap[p].m_aParticleIds[i].has_value())
-					Server()->SnapNewItem(m_Snap[p].m_aParticleIds[i].value(), &Proj);
+					Server()->SnapNewItem(m_Snap[p].m_aParticleIds[i].value(), Proj);
 			}
 		}
 	}

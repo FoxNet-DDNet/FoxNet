@@ -7,6 +7,7 @@
 #include <engine/server.h>
 #include <engine/shared/config.h>
 
+#include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
@@ -55,7 +56,7 @@ void CVUfo::SetActive(bool Active)
 	}
 
 	std::sort(std::begin(m_Visual.m_aIds), std::end(m_Visual.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
-	
+
 	m_pCharacter->SetPosition(m_pCharacter->m_Pos);
 
 	int Zone = m_pCharacter->GetOverriddenTuneZone();
@@ -90,7 +91,7 @@ void CVUfo::Reset()
 		log_info("ufo", "ufo");
 
 	for(int i = 0; i < NUM_PARTS; i++)
-   {
+	{
 		if(m_Visual.m_aIds[i].has_value())
 		{
 			Server()->SnapFreeId(m_Visual.m_aIds[i].value());
@@ -165,29 +166,46 @@ void CVUfo::Snap(int SnappingClient)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
 
-	vec2 PredPos = pChr->Core()->m_Pos - m_pVel / 4.0f;
-
-	if(SnappingClient == ClientId && !pChr->IsPaused() && !pChr->GetPlayer()->IsPaused())
-	{
-		int Ping = (pChr->GetPlayer()->m_Latency.m_Avg) / 2.0f;
-		PredPos = pChr->Core()->m_Pos + m_pVel * Ping / g_Config.m_SvReversePrediction;
-	}
-
 	for(int i = 0; i < NUM_PARTS; i++)
 	{
-		CNetObj_DDNetLaser Laser = {};
+		if(!m_Visual.m_aIds[i].has_value())
+			continue;
+		if(SnappingClient == SERVER_DEMO_CLIENT || !pSnapPlayer->m_SupportsCosmeticSnaps)
+		{
+			vec2 PredPos = pChr->Core()->m_Pos - m_pVel / 4.0f;
 
-		vec2 From = PredPos + m_Visual.m_aFrom[i];
-		vec2 To = PredPos + m_Visual.m_aTo[i];
+			if(SnappingClient == ClientId && !pChr->IsPaused() && !pChr->GetPlayer()->IsPaused())
+			{
+				int Ping = (pChr->GetPlayer()->m_Latency.m_Avg) / 2.0f;
+				PredPos = pChr->Core()->m_Pos + m_pVel * Ping / g_Config.m_SvReversePrediction;
+			}
 
-		Laser.m_FromX = round_to_int(From.x);
-		Laser.m_FromY = round_to_int(From.y);
-		Laser.m_ToX = round_to_int(To.x);
-		Laser.m_ToY = round_to_int(To.y);
-		Laser.m_StartTick = Server()->Tick() - 1;
-		Laser.m_Owner = ClientId;
-		Laser.m_Type = g_Config.m_SvUfoLaserType;
-		Laser.m_Flags = LASERFLAG_NO_PREDICT;
+			vec2 From = PredPos + m_Visual.m_aFrom[i];
+			vec2 To = PredPos + m_Visual.m_aTo[i];
+
+			int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
+			const bool SixUp = Server()->IsSixup(SnappingClient); // FoxNet
+			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
+				m_Visual.m_aIds[i].value(), To, From, Server()->Tick(), ClientId, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		}
+		else
+		{
+			CNetObj_CosmeticLaser Laser = {};
+			Laser.m_FromX = round_to_int(m_Visual.m_aFrom[i].x);
+			Laser.m_FromY = round_to_int(m_Visual.m_aFrom[i].y);
+			Laser.m_ToX = round_to_int(m_Visual.m_aTo[i].x);
+			Laser.m_ToY = round_to_int(m_Visual.m_aTo[i].y);
+			Laser.m_TickOffset = 0;
+			Laser.m_Type = LASERTYPE_GUN;
+			Laser.m_Owner = ClientId;
+			Laser.m_Alpha = -1;
+			Laser.m_Flags = COSMETIC_LASER_FLAG_TO_HEAD | COSMETIC_FLAG_ANCHORED;
+			if(i == NUM_PARTS - 1)
+			{
+				Laser.m_Flags |= COSMETIC_LASER_FLAG_FROM_HEAD;
+			}
+			Server()->SnapNewItem(m_Visual.m_aIds[i].value(), Laser);
+		}
 	}
 }
 
@@ -267,19 +285,17 @@ bool CVUfo::HandleInput()
 	}
 
 	if(Dir.x != 0)
-		m_pVel.x += Dir.x * Accel;
+		m_pVel.x = SaturatedAdd(-MaxSpeed, MaxSpeed, m_pVel.x, Dir.x * Accel);
 	else
 		m_pVel.x *= Friction;
 
 	if(Dir.y != 0)
-		m_pVel.y += Dir.y * Accel;
+		m_pVel.y = SaturatedAdd(-MaxSpeed, MaxSpeed, m_pVel.y, Dir.y * Accel);
 	else
 		m_pVel.y *= Friction;
 
-	// Clamp velocity to max speed
-	float speed = length(m_pVel);
-	if(speed > MaxSpeed)
-		m_pVel = normalize(m_pVel) * MaxSpeed;
+	if(length(m_pVel) > 6000.0f)
+		m_pVel = normalize(m_pVel) * 6000.0f;
 
 	pChr->SetVelocity(m_pVel);
 

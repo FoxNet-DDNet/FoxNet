@@ -56,6 +56,6 @@ void CLaserText::Snap(int SnappingClient)
 		Obj.m_Owner = m_Owner;
 		Obj.m_Type = LASERTYPE_RIFLE;
 		Obj.m_Flags = LASERFLAG_NO_PREDICT;
-		Server()->SnapNewItem(Data.m_Id, &Obj);
+		Server()->SnapNewItem(Data.m_Id, Obj);
 	}
 }

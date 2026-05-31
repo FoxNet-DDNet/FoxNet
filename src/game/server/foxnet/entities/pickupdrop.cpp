@@ -54,7 +54,7 @@ bool CPickupDrop::SnapPickupDropPickup(int SnappingClient, int SnapId, int OldFl
 	Pickup.m_Alpha = Alpha;
 	Pickup.m_Rotation = Rotation;
 	Pickup.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Pickup);
+	Server()->SnapNewItem(SnapId, Pickup);
 	return true;
 }
 
@@ -81,7 +81,7 @@ bool CPickupDrop::SnapPickupDropLaser(int SnappingClient, int SnapId, const vec2
 	Laser.m_Owner = -1;
 	Laser.m_Alpha = Alpha;
 	Laser.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Laser);
+	Server()->SnapNewItem(SnapId, Laser);
 	return true;
 }
 
@@ -632,6 +632,6 @@ void CPickupDrop::Snap(int SnappingClient)
 		Proj.m_VelY = 0;
 		Proj.m_StartTick = 0;
 		Proj.m_Type = WEAPON_HAMMER;
-		Server()->SnapNewItem(m_aIds[1].value(), &Proj);
+		Server()->SnapNewItem(m_aIds[1].value(), Proj);
 	}
 }

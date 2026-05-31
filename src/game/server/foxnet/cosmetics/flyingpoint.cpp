@@ -101,5 +101,5 @@ void CFlyingPoint::Snap(int SnappingClient)
 	Proj.m_StartTick = 0;
 	Proj.m_VelX = 0;
 	Proj.m_VelY = 0;
-	Server()->SnapNewItem(GetId().value(), &Proj);
+	Server()->SnapNewItem(GetId().value(), Proj);
 }

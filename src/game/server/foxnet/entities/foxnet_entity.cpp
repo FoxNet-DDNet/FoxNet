@@ -133,7 +133,7 @@ bool CEntityOwned::SnapCosmeticPickupPos(int SnappingClient, int SnapId, int Old
 	Pickup.m_Alpha = Alpha;
 	Pickup.m_Rotation = Rotation;
 	Pickup.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Pickup);
+	Server()->SnapNewItem(SnapId, Pickup);
 	return true;
 }
 
@@ -169,7 +169,7 @@ bool CEntityOwned::SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFla
 	Pickup.m_Alpha = Alpha;
 	Pickup.m_Rotation = Rotation;
 	Pickup.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Pickup);
+	Server()->SnapNewItem(SnapId, Pickup);
 	return true;
 }
 
@@ -214,7 +214,7 @@ bool CEntityOwned::SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owne
 	Laser.m_Owner = Owner;
 	Laser.m_Alpha = Alpha;
 	Laser.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Laser);
+	Server()->SnapNewItem(SnapId, Laser);
 
 	return true;
 }
@@ -255,7 +255,7 @@ bool CEntityOwned::SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, 
 	Laser.m_Owner = Owner;
 	Laser.m_Alpha = Alpha;
 	Laser.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Laser);
+	Server()->SnapNewItem(SnapId, Laser);
 
 	return true;
 }
@@ -275,7 +275,7 @@ bool CEntityOwned::SnapCosmeticProjectile(int SnappingClient, int SnapId, int Ow
 		Proj.m_StartTick = StartTick;
 		Proj.m_VelX = 0;
 		Proj.m_VelY = 0;
-		Server()->SnapNewItem(SnapId, &Proj);
+		Server()->SnapNewItem(SnapId, Proj);
 		return true;
 	}
 
@@ -303,6 +303,6 @@ bool CEntityOwned::SnapCosmeticProjectile(int SnappingClient, int SnapId, int Ow
 	Projectile.m_Alpha = Alpha;
 	Projectile.m_Rotation = Rot;
 	Projectile.m_Flags = Flags;
-	Server()->SnapNewItem(SnapId, &Projectile);
+	Server()->SnapNewItem(SnapId, Projectile);
 	return true;
 }
