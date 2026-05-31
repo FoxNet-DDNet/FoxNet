@@ -56,7 +56,10 @@ void CFirework::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("firework", "Reset");
 	for(int i = 0; i < MAX_FIREWORKS; i++)
-		Server()->SnapFreeId(m_aIds[i]);
+	{
+		if(m_aIds[i].has_value())
+			Server()->SnapFreeId(m_aIds[i].value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -116,17 +119,16 @@ void CFirework::Snap(int SnappingClient)
 	{
 		if(NetworkClipped(SnappingClient, m_Pos))
 			return;
-		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
-		if(!pProj)
-			return;
+		CNetObj_DDNetProjectile Proj = {};
 
-		pProj->m_X = round_to_int(m_Pos.x * 100.0f);
-		pProj->m_Y = round_to_int(m_Pos.y * 100.0f);
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
-		pProj->m_Type = WEAPON_GRENADE;
-		pProj->m_StartTick = Server()->Tick();
-		pProj->m_Owner = m_Owner;
+		Proj.m_X = round_to_int(m_Pos.x * 100.0f);
+		Proj.m_Y = round_to_int(m_Pos.y * 100.0f);
+		Proj.m_VelX = 0;
+		Proj.m_VelY = 0;
+		Proj.m_Type = WEAPON_GRENADE;
+		Proj.m_StartTick = Server()->Tick();
+		Proj.m_Owner = m_Owner;
+      Server()->SnapNewItem(GetId().value(), Proj);
 	}
 	else if(m_State == State::EXPLOSION)
 	{
@@ -135,18 +137,19 @@ void CFirework::Snap(int SnappingClient)
 			if(NetworkClipped(SnappingClient, m_aPos[i]))
 				continue;
 
-			CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_aIds[i]);
-			if(!pProj || m_aLifetime[i] <= 0)
+			CNetObj_DDNetProjectile Proj = {};
+			if(!m_aIds[i].has_value() || m_aLifetime[i] <= 0)
 				continue;
 
-			pProj->m_StartTick = Server()->Tick();
+			Proj.m_StartTick = Server()->Tick();
 
-			pProj->m_X = round_to_int(m_aPos[i].x * 100.0f);
-			pProj->m_Y = round_to_int(m_aPos[i].y * 100.0f);
-			pProj->m_VelX = m_aVel[i].x * 32;
-			pProj->m_VelY = m_aVel[i].x * 32;
-			pProj->m_Type = WEAPON_LASER;
-			pProj->m_Owner = m_Owner;
+			Proj.m_X = round_to_int(m_aPos[i].x * 100.0f);
+			Proj.m_Y = round_to_int(m_aPos[i].y * 100.0f);
+			Proj.m_VelX = m_aVel[i].x * 32;
+			Proj.m_VelY = m_aVel[i].x * 32;
+			Proj.m_Type = WEAPON_LASER;
+			Proj.m_Owner = m_Owner;
+            Server()->SnapNewItem(m_aIds[i].value(), Proj);
 		}
 	}
 }

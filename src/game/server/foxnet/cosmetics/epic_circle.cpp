@@ -24,7 +24,11 @@ CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	m_Pos = Pos;
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
-		m_aIds[i] = Server()->SnapNewId();
+	{
+		std::optional<int> Id = Server()->SnapNewId();
+		if(Id.has_value())
+			m_aIds[i] = Id.value();
+	}
 	GameWorld()->InsertEntity(this);
 }
 

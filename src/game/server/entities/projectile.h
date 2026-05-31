@@ -21,7 +21,7 @@ public:
 	CProjectile(CGameWorld *pGameWorld, int MultiMapIdx, int Type, int Owner, vec2 Pos, vec2 Dir,
 		int Span, int FreezeTicks, bool Explosive, int SoundImpact, vec2 InitDir, int Layer = 0, int Number = 0);
 
-	vec2 GetPos(float Time);
+	vec2 GetPos(float Time, int ClientId = -1);
 
 	CNetObj_Projectile NetInfoVanilla() const;
 	bool NetIsInfoLegacyCompatible() const;
@@ -36,7 +36,7 @@ public:
 
 	int m_GunType = GUNTYPE_NONE;
 	bool m_MixedShield = false; // Switching between shield and heart
-	int m_ExtraId = -1; // Needed for m_LaserGun
+	std::optional<int> m_ExtraId = -1; // Needed for m_LaserGun
 	CClientMask m_CosmeticMask;
 	CClientMask m_OppCosmeticMask;
 

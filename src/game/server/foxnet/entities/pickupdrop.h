@@ -18,7 +18,7 @@ class CPickupDrop : public CEntity
 	int m_PickupDelay; // In ticks
 	int m_Type;
 
-	int m_aIds[2]; // Extra Ids
+	std::optional<int> m_aIds[2]; // Extra Ids
 
 	int m_Team;
 

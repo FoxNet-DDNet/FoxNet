@@ -45,7 +45,8 @@ void CRotatingBall::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("rotatingball", "Reset");
 
-	Server()->SnapFreeId(m_Id1);
+	if(m_Id1.has_value())
+		Server()->SnapFreeId(m_Id1.value());
 
 	m_MarkedForDestroy = true;
 }
@@ -97,6 +98,8 @@ void CRotatingBall::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowEffects)
 		return;
 
-	SnapCosmeticLaser(SnappingClient, GetId(), m_Owner, m_LaserPos, m_LaserPos, 1, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
-	SnapCosmeticProjectile(SnappingClient, m_Id1, m_Owner, m_ProjPos, vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED); 
+	if(GetId().has_value())
+		SnapCosmeticLaser(SnappingClient, GetId().value(), m_Owner, m_LaserPos, m_LaserPos, 1, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+	if(m_Id1.has_value())
+		SnapCosmeticProjectile(SnappingClient, m_Id1.value(), m_Owner, m_ProjPos, vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED); 
 }

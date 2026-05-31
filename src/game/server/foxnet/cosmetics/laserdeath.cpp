@@ -39,6 +39,7 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 		m_SnapData.m_aPos[i] = m_Pos + random_direction() * Random;
 	}
 	m_EndTick = Server()->Tick() + TICKDELAY * MAX_PARTICLES;
+	std::sort(std::begin(m_SnapData.m_aIds), std::end(m_SnapData.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
 
 	GameWorld()->InsertEntity(this);
 }
@@ -51,7 +52,10 @@ void CLaserDeath::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("laserdeath", "Reset");
 	for(int i = 0; i < MAX_PARTICLES; i++)
-		Server()->SnapFreeId(m_SnapData.m_aIds[i]);
+	{
+		if(m_SnapData.m_aIds[i].has_value())
+			Server()->SnapFreeId(m_SnapData.m_aIds[i].value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -94,7 +98,8 @@ void CLaserDeath::Snap(int SnappingClient)
 
 		vec2 LaserPos = m_SnapData.m_aPos[i];
 
-		
-		SnapCosmeticLaserPos(SnappingClient, m_SnapData.m_aIds[i], m_Owner, LaserPos, LaserPos, 0, LASERTYPE_GUN, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
+		if(!m_SnapData.m_aIds[i].has_value())
+			continue;
+		SnapCosmeticLaserPos(SnappingClient, m_SnapData.m_aIds[i].value(), m_Owner, LaserPos, LaserPos, 0, LASERTYPE_GUN, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

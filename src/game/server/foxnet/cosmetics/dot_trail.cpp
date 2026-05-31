@@ -63,5 +63,6 @@ void CDotTrail::Snap(int SnappingClient)
 	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowTrails)
 		return;
 
-	SnapCosmeticProjectile(SnappingClient, GetId(), m_Owner, vec2(0, 0), vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED); 
+	if(GetId().has_value())
+		SnapCosmeticProjectile(SnappingClient, GetId().value(), m_Owner, vec2(0, 0), vec2(0, 0), 0, WEAPON_HAMMER, -1, COSMETIC_FLAG_ANCHORED);
 }

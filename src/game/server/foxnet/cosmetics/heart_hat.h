@@ -14,7 +14,7 @@ class CHeartHat : public CEntityOwned
 		NUM_HEARTS = 2
 	};
 
-	int m_aIds[NUM_HEARTS];
+	std::optional<int> m_aIds[NUM_HEARTS];
 	float m_Dist;
 	bool m_Switch;
 

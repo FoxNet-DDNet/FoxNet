@@ -41,7 +41,10 @@ void CStaffInd::Reset()
 		log_info("staffind", "Reset");
 
 	for(int i = 0; i < NUM_IDS; i++)
-		Server()->SnapFreeId(m_aIds[i]);
+	{
+		if(m_aIds[i].has_value())
+			Server()->SnapFreeId(m_aIds[i].value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -86,7 +89,10 @@ void CStaffInd::Snap(int SnappingClient)
 	if(!CanSnapEntity(SnappingClient))
 		return;
 
-	SnapCosmeticLaser(SnappingClient, m_aIds[BALL], m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? -1 : 0, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
-	SnapCosmeticPickup(SnappingClient, m_aIds[ARMOR], PICKUPFLAG_NO_PREDICT, m_Owner, m_aPos[ARMOR], POWERUP_ARMOR, -1, 0, -1, COSMETIC_FLAG_ANCHORED);
-	SnapCosmeticLaser(SnappingClient, m_aIds[BALL_FRONT], m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? 0 : -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+	if(m_aIds[BALL].has_value())
+		SnapCosmeticLaser(SnappingClient, m_aIds[BALL].value(), m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? -1 : 0, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+	if(m_aIds[ARMOR].has_value())
+		SnapCosmeticPickup(SnappingClient, m_aIds[ARMOR].value(), PICKUPFLAG_NO_PREDICT, m_Owner, m_aPos[ARMOR], POWERUP_ARMOR, -1, 0, -1, COSMETIC_FLAG_ANCHORED);
+	if(m_aIds[BALL_FRONT].has_value())
+		SnapCosmeticLaser(SnappingClient, m_aIds[BALL_FRONT].value(), m_Owner, m_aPos[BALL], m_aPos[BALL], 1, LASERTYPE_GUN, m_BallFirst ? 0 : -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 }

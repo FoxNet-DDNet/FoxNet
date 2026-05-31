@@ -31,7 +31,7 @@ CLissajous::CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
 	// Sort based on m_Id
-	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id.value() < b.m_Id.value(); });
 
 	GameWorld()->InsertEntity(this);
 }
@@ -45,7 +45,10 @@ void CLissajous::Reset()
 		log_info("lissajous", "Reset");
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
-		Server()->SnapFreeId(m_aSnap[Idx].m_Id);
+	{
+		if(m_aSnap[Idx].m_Id.has_value())
+			Server()->SnapFreeId(m_aSnap[Idx].m_Id.value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -117,6 +120,8 @@ void CLissajous::Snap(int SnappingClient)
 
 	for(int Idx = 0; Idx < NUM_IDS; ++Idx)
 	{
-		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id, m_Owner, m_aSnap[Idx].m_To, m_aSnap[Idx].m_From, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+		if(!m_aSnap[Idx].m_Id.has_value())
+			continue;
+		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id.value(), m_Owner, m_aSnap[Idx].m_To, m_aSnap[Idx].m_From, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

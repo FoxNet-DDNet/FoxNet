@@ -33,7 +33,10 @@ void CLovely::Reset()
 		log_info("lovely", "Reset");
 
 	for(int i = 0; i < MAX_HEARTS; i++)
-		Server()->SnapFreeId(m_aData[i].m_Id);
+	{
+		if(m_aData[i].m_Id.has_value())
+			Server()->SnapFreeId(m_aData[i].m_Id.value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -105,6 +108,8 @@ void CLovely::Snap(int SnappingClient)
 	{
 		if(m_aData[i].m_Lifespan == -1)
 			continue;
-		SnapCosmeticPickupPos(SnappingClient, m_aData[i].m_Id, PICKUPFLAG_NO_PREDICT, m_Owner, m_aData[i].m_Pos, POWERUP_HEALTH, 0);
+		if(!m_aData[i].m_Id.has_value())
+			continue;
+		SnapCosmeticPickupPos(SnappingClient, m_aData[i].m_Id.value(), PICKUPFLAG_NO_PREDICT, m_Owner, m_aData[i].m_Pos, POWERUP_HEALTH, 0);
 	}
 }

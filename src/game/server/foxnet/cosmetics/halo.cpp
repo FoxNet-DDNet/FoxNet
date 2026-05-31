@@ -31,7 +31,7 @@ CHalo::CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
 	// Sort based on m_Id
-	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id < b.m_Id; });
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id.value() < b.m_Id.value(); });
 
 	GameWorld()->InsertEntity(this);
 }
@@ -44,7 +44,10 @@ void CHalo::Reset()
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("halo", "Reset");
 	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
-		Server()->SnapFreeId(m_aSnap[Idx].m_Id);
+	{
+		if(m_aSnap[Idx].m_Id.has_value())
+			Server()->SnapFreeId(m_aSnap[Idx].m_Id.value());
+	}
 	m_MarkedForDestroy = true;
 }
 
@@ -101,6 +104,8 @@ void CHalo::Snap(int SnappingClient)
 
 	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
 	{
-		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id, m_Owner, m_aSnap[Idx].m_Pos, m_aSnap[Idx].m_Pos, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
+		if(!m_aSnap[Idx].m_Id.has_value())
+			continue;
+		SnapCosmeticLaser(SnappingClient, m_aSnap[Idx].m_Id.value(), m_Owner, m_aSnap[Idx].m_Pos, m_aSnap[Idx].m_Pos, 0, LASERTYPE_GUN, -1, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }

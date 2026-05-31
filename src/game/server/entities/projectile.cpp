@@ -88,12 +88,12 @@ CProjectile::CProjectile(
 void CProjectile::Reset()
 {
 	m_MarkedForDestroy = true;
-	if(m_ExtraId != -1)
+	if(m_ExtraId.has_value())
 	{
 		if(g_Config.m_SvLogExtra >= 2)
 			log_info("projectile", "Extra Id Reset");
-		Server()->SnapFreeId(m_ExtraId);
-		m_ExtraId = -1;
+		Server()->SnapFreeId(m_ExtraId.value());
+		m_ExtraId.reset();
 	}
 }
 
@@ -433,7 +433,7 @@ CNetObj_DDRaceProjectile CProjectile::NetInfoLegacy() const
 	Data |= (m_Bouncing & 3) << 10;
 	if(m_Explosive)
 		Data |= LEGACYPROJECTILEFLAG_EXPLOSIVE;
-	if(m_Freeze)
+	if(m_FreezeTicks > 0)
 		Data |= LEGACYPROJECTILEFLAG_FREEZE;
 
 	CNetObj_DDRaceProjectile Result = {};
@@ -463,7 +463,7 @@ CNetObj_DDNetProjectile CProjectile::NetInfo() const
 	{
 		Flags |= PROJECTILEFLAG_EXPLOSIVE;
 	}
-	if(m_Freeze)
+	if(m_FreezeTicks > 0)
 	{
 		Flags |= PROJECTILEFLAG_FREEZE;
 	}
@@ -522,7 +522,6 @@ void CProjectile::Snap(int SnappingClient)
 	if(SnappingClient != SERVER_DEMO_CLIENT && m_Owner != -1 && !TeamMask.test(SnappingClient))
 		return;
 
-	CNetObj_DDRaceProjectile DDRaceProjectile;
 	// <FoxNet
 	CPlayer *pSnapPl = SnappingClient >= 0 ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 	if(pOwnerChar && pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || SnappingClient == m_Owner) && m_Type == WEAPON_GUN)
@@ -534,7 +533,7 @@ void CProjectile::Snap(int SnappingClient)
 		bool Mixed = m_GunType == GUNTYPE_MIXED;
 		if(m_GunType == GUNTYPE_LASER)
 		{
-			std::array<int, 2> LaserIds = {m_ExtraId, GetId()};
+			std::array<int, 2> LaserIds = {m_ExtraId.value(), GetId().value()};
 			if(LaserIds[0] > LaserIds[1])
 				std::swap(LaserIds[0], LaserIds[1]);
 
@@ -548,19 +547,17 @@ void CProjectile::Snap(int SnappingClient)
 			}
 			else
 			{
-				CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(GetId());
-				if(!pLaser)
-					return;
-
-				pLaser->m_FromX = (int)SnapPos.x;
-				pLaser->m_FromY = (int)SnapPos.y;
-				pLaser->m_ToX = (int)PrevSnapPos.x;
-				pLaser->m_ToY = (int)PrevSnapPos.y;
-				pLaser->m_TickOffset = 0;
-				pLaser->m_Type = LASERTYPE_GUN;
-				pLaser->m_Owner = m_Owner;
-				pLaser->m_Alpha = -1;
-				pLaser->m_Flags = COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD;
+				CNetObj_CosmeticLaser Laser = {};
+				Laser.m_FromX = (int)SnapPos.x;
+				Laser.m_FromY = (int)SnapPos.y;
+				Laser.m_ToX = (int)PrevSnapPos.x;
+				Laser.m_ToY = (int)PrevSnapPos.y;
+				Laser.m_TickOffset = 0;
+				Laser.m_Type = LASERTYPE_GUN;
+				Laser.m_Owner = m_Owner;
+				Laser.m_Alpha = -1;
+				Laser.m_Flags = COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD;
+				Server()->SnapNewItem(GetId().value(), Laser);
 			}
 
 			return;
@@ -574,22 +571,21 @@ void CProjectile::Snap(int SnappingClient)
 			if(SnappingClient == SERVER_DEMO_CLIENT || !pSnapPl->m_SupportsCosmeticSnaps)
 			{
 				GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient),
-					GetId(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
+					GetId().value(), SnapPos, Type, 0, -1, PICKUPFLAG_NO_PREDICT);
 			}
 			else
 			{
-				CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(GetId());
-				if(!pPickup)
-					return;
+				CNetObj_CosmeticPickup Pickup = {};
 
-				pPickup->m_X = (int)SnapPos.x;
-				pPickup->m_Y = (int)SnapPos.y;
-				pPickup->m_Type = Type;
-				pPickup->m_Subtype = 0;
-				pPickup->m_Owner = m_Owner;
-				pPickup->m_Alpha = -1;
-				pPickup->m_Rotation = 0;
-				pPickup->m_Flags = 0;
+				Pickup.m_X = (int)SnapPos.x;
+				Pickup.m_Y = (int)SnapPos.y;
+				Pickup.m_Type = Type;
+				Pickup.m_Subtype = 0;
+				Pickup.m_Owner = m_Owner;
+				Pickup.m_Alpha = -1;
+				Pickup.m_Rotation = 0;
+				Pickup.m_Flags = 0;
+				Server()->SnapNewItem(GetId().value(), Pickup);
 			}
 			return;
 		}

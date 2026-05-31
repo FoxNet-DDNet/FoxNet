@@ -239,8 +239,9 @@ void CZoneManager::SnapQuadIds()
 		{
 			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
 			{
-				int Id = Server()->SnapNewId();
-				m_vIds.emplace_back(Id);
+				std::optional<int> Id = Server()->SnapNewId();
+				if(Id.has_value())
+					m_vIds.emplace_back(Id.value());
 			}
 		}
 	}
@@ -248,8 +249,9 @@ void CZoneManager::SnapQuadIds()
 	{
 		for(size_t Quad = 0; Quad < Collision(Idx)->Quads().size(); Quad++)
 		{
-			int Id = Server()->SnapNewId();
-			m_vIds.emplace_back(Id);
+			std::optional<int> Id = Server()->SnapNewId();
+			if(Id.has_value())
+				m_vIds.emplace_back(Id.value());
 		}
 	}
 }

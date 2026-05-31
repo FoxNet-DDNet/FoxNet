@@ -20,7 +20,7 @@ class CLovely : public CEntityOwned
 
 	struct SLovelyData
 	{
-		int m_Id;
+		std::optional<int> m_Id;
 		vec2 m_Pos;
 		float m_Lifespan;
 	};

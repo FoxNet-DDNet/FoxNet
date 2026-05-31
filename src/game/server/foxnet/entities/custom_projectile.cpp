@@ -146,6 +146,9 @@ void CCustomProjectile::Snap(int SnappingClient)
 	if(!CanSnapEntity(SnappingClient))
 		return;
 
+	if(!GetId().has_value())
+		return;
+
 	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	if(SnappingClientVersion < VERSION_DDNET_ENTITY_NETOBJS)
@@ -157,7 +160,7 @@ void CCustomProjectile::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), m_Pos, m_Type, 0, -1, PICKUPFLAG_NO_PREDICT);
+	GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), GetId().value(), m_Pos, m_Type, 0, -1, PICKUPFLAG_NO_PREDICT);
 }
 
 void CCustomProjectile::FillInfo(CNetObj_Projectile *pProj)

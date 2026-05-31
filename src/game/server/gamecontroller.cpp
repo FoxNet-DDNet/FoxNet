@@ -720,6 +720,8 @@ void IGameController::Snap(int SnappingClient)
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
 		pComponent->OnGameInfoSnap(SnappingClient, &GameInfo, &GameInfoEx);
 
+	Server()->SnapNewItem(0, GameInfoEx);
+
 	// FoxNet>
 	if(Server()->IsSixup(SnappingClient))
 	{

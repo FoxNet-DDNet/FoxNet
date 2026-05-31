@@ -39,7 +39,10 @@ void CHeartHat::Reset()
 		log_info("hearthat", "Reset");
 
 	for(size_t i = 0; i < NUM_HEARTS; i++)
-		Server()->SnapFreeId(m_aIds[i]);
+	{
+		if(m_aIds[i])
+			Server()->SnapFreeId(m_aIds[i].value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -84,7 +87,10 @@ void CHeartHat::Snap(int SnappingClient)
 
 	for(int Heart = 0; Heart < NUM_HEARTS; Heart++)
 	{
-		const int Id = m_aIds[Heart];
+		if(!m_aIds[Heart].has_value())
+			continue;
+
+		const int Id = m_aIds[Heart].value();
 
 		float Dist = m_Dist * (Heart == 0 ? -1.0f : 1.0f);
 

@@ -167,5 +167,7 @@ void CLightSaber::Snap(int SnappingClient)
 
 	const int SnapVer = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
-	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId(), To, From, Server()->Tick() - 3, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+	if(!GetId().has_value())
+		return;
+	GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), GetId().value(), To, From, Server()->Tick() - 3, m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 }

@@ -16,7 +16,7 @@ constexpr int TICKDELAY = 5;
 class CSnapData
 {
 public:
-	int m_aIds[MAX_PARTICLES];
+	std::optional<int> m_aIds[MAX_PARTICLES];
 	vec2 m_aPos[MAX_PARTICLES];
 	int m_StartTick[MAX_PARTICLES];
 	int m_TeamMask;

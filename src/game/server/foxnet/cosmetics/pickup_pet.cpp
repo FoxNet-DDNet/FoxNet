@@ -91,7 +91,8 @@ void CPickupPet::Snap(int SnappingClient)
 	if(g_Config.m_SvCorruptPickupPet)
 		m_CurType = NUM_POWERUPS;
 
-	SnapCosmeticPickupPos(SnappingClient, GetId(), PICKUPFLAG_NO_PREDICT, m_Owner, m_Pos, m_CurType, 0);
+	if(GetId().has_value())
+		SnapCosmeticPickupPos(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, m_Owner, m_Pos, m_CurType, 0);
 }
 
 void CPickupPet::PlayerAfkMode()

@@ -670,9 +670,9 @@ void CServer::ReconnectClient(int ClientId)
 	log_info("server", "telling client to reconnect, cid=%d", ClientId);
 
 	CMsgPacker Msg(NETMSG_RECONNECT, true);
-	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+    SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
-	if(m_aClients[ClientId].m_State >= CClient::STATE_READY)
+	if(GameServer()->PlayerExists(ClientId))
 	{
 		GameServer()->OnClientDrop(ClientId, "reconnect");
 	}
@@ -703,7 +703,7 @@ void CServer::RedirectClient(int ClientId, int Port)
 	Msg.AddInt(Port);
 	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
-	if(m_aClients[ClientId].m_State >= CClient::STATE_READY)
+    if(GameServer()->PlayerExists(ClientId))
 	{
 		GameServer()->OnClientDrop(ClientId, "redirect");
 	}
@@ -1444,8 +1444,8 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 	const NETADDR Addr = *pThis->ClientAddr(ClientId);
 #endif
 
-	// notify the mod about the drop
-	if(pThis->m_aClients[ClientId].m_State >= CClient::STATE_READY)
+    // notify the mod about the drop
+	if(pThis->GameServer()->PlayerExists(ClientId))
 		pThis->GameServer()->OnClientDrop(ClientId, pReason);
 
 	pThis->m_aClients[ClientId].m_State = CClient::STATE_EMPTY;
@@ -5373,7 +5373,7 @@ void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const c
 			    "}";
 
 	auto pReq = HttpPostJson(pUrl, Json.c_str());
-	m_Http.Run(std::move(pReq));
+	m_pHttp->Run(std::move(pReq));
 }
 
 void CServer::SystemCall(const char *pCommand)

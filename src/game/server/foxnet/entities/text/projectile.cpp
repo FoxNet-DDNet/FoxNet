@@ -56,19 +56,16 @@ void CProjectileText::Snap(int SnappingClient)
 			continue;
 		}
 
-		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(Data.m_Id);
-		if(!pProj)
-		{
-			Idx++;
-			continue;
-		}
-		pProj->m_X = round_to_int(Pos.x * 100.0f);
-		pProj->m_Y = round_to_int(Pos.y * 100.0f);
-		pProj->m_Type = m_Type;
-		pProj->m_Owner = m_Owner;
-		pProj->m_StartTick = 0;
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
+		CNetObj_DDNetProjectile Proj = {};
+
+		Proj.m_X = round_to_int(Pos.x * 100.0f);
+		Proj.m_Y = round_to_int(Pos.y * 100.0f);
+		Proj.m_Type = m_Type;
+		Proj.m_Owner = m_Owner;
+		Proj.m_StartTick = 0;
+		Proj.m_VelX = 0;
+		Proj.m_VelY = 0;
+        Server()->SnapNewItem(Data.m_Id, Proj);
 		Idx++;
 	}
 }

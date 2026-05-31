@@ -90,14 +90,16 @@ void CFlyingPoint::Snap(int SnappingClient)
 	if(!CanSnapEntity(SnappingClient))
 		return;
 
-	CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(GetId());
-	if(!pProj)
+	if(!GetId().has_value())
 		return;
 
-	pProj->m_X = round_to_int(m_Pos.x * 100.0f);
-	pProj->m_Y = round_to_int(m_Pos.y * 100.0f);
-	pProj->m_Type = WEAPON_HAMMER;
-	pProj->m_StartTick = 0;
-	pProj->m_VelX = 0;
-	pProj->m_VelY = 0;
+	CNetObj_DDNetProjectile Proj = {};	
+
+	Proj.m_X = round_to_int(m_Pos.x * 100.0f);
+	Proj.m_Y = round_to_int(m_Pos.y * 100.0f);
+	Proj.m_Type = WEAPON_HAMMER;
+	Proj.m_StartTick = 0;
+	Proj.m_VelX = 0;
+	Proj.m_VelY = 0;
+	Server()->SnapNewItem(GetId().value(), &Proj);
 }

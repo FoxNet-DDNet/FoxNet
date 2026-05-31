@@ -18,7 +18,7 @@
 #include <base/math.h>
 
 CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos, int ProximityRadius) :
-	CEntity(pGameWorld, DefaultMapIndex, Objtype, Pos, ProximityRadius)
+	CEntity(pGameWorld, DefaultMapIndex, Objtype, true, Pos, ProximityRadius)
 {
 	m_Owner = Owner;
 
@@ -119,21 +119,21 @@ bool CEntityOwned::SnapCosmeticPickupPos(int SnappingClient, int SnapId, int Old
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
 
-		return GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
+		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
+		return true;
 	}
 
-	CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(SnapId);
-	if(!pPickup)
-		return false;
+	CNetObj_CosmeticPickup Pickup = {};
 
-	pPickup->m_X = (int)Pos.x;
-	pPickup->m_Y = (int)Pos.y;
-	pPickup->m_Type = Type;
-	pPickup->m_Subtype = SubType;
-	pPickup->m_Owner = Owner;
-	pPickup->m_Alpha = Alpha;
-	pPickup->m_Rotation = Rotation;
-	pPickup->m_Flags = Flags;
+	Pickup.m_X = (int)Pos.x;
+	Pickup.m_Y = (int)Pos.y;
+	Pickup.m_Type = Type;
+	Pickup.m_Subtype = SubType;
+	Pickup.m_Owner = Owner;
+	Pickup.m_Alpha = Alpha;
+	Pickup.m_Rotation = Rotation;
+	Pickup.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Pickup);
 	return true;
 }
 
@@ -146,30 +146,30 @@ bool CEntityOwned::SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFla
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
 
-		return GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + Offset, Type, SubType, -1, OldFlags);
+		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + Offset, Type, SubType, -1, OldFlags);
+		return true;
 	}
 
-	CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(SnapId);
-	if(!pPickup)
-		return false;
+	CNetObj_CosmeticPickup Pickup = {};
 
 	if(Flags & COSMETIC_FLAG_ANCHORED)
 	{
-		pPickup->m_X = (int)Offset.x;
-		pPickup->m_Y = (int)Offset.y;
+		Pickup.m_X = (int)Offset.x;
+		Pickup.m_Y = (int)Offset.y;
 	}
 	else
 	{
-		pPickup->m_X = (int)Offset.x + Pos.x;
-		pPickup->m_Y = (int)Offset.y + Pos.y;
+		Pickup.m_X = (int)Offset.x + Pos.x;
+		Pickup.m_Y = (int)Offset.y + Pos.y;
 	}
 
-	pPickup->m_Type = Type;
-	pPickup->m_Subtype = SubType;
-	pPickup->m_Owner = Owner;
-	pPickup->m_Alpha = Alpha;
-	pPickup->m_Rotation = Rotation;
-	pPickup->m_Flags = Flags;
+	Pickup.m_Type = Type;
+	Pickup.m_Subtype = SubType;
+	Pickup.m_Owner = Owner;
+	Pickup.m_Alpha = Alpha;
+	Pickup.m_Rotation = Rotation;
+	Pickup.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Pickup);
 	return true;
 }
 
@@ -199,22 +199,22 @@ bool CEntityOwned::SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owne
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
 
-		return GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, From, To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, From, To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
+		return true;
 	}
 
-	CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(SnapId);
-	if(!pLaser)
-		return false;
+	CNetObj_CosmeticLaser Laser = {};
 
-	pLaser->m_FromX = (int)From.x;
-	pLaser->m_FromY = (int)From.y;
-	pLaser->m_ToX = (int)To.x;
-	pLaser->m_ToY = (int)To.y;
-	pLaser->m_TickOffset = OffsetToHeight(TickOffset);
-	pLaser->m_Type = Type;
-	pLaser->m_Owner = Owner;
-	pLaser->m_Alpha = Alpha;
-	pLaser->m_Flags = Flags;
+	Laser.m_FromX = (int)From.x;
+	Laser.m_FromY = (int)From.y;
+	Laser.m_ToX = (int)To.x;
+	Laser.m_ToY = (int)To.y;
+	Laser.m_TickOffset = OffsetToHeight(TickOffset);
+	Laser.m_Type = Type;
+	Laser.m_Owner = Owner;
+	Laser.m_Alpha = Alpha;
+	Laser.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Laser);
 
 	return true;
 }
@@ -229,33 +229,33 @@ bool CEntityOwned::SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, 
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
 
-		return GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + From, Pos + To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + From, Pos + To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
+		return true;
 	}
 
-	CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(SnapId);
-	if(!pLaser)
-		return false;
+	CNetObj_CosmeticLaser Laser = {};
 
 	if(Flags & COSMETIC_FLAG_ANCHORED)
 	{
-		pLaser->m_FromX = (int)From.x;
-		pLaser->m_FromY = (int)From.y;
-		pLaser->m_ToX = (int)To.x;
-		pLaser->m_ToY = (int)To.y;
+		Laser.m_FromX = (int)From.x;
+		Laser.m_FromY = (int)From.y;
+		Laser.m_ToX = (int)To.x;
+		Laser.m_ToY = (int)To.y;
 	}
 	else
 	{
-		pLaser->m_FromX = (int)From.x + Pos.x;
-		pLaser->m_FromY = (int)From.y + Pos.y;
-		pLaser->m_ToX = (int)To.x + Pos.x;
-		pLaser->m_ToY = (int)To.y + Pos.y;
+		Laser.m_FromX = (int)From.x + Pos.x;
+		Laser.m_FromY = (int)From.y + Pos.y;
+		Laser.m_ToX = (int)To.x + Pos.x;
+		Laser.m_ToY = (int)To.y + Pos.y;
 	}
 
-	pLaser->m_TickOffset = OffsetToHeight(TickOffset);
-	pLaser->m_Type = Type;
-	pLaser->m_Owner = Owner;
-	pLaser->m_Alpha = Alpha;
-	pLaser->m_Flags = Flags;
+	Laser.m_TickOffset = OffsetToHeight(TickOffset);
+	Laser.m_Type = Type;
+	Laser.m_Owner = Owner;
+	Laser.m_Alpha = Alpha;
+	Laser.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Laser);
 
 	return true;
 }
@@ -266,17 +266,16 @@ bool CEntityOwned::SnapCosmeticProjectile(int SnappingClient, int SnapId, int Ow
 
 	if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
 	{
-		CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(SnapId);
-		if(!pProj)
-			return false;
+		CNetObj_DDNetProjectile Proj = {};
 
-		pProj->m_X = round_to_int((Pos.x + Offset.x) * 100.0f);
-		pProj->m_Y = round_to_int((Pos.y + Offset.y) * 100.0f);
-		pProj->m_Type = Type;
-		pProj->m_Owner = Owner;
-		pProj->m_StartTick = StartTick;
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
+		Proj.m_X = round_to_int((Pos.x + Offset.x) * 100.0f);
+		Proj.m_Y = round_to_int((Pos.y + Offset.y) * 100.0f);
+		Proj.m_Type = Type;
+		Proj.m_Owner = Owner;
+		Proj.m_StartTick = StartTick;
+		Proj.m_VelX = 0;
+		Proj.m_VelY = 0;
+		Server()->SnapNewItem(SnapId, &Proj);
 		return true;
 	}
 
@@ -284,27 +283,26 @@ bool CEntityOwned::SnapCosmeticProjectile(int SnappingClient, int SnapId, int Ow
 	if(length(Target) > 0.00001f)
 		Rot = round_to_int(angle(Target) * 180.0f / pi);
 
-	CNetObj_CosmeticProjectile *pProjectile = Server()->SnapNewItem<CNetObj_CosmeticProjectile>(SnapId);
-	if(!pProjectile)
-		return false;
+	CNetObj_CosmeticProjectile Projectile = {};
 
 	if(Flags & COSMETIC_FLAG_ANCHORED)
 	{
-		pProjectile->m_X = (int)Offset.x;
-		pProjectile->m_Y = (int)Offset.y;
+		Projectile.m_X = (int)Offset.x;
+		Projectile.m_Y = (int)Offset.y;
 	}
 	else
 	{
-		pProjectile->m_X = (int)(Pos.x + Offset.x);
-		pProjectile->m_Y = (int)(Pos.y + Offset.y);
+		Projectile.m_X = (int)(Pos.x + Offset.x);
+		Projectile.m_Y = (int)(Pos.y + Offset.y);
 	}
 
-	pProjectile->m_X = (int)Offset.x;
-	pProjectile->m_Y = (int)Offset.y;
-	pProjectile->m_Type = Type;
-	pProjectile->m_Owner = Owner;
-	pProjectile->m_Alpha = Alpha;
-	pProjectile->m_Rotation = Rot;
-	pProjectile->m_Flags = Flags;
+	Projectile.m_X = (int)Offset.x;
+	Projectile.m_Y = (int)Offset.y;
+	Projectile.m_Type = Type;
+	Projectile.m_Owner = Owner;
+	Projectile.m_Alpha = Alpha;
+	Projectile.m_Rotation = Rot;
+	Projectile.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Projectile);
 	return true;
 }

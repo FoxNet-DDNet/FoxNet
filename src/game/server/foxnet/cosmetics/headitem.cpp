@@ -35,11 +35,10 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2
 	{
 		for(size_t i = 0; i < std::size(m_aIds); i++)
 			m_aIds[i] = Server()->SnapNewId();
-		std::sort(std::begin(m_aIds), std::end(m_aIds));
+		std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
 	}
 	else
-		std::fill(std::begin(m_aIds), std::end(m_aIds), -1);
-
+		std::fill(std::begin(m_aIds), std::end(m_aIds), std::nullopt);
 	GameWorld()->InsertEntity(this);
 }
 
@@ -52,7 +51,10 @@ void CHeadItem::Reset()
 		log_info("headitem", "Reset");
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
-		Server()->SnapFreeId(m_aIds[i]);
+	{
+		if(m_aIds[i].has_value())
+			Server()->SnapFreeId(m_aIds[i].value());
+	}
 
 	m_MarkedForDestroy = true;
 }
@@ -159,7 +161,7 @@ void CHeadItem::Snap(int SnappingClient)
 
 	Flags |= PICKUPFLAG_NO_PREDICT;
 
-	SnapCosmeticPickup(SnappingClient, GetId(), Flags, m_Owner, m_Offset, Type, SubType, Rotation, -1, COSMETIC_FLAG_ANCHORED);
+	SnapCosmeticPickup(SnappingClient, GetId().value(), Flags, m_Owner, m_Offset, Type, SubType, Rotation, -1, COSMETIC_FLAG_ANCHORED);
 }
 
 void CHeadItem::SnapPartyHat(int SnappingClient)
@@ -195,7 +197,9 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 			HatTo[i].x = -HatTo[i].x;
 		}
 
-		SnapCosmeticLaser(SnappingClient, m_aIds[i], m_Owner, HatFrom[i], HatTo[i], 4, LASERTYPE_GUN, -1, Flags[i]);
+		if(!m_aIds[i].has_value())
+			continue;
+		SnapCosmeticLaser(SnappingClient, m_aIds[i].value(), m_Owner, HatFrom[i], HatTo[i], 4, LASERTYPE_GUN, -1, Flags[i]);
 	}
 }
 
@@ -259,6 +263,8 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 			HatFrom[i].x = -HatFrom[i].x;
 			HatTo[i].x = -HatTo[i].x;
 		}
-		SnapCosmeticLaser(SnappingClient, m_aIds[i], m_Owner, HatFrom[i], HatTo[i], HatTickOffset[i], LASERTYPE_GUN, -1, Flags[i]);
+		if(!m_aIds[i].has_value())
+			continue;
+		SnapCosmeticLaser(SnappingClient, m_aIds[i].value(), m_Owner, HatFrom[i], HatTo[i], HatTickOffset[i], LASERTYPE_GUN, -1, Flags[i]);
 	}
 }

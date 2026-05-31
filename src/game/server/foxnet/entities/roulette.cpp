@@ -27,7 +27,7 @@
 #include <vector>
 
 CRoulette::CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
-	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_ROULETTE, Pos, 54)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_ROULETTE, true, Pos, 54)
 {
 	m_Pos = Pos;
 	m_StartDelay = -1;
@@ -356,7 +356,8 @@ void CRoulette::Reset()
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 		ClearClientBet(ClientId, true);
 
-	Server()->SnapFreeId(GetId());
+	if(GetId().has_value())
+		Server()->SnapFreeId(GetId().value());
 	GameWorld()->RemoveEntity(this);
 }
 
@@ -466,5 +467,6 @@ void CRoulette::Snap(int SnappingClient)
 
 	vec2 From = m_Pos + direction(m_Rotation) * RouletteLength;
 
-	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), GetId(), From, m_Pos, 0, -1, LASERTYPE_DRAGGER, LASERDRAGGERTYPE_WEAK, -1, LASERFLAG_NO_PREDICT);
+	if(GetId().has_value())
+		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), GetId().value(), From, m_Pos, 0, -1, LASERTYPE_DRAGGER, LASERDRAGGERTYPE_WEAK, -1, LASERFLAG_NO_PREDICT);
 }

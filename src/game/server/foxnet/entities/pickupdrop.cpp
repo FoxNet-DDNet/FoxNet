@@ -40,21 +40,21 @@ bool CPickupDrop::SnapPickupDropPickup(int SnappingClient, int SnapId, int OldFl
 	{
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
-		return GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
+		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
+		return true;
 	}
 
-	CNetObj_CosmeticPickup *pPickup = Server()->SnapNewItem<CNetObj_CosmeticPickup>(SnapId);
-	if(!pPickup)
-		return false;
+	CNetObj_CosmeticPickup Pickup = {};
 
-	pPickup->m_X = (int)Pos.x;
-	pPickup->m_Y = (int)Pos.y;
-	pPickup->m_Type = Type;
-	pPickup->m_Subtype = SubType;
-	pPickup->m_Owner = -1;
-	pPickup->m_Alpha = Alpha;
-	pPickup->m_Rotation = Rotation;
-	pPickup->m_Flags = Flags;
+	Pickup.m_X = (int)Pos.x;
+	Pickup.m_Y = (int)Pos.y;
+	Pickup.m_Type = Type;
+	Pickup.m_Subtype = SubType;
+	Pickup.m_Owner = -1;
+	Pickup.m_Alpha = Alpha;
+	Pickup.m_Rotation = Rotation;
+	Pickup.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Pickup);
 	return true;
 }
 
@@ -66,27 +66,27 @@ bool CPickupDrop::SnapPickupDropLaser(int SnappingClient, int SnapId, const vec2
 			return false;
 		const int SnapVer = Server()->GetClientVersion(SnappingClient);
 		const bool SixUp = Server()->IsSixup(SnappingClient);
-		return GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, From, To, Server()->Tick(), -1, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, From, To, Server()->Tick(), -1, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+		return true;
 	}
 
-	CNetObj_CosmeticLaser *pLaser = Server()->SnapNewItem<CNetObj_CosmeticLaser>(SnapId);
-	if(!pLaser)
-		return false;
+	CNetObj_CosmeticLaser Laser = {};
 
-	pLaser->m_FromX = (int)From.x;
-	pLaser->m_FromY = (int)From.y;
-	pLaser->m_ToX = (int)To.x;
-	pLaser->m_ToY = (int)To.y;
-	pLaser->m_TickOffset = 0;
-	pLaser->m_Type = Type;
-	pLaser->m_Owner = -1;
-	pLaser->m_Alpha = Alpha;
-	pLaser->m_Flags = Flags;
+	Laser.m_FromX = (int)From.x;
+	Laser.m_FromY = (int)From.y;
+	Laser.m_ToX = (int)To.x;
+	Laser.m_ToY = (int)To.y;
+	Laser.m_TickOffset = 0;
+	Laser.m_Type = Type;
+	Laser.m_Owner = -1;
+	Laser.m_Alpha = Alpha;
+	Laser.m_Flags = Flags;
+	Server()->SnapNewItem(SnapId, &Laser);
 	return true;
 }
 
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
-	CEntity(pGameWorld, MultiMapIndex, CGameWorld::ENTTYPE_PICKUPDROP, Pos, 28)
+	CEntity(pGameWorld, MultiMapIndex, CGameWorld::ENTTYPE_PICKUPDROP, true, Pos, 28)
 {
 	m_StartTick = Server()->Tick();
 	m_LastOwner = LastOwner;
@@ -118,7 +118,10 @@ void CPickupDrop::Reset(bool PickedUp)
 		log_info("pickupdrop", "Reset");
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
-		Server()->SnapFreeId(m_aIds[i]);
+	{
+		if(m_aIds[i].has_value())
+			Server()->SnapFreeId(m_aIds[i].value());
+	}
 
 	if(m_LastOwner >= 0)
 	{
@@ -601,31 +604,34 @@ void CPickupDrop::Snap(int SnappingClient)
 
 	const int Alpha = 100;
 
-	SnapPickupDropPickup(SnappingClient, GetId(), PICKUPFLAG_NO_PREDICT, m_Pos, POWERUP_WEAPON, SubType, 0, Alpha);
+	if(GetId().has_value())
+		SnapPickupDropPickup(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, m_Pos, POWERUP_WEAPON, SubType, 0, Alpha);
 
 	vec2 OffSet = vec2(0.0f, -32.0f);
 	if(m_Type == WEAPON_HEARTGUN)
 	{
-		SnapPickupDropPickup(SnappingClient, m_aIds[0], PICKUPFLAG_NO_PREDICT, m_Pos, POWERUP_HEALTH, SubType, 0, Alpha, 0);
+		if(m_aIds[0].has_value())
+			SnapPickupDropPickup(SnappingClient, m_aIds[0].value(), PICKUPFLAG_NO_PREDICT, m_Pos, POWERUP_HEALTH, SubType, 0, Alpha, 0);
 	}
 	else if(m_Type == WEAPON_LIGHTSABER)
 	{
-		SnapPickupDropLaser(SnappingClient, m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, 0, Alpha);
+		if(m_aIds[0].has_value())
+			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, 0, Alpha);
 	}
 	else if(m_Type == WEAPON_PORTALGUN)
 	{
-		SnapPickupDropLaser(SnappingClient, m_aIds[0], m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, 0, Alpha);
+		if(m_aIds[0].has_value())
+			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, 0, Alpha);
 		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + OffSet;
 
-		CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIds[1]);
-		if(!pProj)
-			return;
+		CNetObj_Projectile Proj = {};
 
-		pProj->m_X = (int)(m_Pos.x + Spin.x);
-		pProj->m_Y = (int)(m_Pos.y + Spin.y);
-		pProj->m_VelX = 0;
-		pProj->m_VelY = 0;
-		pProj->m_StartTick = 0;
-		pProj->m_Type = WEAPON_HAMMER;
+		Proj.m_X = (int)(m_Pos.x + Spin.x);
+		Proj.m_Y = (int)(m_Pos.y + Spin.y);
+		Proj.m_VelX = 0;
+		Proj.m_VelY = 0;
+		Proj.m_StartTick = 0;
+		Proj.m_Type = WEAPON_HAMMER;
+		Server()->SnapNewItem(m_aIds[1].value(), &Proj);
 	}
 }

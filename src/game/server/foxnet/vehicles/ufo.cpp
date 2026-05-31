@@ -41,10 +41,21 @@ void CVUfo::SetActive(bool Active)
 		return;
 
 	for(int i = 0; i < NUM_PARTS; i++)
+	{
 		m_Visual.m_aIds[i] = Server()->SnapNewId();
+		if(!m_Visual.m_aIds[i].has_value())
+		{
+			for(int j = 0; j < i; j++)
+			{
+				Server()->SnapFreeId(m_Visual.m_aIds[j].value());
+				m_Visual.m_aIds[j].reset();
+			}
+			return;
+		}
+	}
 
-	std::sort(std::begin(m_Visual.m_aIds), std::end(m_Visual.m_aIds));
-
+	std::sort(std::begin(m_Visual.m_aIds), std::end(m_Visual.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
+	
 	m_pCharacter->SetPosition(m_pCharacter->m_Pos);
 
 	int Zone = m_pCharacter->GetOverriddenTuneZone();
@@ -79,7 +90,13 @@ void CVUfo::Reset()
 		log_info("ufo", "ufo");
 
 	for(int i = 0; i < NUM_PARTS; i++)
-		Server()->SnapFreeId(m_Visual.m_aIds[i]);
+   {
+		if(m_Visual.m_aIds[i].has_value())
+		{
+			Server()->SnapFreeId(m_Visual.m_aIds[i].value());
+			m_Visual.m_aIds[i].reset();
+		}
+	}
 
 	int Zone = m_pCharacter->GetOverriddenTuneZone();
 
@@ -158,20 +175,19 @@ void CVUfo::Snap(int SnappingClient)
 
 	for(int i = 0; i < NUM_PARTS; i++)
 	{
-		CNetObj_DDNetLaser *pLaser = Server()->SnapNewItem<CNetObj_DDNetLaser>(m_Visual.m_aIds[i]);
-		if(!pLaser)
-			return;
+		CNetObj_DDNetLaser Laser = {};
+
 		vec2 From = PredPos + m_Visual.m_aFrom[i];
 		vec2 To = PredPos + m_Visual.m_aTo[i];
 
-		pLaser->m_FromX = round_to_int(From.x);
-		pLaser->m_FromY = round_to_int(From.y);
-		pLaser->m_ToX = round_to_int(To.x);
-		pLaser->m_ToY = round_to_int(To.y);
-		pLaser->m_StartTick = Server()->Tick() - 1;
-		pLaser->m_Owner = ClientId;
-		pLaser->m_Type = g_Config.m_SvUfoLaserType;
-		pLaser->m_Flags = LASERFLAG_NO_PREDICT;
+		Laser.m_FromX = round_to_int(From.x);
+		Laser.m_FromY = round_to_int(From.y);
+		Laser.m_ToX = round_to_int(To.x);
+		Laser.m_ToY = round_to_int(To.y);
+		Laser.m_StartTick = Server()->Tick() - 1;
+		Laser.m_Owner = ClientId;
+		Laser.m_Type = g_Config.m_SvUfoLaserType;
+		Laser.m_Flags = LASERFLAG_NO_PREDICT;
 	}
 }
 

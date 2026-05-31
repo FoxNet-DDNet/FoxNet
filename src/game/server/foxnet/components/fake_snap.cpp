@@ -67,25 +67,24 @@ void CFakeSnap::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 			continue;
 		}
 
-		if(auto *pClientInfo = Server()->SnapNewItem<CNetObj_ClientInfo>(pFakePlayer->m_ClientId))
-		{
-			StrToInts(pClientInfo->m_aName, std::size(pClientInfo->m_aName), pFakePlayer->m_aName);
-			StrToInts(pClientInfo->m_aClan, std::size(pClientInfo->m_aClan), pFakePlayer->m_aClan);
-			pClientInfo->m_Country = pFakePlayer->m_Country;
-			StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), pFakePlayer->m_aSkinName);
-			pClientInfo->m_UseCustomColor = pFakePlayer->m_CustomColors;
-			pClientInfo->m_ColorBody = pFakePlayer->m_ColorBody;
-			pClientInfo->m_ColorFeet = pFakePlayer->m_ColorFeet;
-		}
+		CNetObj_ClientInfo ClientInfo = {};
+		StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), pFakePlayer->m_aName);
+		StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), pFakePlayer->m_aClan);
+		ClientInfo.m_Country = pFakePlayer->m_Country;
+		StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), pFakePlayer->m_aSkinName);
+		ClientInfo.m_UseCustomColor = pFakePlayer->m_CustomColors;
+		ClientInfo.m_ColorBody = pFakePlayer->m_ColorBody;
+		ClientInfo.m_ColorFeet = pFakePlayer->m_ColorFeet;
+		Server()->SnapNewItem(pFakePlayer->m_ClientId, ClientInfo);
 
-		if(auto *pPlayerInfo = Server()->SnapNewItem<CNetObj_PlayerInfo>(pFakePlayer->m_ClientId))
-		{
-			pPlayerInfo->m_Latency = 0;
-			pPlayerInfo->m_Score = 0;
-			pPlayerInfo->m_Team = TEAM_SPECTATORS;
-			pPlayerInfo->m_Local = 0;
-			pPlayerInfo->m_ClientId = pFakePlayer->m_ClientId;
-		}
+		CNetObj_PlayerInfo PlayerInfo = {};
+		PlayerInfo.m_Latency = 0;
+		PlayerInfo.m_Score = 0;
+		PlayerInfo.m_Team = TEAM_SPECTATORS;
+		PlayerInfo.m_Local = 0;
+		PlayerInfo.m_ClientId = pFakePlayer->m_ClientId;
+		Server()->SnapNewItem(pFakePlayer->m_ClientId, PlayerInfo);
+
 		pFakePlayer++;
 	}
 }

@@ -19,7 +19,7 @@ class CLissajous : public CEntityOwned
 	class CSnapData
 	{
 	public:
-		int m_Id;
+		std::optional<int> m_Id;
 		vec2 m_From;
 		vec2 m_To;
 	} m_aSnap[NUM_IDS];

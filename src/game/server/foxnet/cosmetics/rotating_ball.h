@@ -9,7 +9,7 @@
 
 class CRotatingBall : public CEntityOwned
 {
-	int m_Id1;
+	std::optional<int> m_Id1;
 
 	int m_RotateDelay;
 	int m_LaserDirAngle;

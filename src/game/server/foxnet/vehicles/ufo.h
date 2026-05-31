@@ -4,7 +4,10 @@
 
 #include <game/server/entity.h>
 
+#include <optional>
+
 class CCharacter;
+class IServer;
 
 class CVUfo
 {
@@ -20,7 +23,7 @@ class CVUfo
 	class CUfoVisual
 	{
 	public:
-		int m_aIds[NUM_PARTS];
+		std::optional<int> m_aIds[NUM_PARTS];
 		vec2 m_aFrom[NUM_PARTS];
 		vec2 m_aTo[NUM_PARTS];
 	};

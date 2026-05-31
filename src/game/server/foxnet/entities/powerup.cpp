@@ -28,15 +28,15 @@
 static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
 
 CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp Type) :
-	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, Pos, 54)
+	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, true, Pos, 54)
 {
 	m_Pos = Pos;
 	m_Data.m_Type = Type;
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
-		m_Snap.m_aLaserIds[i] = Server()->SnapNewId();
-	std::sort(std::begin(m_Snap.m_aLaserIds), std::end(m_Snap.m_aLaserIds));
-
+		m_Snap.m_aIds[i] = Server()->SnapNewId();
+	std::sort(std::begin(m_Snap.m_aIds), std::end(m_Snap.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
+	
 	GameWorld()->InsertEntity(this);
 	SetData();
 }
@@ -70,7 +70,10 @@ void CPowerUp::Reset()
 		log_info("powerup", "Reset");
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
-		Server()->SnapFreeId(m_Snap.m_aLaserIds[i]);
+	{
+		if(m_Snap.m_aIds[i].has_value())
+			Server()->SnapFreeId(m_Snap.m_aIds[i].value());
+	}
 
 	for(size_t i = 0; i < GameServer()->m_vPowerups.size(); i++)
 	{
@@ -205,6 +208,9 @@ void CPowerUp::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
+	if(!GetId().has_value())
+		return;
+
 	if(SnappingClient != SERVER_DEMO_CLIENT)
 	{
 		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
@@ -232,14 +238,17 @@ void CPowerUp::Snap(int SnappingClient)
 	if(Server()->Tick() % Server()->TickSpeed() == 0)
 		m_Switch = !m_Switch;
 
-	GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), GetId(), m_Pos, m_Switch, 0, -1, PICKUPFLAG_NO_PREDICT);
+	GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), GetId().value(), m_Pos, m_Switch, 0, -1, PICKUPFLAG_NO_PREDICT);
 
 	int Type = m_Data.m_Type == EPowerUp::XP ? LASERTYPE_GUN : LASERTYPE_SHOTGUN;
 
 	for(int i = 0; i < NUM_LASERS; i++)
 	{
+		if(!m_Snap.m_aIds[i].has_value())
+			continue;
+
 		vec2 To = m_Snap.m_aTo[i];
 		vec2 From = m_Snap.m_aFrom[i];
-		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_Snap.m_aLaserIds[i], To, From, Server()->Tick(), -1, Type);
+		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_Snap.m_aIds[i].value(), To, From, Server()->Tick(), -1, Type);
 	}
 }

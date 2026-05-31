@@ -429,8 +429,12 @@ void CPlayer::Snap(int SnappingClient)
 				int SpectatorCount = 0;
 				for(auto &pPlayer : GameServer()->m_apPlayers)
 				{
-					if(!pPlayer || !pPlayer->m_EnableSpectatorCount || pPlayer->m_ClientId == TranslatedId || pPlayer->m_Afk ||
-						(Server()->IsRconAuthed(pPlayer->m_ClientId) && Server()->HasAuthHidden(pPlayer->m_ClientId)) ||
+					if(!pPlayer)
+						continue;
+
+					const int SpecClientId = pPlayer->m_ClientId;
+					if(!Server()->ClientIngame(SpecClientId) || !pPlayer->m_EnableSpectatorCount || SpecClientId == TranslatedId || pPlayer->m_Afk ||
+						(Server()->IsRconAuthed(SpecClientId) && Server()->HasAuthHidden(SpecClientId)) ||
 						!(pPlayer->m_Paused || pPlayer->m_Team == TEAM_SPECTATORS))
 					{
 						continue;
@@ -505,7 +509,7 @@ void CPlayer::Snap(int SnappingClient)
 	}
 
 	if(ShowSpec)
-	{		
+	{
 		// <FoxNet
 		if(pSnapPlayer->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
 			return;

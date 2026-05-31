@@ -17,7 +17,7 @@ class CStaffInd : public CEntityOwned
 		NUM_IDS
 	};
 
-	int m_aIds[NUM_IDS];
+	std::optional<int> m_aIds[NUM_IDS];
 	vec2 m_aPos[2];
 
 	float m_Dist;

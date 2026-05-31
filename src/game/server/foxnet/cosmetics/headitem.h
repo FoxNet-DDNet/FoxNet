@@ -22,7 +22,7 @@ class CHeadItem : public CEntityOwned
 	void SnapPartyHat(int SnappingClient);
 	void SnapTopHat(int SnappingClient);
 
-	int m_aIds[5];
+	std::optional<int> m_aIds[5];
 
 public:
 	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);

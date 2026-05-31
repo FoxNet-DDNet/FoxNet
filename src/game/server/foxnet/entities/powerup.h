@@ -27,7 +27,7 @@ public:
 class CSnap
 {
 public:
-	int m_aLaserIds[NUM_LASERS];
+	std::optional<int> m_aIds[NUM_LASERS];
 	vec2 m_aTo[NUM_LASERS];
 	vec2 m_aFrom[NUM_LASERS];
 };

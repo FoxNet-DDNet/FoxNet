@@ -437,9 +437,10 @@ inline void CText::SetData(float Cell)
 
 					vec2 P = Base + vec2((CursorColsX + WidthCells) * Cell * 0.70f,
 								(HeightCells + OffCellsY) * Cell * 0.70f);
-					int Id = Server()->SnapNewId();
+					std::optional<int> Id = Server()->SnapNewId();
 
-					m_vData.push_back({Id, P});
+					if(Id.has_value())
+						m_vData.push_back({Id.value(), P});
 				}
 			}
 		}
@@ -451,7 +452,7 @@ inline void CText::SetData(float Cell)
 }
 
 inline CText::CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType) :
-	CEntity(pGameWorld, MultiMapIdx, EntType, Pos)
+	CEntity(pGameWorld, MultiMapIdx, EntType, false, Pos)
 {
 	m_AliveTicks = AliveTicks;
 	m_CurTicks = 0;

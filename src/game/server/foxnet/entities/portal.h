@@ -29,14 +29,15 @@ class CPortal : public CEntityOwned
 		NUM_PRTCL = 3
 	};
 
-	struct SSnapPortal
+	struct CSnapPortal
 	{
-		int m_aIds[NUM_IDS];
+	public:
+		std::optional<int> m_aIds[NUM_IDS];
 		vec2 m_aFrom[NUM_POS];
 		vec2 m_aTo[NUM_POS];
-		int m_aParticleIds[NUM_PRTCL];
+		std::optional<int> m_aParticleIds[NUM_PRTCL];
 	};
-	SSnapPortal m_Snap[NUM_PORTALS];
+	CSnapPortal m_Snap[NUM_PORTALS];
 
 	vec2 CirclePos(int Portal, int Part) const;
 	void SetPortalVisual();

@@ -67,9 +67,11 @@ void CPortal::Reset()
 	for(int p = 0; p < NUM_PORTALS; p++)
 	{
 		for(int i = 0; i < NUM_IDS; i++)
-			Server()->SnapFreeId(m_Snap[p].m_aIds[i]);
+			if(m_Snap[p].m_aIds[i].has_value())
+				Server()->SnapFreeId(m_Snap[p].m_aIds[i].value());
 		for(int i = 0; i < NUM_PRTCL; i++)
-			Server()->SnapFreeId(m_Snap[p].m_aParticleIds[i]);
+			if(m_Snap[p].m_aParticleIds[i].has_value())
+				Server()->SnapFreeId(m_Snap[p].m_aParticleIds[i].value());
 	}
 
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
@@ -366,26 +368,28 @@ void CPortal::Snap(int SnappingClient)
 			To += m_aData[p].m_Pos;
 			From += m_aData[p].m_Pos;
 
-			GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient),
-				m_Snap[p].m_aIds[i], To, From, StartTick);
+			if(m_Snap[p].m_aIds[i].has_value())
+				GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient),
+					m_Snap[p].m_aIds[i].value(), To, From, StartTick);
 		}
 
 		if(m_State == STATE_BOTH_SET)
 		{
 			for(size_t i = 0; i < NUM_PRTCL; i++)
 			{
-				CNetObj_DDNetProjectile *pProj = Server()->SnapNewItem<CNetObj_DDNetProjectile>(m_Snap[p].m_aParticleIds[i]);
-				if(!pProj)
-					continue;
+				CNetObj_DDNetProjectile Proj = {};
 
 				const vec2 Pos = GetRandomPointInCircle(m_aData[i % 2].m_Pos, m_aData[p].m_PortalRadius - 6.0f);
-				pProj->m_X = round_to_int(Pos.x * 100.0f);
-				pProj->m_Y = round_to_int(Pos.y * 100.0f);
-				pProj->m_StartTick = 0;
-				pProj->m_VelX = 0;
-				pProj->m_VelY = 0;
-				pProj->m_Type = WEAPON_HAMMER;
-				pProj->m_Owner = -1;
+				Proj.m_X = round_to_int(Pos.x * 100.0f);
+				Proj.m_Y = round_to_int(Pos.y * 100.0f);
+				Proj.m_StartTick = 0;
+				Proj.m_VelX = 0;
+				Proj.m_VelY = 0;
+				Proj.m_Type = WEAPON_HAMMER;
+				Proj.m_Owner = -1;
+
+				if(m_Snap[p].m_aParticleIds[i].has_value())
+					Server()->SnapNewItem(m_Snap[p].m_aParticleIds[i].value(), &Proj);
 			}
 		}
 	}

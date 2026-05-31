@@ -238,7 +238,7 @@ public:
 
 	virtual std::optional<int> SnapNewId() = 0;
 	virtual void SnapFreeId(int Id) = 0;
-	virtual bool SnapNewItem(int Type, int Id, rust::Slice<const int32_t> Data) = 0;
+    virtual bool SnapNewItem(int Type, int Id, rust::Slice<const int32_t> Data) = 0;
 
 	template<typename T>
 	bool SnapNewItem(int Id, const T &Data)

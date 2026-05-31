@@ -1431,6 +1431,8 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 		Character.m_Health = Health;
 		Character.m_Armor = Armor;
 		Character.m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+
+		Server()->SnapNewItem(Id, Character);
 	}
 	else
 	{
@@ -1599,7 +1601,7 @@ void CCharacter::Snap(int SnappingClient)
 	if(m_Core.m_HasTelegunGrenade)
 		DDNetCharacter.m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
 	if(m_Core.m_HasTelegunLaser)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
+		DDNetCharacter.m_Flags |= CHARACTERFLAG_TELEGUN_LASER;
 	if(m_Core.m_LiveFrozen)
 		DDNetCharacter.m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
 
@@ -1634,8 +1636,6 @@ void CCharacter::Snap(int SnappingClient)
 
 	// OVERRIDE_NONE is the default value, the object is zeroed, so it would incorrectly become 0
 	DDNetCharacter.m_TuneZoneOverride = TuneZone::OVERRIDE_NONE;
-
-	Server()->SnapNewItem(Id, DDNetCharacter);
 
 	// <FoxNet
 	DDNetCharacter.m_TuneZoneOverride = m_TuneZoneOverride;
@@ -1718,6 +1718,8 @@ void CCharacter::Snap(int SnappingClient)
 	if(!GetCurrentTuning()->m_PlayerHammering)
 		DDNetCharacter.m_Flags |= CHARACTERFLAG_HAMMER_HIT_DISABLED;
 	// FoxNet>
+
+	Server()->SnapNewItem(Id, DDNetCharacter);
 }
 
 void CCharacter::PostGlobalSnap()
@@ -2382,7 +2384,7 @@ void CCharacter::HandleTiles(int Index)
 			ResetPickups();
 		return;
 	}
-	const int EvilTeleport = Collision()->IsEvilTeleport(MapIdx);
+	const int EvilTeleport = Collision()->IsEvilTeleport(MapIndex);
 	if(EvilTeleport && !Collision()->TeleOuts(EvilTeleport - 1).empty())
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
@@ -2405,7 +2407,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckEvilTeleport(MapIdx))
+	if(Collision()->IsCheckEvilTeleport(MapIndex))
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
 			return;
@@ -2442,7 +2444,7 @@ void CCharacter::HandleTiles(int Index)
 		}
 		return;
 	}
-	if(Collision()->IsCheckTeleport(MapIdx))
+	if(Collision()->IsCheckTeleport(MapIndex))
 	{
 		if(m_Core.m_Super || m_Core.m_Invincible)
 			return;

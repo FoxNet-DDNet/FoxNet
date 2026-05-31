@@ -19,7 +19,7 @@ class CHalo : public CEntityOwned
 	{
 	public:
 		vec2 m_Pos;
-		int m_Id;
+		std::optional<int> m_Id;
 	} m_aSnap[NUM_IDS];
 	int m_StartTick;
 
