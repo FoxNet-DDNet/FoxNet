@@ -490,7 +490,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 	char aSeekerName[MAX_NAME_LENGTH] = "";
 	for(CCharacter *pChr : m_vCandidates)
 	{
-		int Id =pChr->GetPlayer()->GetCid();
+		int Id = pChr->GetPlayer()->GetCid();
 		if(m_aClientData[Id].m_IsSeeker)
 		{
 			NumSeekers++;
@@ -1124,7 +1124,7 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		QuadData.Init(&pQuads[NumQuads]);
+		QuadData.Init(&pQuads[NumQuads], GameServer()->Map(MultiMapIndex()));
 		QuadData.m_SubType = (uint8_t)SubType;
 		AddQuad(QuadData);
 

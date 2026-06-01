@@ -40,7 +40,7 @@ public:
 	vec2 m_AabbMin = vec2(0, 0);
 	vec2 m_AabbMax = vec2(0, 0);
 
-	void Init(CQuad *pQuad);
+	void Init(CQuad *pQuad, IMap *pMap = nullptr);
 	void UpdatePositionEnvelope(double GlobalTime, IMap *pMap);
 
 	void UpdateAabb()

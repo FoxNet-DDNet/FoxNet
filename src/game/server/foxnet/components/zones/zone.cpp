@@ -42,7 +42,7 @@ void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	for(int NumQuads = 0; NumQuads < pQuadsLayer->m_NumQuads; NumQuads++)
 	{
 		CQuadData QuadData;
-		QuadData.Init(&pQuads[NumQuads]);
+		QuadData.Init(&pQuads[NumQuads], GameServer()->Map(MultiMapIndex()));
 		AddQuad(QuadData);
 	}
 }

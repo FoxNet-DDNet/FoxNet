@@ -1,5 +1,8 @@
 #include "spawncandidates.h"
 
+#include "zones/zone.h"
+#include "zones/zonemanager.h"
+
 #include <base/lock.h>
 #include <base/log.h>
 #include <base/vmath.h>
@@ -8,6 +11,7 @@
 
 #include <game/collision.h>
 #include <game/mapitems.h>
+#include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/component.h>
@@ -18,20 +22,17 @@
 
 #include <algorithm>
 #include <cmath>
-#include <memory>
 #include <cstdint>
 #include <deque>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <random>
 #include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <game/quad_data.h>
-#include "zones/zonemanager.h"
-#include "zones/zone.h"
 
 namespace
 {
@@ -74,6 +75,7 @@ namespace
 		std::vector<vec2> m_Seeds;
 
 		std::vector<CQuadData> m_QuadDatas;
+		std::vector<uint8_t> m_QuadUnfreezeTiles;
 	};
 
 	SSpawnBuildData SnapshotBuildData(CMultiMaps *pMultiMap, CZoneManager *pZoneManager)
@@ -130,42 +132,49 @@ namespace
 			}
 		}
 
-		if (pZoneManager)
+		if(pZoneManager)
 		{
 			for(const IZone *pZone : pZoneManager->Zones(EZoneType::Unfreeze))
 			{
-				for (const CQuadData &QuadData : pZone->Quads())
+				for(const CQuadData &QuadData : pZone->Quads())
 				{
 					Data.m_QuadDatas.push_back(QuadData);
 				}
 			}
 		}
 
-		return Data;
-	}
-
-	vec2 ToPosition(int Idx, int Width, int Height)
-	{
-		if(Width <= 0 || Height <= 0 || Idx < 0 || Idx >= Width * Height)
-			return vec2(0.0f, 0.0f);
-
-		const int X = Idx % Width;
-		const int Y = Idx / Width;
-		return vec2(X * 32.0f + 16.0f, Y * 32.0f + 16.0f);
-	}
-
-	bool InsideQuad(vec2 Pos, const SSpawnBuildData &Data, EZoneType Type)
-	{
+		Data.m_QuadUnfreezeTiles.assign(Size, 0);
 		for(const CQuadData &Quad : Data.m_QuadDatas)
 		{
-			if(!Quad.AabbContains(Pos))
-				continue;
+			const int MinTileX = std::max(0, (int)std::floor(Quad.m_AabbMin.x / 32.0f));
+			const int MaxTileX = std::min(Data.m_Width - 1, (int)std::floor(Quad.m_AabbMax.x / 32.0f));
+			const int MinTileY = std::max(0, (int)std::floor(Quad.m_AabbMin.y / 32.0f));
+			const int MaxTileY = std::min(Data.m_Height - 1, (int)std::floor(Quad.m_AabbMax.y / 32.0f));
 
-			const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[3], Quad.m_aPoints[2]};
-			if(InsideQuadrilateral(Pos, aPoints))
-				return true;
+			const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[2], Quad.m_aPoints[3]};
+			for(int TileY = MinTileY; TileY <= MaxTileY; ++TileY)
+			{
+				for(int TileX = MinTileX; TileX <= MaxTileX; ++TileX)
+				{
+					const vec2 TilePos(TileX * 32.0f + 16.0f, TileY * 32.0f + 16.0f);
+					if(!Quad.AabbIntersects(TilePos, vec2(16.0f, 16.0f)))
+						continue;
+
+					if(Quad.m_Animated)
+					{
+						Data.m_QuadUnfreezeTiles[TileY * Data.m_Width + TileX] = 1;
+						continue;
+					}
+
+					if(!InsideQuadrilateral(TilePos, aPoints) && !InsideQuadrilateral(TilePos, aPoints, vec2(16.0f, 16.0f)))
+						continue;
+
+					Data.m_QuadUnfreezeTiles[TileY * Data.m_Width + TileX] = 1;
+				}
+			}
 		}
-		return false;
+
+		return Data;
 	}
 
 	std::vector<vec2> BuildSpawnCandidates(const SSpawnBuildData &Data, size_t MapIdx)
@@ -237,12 +246,12 @@ namespace
 			const int Front = Data.m_FrontTiles[Idx];
 			const int Sw = Data.m_SwitchTiles[Idx];
 
-			const bool QuadUnfreeze = InsideQuad(ToPosition(Idx, Data.m_Width, Data.m_Height), Data, EZoneType::Unfreeze);
-			
+			const bool QuadUnfreeze = Idx >= 0 && Idx < (int)Data.m_QuadUnfreezeTiles.size() && Data.m_QuadUnfreezeTiles[Idx] != 0;
+
 			return Game == TILE_UNFREEZE || Game == TILE_DUNFREEZE || Game == TILE_LUNFREEZE ||
 			       Front == TILE_UNFREEZE || Front == TILE_DUNFREEZE || Front == TILE_LUNFREEZE ||
 			       Sw == TILE_UNFREEZE || Sw == TILE_DUNFREEZE || Sw == TILE_LUNFREEZE ||
-				QuadUnfreeze;
+			       QuadUnfreeze;
 		};
 
 		const auto IsBlockedForSpawnNav = [&](int Tx, int Ty) -> bool {

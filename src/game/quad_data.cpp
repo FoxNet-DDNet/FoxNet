@@ -1,14 +1,110 @@
-#include "envelopes.h"
 #include "quad_data.h"
+
+#include "envelopes.h"
+
+#include <base/math.h>
+#include <base/system.h>
 
 #include <engine/map.h>
 
 #include <game/mapitems.h>
-#include <base/system.h>
+
+#include <limits>
 
 class CQuad;
 
-void CQuadData::Init(CQuad *pQuad)
+namespace
+{
+	struct SEnvelopeExtrema
+	{
+		bool m_Available = false;
+		bool m_Rotating = false;
+		vec2 m_Min = vec2(0.0f, 0.0f);
+		vec2 m_Max = vec2(0.0f, 0.0f);
+	};
+
+	SEnvelopeExtrema GetEnvelopeExtrema(IMap *pMap, int Env)
+	{
+		SEnvelopeExtrema Extrema;
+		if(!pMap || Env < 0)
+		{
+			Extrema.m_Available = Env == -1;
+			return Extrema;
+		}
+
+		int Start, Num;
+		pMap->GetType(MAPITEMTYPE_ENVELOPE, &Start, &Num);
+		if(Env >= Num)
+			return Extrema;
+
+		const CMapItemEnvelope *pItem = static_cast<const CMapItemEnvelope *>(pMap->GetItem(Start + Env, nullptr, nullptr));
+		if(!pItem || pItem->m_Channels != 3)
+			return Extrema;
+
+		CMapBasedEnvelopeAccess EnvelopePoints(pMap);
+		EnvelopePoints.SetPointsRange(pItem->m_StartPoint, pItem->m_NumPoints);
+		if(EnvelopePoints.NumPoints() == 0)
+			return Extrema;
+
+		Extrema.m_Min = vec2(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+		Extrema.m_Max = vec2(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
+
+		for(int PointId = 0; PointId < EnvelopePoints.NumPoints(); ++PointId)
+		{
+			const CEnvPoint *pEnvPoint = EnvelopePoints.GetPoint(PointId);
+			if(!pEnvPoint)
+				return {};
+
+			if(pEnvPoint->m_aValues[2] != 0)
+				Extrema.m_Rotating = true;
+
+			const vec2 Value(fx2f(pEnvPoint->m_aValues[0]), fx2f(pEnvPoint->m_aValues[1]));
+			Extrema.m_Min.x = std::min(Extrema.m_Min.x, Value.x);
+			Extrema.m_Min.y = std::min(Extrema.m_Min.y, Value.y);
+			Extrema.m_Max.x = std::max(Extrema.m_Max.x, Value.x);
+			Extrema.m_Max.y = std::max(Extrema.m_Max.y, Value.y);
+
+			if(PointId < EnvelopePoints.NumPoints() - 1 && pEnvPoint->m_Curvetype == CURVETYPE_BEZIER)
+			{
+				const CEnvPointBezier *pBezier = EnvelopePoints.GetBezier(PointId);
+				if(!pBezier)
+					return {};
+
+				const vec2 OutValue(
+					fx2f(pEnvPoint->m_aValues[0] + pBezier->m_aOutTangentDeltaY[0]),
+					fx2f(pEnvPoint->m_aValues[1] + pBezier->m_aOutTangentDeltaY[1]));
+				Extrema.m_Min.x = std::min(Extrema.m_Min.x, OutValue.x);
+				Extrema.m_Min.y = std::min(Extrema.m_Min.y, OutValue.y);
+				Extrema.m_Max.x = std::max(Extrema.m_Max.x, OutValue.x);
+				Extrema.m_Max.y = std::max(Extrema.m_Max.y, OutValue.y);
+			}
+
+			if(PointId > 0)
+			{
+				const CEnvPoint *pPrevPoint = EnvelopePoints.GetPoint(PointId - 1);
+				if(pPrevPoint && pPrevPoint->m_Curvetype == CURVETYPE_BEZIER)
+				{
+					const CEnvPointBezier *pBezier = EnvelopePoints.GetBezier(PointId);
+					if(!pBezier)
+						return {};
+
+					const vec2 InValue(
+						fx2f(pEnvPoint->m_aValues[0] + pBezier->m_aInTangentDeltaY[0]),
+						fx2f(pEnvPoint->m_aValues[1] + pBezier->m_aInTangentDeltaY[1]));
+					Extrema.m_Min.x = std::min(Extrema.m_Min.x, InValue.x);
+					Extrema.m_Min.y = std::min(Extrema.m_Min.y, InValue.y);
+					Extrema.m_Max.x = std::max(Extrema.m_Max.x, InValue.x);
+					Extrema.m_Max.y = std::max(Extrema.m_Max.y, InValue.y);
+				}
+			}
+		}
+
+		Extrema.m_Available = true;
+		return Extrema;
+	}
+}
+
+void CQuadData::Init(CQuad *pQuad, IMap *pMap)
 {
 	m_pQuad = pQuad;
 	for(int i = 0; i < 5; i++)
@@ -17,7 +113,30 @@ void CQuadData::Init(CQuad *pQuad)
 	for(int i = 0; i < 5; i++)
 		m_aPoints[i] = m_aLocalPoints[i];
 	m_Animated = pQuad->m_PosEnv >= 0;
-   UpdateAabb();
+	UpdateAabb();
+
+	if(!m_Animated || !pMap)
+		return;
+
+	const SEnvelopeExtrema EnvExtrema = GetEnvelopeExtrema(pMap, pQuad->m_PosEnv);
+	if(!EnvExtrema.m_Available)
+		return;
+
+	if(EnvExtrema.m_Rotating)
+	{
+		const vec2 Pivot = m_aLocalPoints[4];
+		float Radius = 0.0f;
+		for(int i = 0; i < 4; ++i)
+			Radius = std::max(Radius, distance(m_aLocalPoints[i], Pivot));
+
+		m_AabbMin = vec2(Pivot.x + EnvExtrema.m_Min.x - Radius, Pivot.y + EnvExtrema.m_Min.y - Radius);
+		m_AabbMax = vec2(Pivot.x + EnvExtrema.m_Max.x + Radius, Pivot.y + EnvExtrema.m_Max.y + Radius);
+	}
+	else
+	{
+		m_AabbMin += EnvExtrema.m_Min;
+		m_AabbMax += EnvExtrema.m_Max;
+	}
 }
 
 void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
