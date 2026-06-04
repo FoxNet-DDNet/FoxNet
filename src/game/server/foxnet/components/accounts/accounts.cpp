@@ -359,6 +359,8 @@ void CAccounts::AutoLogin(int ClientId)
 			return;
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
+		if(pExpectedPlayer->Acc()->m_LoggedIn)
+			return;
 		const char *pAddr = Server()->ClientAddrString(ClientId, false);
 		if(str_comp(Res.m_LastIP, pAddr) != 0)
 			return;
@@ -403,6 +405,11 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 			return;
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
+		if(pExpectedPlayer->Acc()->m_LoggedIn)
+		{
+			GameServer()->SendChatTarget(ClientId, "You are already logged in");
+			return;
+		}
 		if(Res.m_LoggedIn)
 		{
 			if(!Silent)
@@ -446,6 +453,11 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
+		if(pExpectedPlayer->Acc()->m_LoggedIn)
+		{
+			GameServer()->SendChatTarget(ClientId, "You are already logged in");
+			return;
+		}
 		if(!Res.m_Success || !Res.m_Found)
 		{
 			GameServer()->SendChatTarget(ClientId, "Login failed");
