@@ -749,16 +749,16 @@ void CPlayer::RainbowTick()
 		m_RainbowColor = (m_RainbowColor + Cosmetics()->m_RainbowSpeed) % 256;
 }
 
-void CPlayer::OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
+void CPlayer::OverrideSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 {
-	Overriddename(SnappingClient, pClientInfo);
-	RainbowSnap(SnappingClient, pClientInfo);
+	Overriddename(SnappingClient, ClientInfo);
+	RainbowSnap(SnappingClient, ClientInfo);
 
 	if(g_Config.m_SvForceSkin[0])
-		StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), g_Config.m_SvForceSkin);
+		StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), g_Config.m_SvForceSkin);
 }
 
-void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
+void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 {
 	if(!GetCharacter() || (!Cosmetics()->m_RainbowBody && !Cosmetics()->m_RainbowFeet && GetCharacter()->GetPowerHooked() != HOOKTYPE_RAINBOW))
 		return;
@@ -777,37 +777,37 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 	{
 		if(Local || GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
 		{
-			pClientInfo->m_UseCustomColor = 1;
+			ClientInfo.m_UseCustomColor = 1;
 			if(Cosmetics()->m_RainbowBody)
-				pClientInfo->m_ColorBody = BaseColor + Color;
+				ClientInfo.m_ColorBody = BaseColor + Color;
 			if(Cosmetics()->m_RainbowFeet)
-				pClientInfo->m_ColorFeet = BaseColor + Color;
+				ClientInfo.m_ColorFeet = BaseColor + Color;
 		}
 
 		if(SnappingClient == GetCharacter()->m_PowerHookedId || GameServer()->m_aAccounts[SnappingClient].m_Configs.m_Cosmetics.m_ShowRainbow)
 		{
 			if(RainbowHooked)
 			{
-				pClientInfo->m_UseCustomColor = 1;
-				pClientInfo->m_ColorBody = BaseColor + Color;
-				pClientInfo->m_ColorFeet = BaseColor + Color;
+				ClientInfo.m_UseCustomColor = 1;
+				ClientInfo.m_ColorBody = BaseColor + Color;
+				ClientInfo.m_ColorFeet = BaseColor + Color;
 			}
 		}
 	}
 }
 
-void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
+void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 {
 	if(m_Obfuscated)
 	{
-		constexpr int MaxBytes = sizeof(pClientInfo->m_aName);
+		constexpr int MaxBytes = sizeof(ClientInfo.m_aName);
 		std::string ObfStr = RandomUnicode(MaxBytes / 3);
 		if(ObfStr.size() >= MaxBytes)
 			ObfStr.resize(MaxBytes - 1);
 		const char *pObf = ObfStr.c_str();
 
-		StrToInts(pClientInfo->m_aName, std::size(pClientInfo->m_aName), pObf);
-		StrToInts(pClientInfo->m_aClan, std::size(pClientInfo->m_aClan), " ");
+		StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), pObf);
+		StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), " ");
 	}
 
 	if(!GetCharacter())
@@ -815,8 +815,8 @@ void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo *pClientInfo)
 
 	if(GetCharacter()->m_InSnake)
 	{
-		StrToInts(pClientInfo->m_aName, std::size(pClientInfo->m_aName), " ");
-		StrToInts(pClientInfo->m_aClan, std::size(pClientInfo->m_aClan), " ");
+		StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), " ");
+		StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), " ");
 	}
 }
 void CPlayer::SetRainbowBody(bool Active)

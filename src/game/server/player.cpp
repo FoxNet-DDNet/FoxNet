@@ -349,6 +349,9 @@ void CPlayer::Snap(int SnappingClient)
 	ClientInfo.m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
 	ClientInfo.m_ColorBody = m_TeeInfos.m_ColorBody;
 	ClientInfo.m_ColorFeet = m_TeeInfos.m_ColorFeet;
+
+	OverrideSnap(SnappingClient, ClientInfo); // FoxNet
+
 	Server()->SnapNewItem(TranslatedId, ClientInfo);
 
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);

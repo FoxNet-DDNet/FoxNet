@@ -429,11 +429,11 @@ public:
 	// <FoxNet
 private:
 	void FoxNetReset();
-	void Overriddename(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
+	void Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
 
 	int m_RainbowColor = 0;
-	void OverrideSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
-	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo *pClientInfo);
+	void OverrideSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
+	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
 	void RainbowTick();
 	void ExpireItems();
 	void FoxNetTick();
