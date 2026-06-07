@@ -844,7 +844,7 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 				Server()->GetCustomClient(ClientId),
 				GetClientVersion(ClientId),
 				GetClientVersionStr(ClientId));
-			char aTitle[32];
+			char aTitle[48];
 			str_format(aTitle, sizeof(aTitle), "[BAN] - Name Detection (%d%s)", Server()->Port(), FormatServerInsntance(" | "));
 			Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
 
