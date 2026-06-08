@@ -354,22 +354,26 @@ void CItemRegistry::Init()
 		nullptr, nullptr, 30});
 
 	// Loot cases
+
+	// Common Max = 4500
 	Add({EItemId::LootCaseCommon, EItemType::Case,
 		"Loot Case (Common)", "LC_C",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
-		4000, 10, 5, EItemRarity::Common, "Gives you a random common item!",
+		3000, 10, 5, EItemRarity::Common, "Gives you a random common item!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
 
+	// Uncommon Max = 8000
 	Add({EItemId::LootCaseUncommon, EItemType::Case,
 		"Loot Case (Uncommon)", "LC_UC",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
-		8000, 15, 5, EItemRarity::Uncommon, "Gives you a random uncommon item!",
+		6000, 15, 5, EItemRarity::Uncommon, "Gives you a random uncommon item!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
 
+	// Rare Max = 16000
 	Add({EItemId::LootCaseRare, EItemType::Case,
 		"Loot Case (Rare)", "LC_R",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
-		16000, 25, 5, EItemRarity::Rare, "Gives you a random rare item!",
+		14000, 25, 5, EItemRarity::Rare, "Gives you a random rare item!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
 
 	//Add({EItemId::LootCaseEpic, "Loot Case (Epic)", "LC_E",
