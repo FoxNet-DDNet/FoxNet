@@ -815,7 +815,7 @@ bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
 	return true;
 }
 
-void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore)
+void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore)
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return;
@@ -848,8 +848,8 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 
 	if(!Data.m_Alive)
 	{
-		pClientInfo->m_UseCustomColor = false;
-		StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), "x_spec");
+		ClientInfo.m_UseCustomColor = false;
+		StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "x_spec");
 	}
 	else if(!Data.m_IsSeeker)
 	{
@@ -857,16 +857,16 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 			return;
 
 		constexpr int ColorHider = 10401598; // Blue
-		pClientInfo->m_UseCustomColor = true;
-		pClientInfo->m_ColorBody = ColorHider;
-		pClientInfo->m_ColorFeet = ColorHider;
+		ClientInfo.m_UseCustomColor = true;
+		ClientInfo.m_ColorBody = ColorHider;
+		ClientInfo.m_ColorFeet = ColorHider;
 
 		bool CanSeePlayer = !SnapData.m_IsSeeker || CanSnapCharacter(pPlayer->GetCharacter(), SnappingClient);
 
 		if(Data.m_GhostDuration > 0 && CanSeePlayer)
 		{
-			pClientInfo->m_UseCustomColor = false;
-			StrToInts(pClientInfo->m_aSkin, std::size(pClientInfo->m_aSkin), "ghost");
+			ClientInfo.m_UseCustomColor = false;
+			StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "ghost");
 		}
 	}
 	else
@@ -874,9 +874,9 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 		if(m_State == EState::Finished)
 			return;
 		constexpr int ColorSeeker = 16758590; // Red
-		pClientInfo->m_UseCustomColor = true;
-		pClientInfo->m_ColorBody = ColorSeeker;
-		pClientInfo->m_ColorFeet = ColorSeeker;
+		ClientInfo.m_UseCustomColor = true;
+		ClientInfo.m_ColorBody = ColorSeeker;
+		ClientInfo.m_ColorFeet = ColorSeeker;
 	}
 }
 
@@ -1095,12 +1095,18 @@ bool CHideAndSeekZone::IsCandidate(int ClientId) const
 
 vec2 CHideAndSeekZone::GetRandomSpawnPos()
 {
-	if(m_vSpawnPoints.empty())
+	if(m_vSpawnQuads.empty())
 		return vec2(0, 0);
 
-	std::uniform_int_distribution<size_t> Range(0, m_vSpawnPoints.size() - 1);
-	vec2 Pos = m_vSpawnPoints[Range(Rng())];
-	Pos += vec2(random_float() - 0.5f, random_float() - 0.5f) * MaxSpawnPointOffset; // add some random offset to prevent players from spawning on top of each other
+	std::uniform_int_distribution<int> Rand(0, m_vSpawnQuads.size() - 1);
+	CQuadData Quad = m_vSpawnQuads[Rand(Rng())];
+	vec2 Pos;
+
+	do
+	{
+		Pos = RandomPointInQuad(Quad);
+	} while(Collision()->CheckPoint(Pos));
+
 	return Pos;
 }
 
@@ -1129,15 +1135,6 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 		AddQuad(QuadData);
 
 		if(SubType == ESubType::Spawn)
-		{
-			for(int j = 0; j < 4; j++)
-			{
-				vec2 Pos;
-				if(!GameServer()->GetNearestAirPos(QuadData.m_aPoints[j], &Pos, MaxSpawnPointOffset))
-					continue;
-
-				m_vSpawnPoints.push_back(Pos);
-			}
-		}
+			m_vSpawnQuads.push_back(QuadData);
 	}
 }

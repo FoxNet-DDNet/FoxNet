@@ -131,7 +131,7 @@ public:
 	/*
 	 * Used to override player snap data
 	 */
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) {}
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENT_H

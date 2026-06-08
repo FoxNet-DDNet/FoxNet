@@ -352,8 +352,6 @@ void CPlayer::Snap(int SnappingClient)
 
 	OverrideSnap(SnappingClient, ClientInfo); // FoxNet
 
-	Server()->SnapNewItem(TranslatedId, ClientInfo);
-
 	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 	int Latency = SnappingClient == SERVER_DEMO_CLIENT ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aCurLatency[m_ClientId];
 	Latency += m_ExtraPing;
@@ -361,7 +359,9 @@ void CPlayer::Snap(int SnappingClient)
 	int Team = m_Team;
 
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
-		pComponent->OnPlayerSnap(this, SnappingClient, &ClientInfo, &Team, &Latency, &Score);
+		pComponent->OnPlayerSnap(this, SnappingClient, ClientInfo, &Team, &Latency, &Score);
+
+	Server()->SnapNewItem(TranslatedId, ClientInfo);
 
 	if(!Server()->IsSixup(SnappingClient))
 	{

@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <random>
 
 void IZone::ReserveQuads(int AdditionalQuads)
 {
@@ -75,6 +76,47 @@ bool IZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &S
 	const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
 
 	return ::InsideQuadrilateral(Pos, Points, Size);
+}
+
+static float TriangleArea(const vec2 &A, const vec2 &B, const vec2 &C)
+{
+	return std::abs(
+		       (B.x - A.x) * (C.y - A.y) -
+		       (B.y - A.y) * (C.x - A.x)) *
+	       0.5f;
+}
+
+static vec2 RandomPointInTriangle(const vec2 &A, const vec2 &B, const vec2 &C)
+{
+	float r1 = random_float();
+	float r2 = random_float();
+
+	float s = std::sqrt(r1);
+
+	float u = 1.0f - s;
+	float v = s * (1.0f - r2);
+	float w = s * r2;
+
+	return A * u + B * v + C * w;
+}
+
+vec2 IZone::RandomPointInQuad(const CQuadData &QuadData) const
+{
+	const vec2 &A = QuadData.m_aPoints[0];
+	const vec2 &B = QuadData.m_aPoints[1];
+	const vec2 &C = QuadData.m_aPoints[2];
+	const vec2 &D = QuadData.m_aPoints[3];
+
+	float AreaABC = TriangleArea(A, B, C);
+	float AreaACD = TriangleArea(A, C, D);
+
+	std::uniform_real_distribution<float> Range(0.001f, 1.0f);
+	float Pick = Range(Rng()) * (AreaABC + AreaACD);
+
+	if(Pick < AreaABC)
+		return RandomPointInTriangle(A, B, C);
+
+	return RandomPointInTriangle(A, C, D);
 }
 
 void IZone::UpdateCache()

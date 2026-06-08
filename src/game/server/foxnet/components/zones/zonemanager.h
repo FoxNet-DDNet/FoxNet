@@ -58,7 +58,7 @@ public:
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
-	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore) override;
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H

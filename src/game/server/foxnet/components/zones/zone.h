@@ -50,6 +50,7 @@ public:
 	[[nodiscard]] size_t MultiMapIndex() const { return m_MultiMapIndex; }
 	[[nodiscard]] bool HasAnimatedQuads() const { return !m_vAnimatedQuadIndices.empty(); }
 	[[nodiscard]] bool InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size = vec2(0, 0)) const;
+	[[nodiscard]] vec2 RandomPointInQuad(const CQuadData &QuadData) const;
 	void UpdateCache();
 
 	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :
@@ -73,7 +74,7 @@ public:
 	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
 	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
 
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) {}
 
 	virtual ~IZone() = default;
 };

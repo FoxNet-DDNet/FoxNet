@@ -414,14 +414,14 @@ bool CZoneManager::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId
 	return true;
 }
 
-void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo *pClientInfo, int *pTeam, int *pLatency, int *pScore)
+void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore)
 {
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
 		auto &vZones = m_avpZones[i];
 		for(IZone *pZone : vZones)
 		{
-			pZone->OnPlayerSnap(pPlayer, SnappingClient, pClientInfo, pTeam, pLatency, pScore);
+			pZone->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore);
 		}
 	}
 }
