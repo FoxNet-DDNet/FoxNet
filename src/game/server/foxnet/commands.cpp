@@ -2098,6 +2098,8 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 	if(!pArg)
 		return;
 
+	bool TimeStampBan = str_startswith_nocase(pStr, "ban_timestamp ");
+
 	if(str_startswith_nocase(pStr, "ban_range "))
 	{
 		str_copy(aScriptingArgs, pStr, sizeof(aScriptingArgs));
@@ -2123,7 +2125,7 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 			str_format(aScriptingArgs, sizeof(aScriptingArgs), "unban %s", aAddrStr);
 		}
 	}
-	else if(str_startswith_nocase(pStr, "ban ") || str_startswith_nocase(pStr, "ban_timestamp "))
+	else if(str_startswith_nocase(pStr, "ban ") || TimeStampBan)
 	{
 		if(str_isallnum(pArg))
 		{
@@ -2152,7 +2154,11 @@ void CGameContext::FormatAndRunScriptingBan(const char *pStr, int UserId)
 			const char *pReason = GetParsedArgument(pStr, 3, true);
 			if(!pReason)
 				pReason = "No Reason Provided.";
-			str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld %s", aAddrStr, Minutes, pReason);
+
+			if(TimeStampBan)
+				str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban_timestamp %s %ld %s", aAddrStr, Minutes, pReason);
+			else
+				str_format(aScriptingArgs, sizeof(aScriptingArgs), "ban %s %ld %s", aAddrStr, Minutes, pReason);
 		}
 	}
 

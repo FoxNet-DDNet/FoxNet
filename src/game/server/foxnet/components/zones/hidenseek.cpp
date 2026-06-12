@@ -530,7 +530,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 					int a = NumSeekingSeconds / std::max(HiddenSeconds, 1);
 					int b = std::clamp(a, 1, 10);
 
-					pPlayer->GiveXP(5 * b, "", false); // Give XP to the hiders
+					pPlayer->GiveXP(5 * b, "", false);
 				}
 				Data.m_NumWins++;
 			}
