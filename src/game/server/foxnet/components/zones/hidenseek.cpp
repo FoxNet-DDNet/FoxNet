@@ -47,7 +47,6 @@
 
 // ~~if seeker doesnt move for too long, choose new one (or end game if its a 1v1)~~
 
-constexpr static float MaxSpawnPointOffset = 16.0f;
 constexpr static float MaxAfkSeconds = 30.0f; // seconds
 
 static int TimeToTicks(int TenthsOfSeconds, int TickSpeed)
