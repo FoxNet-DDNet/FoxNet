@@ -1,6 +1,7 @@
 #include "item_registry.h"
 
 #include <base/str.h>
+#include <base/system.h>
 
 #include <generated/protocol.h>
 
@@ -11,6 +12,24 @@
 #include <utility>
 #include <vector>
 
+void ValidateItemPricing(long Price, int Stars, EItemRarity Rarity, const char *pItemName)
+{
+	EItemRarity SuggestedRarity = SuggestRarityFromPrice(Price);
+	int SuggestedStars = SuggestStarsFromPrice(Price);
+
+	if(SuggestedRarity != Rarity)
+	{
+		dbg_msg("item_validation", "Warning: '%s' price %ld has rarity %s -> %s %d Star",
+			pItemName, Price, RarityToName(Rarity), RarityToName(SuggestedRarity), SuggestedStars);
+	}
+
+	if(abs(SuggestedStars - Stars) > 1)
+	{
+		dbg_msg("item_validation", "Warning: '%s' price %ld has %d stars -> %d Stars",
+			pItemName, Price, Stars, SuggestedStars);
+	}
+}
+
 void CItemRegistry::Init()
 {
 	auto Add = [&](CItemConfig Cfg) {
@@ -19,6 +38,8 @@ void CItemRegistry::Init()
 			dbg_assert(str_comp_nocase(Item.second.m_pName, Cfg.m_pName) != 0, "duplicate item name '%s'", Cfg.m_pName);
 			dbg_assert(str_comp_nocase(Item.second.m_pShortcut, Cfg.m_pShortcut) != 0, "duplicate shortcut '%s'", Cfg.m_pShortcut);
 		}
+		if(Cfg.m_Price >= 0 && Cfg.m_Type != EItemType::Case)
+			ValidateItemPricing(Cfg.m_Price, Cfg.m_Stars, Cfg.m_Rarity, Cfg.m_pName);
 		m_Map.emplace(std::string(Cfg.m_pName), std::move(Cfg));
 	};
 
@@ -42,7 +63,7 @@ void CItemRegistry::Init()
 	Add({EItemId::RainbowHook, EItemType::Rainbow,
 		"Rainbow Hook", "R_H",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		6500, 5, 1, EItemRarity::Uncommon, "Anyone you hook becomes rainbow!",
+		15000, 3, 1, EItemRarity::Rare, "Anyone you hook becomes rainbow!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_HookPower = HOOKTYPE_RAINBOW; },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.Cosmetics()->m_HookPower = HOOKTYPE_NORMAL; },
 		30});
@@ -59,7 +80,7 @@ void CItemRegistry::Init()
 	Add({EItemId::Lovely, EItemType::Effect,
 		"Lovely", "E_L",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		12500, 15, 2, EItemRarity::Rare, "Spreading love huh?",
+		18000, 15, 4, EItemRarity::Rare, "Spreading love huh?",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetLovely(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetLovely(false); },
 		30});
@@ -67,7 +88,7 @@ void CItemRegistry::Init()
 	Add({EItemId::InverseAim, EItemType::Effect,
 		"Inverse Aim", "E_I",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		500000, 35, 2, EItemRarity::Legendary, "Shows your aim backwards for others!",
+		600000, 65, 3, EItemRarity::Legendary, "Shows your aim backwards for others!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetInverseAim(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetInverseAim(false); },
 		30});
@@ -75,7 +96,7 @@ void CItemRegistry::Init()
 	Add({EItemId::RotatingBall, EItemType::Effect,
 		"Rotating Ball", "E_R",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		12500, 15, 2, EItemRarity::Rare, "Ball rotate - life good",
+		32500, 15, 2, EItemRarity::Epic, "Ball rotate - life good",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetRotatingBall(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetRotatingBall(false); },
 		30});
@@ -83,7 +104,7 @@ void CItemRegistry::Init()
 	Add({EItemId::Halo, EItemType::Effect,
 		"Halo", "E_H",
 		EItemFlag::Equippable, EExclusiveGroup::None,
-		55000, 35, 3, EItemRarity::Epic, "an intertwining halo floating above you",
+		75000, 35, 3, EItemRarity::Epic, "an intertwining halo floating above you",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHalo(true); },
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHalo(false); },
 		30});
@@ -92,7 +113,7 @@ void CItemRegistry::Init()
 	Add({EItemId::EmoticonGun, EItemType::Gun,
 		"Emoticon Gun", "G_E",
 		EItemFlag::Equippable, EExclusiveGroup::None, // can be combined with type guns in original
-		7500, 10, 4, EItemRarity::Uncommon, "Shoot emotions at people",
+		16500, 10, 2, EItemRarity::Rare, "Shoot emotions at people",
 		[](CPlayer &pl, const CItemConfig &, int overrideValue) {
 			if(overrideValue < 0) // toggle
 			{
@@ -124,7 +145,7 @@ void CItemRegistry::Init()
 	Add({EItemId::HeartGun, EItemType::Gun,
 		"Heart Gun", "G_H",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
-		25000, 15, 1, EItemRarity::Epic, "Shoot bullets full of love",
+		55000, 15, 1, EItemRarity::Epic, "Shoot bullets full of love",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_HEART); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == GUNTYPE_HEART)
@@ -135,7 +156,7 @@ void CItemRegistry::Init()
 	Add({EItemId::MixedGun, EItemType::Gun,
 		"Mixed Gun", "G_M",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
-		30000, 25, 1, EItemRarity::Epic, "Shoots Hearts and Shields",
+		80000, 25, 2, EItemRarity::Epic, "Shoots Hearts and Shields",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_MIXED); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == GUNTYPE_MIXED)
@@ -174,7 +195,7 @@ void CItemRegistry::Init()
 	Add({EItemId::IndicatorInwardTurning, EItemType::Indicator,
 		"Inward Turning Indicator", "I_IT",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
-		8000, 15, 4, EItemRarity::Uncommon, "Gun Hit -> turns Inward",
+		20000, 15, 3, EItemRarity::Rare, "Gun Hit -> turns Inward",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_INWARD); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_INWARD) pl.SetDamageIndType(INDTYPE_NONE); },
 		30});
@@ -182,7 +203,7 @@ void CItemRegistry::Init()
 	Add({EItemId::IndicatorOutwardTurning, EItemType::Indicator,
 		"Outward Turning Indicator", "I_OT",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
-		8000, 15, 4, EItemRarity::Uncommon, "Gun Hit -> turns Outward",
+		20000, 15, 3, EItemRarity::Rare, "Gun Hit -> turns Outward",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_OUTWARD); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_OUTWARD) pl.SetDamageIndType(INDTYPE_NONE); },
 		30});
@@ -190,7 +211,7 @@ void CItemRegistry::Init()
 	Add({EItemId::IndicatorLine, EItemType::Indicator,
 		"Line Indicator", "I_L",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
-		6500, 10, 3, EItemRarity::Uncommon, "Gun Hit -> goes in a Line",
+		15000, 10, 2, EItemRarity::Rare, "Gun Hit -> goes in a Line",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_LINE); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_LINE) pl.SetDamageIndType(INDTYPE_NONE); },
 		30});
@@ -198,7 +219,7 @@ void CItemRegistry::Init()
 	Add({EItemId::IndicatorCrisscross, EItemType::Indicator,
 		"Criss Cross Indicator", "I_CrCs",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator,
-		6500, 10, 4, EItemRarity::Uncommon, "Gun Hit -> goes in a Criss Cross pattern",
+		10000, 10, 4, EItemRarity::Uncommon, "Gun Hit -> goes in a Criss Cross pattern",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDamageIndType(INDTYPE_CRISSCROSS); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DamageIndType==INDTYPE_CRISSCROSS) pl.SetDamageIndType(INDTYPE_NONE); },
 		30});
@@ -207,7 +228,7 @@ void CItemRegistry::Init()
 	Add({EItemId::DeathExplosive, EItemType::Death,
 		"Explosive Death", "D_E",
 		EItemFlag::Equippable, EExclusiveGroup::DeathEffect,
-		3250, 5, 2, EItemRarity::Uncommon, "Go out with a Boom!",
+		3250, 2, 3, EItemRarity::Common, "Go out with a Boom!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDeathEffect(DEATHTYPE_EXPLOSION); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DeathEffect==DEATHTYPE_EXPLOSION) pl.SetDeathEffect(DEATHTYPE_NONE); },
 		30});
@@ -215,7 +236,7 @@ void CItemRegistry::Init()
 	Add({EItemId::DeathHammerHit, EItemType::Death,
 		"Hammer Hit Death", "D_H",
 		EItemFlag::Equippable, EExclusiveGroup::DeathEffect,
-		3250, 5, 2, EItemRarity::Uncommon, "Get Bonked on death!",
+		3250, 2, 3, EItemRarity::Common, "Get Bonked on death!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDeathEffect(DEATHTYPE_HAMMERHIT); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DeathEffect==DEATHTYPE_HAMMERHIT) pl.SetDeathEffect(DEATHTYPE_NONE); },
 		30});
@@ -231,7 +252,7 @@ void CItemRegistry::Init()
 	Add({EItemId::DeathLaser, EItemType::Death,
 		"Laser Death", "D_L",
 		EItemFlag::Equippable, EExclusiveGroup::DeathEffect,
-		7500, 10, 4, EItemRarity::Uncommon, "Become wizard and summon lasers on death!",
+		17500, 10, 2, EItemRarity::Rare, "Become wizard and summon lasers on death!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetDeathEffect(DEATHTYPE_LASER); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_DeathEffect==DEATHTYPE_LASER) pl.SetDeathEffect(DEATHTYPE_NONE); },
 		30});
@@ -314,7 +335,7 @@ void CItemRegistry::Init()
 		"Party Hat", "H_P",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		// Price, MinLevel, Stars, Rarity
-		18000, 10, 5, EItemRarity::Rare, "Throwing a Party?",
+		24000, 10, 5, EItemRarity::Rare, "Throwing a Party?",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Party); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Party) pl.SetHatType(EHatType::None); },
 		30});
@@ -323,7 +344,7 @@ void CItemRegistry::Init()
 		"Top hat", "H_T",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		// Price, MinLevel, Stars, Rarity
-		40000, 20, 2, EItemRarity::Epic, "Only missing a monocle now!",
+		75000, 20, 3, EItemRarity::Epic, "Only missing a monocle now!",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Tophat); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Tophat) pl.SetHatType(EHatType::None); },
 		30});
@@ -338,38 +359,35 @@ void CItemRegistry::Init()
 	Add({EItemId::Booster, EItemType::Role,
 		"Server Booster", "BOOST",
 		EItemFlag::None, EExclusiveGroup::None,
-		125000, 25, 2, EItemRarity::Epic, "Grants a 1.5x boost on XP/Money for everyone",
+		125000, 25, 5, EItemRarity::Epic, "Grants a 1.5x boost on XP/Money for everyone",
 		nullptr, nullptr, 30});
 
 	Add({EItemId::VIP, EItemType::Role,
 		"VIP", "VIP",
 		EItemFlag::None, EExclusiveGroup::None,
-		250000, 40, 4, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
+		300000, 40, 5, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	Add({EItemId::MVP, EItemType::Role,
 		"MVP", "MVP",
 		EItemFlag::None, EExclusiveGroup::None,
-		600000, 65, 4, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
+		650000, 65, 2, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	// Loot cases
 
-	// Common Max = 4500
 	Add({EItemId::LootCaseCommon, EItemType::Case,
 		"Loot Case (Common)", "LC_C",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
-		3000, 10, 5, EItemRarity::Common, "Gives you a random common item!",
+		2000, 10, 5, EItemRarity::Common, "Gives you a random common item!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
 
-	// Uncommon Max = 8000
 	Add({EItemId::LootCaseUncommon, EItemType::Case,
 		"Loot Case (Uncommon)", "LC_UC",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
 		6000, 15, 5, EItemRarity::Uncommon, "Gives you a random uncommon item!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
 
-	// Rare Max = 16000
 	Add({EItemId::LootCaseRare, EItemType::Case,
 		"Loot Case (Rare)", "LC_R",
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,

@@ -1,6 +1,7 @@
 #ifndef GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 #define GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 
+#include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -148,6 +149,83 @@ inline const char *RarityToName(EItemRarity Type)
 		return "Unknown";
 	}
 }
+
+static constexpr int PriceMinCommon = 1;
+static constexpr int PriceMaxCommon = 4500;
+static constexpr int PriceMinUncommon = PriceMaxCommon + 1;
+static constexpr int PriceMaxUncommon = 10000;
+static constexpr int PriceMinRare = PriceMaxUncommon + 1;
+static constexpr int PriceMaxRare = 25000;
+static constexpr int PriceMinEpic = PriceMaxRare + 1;
+static constexpr int PriceMaxEpic = 125000;
+static constexpr int PriceMinMythic = PriceMaxEpic + 1;
+static constexpr int PriceMaxMythic = 300000;
+static constexpr int PriceMinLegendary = PriceMaxMythic + 1;
+static constexpr int PriceMaxLegendary = 1000000;
+
+inline EItemRarity SuggestRarityFromPrice(long Price)
+{
+	if(Price < 0)
+		return EItemRarity::Legendary;
+	if(Price <= PriceMaxCommon)
+		return EItemRarity::Common;
+	if(Price <= PriceMaxUncommon)
+		return EItemRarity::Uncommon;
+	if(Price <= PriceMaxRare)
+		return EItemRarity::Rare;
+	if(Price <= PriceMaxEpic)
+		return EItemRarity::Epic;
+	if(Price <= PriceMaxMythic)
+		return EItemRarity::Mythic;
+	return EItemRarity::Legendary;
+}
+
+inline int SuggestStarsFromPrice(long Price)
+{
+	if(Price < 0)
+		return 5;
+
+	EItemRarity Rarity = SuggestRarityFromPrice(Price);
+	long MinPrice, MaxPrice;
+
+	switch(Rarity)
+	{
+	case EItemRarity::Common:
+		MinPrice = PriceMinCommon;
+		MaxPrice = PriceMaxCommon;
+		break;
+	case EItemRarity::Uncommon:
+		MinPrice = PriceMinUncommon;
+		MaxPrice = PriceMaxUncommon;
+		break;
+	case EItemRarity::Rare:
+		MinPrice = PriceMinRare;
+		MaxPrice = PriceMaxRare;
+		break;
+	case EItemRarity::Epic:
+		MinPrice = PriceMinEpic;
+		MaxPrice = PriceMaxEpic;
+		break;
+	case EItemRarity::Mythic:
+		MinPrice = PriceMinMythic;
+		MaxPrice = PriceMaxMythic;
+		break;
+	case EItemRarity::Legendary:
+		MinPrice = PriceMinLegendary;
+		MaxPrice = PriceMaxLegendary;
+		break;
+	default:
+		return 3;
+	}
+
+	float Ratio = (float)(Price - MinPrice) / (float)(MaxPrice - MinPrice);
+	Ratio = std::clamp(Ratio, 0.0f, 1.0f);
+
+	int Stars = 1 + (int)(Ratio * 4.0f);
+	return std::clamp(Stars, 1, 5);
+}
+
+void ValidateItemPricing(long Price, int Stars, EItemRarity Rarity, const char *pItemName);
 
 enum class EExclusiveGroup
 {
