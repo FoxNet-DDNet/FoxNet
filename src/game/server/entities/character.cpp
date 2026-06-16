@@ -1656,8 +1656,8 @@ void CCharacter::Snap(int SnappingClient)
 
 			if(GetPlayer()->Cosmetics()->m_InverseAim && !Server()->ClientSlotEmpty(SnappingClient) && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
 			{
-				DDNetCharacter.m_TargetX = -m_Core.m_Input.m_TargetX;
-				DDNetCharacter.m_TargetY = -m_Core.m_Input.m_TargetY;
+				DDNetCharacter.m_TargetX = GetSnappedTargetPos(SnappingClient).x;
+				DDNetCharacter.m_TargetY = GetSnappedTargetPos(SnappingClient).y;
 			}
 		}
 	}
@@ -3199,6 +3199,15 @@ void CCharacter::FoxNetSpawn()
 	}
 	if(!m_ShouldSolo)
 		m_ShouldSolo = true; // Next spawn will be solo
+}
+vec2 CCharacter::GetSnappedTargetPos(int SnappingClient)
+{
+	vec2 Target = vec2(Core()->m_Input.m_TargetX, Core()->m_Input.m_TargetY);
+
+	if(SnappingClient != GetPlayer()->GetCid() && Acc()->m_Inventory.m_Cosmetics.m_InverseAim)
+		return -Target;
+
+	return Target;
 }
 
 void CCharacter::RouletteTileHandle()

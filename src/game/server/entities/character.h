@@ -401,6 +401,8 @@ public:
 	void DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget);
 	float GetFireDelay(int Weapon);
 
+	vec2 GetSnappedTargetPos(int SnappingClient);
+
 private:
 	void RouletteTileHandle();
 
