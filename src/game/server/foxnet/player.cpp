@@ -336,11 +336,11 @@ bool CPlayer::CheckLevelUp(bool Silent)
 
 		if(Acc()->m_Level == 5)
 		{
-			NewRewardMail(CReward(1000, 7500, 1, {EItemRarity::Common}));
+			NewRewardMail(CReward(1000, 5000, 1, {EItemRarity::Common}));
 		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
-			NewRewardMail(CReward(25000, 125000, 4, {
+			NewRewardMail(CReward(50000, 125000, 4, {
 									EItemRarity::Common,
 									EItemRarity::Uncommon,
 									EItemRarity::Rare,
