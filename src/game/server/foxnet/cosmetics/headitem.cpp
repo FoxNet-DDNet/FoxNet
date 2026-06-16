@@ -2,7 +2,6 @@
 #include "headitem.h"
 
 #include <base/log.h>
-#include <base/system.h>
 #include <base/vmath.h>
 
 #include <engine/server.h>
@@ -19,8 +18,16 @@
 #include <game/server/player.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <iterator>
+#include <optional>
+
+CHeadItem::EDirection CHeadItem::FacingDirection(int SnappingClient)
+{
+	bool FacingLeft = normalize(GetCharacter()->GetSnappedTargetPos(SnappingClient)).x < 0;
+	return FacingLeft ? EDirection::LEFT : EDirection::RIGHT;
+}
 
 CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
@@ -91,8 +98,64 @@ void CHeadItem::Tick()
 		return;
 	}
 
-	if(GetCharacter())
-		m_Pos = GetCharacter()->GetPos();
+	if(!GetCharacter())
+		return;
+	m_Pos = GetCharacter()->GetPos();
+
+	vec2 Vel = GetCharacter()->GetVelocity();
+
+	bool FacingLeft = GetCharacter()->Input()->m_TargetX < 0;
+
+	// Detect abrupt stop and add inertia impulse
+	float PrevSpeed = length(m_PrevVel);
+	float CurrentSpeed = length(Vel);
+	if(PrevSpeed > 3.0f && CurrentSpeed < 1.5f)
+	{
+		constexpr float StopStrength = 0.09f;
+		float StopImpulse = (PrevSpeed / 10.0f) * StopStrength;
+		for(int i = 0; i < 2; i++)
+		{
+			float DirectionMultiplier = (m_PrevVel.x > 0) ? -1.0f : 1.0f;
+			m_aAntennaVels[i] += StopImpulse * DirectionMultiplier * (1.0f + i * 0.2f);
+		}
+	}
+	m_PrevVel = Vel;
+
+	float YVelContribution = Vel.y * 0.015f * (FacingLeft ? -1.0f : 1.0f);
+	float TargetAngle = std::clamp(-Vel.x * 0.03f + YVelContribution, -0.5f, 0.5f);
+	float AngleDiff = TargetAngle - m_SwayAngle;
+
+	constexpr float SpringStiffness = 0.15f;
+	constexpr float Damping = 0.85f;
+
+	m_SwayVel += AngleDiff * SpringStiffness;
+	m_SwayVel *= Damping;
+
+	m_SwayAngle += m_SwayVel;
+
+	for(int i = 0; i < 2; i++)
+	{
+		float Speed = length(Vel);
+		if(Speed > 2.0f)
+		{
+			m_aNoisePhase[i] += 0.12f + i * 0.08f;
+
+			constexpr float BobFrequency = 0.35f; // lower for more frequent bounces
+			if(std::sin(m_aNoisePhase[i]) > BobFrequency)
+			{
+				constexpr float BobStrength = 0.015f; // lower for more frequent bounces
+				float RandomBob = (std::sin(m_aNoisePhase[i] * 7.3f) * 0.5f + 0.5f) * BobStrength; // bounce strength
+				m_aAntennaVels[i] += RandomBob * (Vel.x < 0 ? 1.0f : -1.0f);
+			}
+		}
+
+		float AntennaTarget = TargetAngle * (1.0f + i * 0.2f);
+		float AntennaDiff = AntennaTarget - m_aAntennaAngles[i];
+
+		m_aAntennaVels[i] += AntennaDiff * SpringStiffness;
+		m_aAntennaVels[i] *= Damping;
+		m_aAntennaAngles[i] += m_aAntennaVels[i];
+	}
 }
 
 void CHeadItem::Snap(int SnappingClient)
@@ -116,15 +179,12 @@ void CHeadItem::Snap(int SnappingClient)
 
 		if(m_Type == HEADITEM_COSMETIC)
 		{
-			if(PlHatType == EHatType::Party)
+			switch(PlHatType)
 			{
-				SnapPartyHat(SnappingClient);
-				return;
-			}
-			else if(PlHatType == EHatType::Tophat)
-			{
-				SnapTopHat(SnappingClient);
-				return;
+			case EHatType::Party: SnapPartyHat(SnappingClient); return;
+			case EHatType::Tophat: SnapTopHat(SnappingClient); return;
+			case EHatType::Antennae: SnapAntennae(SnappingClient); return;
+			default: break;
 			}
 		}
 
@@ -187,11 +247,11 @@ void CHeadItem::SnapPartyHat(int SnappingClient)
 		}
 	}
 
-	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
+	bool FacingRight = FacingDirection(SnappingClient) == EDirection::RIGHT;
 
 	for(size_t i = 0; i < NumPoints; i++)
 	{
-		if(Turn)
+		if(FacingRight)
 		{
 			HatFrom[i].x = -HatFrom[i].x;
 			HatTo[i].x = -HatTo[i].x;
@@ -254,11 +314,11 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 			HatTo[i] += vec2(-1.5f, 3.5f);
 		}
 	}
-	bool Turn = normalize(vec2(pOwnerChr->Input()->m_TargetX, pOwnerChr->Input()->m_TargetY)).x > 0;
+	bool FacingRight = FacingDirection(SnappingClient) == EDirection::RIGHT;
 
 	for(size_t i = 0; i < NumPoints; i++)
 	{
-		if(Turn)
+		if(FacingRight)
 		{
 			HatFrom[i].x = -HatFrom[i].x;
 			HatTo[i].x = -HatTo[i].x;
@@ -266,5 +326,70 @@ void CHeadItem::SnapTopHat(int SnappingClient)
 		if(!m_aIds[i].has_value())
 			continue;
 		SnapCosmeticLaser(SnappingClient, m_aIds[i].value(), m_Owner, HatFrom[i], HatTo[i], HatTickOffset[i], LASERTYPE_GUN, -1, Flags[i]);
+	}
+}
+
+void CHeadItem::SnapAntennae(int SnappingClient)
+{
+	const int NumPoints = 2;
+	CCharacter *pOwnerChr = GetCharacter();
+
+	vec2 HatFrom[NumPoints] = {vec2(-23.5f, -45.0f), vec2(0.0f, -43.5f)};
+	vec2 HatTo[NumPoints] = {vec2(-5.0f, -9.0f), vec2(5.0f, -9.0f)};
+
+	int Flags[NumPoints] = {COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD};
+
+	bool Still = std::abs(pOwnerChr->GetVelocity().x) < 0.01f && std::abs(pOwnerChr->GetVelocity().y) < 0.01f && pOwnerChr->IsGrounded();
+
+	if(Still && (pOwnerChr->GetPlayer()->IsPaused() || pOwnerChr->GetPlayer()->IsAfk()))
+	{
+		for(int i = 0; i < NumPoints; i++)
+		{
+			vec2 Center = vec2(0, 0);
+			Rotate(Center, &HatFrom[i], -0.2f);
+			Rotate(Center, &HatTo[i], -0.2f);
+			HatFrom[i] += vec2(1.5f, 3.5f);
+			HatTo[i] += vec2(1.5f, 3.5f);
+		}
+	}
+
+	bool FacingLeft = FacingDirection(SnappingClient) == EDirection::LEFT;
+
+	// Detect direction change and add impulse for bouncy turn animation
+	if(FacingLeft != m_LastFacingLeft)
+	{
+		// Add a velocity impulse to make antennae bounce when turning (reduced for gentler effect)
+		for(int i = 0; i < 2; i++)
+		{
+			// Direction change causes a spring reaction
+			float TurnImpulse = FacingLeft ? -0.12f : 0.12f;
+			m_aAntennaVels[i] += TurnImpulse * (1.0f + i * 0.3f);
+		}
+		m_LastFacingLeft = FacingLeft;
+	}
+
+	for(size_t i = 0; i < NumPoints; i++)
+	{
+		vec2 From = HatFrom[i];
+		vec2 To = HatTo[i];
+
+		if(FacingLeft)
+		{
+			From.x = -From.x;
+			To.x = -To.x;
+		}
+
+		// Apply independent spring physics to each antenna
+		float SwayAmount = m_aAntennaAngles[i];
+
+		// Rotate the tip (From) around the base (To)
+		vec2 Rel = From - To;
+		Rotate(vec2(0, 0), &Rel, SwayAmount);
+		From = To + Rel;
+
+		if(!m_aIds[i].has_value())
+			continue;
+
+		SnapCosmeticLaser(SnappingClient, m_aIds[i].value(), m_Owner, From, To, 4, LASERTYPE_GUN, -1, Flags[i]);
 	}
 }

@@ -102,6 +102,7 @@ enum class EHatType
 	Ninja,
 	Party,
 	Tophat,
+	Antennae,
 	COUNT
 };
 

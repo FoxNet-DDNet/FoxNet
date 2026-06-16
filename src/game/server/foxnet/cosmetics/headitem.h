@@ -4,9 +4,10 @@
 
 #include <base/vmath.h>
 
-#include <game/collision.h>
 #include <game/server/foxnet/entities/foxnet_entity.h>
 #include <game/server/gameworld.h>
+
+#include <optional>
 
 enum HeadItemType
 {
@@ -22,7 +23,25 @@ class CHeadItem : public CEntityOwned
 	void SnapPartyHat(int SnappingClient);
 	void SnapTopHat(int SnappingClient);
 
+	float m_SwayAngle = 0.0f;
+	float m_SwayVel = 0.0f;
+	vec2 m_PrevVel = vec2(0.0f, 0.0f);
+
+	float m_aAntennaAngles[2] = {0.0f, 0.0f};
+	float m_aAntennaVels[2] = {0.0f, 0.0f};
+	float m_aNoisePhase[2] = {0.0f, 0.0f};
+	bool m_LastFacingLeft = false;
+	void SnapAntennae(int SnappingClient);
+
 	std::optional<int> m_aIds[5];
+
+	enum class EDirection
+	{
+		LEFT,
+		RIGHT
+	};
+
+	EDirection FacingDirection(int SnappingClient);
 
 public:
 	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
