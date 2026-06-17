@@ -72,9 +72,9 @@ CProjectile::CProjectile(
 
 		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
 		m_GunType = pCosmetics->m_GunType;
-		if(pCosmetics->m_GunType > GUNTYPE_NONE && pCosmetics->m_GunType < NUM_GUNTYPES)
+		if(pCosmetics->m_GunType != EGunType::None)
 			m_LifeSpan *= 1.25;
-		if(m_GunType == GUNTYPE_LASER)
+		if(m_GunType == EGunType::Laser)
 			m_ExtraId = Server()->SnapNewId();
 
 		m_MixedShield = pOwnerChar->m_MixedShield;
@@ -121,7 +121,7 @@ vec2 CProjectile::GetPos(float Time, int ClientId)
 
 		CPlayer *pSnapPl = ClientId >= 0 ? GameServer()->m_apPlayers[ClientId] : nullptr;
 		if(pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || ClientId == m_Owner))
-			if(m_GunType != GUNTYPE_NONE)
+			if(m_GunType != EGunType::None)
 				Speed = 1100.0f;
 		break;
 	}
@@ -530,8 +530,8 @@ void CProjectile::Snap(int SnappingClient)
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();
 		vec2 PrevSnapPos = GetPos(Pt);
 
-		bool Mixed = m_GunType == GUNTYPE_MIXED;
-		if(m_GunType == GUNTYPE_LASER)
+		const bool Mixed = m_GunType == EGunType::Mixed;
+		if(m_GunType == EGunType::Laser)
 		{
 			std::array<int, 2> LaserIds = {m_ExtraId.value(), GetId().value()};
 			if(LaserIds[0] > LaserIds[1])
@@ -540,10 +540,10 @@ void CProjectile::Snap(int SnappingClient)
 			if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
 			{
 				GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
-					LaserIds.at(0), PrevSnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+					LaserIds.at(0), PrevSnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_DOOR, -1, -1, LASERFLAG_NO_PREDICT);
 
 				GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
-					LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+					LaserIds.at(1), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_DOOR, -1, -1, LASERFLAG_NO_PREDICT);
 			}
 			else
 			{
@@ -553,7 +553,7 @@ void CProjectile::Snap(int SnappingClient)
 				Laser.m_ToX = (int)PrevSnapPos.x;
 				Laser.m_ToY = (int)PrevSnapPos.y;
 				Laser.m_TickOffset = 0;
-				Laser.m_Type = LASERTYPE_GUN;
+				Laser.m_Type = LASERTYPE_DOOR;
 				Laser.m_Owner = m_Owner;
 				Laser.m_Alpha = -1;
 				Laser.m_Flags = COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD;
@@ -562,7 +562,31 @@ void CProjectile::Snap(int SnappingClient)
 
 			return;
 		}
-		if(m_GunType == GUNTYPE_HEART || Mixed)
+		if(m_GunType == EGunType::Snowflake)
+		{
+			if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
+			{
+				GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
+					GetId().value(), SnapPos, SnapPos, Server()->Tick(), m_Owner, LASERTYPE_FREEZE, -1, -1, LASERFLAG_NO_PREDICT);
+			}
+			else
+			{
+				CNetObj_CosmeticLaser Laser = {};
+				Laser.m_FromX = (int)SnapPos.x;
+				Laser.m_FromY = (int)SnapPos.y;
+				Laser.m_ToX = (int)SnapPos.x;
+				Laser.m_ToY = (int)SnapPos.y;
+				Laser.m_TickOffset = 0;
+				Laser.m_Type = LASERTYPE_FREEZE;
+				Laser.m_Owner = m_Owner;
+				Laser.m_Alpha = -1;
+				Laser.m_Flags = COSMETIC_LASER_FLAG_FROM_HEAD;
+				Server()->SnapNewItem(GetId().value(), Laser);
+			}
+
+			return;
+		}
+		if(m_GunType == EGunType::Heart || Mixed)
 		{
 			int Type = POWERUP_HEALTH;
 			if(Mixed)

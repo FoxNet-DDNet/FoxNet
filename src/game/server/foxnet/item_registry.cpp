@@ -146,10 +146,10 @@ void CItemRegistry::Init()
 		"Heart Gun", "G_H",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
 		55000, 15, 1, EItemRarity::Epic, "Shoot bullets full of love",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_HEART); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Heart); },
 		[](CPlayer &pl, const CItemConfig &, int) {
-			if(pl.Cosmetics()->m_GunType == GUNTYPE_HEART)
-				pl.SetGunType(GUNTYPE_NONE);
+			if(pl.Cosmetics()->m_GunType == EGunType::Heart)
+				pl.SetGunType(EGunType::None);
 		},
 		30});
 
@@ -157,10 +157,10 @@ void CItemRegistry::Init()
 		"Mixed Gun", "G_M",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
 		80000, 25, 2, EItemRarity::Epic, "Shoots Hearts and Shields",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_MIXED); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Mixed); },
 		[](CPlayer &pl, const CItemConfig &, int) {
-			if(pl.Cosmetics()->m_GunType == GUNTYPE_MIXED)
-				pl.SetGunType(GUNTYPE_NONE);
+			if(pl.Cosmetics()->m_GunType == EGunType::Mixed)
+				pl.SetGunType(EGunType::None);
 		},
 		30});
 
@@ -168,10 +168,10 @@ void CItemRegistry::Init()
 		"Laser Gun", "G_L",
 		EItemFlag::Equippable, EExclusiveGroup::Gun,
 		40000, 25, 2, EItemRarity::Epic, "Lasertag in DDNet?",
-		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(GUNTYPE_LASER); },
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Laser); },
 		[](CPlayer &pl, const CItemConfig &, int) {
-			if(pl.Cosmetics()->m_GunType == GUNTYPE_LASER)
-				pl.SetGunType(GUNTYPE_NONE);
+			if(pl.Cosmetics()->m_GunType == EGunType::Laser)
+				pl.SetGunType(EGunType::None);
 		},
 		30});
 

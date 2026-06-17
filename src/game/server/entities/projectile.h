@@ -34,7 +34,7 @@ public:
 	void Snap(int SnappingClient) override;
 	void SwapClients(int Client1, int Client2) override;
 
-	int m_GunType = GUNTYPE_NONE;
+	EGunType m_GunType = EGunType::None;
 	bool m_MixedShield = false; // Switching between shield and heart
 	std::optional<int> m_ExtraId = -1; // Needed for m_LaserGun
 	CClientMask m_CosmeticMask;

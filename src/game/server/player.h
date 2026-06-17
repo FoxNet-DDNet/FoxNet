@@ -82,13 +82,14 @@ enum TrailTypes
 	NUM_TRAILTYPES
 };
 
-enum GunTypes
+enum class EGunType
 {
-	GUNTYPE_NONE = 0,
-	GUNTYPE_HEART,
-	GUNTYPE_MIXED,
-	GUNTYPE_LASER,
-	NUM_GUNTYPES
+	None = 0,
+	Heart,
+	Mixed,
+	Laser,
+	Snowflake,
+	COUNT
 };
 
 enum class EHatType
@@ -126,7 +127,7 @@ public:
 	bool m_ConfettiGun = false;
 	bool m_PhaseGun = false;
 
-	int m_GunType = 0;
+	EGunType m_GunType = EGunType::None;
 
 	// Trails
 	int m_Trail = 0;
@@ -559,7 +560,7 @@ public:
 	void SetConfettiGun(bool Active);
 	void SetPhaseGun(bool Active);
 	void SetDamageIndType(int Type);
-	void SetGunType(int Type);
+	void SetGunType(EGunType Type);
 
 	void DisableAllCosmetics();
 

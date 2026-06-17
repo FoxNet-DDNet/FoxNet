@@ -956,7 +956,7 @@ void CPlayer::SetDamageIndType(int Type)
 {
 	Cosmetics()->m_DamageIndType = Type;
 }
-void CPlayer::SetGunType(int Type)
+void CPlayer::SetGunType(EGunType Type)
 {
 	Cosmetics()->m_GunType = Type;
 }

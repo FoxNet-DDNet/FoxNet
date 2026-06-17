@@ -1506,7 +1506,7 @@ bool CGameContext::SetPredictEventsFlag(int ClientId) const
 		return false;
 	if(pPlayer->Cosmetics()->m_DamageIndType != INDTYPE_NONE)
 		return false;
-	if(pPlayer->Cosmetics()->m_GunType != GUNTYPE_NONE)
+	if(pPlayer->Cosmetics()->m_GunType != EGunType::None)
 		return false;
 	if(pPlayer->Cosmetics()->m_PhaseGun)
 		return false;

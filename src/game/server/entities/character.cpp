@@ -3321,11 +3321,11 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 			MouseTarget // InitDir
 		);
 
-		int GunType = GetPlayer()->Cosmetics()->m_GunType;
+		EGunType GunType = GetPlayer()->Cosmetics()->m_GunType;
 
-		if(GunType == GUNTYPE_HEART || GunType == GUNTYPE_MIXED)
+		if(GunType == EGunType::Heart || GunType == EGunType::Mixed)
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask(EItemType::Gun));
-		else if(GunType == GUNTYPE_LASER)
+		else if(GunType == EGunType::Laser || GunType == EGunType::Snowflake)
 			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask(EItemType::Gun));
 		else
 			GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, CosmeticMask(EItemType::Gun));
