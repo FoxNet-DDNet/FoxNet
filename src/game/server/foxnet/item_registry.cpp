@@ -375,39 +375,43 @@ void CItemRegistry::Init()
 		nullptr, nullptr, 30});
 
 	// Loot cases
-
 	Add({EItemId::LootCaseCommon, EItemType::Case,
 		"Loot Case (Common)", "LC_C",
-		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
+		EItemFlag::Consumable | EItemFlag::LootCase | EItemFlag::Stackable, EExclusiveGroup::None,
 		2000, 10, 5, EItemRarity::Common, "Gives you a random common item!",
-		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 	Add({EItemId::LootCaseUncommon, EItemType::Case,
 		"Loot Case (Uncommon)", "LC_UC",
-		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
+		EItemFlag::Consumable | EItemFlag::LootCase | EItemFlag::Stackable, EExclusiveGroup::None,
 		6000, 15, 5, EItemRarity::Uncommon, "Gives you a random uncommon item!",
-		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 	Add({EItemId::LootCaseRare, EItemType::Case,
 		"Loot Case (Rare)", "LC_R",
-		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
+		EItemFlag::Consumable | EItemFlag::LootCase | EItemFlag::Stackable, EExclusiveGroup::None,
 		14000, 25, 5, EItemRarity::Rare, "Gives you a random rare item!",
-		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 	//Add({EItemId::LootCaseEpic, "Loot Case (Epic)", "LC_E",
 	//	EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
 	//	40000, 35, 5, EItemRarity::Epic, "Gives you a random epic item!",
-	//	[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+	//	[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 	Add({EItemId::LootCaseExotic, EItemType::Case,
 		"Loot Case (Exotic)", "LC_Ex",
-		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
+		EItemFlag::Consumable | EItemFlag::LootCase | EItemFlag::Stackable, EExclusiveGroup::None,
 		160000, 40, 5, EItemRarity::Legendary, "Gives you a random item of any type!",
-		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
+
+	Add({EItemId::MaxCosmeticsUpgrade, EItemType::Other,
+		"Max Cosmetics Upgrade", "MCU",
+		EItemFlag::Upgrade | EItemFlag::Stackable, EExclusiveGroup::None,
+		1000000, 60, 5, EItemRarity::Legendary, "Allows you to wear more cosmetics",
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 
 	// Sorted Map
-
 	for(const auto &Item : m_Map)
 		m_vSortedMap.push_back(&Item.second);
 

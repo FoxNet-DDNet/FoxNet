@@ -106,6 +106,7 @@ MACRO_CONFIG_INT(SvAllowDummy, sv_allow_dummy, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG
 // Cosmetics
 MACRO_CONFIG_INT(SvCosmetics, sv_cosmetics, 1, 0, 1, CFGFLAG_SERVER, "Whether to allow cosmetics")
 MACRO_CONFIG_INT(SvCosmeticLimit, sv_cosmetic_limit, 6, 0, 25, CFGFLAG_SERVER, "How many cosmetics a player can have at a time")
+MACRO_CONFIG_INT(SvMaxCosmeticUpgrades, sv_max_cosmetic_upgrades, 3, 0, 10, CFGFLAG_SERVER, "Whether and how many cosmetic upgrade a player can buy")
 MACRO_CONFIG_INT(SvCorruptPickupPet, sv_corrupt_pickup_pet, 0, 0, 1, CFGFLAG_SERVER, "Just use c_pickup_pet and do some stuff :)")
 
 // Dummies

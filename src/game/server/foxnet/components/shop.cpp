@@ -242,6 +242,18 @@ bool CShop::BuyItem(int ClientId, const char *pName)
 		return false;
 	}
 
+	if(pCfg->m_Id == EItemId::MaxCosmeticsUpgrade)
+	{
+		auto &Entry = Acc.m_Inventory.Entry(pCfg->m_pName);
+		bool OwnsTooManyCosmeticUpgrades = Entry.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
+		if(OwnsTooManyCosmeticUpgrades)
+		{
+			str_format(aBuf, sizeof(aBuf), "You can only own %d of '%s'", g_Config.m_SvMaxCosmeticUpgrades, pCfg->m_pName);
+			GameServer()->SendChatTarget(ClientId, aBuf);
+			return false;
+		}
+	}
+
 	pPlayer->TakeMoney(Price, true);
 	GiveItem(ClientId, pCfg, pCfg->m_DefaultDays, "Shop");
 
@@ -280,7 +292,7 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 	if(!Owned)
 		Entry.m_AcquiredAt = Now;
 
-	if(HasFlag(pItem->m_Flags, EItemFlag::Consumable))
+	if(HasFlag(pItem->m_Flags, EItemFlag::Stackable))
 	{
 		Entry.m_Quantity += 1;
 		Entry.m_ExpiresAt = ForeverDays;
@@ -317,40 +329,7 @@ bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFro
 		return false;
 	}
 
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(!Acc.m_LoggedIn)
-	{
-		log_info("shop", "ClientId %d isn't logged in", ClientId);
-		return false;
-	}
-
-	auto &Entry = Acc.m_Inventory.Entry(pCfg->m_pName);
-	const bool Owned = Acc.m_Inventory.Owns(pCfg->m_pName);
-
-	int64_t Now = time(0);
-	if(!Owned)
-		Entry.m_AcquiredAt = Now;
-
-	if(HasFlag(pCfg->m_Flags, EItemFlag::Consumable))
-	{
-		Entry.m_Quantity += 1;
-		Entry.m_ExpiresAt = ForeverDays;
-	}
-	else
-	{
-		int EffectiveDays = (Days < 0) ? pCfg->m_DefaultDays : Days;
-		int64_t Duration = int64_t(EffectiveDays) * 86400;
-		if(Owned)
-			Entry.m_ExpiresAt += Duration;
-		else
-			Entry.m_ExpiresAt = Now + Duration;
-		if(Days == ForeverDays)
-			Entry.m_ExpiresAt = ForeverDays;
-		Entry.m_Quantity = 1;
-	}
-
-	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
-	return true;
+	return GiveItem(ClientId, pCfg, Days, pFrom);
 }
 
 bool CShop::RemoveItem(int ClientId, const char *pItemName, const char *pByName)

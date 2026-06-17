@@ -93,7 +93,7 @@ enum VoteTypes
 class CVoteData
 {
 public:
-	CItemConfig *m_pItem = nullptr;
+	const CItemConfig *m_pItem = nullptr;
 
 	EItemType m_ItemType = EItemType::COUNT;
 	int m_VoteType = 0;

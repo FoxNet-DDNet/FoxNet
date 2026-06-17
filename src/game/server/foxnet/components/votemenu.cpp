@@ -519,9 +519,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		{
 			const CItemConfig &Item = kv.second;
 
-			if(IsOption(Item.m_pName, ""))
-				continue;
-			if(Item.m_Price == UnbuyablePrice)
+			if(HasFlag(Item.m_Flags, EItemFlag::Upgrade))
 				continue;
 
 			if(IsOptionWithSuffix(pVote, Item.m_pName))
@@ -1262,6 +1260,8 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
+			if(Item.m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
+				continue;
 			if(Item.m_Type != Type)
 				continue;
 			if(Item.m_Price == UnbuyablePrice)
@@ -1275,6 +1275,8 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
+			if(Item.m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
+				continue;
 			if(Item.m_Type != Type)
 				continue;
 			if(Item.m_Price == UnbuyablePrice)
@@ -1329,6 +1331,9 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
+			if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
+				continue;
+
 			if(str_comp(ItemTypeToName(pItem->m_Type), pMeta) != 0)
 				continue;
 
@@ -1374,6 +1379,18 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteText(aBuf);
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
+
+		if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade)
+		{
+			const auto &Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
+			bool OwnsTooManyCosmeticUpgrades = Entry->second.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
+			if(OwnsTooManyCosmeticUpgrades)
+			{
+				str_format(aBuf, sizeof(aBuf), "You can only own %d of '%s'", g_Config.m_SvMaxCosmeticUpgrades, pItem->m_pName);
+				AddVoteText(aBuf);
+				return;
+			}
+		}
 
 		str_copy(aBuf, FormatItemVote(pPlayer, *pItem));
 		AddVoteText(aBuf);
@@ -1439,15 +1456,18 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			Votes.push_back(Data);
 		}
 
-		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
-			const char *pItemName = kv.first.c_str();
-			CItemConfig Item = kv.second;
+			if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
+				continue;
+
+			const char *pItemName = pItem->m_pName;
+
 			if(!Acc.m_Inventory.Has(pItemName))
 				continue;
 			CInventoryEntry &InvEntry = Acc.m_Inventory.Entry(pItemName);
 
-			if(Item.m_Type != Type)
+			if(pItem->m_Type != Type)
 				continue;
 			if(!str_comp(pItemName, ""))
 				continue;
@@ -1471,31 +1491,31 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			else
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ ∞]", pItemName);
 
-			if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
+			if(HasFlag(pItem->m_Flags, EItemFlag::Stackable))
 			{
 				int OwnsAmount = InvEntry.m_Quantity;
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = &Item;
+				Data.m_pItem = pItem;
 				Data.m_VoteType = VOTE_TYPE_TEXT;
 				str_format(aVoteName, sizeof(aVoteName), "%s [%dx]", pItemName, OwnsAmount);
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
-			else if(!HasFlag(Item.m_Flags, EItemFlag::Equippable))
+			else if(!HasFlag(pItem->m_Flags, EItemFlag::Equippable))
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = &Item;
+				Data.m_pItem = pItem;
 				Data.m_VoteType = VOTE_TYPE_TEXT;
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
-			else if(Item.m_Id == EItemId::EmoticonGun)
+			else if(pItem->m_Id == EItemId::EmoticonGun)
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = &Item;
+				Data.m_pItem = pItem;
 				Data.m_VoteType = VOTE_TYPE_VALUE_OPTION;
 				str_copy(Data.m_aVoteName, pItemName);
 				Data.m_Value = pPlayer->Cosmetics()->m_EmoticonGun;
@@ -1517,7 +1537,7 @@ void CVoteMenu::PrepareInventory(int ClientId)
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = &Item;
+				Data.m_pItem = pItem;
 				Data.m_VoteType = VOTE_TYPE_CHECKBOX;
 				str_copy(Data.m_aVoteName, aVoteName);
 				Data.m_Value = pPlayer->ItemEnabled(pItemName);
@@ -1760,7 +1780,7 @@ const char *CVoteMenu::FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item)
 {
 	int64_t Price = pPlayer->GetDiscountedPrice(Item.m_Price);
 	static char aBuf[64];
-	if(HasFlag(Item.m_Flags, EItemFlag::Consumable))
+	if(Item.m_DefaultDays == ForeverDays)
 		str_format(aBuf, sizeof(aBuf), "Buy Item [%" PRId64 "%s]", Price, g_Config.m_SvCurrencyName);
 	else
 		str_format(aBuf, sizeof(aBuf), "Buy Item for %d days [%" PRId64 "%s]", Item.m_DefaultDays, Price, g_Config.m_SvCurrencyName);

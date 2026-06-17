@@ -6,8 +6,9 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include "fontconvert.h"
 
-constexpr int MAX_ITEM_STARS = 5;
+constexpr int MaxItemStars = 5;
 
 constexpr int UnbuyablePrice = -1;
 constexpr int ForeverDays = -1;
@@ -55,7 +56,8 @@ enum class EItemId
 	LootCaseCommon,
 	LootCaseUncommon,
 	LootCaseRare,
-	LootCaseExotic
+	LootCaseExotic,
+	MaxCosmeticsUpgrade,
 };
 
 enum class EItemType
@@ -69,6 +71,7 @@ enum class EItemType
 	Death,
 	Indicator,
 	Rainbow,
+	Other,
 	COUNT
 };
 
@@ -88,7 +91,8 @@ enum class EItemFlag
 	Equippable = 1 << 0,
 	Consumable = 1 << 1,
 	LootCase = 1 << 2,
-	Upgrade = 1 << 3
+	Upgrade = 1 << 3,
+	Stackable = 1 << 4,
 };
 
 constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
@@ -108,7 +112,7 @@ inline std::string StarsString(int Stars)
 	std::string s;
 	for(int i = 0; i < Stars; i++)
 		s += "★";
-	for(int i = Stars; i < MAX_ITEM_STARS; i++)
+	for(int i = Stars; i < MaxItemStars; i++)
 		s += "☆";
 	return s;
 }
@@ -117,16 +121,17 @@ inline const char *ItemTypeToName(EItemType Type)
 {
 	switch(Type)
 	{
-	case EItemType::Role: return "Rᴏʟᴇs";
-	case EItemType::Case: return "Cᴀsᴇs";
-	case EItemType::Hat: return "Hᴀᴛs";
-	case EItemType::Gun: return "Gᴜɴs";
-	case EItemType::Trail: return "Tʀᴀɪʟs";
-	case EItemType::Effect: return "Eғғᴇᴄᴛs";
-	case EItemType::Death: return "Dᴇᴀᴛʜ Eғғᴇᴄᴛs";
-	case EItemType::Indicator: return "Gᴜɴ Hɪᴛ Eғғᴇᴄᴛs";
-	case EItemType::Rainbow: return "Rᴀɪɴʙᴏᴡ Eғғᴇᴄᴛs";
-	default: return "Oᴛʜᴇʀ";
+	case EItemType::Role: return ConvertToSmallCaps("Roles");
+	case EItemType::Case: return ConvertToSmallCaps("Cases");
+	case EItemType::Hat: return ConvertToSmallCaps("Hats");
+	case EItemType::Gun: return ConvertToSmallCaps("Guns");
+	case EItemType::Trail: return ConvertToSmallCaps("Trails");
+	case EItemType::Effect: return ConvertToSmallCaps("Effects");
+	case EItemType::Death: return ConvertToSmallCaps("Death Effects");
+	case EItemType::Indicator: return ConvertToSmallCaps("Gun Hit Effects");
+	case EItemType::Rainbow: return ConvertToSmallCaps("Rainbow Effects");
+	case EItemType::Other: return ConvertToSmallCaps("Other");
+	default: return ConvertToSmallCaps("Unknown");
 	}
 }
 

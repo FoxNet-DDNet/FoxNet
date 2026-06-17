@@ -508,16 +508,23 @@ bool CPlayer::ReachedItemLimit(const CItemConfig *pCfg)
 	for(const auto &Item : GameServer()->m_Shop.Registry().Map())
 	{
 		const CItemConfig &Other = Item.second;
+
+		const auto &Mit = Inv()->m_Map.find(Other.m_pName);
+
+		if(Mit == Inv()->m_Map.end())
+			continue;
+
+		if(Item.second.m_Id == EItemId::MaxCosmeticsUpgrade && g_Config.m_SvMaxCosmeticUpgrades)
+			Amount -= Mit->second.m_Quantity;
+
 		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == pCfg->m_Group)
 			continue;
-		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
+		if(!HasFlag(Other.m_Flags, EItemFlag::Equippable))
 			continue;
 		if(pCfg == &Other)
 			continue;
 
-		auto Mit = Inv()->m_Map.find(Other.m_pName);
-
-		if(Mit != Inv()->m_Map.end() && Mit->second.m_Value > 0)
+		if(Mit->second.m_Value > 0)
 			Amount++;
 	}
 
