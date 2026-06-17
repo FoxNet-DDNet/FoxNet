@@ -574,6 +574,7 @@ void CCharacterCore::TickDeferred()
 void CCharacterCore::Move()
 {
 	// <FoxNet
+	m_PrevVel = m_Vel; // why here??
 	CTuningParams Tuning = m_Tuning;
 	if(m_FakeTuned)
 		Tuning = m_FakeTuning;

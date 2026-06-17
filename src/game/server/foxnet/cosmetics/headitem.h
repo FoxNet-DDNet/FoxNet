@@ -25,7 +25,6 @@ class CHeadItem : public CEntityOwned
 
 	float m_SwayAngle = 0.0f;
 	float m_SwayVel = 0.0f;
-	vec2 m_PrevVel = vec2(0.0f, 0.0f);
 
 	float m_aAntennaAngles[2] = {0.0f, 0.0f};
 	float m_aAntennaVels[2] = {0.0f, 0.0f};

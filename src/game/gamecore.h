@@ -198,6 +198,8 @@ public:
 	vec2 m_Pos;
 	vec2 m_Vel;
 
+	vec2 m_PrevVel;
+
 	bool m_ResendCore;
 	const CQuadData *m_pHookedQuad = nullptr;
 	vec2 m_HookQuadLocal = vec2(0, 0);

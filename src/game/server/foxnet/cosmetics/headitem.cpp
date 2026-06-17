@@ -102,28 +102,39 @@ void CHeadItem::Tick()
 		return;
 	m_Pos = GetCharacter()->GetPos();
 
-	vec2 Vel = GetCharacter()->GetVelocity();
+	const vec2 Vel = GetCharacter()->GetVelocity();
+	const vec2 PrevVel = GetCharacter()->Core()->m_PrevVel;
 
-	bool FacingLeft = GetCharacter()->Input()->m_TargetX < 0;
+	const bool FacingLeft = GetCharacter()->Input()->m_TargetX < 0;
 
-	// Detect abrupt stop and add inertia impulse
-	float PrevSpeed = length(m_PrevVel);
-	float CurrentSpeed = length(Vel);
-	if(PrevSpeed > 3.0f && CurrentSpeed < 1.5f)
+	const float CurSpeed = length(Vel);
+
+	bool XStopped = abs(Vel.x) < 0.6f && abs(PrevVel.x) > 2.0f;
+	bool YStopped = abs(Vel.y) < 0.6f && abs(PrevVel.y) > 2.0f;
+
+	constexpr float StopStrength = 0.08f;
+	if(XStopped)
 	{
-		constexpr float StopStrength = 0.09f;
-		float StopImpulse = (PrevSpeed / 10.0f) * StopStrength;
+		float StopImpulse = (PrevVel.x / 10.0f) * StopStrength;
 		for(int i = 0; i < 2; i++)
 		{
-			float DirectionMultiplier = (m_PrevVel.x > 0) ? -1.0f : 1.0f;
+			float DirectionMultiplier = FacingLeft ? 1.0f : -1.0f;
 			m_aAntennaVels[i] += StopImpulse * DirectionMultiplier * (1.0f + i * 0.2f);
 		}
 	}
-	m_PrevVel = Vel;
+	if(YStopped)
+	{
+		float StopImpulse = (PrevVel.y / 10.0f) * StopStrength;
+		for(int i = 0; i < 2; i++)
+		{
+			float DirectionMultiplier = FacingLeft ? 1.0f : -1.0f;
+			m_aAntennaVels[i] += StopImpulse * DirectionMultiplier * (1.0f + i * 0.2f);
+		}
+	}
 
-	float YVelContribution = Vel.y * 0.015f * (FacingLeft ? -1.0f : 1.0f);
-	float TargetAngle = std::clamp(-Vel.x * 0.03f + YVelContribution, -0.5f, 0.5f);
-	float AngleDiff = TargetAngle - m_SwayAngle;
+	const float YVelContribution = std::clamp(Vel.y * 0.01f * (FacingLeft ? -1.0f : 1.0f), -0.4f, 0.4f);
+	const float TargetAngle = std::clamp(-Vel.x * 0.03f + YVelContribution, -0.6f, 0.6f);
+	const float AngleDiff = TargetAngle - m_SwayAngle;
 
 	constexpr float SpringStiffness = 0.15f;
 	constexpr float Damping = 0.85f;
@@ -135,15 +146,14 @@ void CHeadItem::Tick()
 
 	for(int i = 0; i < 2; i++)
 	{
-		float Speed = length(Vel);
-		if(Speed > 2.0f)
+		if(CurSpeed > 2.0f)
 		{
 			m_aNoisePhase[i] += 0.12f + i * 0.08f;
 
-			constexpr float BobFrequency = 0.35f; // lower for more frequent bounces
+			constexpr float BobFrequency = 0.05f; // lower for more frequent bounces
 			if(std::sin(m_aNoisePhase[i]) > BobFrequency)
 			{
-				constexpr float BobStrength = 0.015f; // lower for more frequent bounces
+				const float BobStrength = std::min(CurSpeed * 0.001f, 0.04f);
 				float RandomBob = (std::sin(m_aNoisePhase[i] * 7.3f) * 0.5f + 0.5f) * BobStrength; // bounce strength
 				m_aAntennaVels[i] += RandomBob * (Vel.x < 0 ? 1.0f : -1.0f);
 			}
