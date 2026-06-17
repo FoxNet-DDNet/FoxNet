@@ -1327,21 +1327,19 @@ void CVoteMenu::PrepareShop(int ClientId)
 		}
 		int AmountShown = 0;
 
-		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
-			const CItemConfig &Item = kv.second;
-
-			if(str_comp(ItemTypeToName(Item.m_Type), pMeta) != 0)
+			if(str_comp(ItemTypeToName(pItem->m_Type), pMeta) != 0)
 				continue;
 
-			if(Item.m_Price == UnbuyablePrice)
+			if(pItem->m_Price == UnbuyablePrice)
 				continue;
 
-			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(Item.m_Price) > pAcc->m_Money)
+			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(pItem->m_Price) > pAcc->m_Money)
 				continue;
 			AmountShown++;
 			char aName[VOTE_DESC_LENGTH];
-			str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", Item.m_pName, pPlayer->GetDiscountedPrice(Item.m_Price), g_Config.m_SvCurrencyName, Item.m_MinLevel);
+			str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
 
 			AddVoteText(aName, EPrefix::ARROWHEAD);
 		}

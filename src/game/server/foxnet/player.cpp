@@ -516,6 +516,7 @@ bool CPlayer::ReachedItemLimit(const CItemConfig *pCfg)
 			continue;
 
 		auto Mit = Inv()->m_Map.find(Other.m_pName);
+
 		if(Mit != Inv()->m_Map.end() && Mit->second.m_Value > 0)
 			Amount++;
 	}

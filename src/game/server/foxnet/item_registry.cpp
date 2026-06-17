@@ -352,25 +352,25 @@ void CItemRegistry::Init()
 	// Roles (not toggleable)
 	Add({EItemId::SuperUser, EItemType::Role,
 		"Super User", "SU",
-		EItemFlag::None, EExclusiveGroup::None,
+		EItemFlag::Upgrade, EExclusiveGroup::None,
 		UnbuyablePrice, 0, 5, EItemRarity::Legendary, "Extra Permissions",
 		nullptr, nullptr, ForeverDays});
 
 	Add({EItemId::Booster, EItemType::Role,
 		"Server Booster", "BOOST",
-		EItemFlag::None, EExclusiveGroup::None,
+		EItemFlag::Upgrade, EExclusiveGroup::None,
 		125000, 25, 5, EItemRarity::Epic, "Grants a 1.5x boost on XP/Money for everyone",
 		nullptr, nullptr, 30});
 
 	Add({EItemId::VIP, EItemType::Role,
 		"VIP", "VIP",
-		EItemFlag::None, EExclusiveGroup::None,
+		EItemFlag::Upgrade, EExclusiveGroup::None,
 		300000, 40, 5, EItemRarity::Mythic, "Grants a 2.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
 	Add({EItemId::MVP, EItemType::Role,
 		"MVP", "MVP",
-		EItemFlag::None, EExclusiveGroup::None,
+		EItemFlag::Upgrade, EExclusiveGroup::None,
 		650000, 65, 2, EItemRarity::Legendary, "Grants a 3.5x boost on XP/Money\nand a discount on all Items",
 		nullptr, nullptr, 30});
 
@@ -404,6 +404,18 @@ void CItemRegistry::Init()
 		EItemFlag::Consumable | EItemFlag::LootCase, EExclusiveGroup::None,
 		160000, 40, 5, EItemRarity::Legendary, "Gives you a random item of any type!",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, 0});
+
+
+	// Sorted Map
+
+	for(const auto &Item : m_Map)
+		m_vSortedMap.push_back(&Item.second);
+
+	std::sort(m_vSortedMap.begin(), m_vSortedMap.end(), [](const CItemConfig *pA, const CItemConfig *pB) {
+		if(pA->m_Type != pB->m_Type)
+			return pA->m_Type < pB->m_Type;
+		return pA->m_Id < pB->m_Id;
+	});
 }
 
 const CItemConfig *CItemRegistry::FindByName(const char *pName) const

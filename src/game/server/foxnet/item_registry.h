@@ -87,7 +87,8 @@ enum class EItemFlag
 	None = 0,
 	Equippable = 1 << 0,
 	Consumable = 1 << 1,
-	LootCase = 1 << 2
+	LootCase = 1 << 2,
+	Upgrade = 1 << 3
 };
 
 constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
@@ -275,6 +276,7 @@ public:
 class CItemRegistry
 {
 	std::unordered_map<std::string, CItemConfig> m_Map;
+	std::vector<const CItemConfig *> m_vSortedMap;
 
 public:
 	void Init();
@@ -285,6 +287,8 @@ public:
 	// Accessors
 	const std::unordered_map<std::string, CItemConfig> &Map() const { return m_Map; }
 	std::unordered_map<std::string, CItemConfig> &Map() { return m_Map; }
+
+	const std::vector<const CItemConfig *> &SortedMap() const { return m_vSortedMap; }
 
 	template<typename Fn>
 	void ForEachInGroup(EExclusiveGroup Group, Fn &&f) const
