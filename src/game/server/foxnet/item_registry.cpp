@@ -349,6 +349,15 @@ void CItemRegistry::Init()
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Tophat) pl.SetHatType(EHatType::None); },
 		30});
 
+	Add({EItemId::AntennaeHat, EItemType::Hat,
+		"Antennae", "H_A",
+		EItemFlag::Equippable, EExclusiveGroup::Hat,
+		// Price, MinLevel, Stars, Rarity
+		UnbuyablePrice, 30, 3, EItemRarity::Epic, "Wiggly antennae on your head",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Antennae); },
+		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Antennae) pl.SetHatType(EHatType::None); },
+		30});
+
 	// Roles (not toggleable)
 	Add({EItemId::SuperUser, EItemType::Role,
 		"Super User", "SU",
