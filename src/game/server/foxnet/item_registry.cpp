@@ -420,15 +420,23 @@ void CItemRegistry::Init()
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 
 
-	// Sorted Map
-	for(const auto &Item : m_Map)
-		m_vSortedMap.push_back(&Item.second);
+}
 
-	std::sort(m_vSortedMap.begin(), m_vSortedMap.end(), [](const CItemConfig *pA, const CItemConfig *pB) {
+std::vector<const CItemConfig *> CItemRegistry::SortedMap() const
+{
+	std::vector<const CItemConfig *> vSortedMap;
+	vSortedMap.reserve(m_Map.size());
+
+	for(const auto &Item : m_Map)
+		vSortedMap.push_back(&Item.second);
+
+	std::sort(vSortedMap.begin(), vSortedMap.end(), [](const CItemConfig *pA, const CItemConfig *pB) {
 		if(pA->m_Type != pB->m_Type)
 			return pA->m_Type < pB->m_Type;
 		return pA->m_Id < pB->m_Id;
 	});
+
+	return vSortedMap;
 }
 
 const CItemConfig *CItemRegistry::FindByName(const char *pName) const

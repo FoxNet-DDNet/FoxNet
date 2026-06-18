@@ -282,7 +282,6 @@ public:
 class CItemRegistry
 {
 	std::unordered_map<std::string, CItemConfig> m_Map;
-	std::vector<const CItemConfig *> m_vSortedMap;
 
 public:
 	void Init();
@@ -294,7 +293,7 @@ public:
 	const std::unordered_map<std::string, CItemConfig> &Map() const { return m_Map; }
 	std::unordered_map<std::string, CItemConfig> &Map() { return m_Map; }
 
-	const std::vector<const CItemConfig *> &SortedMap() const { return m_vSortedMap; }
+	std::vector<const CItemConfig *> SortedMap() const;
 
 	template<typename Fn>
 	void ForEachInGroup(EExclusiveGroup Group, Fn &&f) const
