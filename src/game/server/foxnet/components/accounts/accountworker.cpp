@@ -503,6 +503,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *p = dynamic_cast<const CAccUpdLoginState *>(pData);
+	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
 	char aSql[512];
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
@@ -515,7 +516,7 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 		"    Port = ?, "
 		"    ClientId = ?, "
 		"    ServerInstance = ? "
-		"WHERE Username = ?",
+		"WHERE Username = ? AND LoggedIn = 0",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
 		return false;
@@ -527,7 +528,11 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 	pSql->BindString(6, p->m_aInstance);
 	pSql->BindString(7, p->m_aUsername);
 	int NumUpdated = 0;
-	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+	if(pRes)
+		pRes->m_Success = NumUpdated == 1;
+	return true;
 }
 
 bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)

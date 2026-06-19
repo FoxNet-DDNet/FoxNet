@@ -562,70 +562,136 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 {
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
 
 	bool NeedsOverride = Acc.m_Configs.m_SentFastInput;
 	bool FastInput = Acc.m_Configs.m_FastInputs;
 	int FastInputAmount = Acc.m_Configs.m_FastInputAmount;
 	time_t Now = time(0);
 	const char *pPlayerName = Server()->ClientIngame(ClientId) ? Server()->ClientName(ClientId) : Res.m_PlayerName;
+	const std::string UsernameCopy = Res.m_aUsername;
+	const std::string LastNameCopy = Res.m_LastPlayerName;
+	const std::string CurrentIpCopy = Server()->ClientAddrString(ClientId, false);
+	const std::string LastIpCopy = Res.m_LastIP;
+	const int64_t RegisterDate = Res.m_RegisterDate;
+	const int64_t Playtime = Res.m_Playtime;
+	const int64_t Deaths = Res.m_Deaths;
+	const int64_t Kills = Res.m_Kills;
+	const int64_t Level = Res.m_Level;
+	const int64_t Xp = Res.m_XP;
+	const int64_t Money = Res.m_Money;
+	const CInventory Inventory = Res.m_Inventory;
+	const CMailBox MailBox = Res.m_MailBox;
+	const CAccConfigs Configs = Res.m_Configs;
 
-	str_copy(Acc.m_aUsername, Res.m_aUsername);
-	Acc.m_RegisterDate = Res.m_RegisterDate;
-	str_copy(Acc.m_aName, pPlayerName);
-	str_copy(Acc.m_aLastName, Res.m_LastPlayerName);
-	str_copy(Acc.m_aCurrentIp, Server()->ClientAddrString(ClientId, false));
-	str_copy(Acc.m_aLastIp, Res.m_LastIP);
-	Acc.m_LoggedIn = true;
-	Acc.m_LastLogin = Now;
-	Acc.m_Port = Server()->Port();
-	Acc.m_ClientId = ClientId;
-	Acc.m_Playtime = Res.m_Playtime;
-	Acc.m_Deaths = Res.m_Deaths;
-	Acc.m_Kills = Res.m_Kills;
-	Acc.m_Level = Res.m_Level;
-	Acc.m_XP = Res.m_XP;
-	Acc.m_Money = Res.m_Money;
-	Acc.m_LoginTick = Server()->Tick();
-	Acc.m_Inventory = Res.m_Inventory;
-
-	Acc.m_Configs = Res.m_Configs;
-	if(NeedsOverride)
-	{
-		Acc.m_Configs.m_FastInputs = FastInput;
-		Acc.m_Configs.m_FastInputAmount = FastInputAmount;
-	}
-
-	Acc.m_MailBox = Res.m_MailBox;
-	Acc.m_LastMailboxFetch = Now;
-	Acc.m_MailboxFetchPending = false;
-	GameServer()->OnLogin(ClientId);
-
-	// Apply equipped items to player cosmetics
-	if(auto *pPlayer = GameServer()->m_apPlayers[ClientId])
-	{
-		for(const auto &Item : pPlayer->Inv()->m_Map)
-		{
-			CInventoryEntry Entry = Item.second;
-			const CItemConfig *pCfg = GameServer()->m_Shop.FindItem(Item.first.c_str());
-			if(!pCfg)
-				continue;
-			const int Val = Entry.m_Value;
-			if(Val <= 0)
-				continue;
-
-			pPlayer->UseItem(Item.first.c_str(), Val, true);
-		}
-	}
-
+	auto pUpdRes = std::make_shared<CAccResult>();
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
-	str_copy(pUpd->m_aUsername, Res.m_aUsername, sizeof(pUpd->m_aUsername));
+	pUpd->m_pResult = pUpdRes;
+	str_copy(pUpd->m_aUsername, UsernameCopy.c_str(), sizeof(pUpd->m_aUsername));
 	str_copy(pUpd->m_PlayerName, pPlayerName, sizeof(pUpd->m_PlayerName));
-	str_copy(pUpd->m_CurrentIP, Server()->ClientAddrString(ClientId, false), sizeof(pUpd->m_CurrentIP));
+	str_copy(pUpd->m_CurrentIP, CurrentIpCopy.c_str(), sizeof(pUpd->m_CurrentIP));
 	str_copy(pUpd->m_aInstance, g_Config.m_SvAccountsInstance, sizeof(pUpd->m_aInstance));
 	pUpd->m_LastLogin = Now;
 	pUpd->m_Port = Server()->Port();
 	pUpd->m_ClientId = ClientId;
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLoginState, std::move(pUpd), "acc update login");
+	AddPending(pUpdRes, [this, ClientId, pExpectedPlayer, NeedsOverride, FastInput, FastInputAmount, Now,
+				      Username = UsernameCopy, LastName = LastNameCopy, CurrentIp = CurrentIpCopy, LastIp = LastIpCopy,
+				      RegisterDate, Playtime, Deaths, Kills, Level, Xp, Money, Inventory, MailBox, Configs,
+				      PlayerName = std::string(pPlayerName)](CAccResult &UpdRes) {
+		if(!UpdRes.m_Success)
+		{
+			if(IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
+				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
+			return;
+		}
+
+		if(!pExpectedPlayer || !IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
+		{
+			struct CSqlClearLoginState : ISqlData
+			{
+				CSqlClearLoginState() :
+					ISqlData(nullptr) {}
+				char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+				char m_aInstance[16] = "";
+				int m_Port = 0;
+				int m_ClientId = -1;
+			};
+			auto Fn = [](IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize) -> bool {
+				const auto *p = dynamic_cast<const CSqlClearLoginState *>(pData);
+				char aSql[512];
+				str_copy(aSql,
+					"UPDATE foxnet_accounts "
+					"SET LoggedIn = 0, Port = 0, ClientId = -1, ServerInstance = '' "
+					"WHERE Username = ? AND LoggedIn = 1 AND Port = ? AND ClientId = ? AND ServerInstance = ?",
+					sizeof(aSql));
+				if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+					return false;
+				pSql->BindString(1, p->m_aUsername);
+				pSql->BindInt(2, p->m_Port);
+				pSql->BindInt(3, p->m_ClientId);
+				pSql->BindString(4, p->m_aInstance);
+				int NumUpdated = 0;
+				return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+			};
+			auto pClear = std::make_unique<CSqlClearLoginState>();
+			str_copy(pClear->m_aUsername, Username.c_str(), sizeof(pClear->m_aUsername));
+			str_copy(pClear->m_aInstance, g_Config.m_SvAccountsInstance, sizeof(pClear->m_aInstance));
+			pClear->m_Port = Server()->Port();
+			pClear->m_ClientId = ClientId;
+			DbPool()->ExecuteWrite(Fn, std::move(pClear), "acc clear orphaned login");
+			return;
+		}
+
+		CAccountSession &Session = GameServer()->m_aAccounts[ClientId];
+		str_copy(Session.m_aUsername, Username.c_str());
+		Session.m_RegisterDate = RegisterDate;
+		str_copy(Session.m_aName, PlayerName.c_str());
+		str_copy(Session.m_aLastName, LastName.c_str());
+		str_copy(Session.m_aCurrentIp, CurrentIp.c_str());
+		str_copy(Session.m_aLastIp, LastIp.c_str());
+		Session.m_LoggedIn = true;
+		Session.m_LastLogin = Now;
+		Session.m_Port = Server()->Port();
+		Session.m_ClientId = ClientId;
+		Session.m_Playtime = Playtime;
+		Session.m_Deaths = Deaths;
+		Session.m_Kills = Kills;
+		Session.m_Level = Level;
+		Session.m_XP = Xp;
+		Session.m_Money = Money;
+		Session.m_LoginTick = Server()->Tick();
+		Session.m_Inventory = Inventory;
+
+		Session.m_Configs = Configs;
+		if(NeedsOverride)
+		{
+			Session.m_Configs.m_FastInputs = FastInput;
+			Session.m_Configs.m_FastInputAmount = FastInputAmount;
+		}
+
+		Session.m_MailBox = MailBox;
+		Session.m_LastMailboxFetch = Now;
+		Session.m_MailboxFetchPending = false;
+		GameServer()->OnLogin(ClientId);
+
+		// Apply equipped items to player cosmetics
+		if(auto *pPlayer = GameServer()->m_apPlayers[ClientId])
+		{
+			for(const auto &Item : pPlayer->Inv()->m_Map)
+			{
+				CInventoryEntry Entry = Item.second;
+				const CItemConfig *pCfg = GameServer()->m_Shop.FindItem(Item.first.c_str());
+				if(!pCfg)
+					continue;
+				const int Val = Entry.m_Value;
+				if(Val <= 0)
+					continue;
+
+				pPlayer->UseItem(Item.first.c_str(), Val, true);
+			}
+		}
+	});
 }
 
 bool CAccounts::Logout(int ClientId, bool WaitForCompletion)
