@@ -1502,11 +1502,11 @@ void CVoteMenu::PrepareInventory(int ClientId)
 				str_copy(Data.m_aVoteName, aVoteName);
 				Votes.push_back(Data);
 			}
-			else if(Item.m_Id == EItemId::NameProtection)
+			else if(pItem->m_Id == EItemId::NameProtection)
 			{
 				CVoteData Data;
 				Data.m_ItemType = Type;
-				Data.m_pItem = &Item;
+				Data.m_pItem = pItem;
 				Data.m_VoteType = VOTE_TYPE_TEXT;
 				str_format(aVoteName, sizeof(aVoteName), "Name Prot [→ '%s']", Acc.m_aProtectedName);
 				str_copy(Data.m_aVoteName, aVoteName);
