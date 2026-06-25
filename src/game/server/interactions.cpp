@@ -55,29 +55,34 @@ void CInteractions::FillOwnerDisconnected()
 	// m_UniqueOwnerId = 0; // TODO: yes no maybe?
 }
 
-bool CInteractions::CanSee(const CGameContext *pGameServer, int ClientId) const
+bool CInteractions::CanSee(const CGameContext *pGameServer, int ClientId, int Flags) const
 {
 	const CPlayer *pPlayer = GetPlayer(pGameServer, ClientId);
 	if(!pPlayer)
 		return false; // Player doesn't exist
 
+	const CCharacter *pOwnerChar = OwnerCharacter(pGameServer);
+
 	if(!(pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()))
 	{ // Not spectator
 		if(ClientId != m_OwnerId)
 		{ // Actions of other players
-			if(!Character(pGameServer, ClientId))
-				return false; // Player is currently dead
-			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM)
+			const CCharacter *pCharacter = Character(pGameServer, ClientId);
+			const bool SpawnSolo = (pCharacter && pCharacter->m_SpawnSolo) || (pOwnerChar && pOwnerChar->m_SpawnSolo);
+			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
 				if(GetDDRaceTeam(pGameServer, ClientId) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, ClientId) != TEAM_SUPER)
 					return false; // In different teams
 			}
 			else if(pPlayer->m_ShowOthers == SHOW_OTHERS_OFF)
 			{
-				if(m_Solo)
-					return false; // When in solo part don't show others
-				if(IsSolo(pGameServer, ClientId))
-					return false; // When in solo part don't show others
+				if(!(Flags & IGNORE_SOLO))
+				{
+					if(m_Solo)
+						return false; // When in solo part don't show others
+					if(IsSolo(pGameServer, ClientId))
+						return false; // When in solo part don't show others
+				}
 				if(GetDDRaceTeam(pGameServer, ClientId) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, ClientId) != TEAM_SUPER)
 					return false; // In different teams
 			}
@@ -87,19 +92,24 @@ bool CInteractions::CanSee(const CGameContext *pGameServer, int ClientId) const
 	{ // Spectating specific player
 		if(pPlayer->SpectatorId() != m_OwnerId)
 		{ // Actions of other players
-			if(!Character(pGameServer, pPlayer->SpectatorId()))
+			const CCharacter *pSpectatedCharacter = Character(pGameServer, pPlayer->SpectatorId());
+			if(!pSpectatedCharacter)
 				return false; // Player is currently dead
-			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM)
+			const bool SpawnSolo = pSpectatedCharacter->m_SpawnSolo || (pOwnerChar && pOwnerChar->m_SpawnSolo);
+			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
 			{
 				if(GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams
 			}
 			else if(pPlayer->m_ShowOthers == SHOW_OTHERS_OFF)
 			{
-				if(m_Solo)
-					return false; // When in solo part don't show others
-				if(IsSolo(pGameServer, pPlayer->SpectatorId()))
-					return false; // When in solo part don't show others
+				if(!(Flags & IGNORE_SOLO))
+				{
+					if(m_Solo)
+						return false; // When in solo part don't show others
+					if(IsSolo(pGameServer, pPlayer->SpectatorId()))
+						return false; // When in solo part don't show others
+				}
 				if(GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams
 			}
@@ -169,4 +179,16 @@ CClientMask CInteractions::CanHitMask(const CGameContext *pGameServer) const
 		}
 	}
 	return Mask;
+}
+
+const CCharacter *CInteractions::OwnerCharacter(const CGameContext *pGameServer) const
+{
+	if(m_OwnerId < 0 || m_OwnerId >= MAX_CLIENTS)
+		return nullptr;
+	const CCharacter *pChr = pGameServer->GetPlayerChar(m_OwnerId);
+	if(!pChr)
+		return nullptr;
+	if(pChr->GetPlayer()->GetUniqueCid() != m_UniqueOwnerId)
+		return nullptr;
+	return pChr;
 }

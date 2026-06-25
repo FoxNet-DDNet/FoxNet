@@ -77,6 +77,9 @@ class CConsole : public IConsole
 
 	void ExecuteLineStroked(int Stroke, const char *pStr, int ClientId = IConsole::CLIENT_ID_UNSPECIFIED, bool InterpretSemicolons = true) override;
 
+	FGetVictimsCommandCallback m_pfnGetVictimsCommandCallback = nullptr;
+	void *m_pGetVictimsCommandUserData = nullptr;
+
 	FTeeHistorianCommandCallback m_pfnTeeHistorianCommandCallback;
 	void *m_pTeeHistorianCommandUserdata;
 
@@ -130,20 +133,9 @@ class CConsole : public IConsole
 
 		// DDRace
 
-		enum
-		{
-			VICTIM_NONE = -5,
-			VICTIM_ME = -4,
-			VICTIM_ALL = -3,
-			// <FoxNet
-			VICTIM_OTHERS = -2,
-			VICTIM_RANGE = -1,
-			// FoxNet>
-		};
-
-		int m_Victim;
+		char m_aSpecialVictim[16];
+		std::optional<int> m_VictimId;
 		void ResetVictim();
-		bool HasVictim() const;
 		void SetVictim(int Victim);
 		void SetVictim(const char *pVictim);
 		int GetVictim() const override;
@@ -213,6 +205,7 @@ public:
 	bool ExecuteFile(const char *pFilename, int ClientId = IConsole::CLIENT_ID_UNSPECIFIED, bool LogFailure = false, int StorageType = IStorage::TYPE_ALL) override;
 
 	void Print(int Level, const char *pFrom, const char *pStr, ColorRGBA PrintColor = CONSOLE_DEFAULT_COLOR) const override;
+	void SetGetVictimsCommandCallback(FGetVictimsCommandCallback pfnCallback, void *pUser) override;
 	void SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser) override;
 	void SetUnknownCommandCallback(FUnknownCommandCallback pfnCallback, void *pUser) override;
 	void SetCanUseCommandCallback(FCanUseCommandCallback pfnCallback, void *pUser) override;

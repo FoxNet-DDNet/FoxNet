@@ -14,7 +14,7 @@ class CInteractions
 	bool IsSolo(const CGameContext *pGameServer, int ClientId) const;
 	int GetDDRaceTeam(const CGameContext *pGameServer, int ClientId) const;
 
-	int m_OwnerId = 0;
+	int m_OwnerId = -1;
 	uint32_t m_UniqueOwnerId = 0;
 	bool m_OwnerAlive = false;
 	int m_DDRaceTeam = 0;
@@ -23,6 +23,11 @@ class CInteractions
 	bool m_NoHitSelf = false;
 
 public:
+	enum CanSeeFlags
+	{
+		IGNORE_SOLO = 1 << 0,
+	};
+
 	void Init(int OwnerId, uint32_t UniqueOwnerId);
 	void FillOwnerConnected(
 		bool OwnerAlive,
@@ -31,10 +36,11 @@ public:
 		bool NoHitOthers,
 		bool NoHitSelf);
 	void FillOwnerDisconnected();
-	bool CanSee(const CGameContext *pGameServer, int ClientId) const;
+	bool CanSee(const CGameContext *pGameServer, int ClientId, int Flags = 0) const;
 	bool CanHit(const CGameContext *pGameServer, int ClientId) const;
 	CClientMask CanSeeMask(const CGameContext *pGameServer) const;
 	CClientMask CanHitMask(const CGameContext *pGameServer) const;
+	const CCharacter *OwnerCharacter(const CGameContext *pGameServer) const;
 };
 
 #endif

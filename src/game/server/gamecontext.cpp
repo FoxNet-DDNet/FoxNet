@@ -251,6 +251,34 @@ void CGameContext::TeeHistorianWrite(const void *pData, int DataSize, void *pUse
 	aio_write(pSelf->m_pTeeHistorianFile, pData, DataSize);
 }
 
+std::optional<std::vector<int>> CGameContext::ClientsForVictim(int ClientId, const char *pVictim, void *pUser)
+{
+	CGameContext *pSelf = (CGameContext *)pUser;
+	std::vector<int> vClientIds;
+
+	if(!str_comp(pVictim, "me"))
+	{
+		vClientIds.emplace_back(ClientId);
+	}
+	else if(!str_comp(pVictim, "all"))
+	{
+		const int MaxClients = pSelf->Server()->MaxClients();
+		for(int i = 0; i < MaxClients; i++)
+		{
+			if(!pSelf->Server()->ClientIngame(i))
+				continue;
+
+			vClientIds.emplace_back(i);
+		}
+	}
+	else
+	{
+		return std::nullopt;
+	}
+
+	return std::make_optional(std::move(vClientIds));
+}
+
 void CGameContext::CommandCallback(int ClientId, int FlagMask, const char *pCmd, IConsole::IResult *pResult, void *pUser)
 {
 	CGameContext *pSelf = (CGameContext *)pUser;
@@ -355,7 +383,7 @@ void CGameContext::FillAntibot(CAntibotRoundData *pData)
 
 		if(m_apPlayers[i])
 		{
-			str_copy(pChar->m_aName, Server()->ClientName(i), sizeof(pChar->m_aName));
+			str_copy(pChar->m_aName, Server()->ClientName(i));
 			CCharacter *pGameChar = m_apPlayers[i]->GetCharacter();
 			pChar->m_Alive = (bool)pGameChar;
 			pChar->m_Pause = m_apPlayers[i]->IsPaused();
@@ -587,9 +615,9 @@ void CGameContext::SnapSwitchers(int SnappingClient)
 	std::fill(std::begin(SwitchState.m_aEndTicks), std::end(SwitchState.m_aEndTicks), 0);
 
 	std::sort(vEndTicks.begin(), vEndTicks.end());
-	const int NumTimedSwitchers = minimum((int)vEndTicks.size(), (int)std::size(SwitchState.m_aEndTicks));
+	const size_t NumTimedSwitchers = std::min(vEndTicks.size(), std::size(SwitchState.m_aEndTicks));
 
-	for(int i = 0; i < NumTimedSwitchers; i++)
+	for(size_t i = 0; i < NumTimedSwitchers; i++)
 	{
 		SwitchState.m_aSwitchNumbers[i] = vEndTicks[i].second;
 		SwitchState.m_aEndTicks[i] = vEndTicks[i].first;
@@ -742,7 +770,7 @@ void CGameContext::SendChat(int ChatterClientId, int Team, const char *pText, in
 			return;
 
 	char aText[256];
-	str_copy(aText, pText, sizeof(aText));
+	str_copy(aText, pText);
 	const char *pTeamString = Team == TEAM_ALL ? "chat" : "teamchat";
 	if(ChatterClientId == -1)
 	{
@@ -892,7 +920,7 @@ void CGameContext::SendServerAlert(const char *pMessage)
 	Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, 0);
 }
 
-void CGameContext::SendModeratorAlert(const char *pMessage, int ToClientId)
+void CGameContext::SendModeratorAlert(int ToClientId, const char *pMessage)
 {
 	dbg_assert(in_range(ToClientId, 0, MAX_CLIENTS - 1), "SendImportantAlert ToClientId invalid: %d", ToClientId);
 	dbg_assert(m_apPlayers[ToClientId] != nullptr, "Client not online: %d", ToClientId);
@@ -979,10 +1007,10 @@ void CGameContext::StartVote(const char *pDesc, const char *pCommand, const char
 
 	// start vote
 	m_VoteCloseTime = time_get() + time_freq() * g_Config.m_SvVoteTime;
-	str_copy(m_aVoteDescription, pDesc, sizeof(m_aVoteDescription));
-	str_copy(m_aSixupVoteDescription, pSixupDesc, sizeof(m_aSixupVoteDescription));
-	str_copy(m_aVoteCommand, pCommand, sizeof(m_aVoteCommand));
-	str_copy(m_aVoteReason, pReason, sizeof(m_aVoteReason));
+	str_copy(m_aVoteDescription, pDesc);
+	str_copy(m_aSixupVoteDescription, pSixupDesc);
+	str_copy(m_aVoteCommand, pCommand);
+	str_copy(m_aVoteReason, pReason);
 	SendVoteSet(-1);
 	m_VoteUpdate = true;
 }
@@ -1858,6 +1886,7 @@ bool CGameContext::OnClientDataPersist(int ClientId, void *pData)
 	{
 		return false;
 	}
+	new(pPersistent) CPersistentClientData();
 	pPersistent->m_IsSpectator = m_apPlayers[ClientId]->GetTeam() == TEAM_SPECTATORS;
 	pPersistent->m_IsAfk = m_apPlayers[ClientId]->IsAfk();
 	pPersistent->m_LastWhisperTo = m_apPlayers[ClientId]->m_LastWhisperTo;
@@ -2428,7 +2457,7 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 				CLogScope Scope(&Logger);
 				Console()->ExecuteLine(pMsg->m_pMessage + 1, ClientId, false);
 			}
-			// m_apPlayers[ClientId] can be NULL, if the player used a
+			// m_apPlayers[ClientId] can be nullptr, if the player used a
 			// timeout code and replaced another client.
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "%d used %s", ClientId, pMsg->m_pMessage);
@@ -2839,7 +2868,7 @@ void CGameContext::OnSetTeamNetMessage(const CNetMsg_Cl_SetTeam *pMsg, int Clien
 	{
 		if(pPlayer->GetTeam() == TEAM_SPECTATORS || pMsg->m_Team == TEAM_SPECTATORS)
 			m_VoteUpdate = true;
-		m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
+		m_pController->DoTeamChange(pPlayer, pMsg->m_Team, true);
 		pPlayer->m_TeamChangeTick = Server()->Tick();
 	}
 	else
@@ -3417,7 +3446,7 @@ void CGameContext::ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUse
 		int List = pResult->GetInteger(0);
 		if(List >= 0 && List < TuneZone::NUM)
 		{
-			str_copy(pSelf->m_aaZoneEnterMsg[List], pResult->GetString(1), sizeof(pSelf->m_aaZoneEnterMsg[List]));
+			str_copy(pSelf->m_aaZoneEnterMsg[List], pResult->GetString(1));
 		}
 	}
 }
@@ -3430,7 +3459,7 @@ void CGameContext::ConTuneSetZoneMsgLeave(IConsole::IResult *pResult, void *pUse
 		int List = pResult->GetInteger(0);
 		if(List >= 0 && List < TuneZone::NUM)
 		{
-			str_copy(pSelf->m_aaZoneLeaveMsg[List], pResult->GetString(1), sizeof(pSelf->m_aaZoneLeaveMsg[List]));
+			str_copy(pSelf->m_aaZoneLeaveMsg[List], pResult->GetString(1));
 		}
 	}
 }
@@ -3534,7 +3563,7 @@ void CGameContext::ConServerAlert(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	char aBuf[1024];
-	str_copy(aBuf, pResult->GetString(0), sizeof(aBuf));
+	str_copy(aBuf, pResult->GetString(0));
 	UnescapeNewlines(aBuf);
 
 	pSelf->SendServerAlert(aBuf);
@@ -3552,10 +3581,10 @@ void CGameContext::ConModAlert(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	char aBuf[1024];
-	str_copy(aBuf, pResult->GetString(1), sizeof(aBuf));
+	str_copy(aBuf, pResult->GetString(1));
 	UnescapeNewlines(aBuf);
 
-	pSelf->SendModeratorAlert(aBuf, Victim);
+	pSelf->SendModeratorAlert(Victim, aBuf);
 }
 
 void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
@@ -3563,7 +3592,7 @@ void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	char aBuf[1024];
-	str_copy(aBuf, pResult->GetString(0), sizeof(aBuf));
+	str_copy(aBuf, pResult->GetString(0));
 	UnescapeNewlines(aBuf);
 
 	pSelf->SendBroadcast(aBuf, -1);
@@ -3602,7 +3631,7 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 
 	pSelf->m_apPlayers[ClientId]->Pause(CPlayer::PAUSE_NONE, false); // reset /spec and /pause to allow rejoin
 	pSelf->m_apPlayers[ClientId]->m_TeamChangeTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * Delay * 60;
-	pSelf->m_pController->DoTeamChange(pSelf->m_apPlayers[ClientId], Team);
+	pSelf->m_pController->DoTeamChange(pSelf->m_apPlayers[ClientId], Team, true);
 	if(Team == TEAM_SPECTATORS)
 		pSelf->m_apPlayers[ClientId]->Pause(CPlayer::PAUSE_NONE, true);
 }
@@ -3731,7 +3760,7 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 	if(!m_pVoteOptionFirst)
 		m_pVoteOptionFirst = pOption;
 
-	str_copy(pOption->m_aDescription, pDescription, sizeof(pOption->m_aDescription));
+	str_copy(pOption->m_aDescription, pDescription);
 	str_copy(pOption->m_aCommand, pCommand, Len + 1);
 }
 
@@ -3793,7 +3822,7 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 		if(!pVoteOptionFirst)
 			pVoteOptionFirst = pDst;
 
-		str_copy(pDst->m_aDescription, pSrc->m_aDescription, sizeof(pDst->m_aDescription));
+		str_copy(pDst->m_aDescription, pSrc->m_aDescription);
 		str_copy(pDst->m_aCommand, pSrc->m_aCommand, Len + 1);
 	}
 
@@ -3922,7 +3951,7 @@ void CGameContext::ConAddMapVotes(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	char aPath[IO_MAX_PATH_LENGTH] = "maps/";
-	str_append(aPath, pDirectory, sizeof(aPath));
+	str_append(aPath, pDirectory);
 	pSelf->Storage()->ListDirectory(IStorage::TYPE_ALL, aPath, MapScan, &vMapList);
 	std::sort(vMapList.begin(), vMapList.end(), CMapNameItem::CompareFilenameAscending);
 
@@ -3945,13 +3974,13 @@ void CGameContext::ConAddMapVotes(IConsole::IResult *pResult, void *pUserData)
 
 		if(!str_comp(Item.m_aName, ".."))
 		{
-			fs_parent_dir(aDirectory);
+			dbg_assert(fs_parent_dir(aDirectory) == 0, "Parent folder vote selected but there is no parent folder");
 			str_format(aCommand, sizeof(aCommand), "clear_votes; add_map_votes \"%s\"", aDirectory);
 		}
 		else if(Item.m_IsDirectory)
 		{
-			str_append(aDirectory, "/", sizeof(aDirectory));
-			str_append(aDirectory, aOptionEscaped, sizeof(aDirectory));
+			str_append(aDirectory, "/");
+			str_append(aDirectory, aOptionEscaped);
 
 			str_format(aCommand, sizeof(aCommand), "clear_votes; add_map_votes \"%s\"", aDirectory);
 		}
@@ -4330,6 +4359,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 	m_Events.SetGameServer(this);
 
 	m_GameUuid = RandomUuid();
+	Console()->SetGetVictimsCommandCallback(ClientsForVictim, this);
 	Console()->SetTeeHistorianCommandCallback(CommandCallback, this);
 
 	uint64_t aSeed[2];
@@ -4645,7 +4675,7 @@ bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 		TotalLength += str_length(pLine) + 1;
 	}
 
-	char *pSettings = (char *)malloc(maximum(1, TotalLength));
+	char *pSettings = (char *)malloc(std::max(1, TotalLength));
 	int Offset = 0;
 	for(const char *pLine : vpLines)
 	{
@@ -4741,7 +4771,7 @@ bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 	log_info("mapchange", "Imported settings from '%s' into '%s'", aConfig, aTemp);
 
 	str_copy(pNewMapName, aTemp, MapNameSize);
-	str_copy(m_aDeleteTempfile, aTemp, sizeof(m_aDeleteTempfile));
+	str_copy(m_aDeleteTempfile, aTemp);
 	return true;
 }
 
@@ -4751,6 +4781,7 @@ void CGameContext::OnShutdown(void *pPersistentData)
 
 	if(pPersistent)
 	{
+		new(pPersistent) CPersistentData();
 		pPersistent->m_PrevGameUuid = m_GameUuid;
 	}
 
@@ -4974,7 +5005,7 @@ void CGameContext::UpdatePlayerMaps()
 
 		// sort by real client ids, guarantee order on distance changes, O(Nlog(N)) worst case
 		// sort just clients in game always except first (self client id) and last (fake client id) indexes
-		std::sort(&pMap[1], &pMap[minimum(Index, VANILLA_MAX_CLIENTS - 1)]);
+		std::sort(&pMap[1], &pMap[std::min(Index, VANILLA_MAX_CLIENTS - 1)]);
 	}
 }
 

@@ -29,6 +29,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/gamecontext.h>
+#include <game/server/interactions.h>
 #include <game/team_state.h>
 #include <game/teamscore.h>
 
@@ -1479,9 +1480,6 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 		   (!Server()->IsSixup(ClientId) && (VersionFlags & CGameContext::FLAG_SIX))))
 		return false;
 
-	CCharacter *pAskerChr = Asker >= 0 ? Character(Asker) : nullptr;
-	CCharacter *pClientChr = Character(ClientId);
-
 	if(MultiMapIdx != pClient->MultiMapIdx() && !g_Config.m_SvMultimapAllowInteraction)
 		return false;
 
@@ -1491,67 +1489,21 @@ bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, 
 			return false;
 	}
 
-	if(!(pClient->GetTeam() == TEAM_SPECTATORS || pClient->IsPaused()))
-	{ // Not spectator
-		if(ClientId != Asker)
-		{ // Actions of other players
-			if(!pClientChr)
-				return false; // Player is currently dead
-			const bool SpawnSolo = pClientChr->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(pClient->GetShowOthers() == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
-			{
-				if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
-					return false; // In different teams
-			}
-			else if(pClient->GetShowOthers() == SHOW_OTHERS_OFF)
-			{
-				if(!(Flags & IGNORE_SOLO))
-				{
-					if(m_Core.GetSolo(Asker))
-						return false; // When in solo part don't show others
-					if(m_Core.GetSolo(ClientId))
-						return false; // When in solo part don't show others
-				}
-				if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
-					return false; // In different teams
-			}
-		} // See everything of yourself
-	}
-	else if(pClient->SpectatorId() != SPEC_FREEVIEW)
-	{ // Spectating specific player
-		if(pClient->SpectatorId() != Asker)
-		{ // Actions of other players
-			if(!Character(pClient->SpectatorId()))
-				return false; // Player is currently dead
-			const bool SpawnSolo = Character(pClient->SpectatorId())->m_SpawnSolo || (pAskerChr && pAskerChr->m_SpawnSolo); // Spawn solo mimics SHOW_OTHERS_ONLY_TEAM
-			if(pClient->GetShowOthers() == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
-			{
-				if(m_Core.Team(pClient->SpectatorId()) != Team && m_Core.Team(pClient->SpectatorId()) != TEAM_SUPER)
-					return false; // In different teams
-			}
-			else if(pClient->GetShowOthers() == SHOW_OTHERS_OFF)
-			{
-				if(!(Flags & IGNORE_SOLO))
-				{
-					if(m_Core.GetSolo(Asker))
-						return false; // When in solo part don't show others
-					if(m_Core.GetSolo(pClient->SpectatorId()))
-						return false; // When in solo part don't show others
-				}
-				if(m_Core.Team(pClient->SpectatorId()) != Team && m_Core.Team(pClient->SpectatorId()) != TEAM_SUPER)
-					return false; // In different teams
-			}
-		} // See everything of player you're spectating
-	}
-	else
-	{ // Freeview
-		if(pClient->m_SpecTeam)
-		{ // Show only players in own team when spectating
-			if(m_Core.Team(ClientId) != Team && m_Core.Team(ClientId) != TEAM_SUPER)
-				return false; // in different teams
-		}
-	}
-	return true;
+	const bool ValidAsker = Asker >= 0 && Asker < MAX_CLIENTS;
+	CPlayer *pAsker = ValidAsker ? GetPlayer(Asker) : nullptr;
+	CInteractions Interact;
+	Interact.Init(ValidAsker ? Asker : -1, pAsker ? pAsker->GetUniqueCid() : 0);
+	Interact.FillOwnerConnected(
+		pAsker && pAsker->GetCharacter() && pAsker->GetCharacter()->IsAlive(),
+		Team,
+		ValidAsker && m_Core.GetSolo(Asker),
+		false,
+		false);
+
+	int CanSeeFlags = 0;
+	if(Flags & IGNORE_SOLO)
+		CanSeeFlags |= CInteractions::IGNORE_SOLO;
+	return Interact.CanSee(GameServer(), ClientId, CanSeeFlags);
 }
 
 CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItemType Type, bool Opposite)
@@ -1564,6 +1516,8 @@ CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItem
 		return CClientMask().set();
 	}
 	CClientMask Mask;
+	const bool ValidAsker = Asker >= 0 && Asker < MAX_CLIENTS;
+	CPlayer *pAsker = ValidAsker ? GetPlayer(Asker) : nullptr;
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
@@ -1611,7 +1565,7 @@ CClientMask CGameTeams::CosmeticMask(int Team, int MultiMapIdx, int Asker, EItem
 		}
 
 		if(Server()->GetAuthedState(ClientId) < AUTHED_MOD)
-			if(ClientId != Asker && Asker >= 0 && GetPlayer(Asker) && (GetPlayer(Asker)->m_Vanish || GetPlayer(Asker)->m_Invisible))
+			if(ClientId != Asker && pAsker && (pAsker->m_Vanish || pAsker->m_Invisible))
 				continue; // Player is invisible
 
 		Mask.set(ClientId);

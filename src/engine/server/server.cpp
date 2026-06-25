@@ -11,7 +11,6 @@
 #include <base/fs.h>
 #include <base/io.h>
 #include <base/logger.h>
-#include <base/math.h>
 #include <base/secure.h>
 #include <base/system.h>
 
@@ -48,6 +47,7 @@
 
 #include <zlib.h>
 
+#include <algorithm>
 #include <chrono>
 #include <vector>
 
@@ -353,9 +353,9 @@ void CServer::CClient::Reset()
 }
 
 CServer::CServer() :
-	m_pSnapshotDelta(CSnapshotDelta_New()),
-	m_pSnapshotDeltaSixup(CSnapshotDelta_New()),
-	m_pSnapshotBuilder(CSnapshotBuilder_New())
+	m_pSnapshotDelta(CSnapshotDelta::New()),
+	m_pSnapshotDeltaSixup(CSnapshotDelta::New()),
+	m_pSnapshotBuilder(CSnapshotBuilder::New())
 {
 	m_pConfig = &g_Config;
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -724,7 +724,7 @@ int CServer::Init()
 		Client.m_State = CClient::STATE_EMPTY;
 		Client.m_aName[0] = 0;
 		Client.m_aClan[0] = 0;
-		Client.m_Country = -1;
+		Client.m_Country = CountryCode::DEFAULT;
 		Client.m_Snapshots.Init();
 		Client.m_Traffic = 0;
 		Client.m_TrafficSince = 0;
@@ -744,7 +744,7 @@ int CServer::Init()
 	return 0;
 }
 
-bool CServer::StrHideIps(const char *pInput, char *pOutputWithIps, int OutputWithIpsSize, char *pOutputWithoutIps, int OutputWithoutIpsSize)
+bool CServer::StrHideIps(const char *pInput, char *pOutputWithIps, size_t OutputWithIpsSize, char *pOutputWithoutIps, size_t OutputWithoutIpsSize)
 {
 	const char *pStart = str_find(pInput, "<{");
 	const char *pEnd = pStart == nullptr ? nullptr : str_find(pStart + 2, "}>");
@@ -758,11 +758,11 @@ bool CServer::StrHideIps(const char *pInput, char *pOutputWithIps, int OutputWit
 		return false;
 	}
 
-	str_append(pOutputWithIps, pInput, minimum<size_t>(pStart - pInput + 1, OutputWithIpsSize));
-	str_append(pOutputWithIps, pStart + 2, minimum<size_t>(pEnd - pInput - 1, OutputWithIpsSize));
+	str_append(pOutputWithIps, pInput, std::min((size_t)(pStart - pInput + 1), OutputWithIpsSize));
+	str_append(pOutputWithIps, pStart + 2, std::min((size_t)(pEnd - pInput - 1), OutputWithIpsSize));
 	str_append(pOutputWithIps, pEnd + 2, OutputWithIpsSize);
 
-	str_append(pOutputWithoutIps, pInput, minimum<size_t>(pStart - pInput + 1, OutputWithoutIpsSize));
+	str_append(pOutputWithoutIps, pInput, std::min((size_t)(pStart - pInput + 1), OutputWithoutIpsSize));
 	str_append(pOutputWithoutIps, "XXX", OutputWithoutIpsSize);
 	str_append(pOutputWithoutIps, pEnd + 2, OutputWithoutIpsSize);
 	return true;
@@ -1217,9 +1217,19 @@ void CServer::DoSnapshot()
 			int DeltaTick = -1;
 			const CSnapshot *pDeltashot = CSnapshot::EmptySnapshot();
 			{
-				int DeltashotSize = m_aClients[i].m_Snapshots.Get(m_aClients[i].m_LastAckedSnapshot, nullptr, &pDeltashot, nullptr);
+				int DeltashotSize;
+				if(m_aClients[i].m_LastAckedSnapshot >= MIN_TICK)
+				{
+					DeltashotSize = m_aClients[i].m_Snapshots.Get(m_aClients[i].m_LastAckedSnapshot, nullptr, &pDeltashot, nullptr);
+				}
+				else
+				{
+					DeltashotSize = -1;
+				}
 				if(DeltashotSize >= 0)
+				{
 					DeltaTick = m_aClients[i].m_LastAckedSnapshot;
+				}
 				else
 				{
 					// no acked package found, force client to recover rate
@@ -1321,7 +1331,7 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 	pThis->m_aClients[ClientId].m_State = CClient::STATE_CONNECTING;
 	pThis->m_aClients[ClientId].m_aName[0] = 0;
 	pThis->m_aClients[ClientId].m_aClan[0] = 0;
-	pThis->m_aClients[ClientId].m_Country = -1;
+	pThis->m_aClients[ClientId].m_Country = CountryCode::DEFAULT;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
 	pThis->m_aClients[ClientId].m_AuthHidden = false;
@@ -1358,7 +1368,7 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientId].m_DnsblState = EDnsblState::NONE;
 	pThis->m_aClients[ClientId].m_aName[0] = 0;
 	pThis->m_aClients[ClientId].m_aClan[0] = 0;
-	pThis->m_aClients[ClientId].m_Country = -1;
+	pThis->m_aClients[ClientId].m_Country = CountryCode::DEFAULT;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
 	pThis->m_aClients[ClientId].m_AuthHidden = false;
@@ -1451,7 +1461,7 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientId].m_State = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientId].m_aName[0] = 0;
 	pThis->m_aClients[ClientId].m_aClan[0] = 0;
-	pThis->m_aClients[ClientId].m_Country = -1;
+	pThis->m_aClients[ClientId].m_Country = CountryCode::DEFAULT;
 	pThis->m_aClients[ClientId].m_AuthKey = -1;
 	pThis->m_aClients[ClientId].m_AuthTries = 0;
 	pThis->m_aClients[ClientId].m_AuthHidden = false;
@@ -1977,21 +1987,51 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_INPUT)
 		{
+			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) != 0)
+			{
+				return;
+			}
+			if(m_aClients[ClientId].m_State != CClient::STATE_INGAME)
+			{
+				return;
+			}
+
 			const int LastAckedSnapshot = Unpacker.GetInt();
+			if(Unpacker.Error() ||
+				LastAckedSnapshot < -1 ||
+				LastAckedSnapshot > Tick())
+			{
+				return;
+			}
+
 			int IntendedTick = Unpacker.GetInt();
-			int Size = Unpacker.GetInt();
-			if(Unpacker.Error() || Size / 4 > MAX_INPUT_SIZE || IntendedTick < MIN_TICK || IntendedTick >= MAX_TICK)
+			if(Unpacker.Error() ||
+				IntendedTick < MIN_TICK ||
+				IntendedTick > MAX_TICK)
+			{
+				return;
+			}
+
+			const int Size = Unpacker.GetInt();
+			if(Unpacker.Error() ||
+				Size % (int)sizeof(int32_t) != 0 ||
+				Size / (int)sizeof(int32_t) < MIN_INPUT_SIZE ||
+				Size / (int)sizeof(int32_t) > MAX_INPUT_SIZE)
 			{
 				return;
 			}
 
 			m_aClients[ClientId].m_LastAckedSnapshot = LastAckedSnapshot;
-			if(m_aClients[ClientId].m_LastAckedSnapshot > 0)
+			if(m_aClients[ClientId].m_LastAckedSnapshot >= MIN_TICK)
+			{
 				m_aClients[ClientId].m_SnapRate = CClient::SNAPRATE_FULL;
 
-			int64_t TagTime;
-			if(m_aClients[ClientId].m_Snapshots.Get(m_aClients[ClientId].m_LastAckedSnapshot, &TagTime, nullptr, nullptr) >= 0)
-				m_aClients[ClientId].m_Latency = (int)(((time_get() - TagTime) * 1000) / time_freq());
+				int64_t TagTime;
+				if(m_aClients[ClientId].m_Snapshots.Get(m_aClients[ClientId].m_LastAckedSnapshot, &TagTime, nullptr, nullptr) >= 0)
+				{
+					m_aClients[ClientId].m_Latency = (int)(((time_get() - TagTime) * 1000) / time_freq());
+				}
+			}
 
 			// add message to report the input timing
 			// skip packets that are old
@@ -2004,17 +2044,13 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				Msgp.AddInt(TimeLeft);
 				SendMsg(&Msgp, 0, ClientId);
 			}
-
 			m_aClients[ClientId].m_LastInputTick = IntendedTick;
 
+			IntendedTick = std::max(IntendedTick, Tick() + 1);
+
 			CClient::CInput *pInput = &m_aClients[ClientId].m_aInputs[m_aClients[ClientId].m_CurrentInput];
-
-			if(IntendedTick <= Tick())
-				IntendedTick = Tick() + 1;
-
 			pInput->m_GameTick = IntendedTick;
-
-			for(int i = 0; i < Size / 4; i++)
+			for(int i = 0; i < Size / (int)sizeof(int32_t); i++)
 			{
 				pInput->m_aData[i] = Unpacker.GetInt();
 			}
@@ -2023,7 +2059,8 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				return;
 			}
 
-			if(g_Config.m_SvPreInput)
+			if(g_Config.m_SvPreInput &&
+				IntendedTick <= Tick() + 4 * TickSpeed() + 1)
 			{
 				// send preinputs of ClientId to valid clients
 				bool aPreInputClients[MAX_CLIENTS] = {};
@@ -2056,6 +2093,8 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					{
 						if(!aPreInputClients[Id])
 							continue;
+						if(m_aClients[Id].m_SnapRate != CClient::SNAPRATE_FULL)
+							continue;
 
 						SendPackMsg(&PreInput, MSGFLAG_FLUSH | MSGFLAG_NORECORD, Id);
 					}
@@ -2063,14 +2102,13 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			}
 
 			GameServer()->OnClientPrepareInput(ClientId, pInput->m_aData);
-			mem_copy(m_aClients[ClientId].m_LatestInput.m_aData, pInput->m_aData, MAX_INPUT_SIZE * sizeof(int));
+			mem_copy(m_aClients[ClientId].m_LatestInput.m_aData, pInput->m_aData, sizeof(m_aClients[ClientId].m_LatestInput.m_aData));
 
 			m_aClients[ClientId].m_CurrentInput++;
 			m_aClients[ClientId].m_CurrentInput %= 200;
 
 			// call the mod with the fresh input data
-			if(m_aClients[ClientId].m_State == CClient::STATE_INGAME)
-				GameServer()->OnClientDirectInput(ClientId, m_aClients[ClientId].m_LatestInput.m_aData);
+			GameServer()->OnClientDirectInput(ClientId, m_aClients[ClientId].m_LatestInput.m_aData);
 		}
 		else if(Msg == NETMSG_RCON_CMD)
 		{
@@ -2123,7 +2161,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			log_info("server", "strange message ClientId=%d msg=%d data_size=%d", ClientId, Msg, pPacket->m_DataSize);
 			constexpr int MaxDumpedDataSize = 32;
 			char aBuf[MaxDumpedDataSize * 3 + 1];
-			str_hex(aBuf, sizeof(aBuf), pPacket->m_pData, minimum(pPacket->m_DataSize, MaxDumpedDataSize));
+			str_hex(aBuf, sizeof(aBuf), pPacket->m_pData, std::min(pPacket->m_DataSize, MaxDumpedDataSize));
 			log_info("server", "%s", aBuf);
 		}
 	}
@@ -2503,7 +2541,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 		}
 		else
 		{
-			const int MaxClients = maximum(ClientCount, m_NetServer.MaxClients() - Config()->m_SvReservedSlots);
+			const int MaxClients = std::max(ClientCount, m_NetServer.MaxClients() - Config()->m_SvReservedSlots);
 			str_format(aBuf, sizeof(aBuf), "%s [%d/%d]", Config()->m_SvName, ClientCount, MaxClients);
 			p.AddString(aBuf, 64);
 		}
@@ -2541,9 +2579,9 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	}
 
 	ADD_INT(p, PlayerCount); // num players
-	ADD_INT(p, minimum(MaxClientsProtocol, maximum(MaxClients - maximum(Config()->m_SvSpectatorSlots, Config()->m_SvReservedSlots), PlayerCount))); // max players
+	ADD_INT(p, std::min(MaxClientsProtocol, std::max(MaxClients - std::max(Config()->m_SvSpectatorSlots, Config()->m_SvReservedSlots), PlayerCount))); // max players
 	ADD_INT(p, ClientCount); // num clients
-	ADD_INT(p, minimum(MaxClientsProtocol, maximum(MaxClients - Config()->m_SvReservedSlots, ClientCount))); // max clients
+	ADD_INT(p, std::min(MaxClientsProtocol, std::max(MaxClients - Config()->m_SvReservedSlots, ClientCount))); // max clients
 
 	if(Type == SERVERINFO_EXTENDED)
 		p.AddString("", 0); // extra info, reserved
@@ -2728,9 +2766,9 @@ void CServer::CacheServerInfoSixup(CCache *pCache, bool SendClients, int MaxCons
 	int MaxClients = m_NetServer.MaxClients();
 	Packer.AddInt(Config()->m_SvSkillLevel); // server skill level
 	Packer.AddInt(PlayerCount); // num players
-	Packer.AddInt(maximum(MaxClients - maximum(Config()->m_SvSpectatorSlots, Config()->m_SvReservedSlots), PlayerCount)); // max players
+	Packer.AddInt(std::max(MaxClients - std::max(Config()->m_SvSpectatorSlots, Config()->m_SvReservedSlots), PlayerCount)); // max players
 	Packer.AddInt(ClientCount); // num clients
-	Packer.AddInt(maximum(MaxClients - Config()->m_SvReservedSlots, ClientCount)); // max clients
+	Packer.AddInt(std::max(MaxClients - Config()->m_SvReservedSlots, ClientCount)); // max clients
 
 	if(SendClients)
 	{
@@ -2880,8 +2918,8 @@ void CServer::UpdateRegisterServerInfo()
 		}
 	}
 
-	int MaxPlayers = maximum(m_NetServer.MaxClients() - maximum(g_Config.m_SvSpectatorSlots, g_Config.m_SvReservedSlots), PlayerCount);
-	int MaxClients = maximum(m_NetServer.MaxClients() - g_Config.m_SvReservedSlots, ClientCount);
+	int MaxPlayers = std::max(m_NetServer.MaxClients() - std::max(g_Config.m_SvSpectatorSlots, g_Config.m_SvReservedSlots), PlayerCount);
+	int MaxClients = std::max(m_NetServer.MaxClients() - g_Config.m_SvReservedSlots, ClientCount);
 	char aMapSha256[SHA256_MAXSTRSIZE];
 
 	sha256_str(m_aCurrentMapSha256[MAP_TYPE_SIX], aMapSha256, sizeof(aMapSha256));
@@ -3026,7 +3064,9 @@ void CServer::UpdateServerInfo(bool Resend)
 			if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 			{
 				if(!IsSixup(i))
+				{
 					SendServerInfo(ClientAddr(i), -1, SERVERINFO_INGAME, false);
+				}
 				else
 				{
 					CMsgPacker ServerInfoMessage(protocol7::NETMSG_SERVERINFO, true, true);
@@ -3071,7 +3111,9 @@ void CServer::PumpNetwork(bool PacketWaiting)
 							ExtraToken = (Packet.m_aExtraData[0] << 8) | Packet.m_aExtraData[1];
 						}
 						else
+						{
 							Type = SERVERINFO_VANILLA;
+						}
 					}
 					else if(Packet.m_DataSize >= (int)sizeof(SERVERBROWSE_GETINFO_64_LEGACY) + 1 &&
 						mem_comp(Packet.m_pData, SERVERBROWSE_GETINFO_64_LEGACY, sizeof(SERVERBROWSE_GETINFO_64_LEGACY)) == 0)
@@ -3251,7 +3293,7 @@ void CServer::UpdateDebugDummies(bool ForceDisconnect)
 		return;
 
 	g_Config.m_SvAddDummies = std::clamp(g_Config.m_SvAddDummies, 0, MaxClients());
-	for(int DummyIndex = 0; DummyIndex < maximum(m_PreviousDebugDummies, g_Config.m_SvAddDummies); ++DummyIndex)
+	for(int DummyIndex = 0; DummyIndex < std::max(m_PreviousDebugDummies, g_Config.m_SvAddDummies); ++DummyIndex)
 	{
 		const bool AddDummy = !ForceDisconnect && DummyIndex < g_Config.m_SvAddDummies;
 		const int ClientId = MaxClients() - DummyIndex - 1;
@@ -3762,7 +3804,9 @@ void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 		((CServer *)pUser)->Kick(pResult->GetInteger(0), aBuf);
 	}
 	else
+	{
 		((CServer *)pUser)->Kick(pResult->GetInteger(0), "Kicked by console");
+	}
 }
 
 void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
@@ -3898,7 +3942,9 @@ void CServer::ConAuthAdd(IConsole::IResult *pResult, void *pUser)
 
 	bool NeedUpdate = !pManager->NumNonDefaultKeys();
 	if(pManager->AddKey(pIdent, pPw, pLevel) < 0)
-		log_info("auth", "ident already exists");
+	{
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident already exists");
+	}
 	else
 	{
 		if(NeedUpdate)
@@ -3949,7 +3995,9 @@ void CServer::ConAuthAddHashed(IConsole::IResult *pResult, void *pUser)
 	bool NeedUpdate = !pManager->NumNonDefaultKeys();
 
 	if(pManager->AddKeyHash(pIdent, Hash, aSalt, pLevel) < 0)
-		log_info("auth", "ident already exists");
+	{
+		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "auth", "ident already exists");
+	}
 	else
 	{
 		if(NeedUpdate)
@@ -4312,20 +4360,24 @@ void CServer::ConAddSqlServer(IConsole::IResult *pResult, void *pUserData)
 	CMysqlConfig Config;
 	bool Write;
 	if(str_comp_nocase(pResult->GetString(0), "r") == 0)
+	{
 		Write = false;
+	}
 	else if(str_comp_nocase(pResult->GetString(0), "w") == 0)
+	{
 		Write = true;
+	}
 	else
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "choose either 'r' for SqlReadServer or 'w' for SqlWriteServer");
 		return;
 	}
 
-	str_copy(Config.m_aDatabase, pResult->GetString(1), sizeof(Config.m_aDatabase));
-	str_copy(Config.m_aPrefix, pResult->GetString(2), sizeof(Config.m_aPrefix));
-	str_copy(Config.m_aUser, pResult->GetString(3), sizeof(Config.m_aUser));
-	str_copy(Config.m_aPass, pResult->GetString(4), sizeof(Config.m_aPass));
-	str_copy(Config.m_aIp, pResult->GetString(5), sizeof(Config.m_aIp));
+	str_copy(Config.m_aDatabase, pResult->GetString(1));
+	str_copy(Config.m_aPrefix, pResult->GetString(2));
+	str_copy(Config.m_aUser, pResult->GetString(3));
+	str_copy(Config.m_aPass, pResult->GetString(4));
+	str_copy(Config.m_aIp, pResult->GetString(5));
 	Config.m_aBindaddr[0] = '\0';
 	Config.m_Port = pResult->GetInteger(6);
 	Config.m_Setup = pResult->NumArguments() == 8 ? pResult->GetInteger(7) : true;
@@ -4427,7 +4479,9 @@ void CServer::ConchainCommandAccessUpdate(IConsole::IResult *pResult, void *pUse
 		}
 	}
 	else
+	{
 		pfnCallback(pResult, pCallbackUserData);
+	}
 }
 
 void CServer::LogoutClient(int ClientId, const char *pReason)

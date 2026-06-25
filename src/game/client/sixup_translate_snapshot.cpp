@@ -11,7 +11,7 @@
 
 int CGameClient::TranslateSnap(CSnapshotBuffer *pSnapDstSix, CSnapshot *pSnapSrcSeven, int Conn, bool Dummy)
 {
-	rust::Box<CSnapshotBuilder> pBuilder = CSnapshotBuilder_New();
+	rust::Box<CSnapshotBuilder> pBuilder = CSnapshotBuilder::New();
 	pBuilder->Init(false);
 
 	float LocalTime = Client()->LocalTime();
@@ -403,6 +403,10 @@ int CGameClient::TranslateSnap(CSnapshotBuffer *pSnapDstSix, CSnapshot *pSnapSrc
 			IntsToStr(pInfo->m_aName, std::size(pInfo->m_aName), Client.m_aName, std::size(Client.m_aName));
 			IntsToStr(pInfo->m_aClan, std::size(pInfo->m_aClan), Client.m_aClan, std::size(Client.m_aClan));
 			Client.m_Country = pInfo->m_Country;
+			if(!in_range(Client.m_Country, CountryCode::MINIMUM, CountryCode::MAXIMUM))
+			{
+				Client.m_Country = CountryCode::DEFAULT;
+			}
 
 			ApplySkin7InfoFromSnapObj(pInfo, ClientId);
 		}
@@ -434,7 +438,7 @@ int CGameClient::TranslateSnap(CSnapshotBuffer *pSnapDstSix, CSnapshot *pSnapSrc
 
 int CGameClient::OnDemoRecSnap7(CSnapshot *pFrom, CSnapshotBuffer *pTo, int Conn)
 {
-	rust::Box<CSnapshotBuilder> pBuilder = CSnapshotBuilder_New();
+	rust::Box<CSnapshotBuilder> pBuilder = CSnapshotBuilder::New();
 	pBuilder->Init(false);
 
 	{

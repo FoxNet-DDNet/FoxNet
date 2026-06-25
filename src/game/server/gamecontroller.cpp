@@ -66,7 +66,7 @@ void IGameController::DoActivityCheck()
 				case 0:
 				{
 					// move player to spectator
-					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS, true);
 				}
 				break;
 				case 1:
@@ -79,7 +79,7 @@ void IGameController::DoActivityCheck()
 					if(Spectators >= g_Config.m_SvSpectatorSlots)
 						Server()->Kick(i, "Kicked for inactivity");
 					else
-						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
+						DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS, true);
 				}
 				break;
 				case 2:
@@ -835,7 +835,6 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	int ClientId = pPlayer->GetCid();
 
 	char aBuf[128];
-	DoChatMsg = false;
 	if(DoChatMsg)
 	{
 		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(ClientId), GameServer()->m_pController->GetTeamName(Team));

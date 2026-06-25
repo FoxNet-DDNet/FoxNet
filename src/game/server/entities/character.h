@@ -11,6 +11,7 @@
 #include <game/server/foxnet/vehicles/ufo.h>
 #include <game/server/save.h>
 
+class CPlayer;
 class CGameTeams;
 class CGameWorld;
 class IAntibot;
@@ -117,8 +118,8 @@ public:
 	bool IsAlive() const { return m_Alive; }
 	// /spec
 	bool IsPaused() const { return m_Paused; }
-	class CPlayer *GetPlayer() { return m_pPlayer; }
-
+	CPlayer *GetPlayer() { return m_pPlayer; }
+	const CPlayer *GetPlayer() const { return m_pPlayer; }
 	CClientMask TeamMask();
 	CClientMask TeamMaskExceptSelfAndSixup();
 	CClientMask TeamMaskExceptSixup();
@@ -210,7 +211,7 @@ private:
 	// DDRace
 
 	void SnapCharacter(int SnappingClient, int Id);
-	static bool IsSwitchActiveCb(int Number, void *pUser);
+	static bool IsSwitchActiveCb(unsigned char Number, void *pUser);
 	void SetTimeCheckpoint(int TimeCheckpoint);
 	void HandleTiles(int Index);
 	float m_Time;

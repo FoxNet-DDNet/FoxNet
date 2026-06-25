@@ -6,6 +6,7 @@
 #include "render.h"
 
 #include <base/color.h>
+#include <base/types.h>
 #include <base/vmath.h>
 
 #include <engine/client.h>
@@ -449,6 +450,9 @@ public:
 
 		char m_aName[MAX_NAME_LENGTH];
 		char m_aClan[MAX_CLAN_LENGTH];
+		/**
+		 * Country code in ISO 3166-1 numeric.
+		 */
 		int m_Country;
 		char m_aSkinName[MAX_SKIN_LENGTH];
 		int m_Team;
@@ -583,6 +587,8 @@ public:
 
 	CRenderTools m_RenderTools;
 	CRenderMap m_RenderMap;
+
+	bool m_BackButtonHandledKeyBind = false;
 
 	void OnReset();
 
@@ -909,6 +915,18 @@ private:
 	int m_aShowOthers[NUM_DUMMIES];
 	int m_aEnableSpectatorCount[NUM_DUMMIES]; // current setting as sent to the server, -1 if not yet sent
 
+	class CImageAsset
+	{
+	public:
+		bool IsLoaded() const { return m_ImageInfo.m_pData != nullptr; }
+
+		char m_aPath[IO_MAX_PATH_LENGTH];
+		bool m_IsDefault;
+		CImageInfo m_ImageInfo;
+	};
+
+	CImageAsset LoadAssetFromPath(const char *pPath, bool AsDir, int AssetId, const char *pDirectory) const;
+
 	std::vector<std::shared_ptr<CManagedTeeRenderInfo>> m_vpManagedTeeRenderInfos;
 	void UpdateManagedTeeRenderInfos();
 
@@ -917,6 +935,8 @@ private:
 	void UpdateSpectatorCursor();
 	void UpdateRenderedCharacters();
 	void HandlePredictedEvents(int Tick);
+
+	void OnInput(const IInput::CEvent &Event);
 
 	int m_aLastUpdateTick[MAX_CLIENTS] = {0};
 	void DetectStrongHook();
