@@ -141,7 +141,7 @@ void CPickupDrop::Reset(bool PickedUp)
 	m_MarkedForDestroy = true;
 }
 
-bool CPickupDrop::IsSwitchActiveCb(int Number, void *pUser)
+bool CPickupDrop::IsSwitchActiveCb(unsigned char Number, void *pUser)
 {
 	CPickupDrop *pThis = (CPickupDrop *)pUser;
 	auto &aSwitchers = pThis->Switchers();
@@ -324,8 +324,8 @@ void CPickupDrop::HandleSkippableTiles(int Index)
 			constexpr float MaxSpeedScale = 5.0f;
 			if(MaxSpeed == 0)
 			{
-				float MaxRampSpeed = GetTuning(m_TuneZone)->m_VelrampRange / (50 * log(maximum((float)GetTuning(m_TuneZone)->m_VelrampCurvature, 1.01f)));
-				MaxSpeed = maximum(MaxRampSpeed, GetTuning(m_TuneZone)->m_VelrampStart / 50) * MaxSpeedScale;
+				float MaxRampSpeed = GetTuning(m_TuneZone)->m_VelrampRange / (50 * log(std::max((float)GetTuning(m_TuneZone)->m_VelrampCurvature, 1.01f)));
+				MaxSpeed = std::max(MaxRampSpeed, GetTuning(m_TuneZone)->m_VelrampStart / 50) * MaxSpeedScale;
 			}
 
 			// (signed) length of projection

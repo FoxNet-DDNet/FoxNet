@@ -474,8 +474,8 @@ void CHideAndSeekZone::StartGame()
 	m_SeekTimeTotal = Ticks;
 	m_SeekTimeRemaining = Ticks;
 
-	const int SeekTimeSeconds = maximum(0, m_SeekTimeTotal / Server()->TickSpeed());
-	m_GameInfoTimeLimit = maximum(1, (SeekTimeSeconds + 59) / 60);
+	const int SeekTimeSeconds = std::max(0, m_SeekTimeTotal / Server()->TickSpeed());
+	m_GameInfoTimeLimit = std::max(1, (SeekTimeSeconds + 59) / 60);
 
 	const int ElapsedSeconds = m_GameInfoTimeLimit * 60 - SeekTimeSeconds;
 	m_GameInfoRoundStartTick = Server()->Tick() - ElapsedSeconds * Server()->TickSpeed();

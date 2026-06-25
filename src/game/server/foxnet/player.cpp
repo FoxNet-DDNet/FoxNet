@@ -391,9 +391,9 @@ void CPlayer::GiveMoney(int64_t Amount, bool Multiplier, bool Silent)
 	const int64_t OldMoney = Acc()->m_Money;
 	int64_t NewMoney = OldMoney;
 	if(Amount >= 0)
-		NewMoney = minimum<int64_t>(std::numeric_limits<int64_t>::max() - OldMoney, Amount) + OldMoney;
+		NewMoney = std::min<int64_t>(std::numeric_limits<int64_t>::max() - OldMoney, Amount) + OldMoney;
 	else
-		NewMoney = maximum<int64_t>(0, OldMoney + Amount);
+		NewMoney = std::max<int64_t>(0, OldMoney + Amount);
 
 	Acc()->m_Money = NewMoney;
 	const int64_t AppliedAmount = NewMoney - OldMoney;

@@ -100,7 +100,7 @@ public:
 
 	void Init()
 	{
-		m_Layers.Init(m_pMap.get(), false);
+		m_Layers.Init(m_pMap.get(), false, false);
 		m_Collision.Init(&m_Layers);
 	}
 	void Unload()

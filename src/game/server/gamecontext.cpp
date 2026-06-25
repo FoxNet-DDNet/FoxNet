@@ -4382,7 +4382,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 		Server()->SnapSetStaticsize7(i, m_NetObjHandler7.GetObjSize(i));
 	}
 
-	Layers()->Init(Map(), false);
+	Layers()->Init(Map(), false, false);
 	Collision()->Init(Layers());
 	// <FoxNet
 	m_vMultiMaps[DefaultMapIndex].get()->InitTuning(this, DefaultMapIndex);
