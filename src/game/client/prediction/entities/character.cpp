@@ -762,7 +762,7 @@ bool CCharacter::IsSwitchActiveCb(unsigned char Number, void *pUser)
 	CCharacter *pThis = (CCharacter *)pUser;
 	auto &aSwitchers = pThis->Switchers();
 	const int Team = pThis->Team();
-	return !aSwitchers.empty() && Team != TEAM_SUPER && Number >= 0 && Number < (int)aSwitchers.size() && aSwitchers[Number].m_aStatus[Team];
+	return !aSwitchers.empty() && Team != TEAM_SUPER && Number < (int)aSwitchers.size() && aSwitchers[Number].m_aStatus[Team];
 }
 
 void CCharacter::HandleTiles(int Index)
