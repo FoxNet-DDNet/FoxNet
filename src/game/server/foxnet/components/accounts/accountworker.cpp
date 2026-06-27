@@ -1056,22 +1056,6 @@ bool CAccountsWorker::MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pDat
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
-bool CAccountsWorker::ClaimAllMailRewards(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
-{
-	const auto *pReq = dynamic_cast<const CAccClaimAllMailRewards *>(pData);
-	char aSql[256];
-	str_copy(aSql,
-		"UPDATE foxnet_account_mailbox "
-		"SET UsedCommand = 1 "
-		"WHERE Username = ? AND UsedCommand = 0 AND Command <> ''",
-		sizeof(aSql));
-	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
-		return false;
-	pSql->BindString(1, pReq->m_aUsername);
-	int NumUpdated = 0;
-	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
-}
-
 bool CAccountsWorker::DeleteAllReadMails(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccDeleteAllRead *>(pData);

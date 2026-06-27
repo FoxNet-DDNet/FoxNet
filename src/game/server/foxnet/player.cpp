@@ -280,15 +280,22 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		};
 
 		auto NewRewardMail = [this](CReward Reward) {
-			char aCmd[256] = "";
-			char aCmdName[128] = "";
+			class CRewardItem
+			{
+			public:
+				const CItemConfig *m_pItem = nullptr;
+				int m_Days = 0;
+			};
+
+			char aCmd[512] = "";
+			char aCmdName[512] = "";
 			char aSubject[128] = "";
 			char aMessage[128] = "";
 
-			std::vector<CItemConfig *> Items;
+			std::vector<const CItemConfig *> Items;
 			for(auto &Item : GameServer()->m_Shop.Registry().Map())
 			{
-				CItemConfig &pCfg = const_cast<CItemConfig &>(Item.second);
+				const CItemConfig &pCfg = Item.second;
 				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), pCfg.m_Rarity) != Reward.m_AllowedRarities.end() && pCfg.m_Price > 0)
 					Items.push_back(&pCfg);
 			}
@@ -298,13 +305,13 @@ bool CPlayer::CheckLevelUp(bool Silent)
 				std::uniform_int_distribution<int> Dis(0, Items.size() - 1);
 				std::uniform_int_distribution<int> DaysDis(1, 3);
 
-				std::vector<CItemConfig *> pItems;
+				std::vector<CRewardItem> vRewardItems;
 				for(int i = 0; i < Reward.m_ItemCount; i++)
 				{
-					CItemConfig *pItem = Items[Dis(Rng())];
-					int RandDays = DaysDis(Rng()) * 7;
-					pItem->m_DefaultDays = RandDays;
-					pItems.push_back(pItem);
+					CRewardItem RewardItem;
+					RewardItem.m_pItem = Items[Dis(Rng())];
+					RewardItem.m_Days = DaysDis(Rng()) * 7;
+					vRewardItems.push_back(RewardItem);
 				}
 
 				std::uniform_int_distribution<int> MoneyDis(Reward.m_MinMoney / 100, Reward.m_MaxMoney / 100);
@@ -312,13 +319,13 @@ bool CPlayer::CheckLevelUp(bool Silent)
 
 				str_copy(aCmd, "");
 				str_copy(aCmdName, "");
-				for(const CItemConfig *pItem : pItems)
+				for(const CRewardItem &RewardItem : vRewardItems)
 				{
 					char aTemp[128];
-					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", pItem->m_DefaultDays, pItem->m_pName);
+					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", RewardItem.m_Days, RewardItem.m_pItem->m_pName);
 					str_append(aCmd, aTemp, sizeof(aCmd));
 					char aTempName[128];
-					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", pItem->m_pName, pItem->m_DefaultDays);
+					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", RewardItem.m_pItem->m_pName, RewardItem.m_Days);
 					str_append(aCmdName, aTempName, sizeof(aCmdName));
 				}
 				char aMoneyCmd[128];

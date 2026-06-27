@@ -596,9 +596,9 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	pUpd->m_ClientId = ClientId;
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLoginState, std::move(pUpd), "acc update login");
 	AddPending(pUpdRes, [this, ClientId, pExpectedPlayer, NeedsOverride, FastInput, FastInputAmount, Now,
-				      Username = UsernameCopy, LastName = LastNameCopy, CurrentIp = CurrentIpCopy, LastIp = LastIpCopy,
-				      RegisterDate, Playtime, Deaths, Kills, Level, Xp, Money, Inventory, MailBox, Configs,
-				      PlayerName = std::string(pPlayerName)](CAccResult &UpdRes) {
+				    Username = UsernameCopy, LastName = LastNameCopy, CurrentIp = CurrentIpCopy, LastIp = LastIpCopy,
+				    RegisterDate, Playtime, Deaths, Kills, Level, Xp, Money, Inventory, MailBox, Configs,
+				    PlayerName = std::string(pPlayerName)](CAccResult &UpdRes) {
 		if(!UpdRes.m_Success)
 		{
 			if(IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
@@ -1061,15 +1061,6 @@ void CAccounts::MarkAllMailsRead(const char *pUsername)
 	auto pReq = std::make_unique<CAccMarkAllMailsRead>();
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	DbPool()->ExecuteWrite(CAccountsWorker::MarkAllMailsRead, std::move(pReq), "acc mark all mails read");
-}
-
-void CAccounts::ClaimAllMailRewards(const char *pUsername)
-{
-	if(!DbPool())
-		return;
-	auto pReq = std::make_unique<CAccClaimAllMailRewards>();
-	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
-	DbPool()->ExecuteWrite(CAccountsWorker::ClaimAllMailRewards, std::move(pReq), "acc mark all mails claimed");
 }
 
 void CAccounts::DeleteAllReadMails(const char *pUsername)

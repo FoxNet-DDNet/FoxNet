@@ -215,12 +215,6 @@ struct CAccMarkAllMailsRead : ISqlData
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 };
 
-struct CAccClaimAllMailRewards : ISqlData
-{
-	CAccClaimAllMailRewards() :
-		ISqlData(nullptr) {}
-	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
-};
 struct CAccDeleteAllRead : ISqlData
 {
 	CAccDeleteAllRead() :
@@ -300,7 +294,6 @@ struct CAccountsWorker
 	static bool SetPassword(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool MarkAllMailsRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
-	static bool ClaimAllMailRewards(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DeleteAllReadMails(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);

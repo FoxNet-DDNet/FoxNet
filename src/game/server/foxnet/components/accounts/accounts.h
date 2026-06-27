@@ -239,7 +239,6 @@ public:
 
 	// Bulk mail operations
 	void MarkAllMailsRead(const char *pUsername);
-	void ClaimAllMailRewards(const char *pUsername);
 	void DeleteAllReadMails(const char *pUsername);
 
 	void SetMailRead(const char *pUsername, int64_t MailId, bool Read);

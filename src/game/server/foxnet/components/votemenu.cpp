@@ -27,6 +27,7 @@
 #include <game/voting.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstring>
 #include <iterator>
 #include <optional>
@@ -355,16 +356,32 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOption(pVote, MAIL_CLAIM_ALL_REWARDS))
 			{
+				int Claimed = 0;
+				int Failed = 0;
 				for(auto &Mail : Acc.m_MailBox.m_vMails)
 				{
 					const bool HasUnclaimedReward = !Mail.m_UsedCmd && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
 					if(HasUnclaimedReward)
 					{
-						ExecMailCmd(ClientId, Mail);
-						Mail.m_UsedCmd = true;
+						if(ExecMailCmd(ClientId, Mail))
+						{
+							Mail.m_UsedCmd = true;
+							GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, Mail.m_MailId, true);
+							Claimed++;
+						}
+						else
+						{
+							Failed++;
+						}
 					}
 				}
-				GameServer()->m_AccountManager.ClaimAllMailRewards(Acc.m_aUsername);
+				if(Failed > 0)
+				{
+					char aBuf[128];
+					str_format(aBuf, sizeof(aBuf), "Claimed %d mail reward%s. %d reward%s could not be claimed and remain available.",
+						Claimed, Claimed == 1 ? "" : "s", Failed, Failed == 1 ? "" : "s");
+					GameServer()->SendChatTarget(ClientId, aBuf);
+				}
 				return true;
 			}
 			if(IsOption(pVote, MAIL_DELETE_ALL_READ))
@@ -421,9 +438,11 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				}
 				else
 				{
-					ExecMailCmd(ClientId, TargetMail);
-					TargetMail.m_UsedCmd = true;
-					GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, TargetMail.m_MailId, TargetMail.m_UsedCmd);
+					if(ExecMailCmd(ClientId, TargetMail))
+					{
+						TargetMail.m_UsedCmd = true;
+						GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, TargetMail.m_MailId, TargetMail.m_UsedCmd);
+					}
 				}
 
 				return true;
@@ -1787,13 +1806,22 @@ const char *CVoteMenu::FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item)
 	return aBuf;
 }
 
-void CVoteMenu::ExecMailCmd(int ClientId, CMailBox::CMail &Mail)
+bool CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail &Mail)
 {
+	if(!CheckClientId(ClientId))
+		return false;
+
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer || !pPlayer->Acc()->m_LoggedIn)
+		return false;
+
 	const char *pTemplate = Mail.m_aCmd;
-	char aCmd[256] = "";
+	char aCmd[sizeof(Mail.m_aCmd)] = "";
 	char *pDst = aCmd;
 	size_t DstRemain = sizeof(aCmd) - 1;
-	for(const char *p = pTemplate; *p && DstRemain;)
+	const char *p = pTemplate;
+	bool Truncated = false;
+	for(; *p && DstRemain;)
 	{
 		if(*p == '%')
 		{
@@ -1812,7 +1840,10 @@ void CVoteMenu::ExecMailCmd(int ClientId, CMailBox::CMail &Mail)
 				std::string Id = std::to_string(ClientId);
 				size_t IdLen = str_length(Id.c_str());
 				if(IdLen > DstRemain)
-					IdLen = DstRemain;
+				{
+					Truncated = true;
+					break;
+				}
 				if(IdLen)
 				{
 					mem_copy(pDst, Id.c_str(), IdLen);
@@ -1835,7 +1866,19 @@ void CVoteMenu::ExecMailCmd(int ClientId, CMailBox::CMail &Mail)
 	}
 	*pDst = '\0';
 
+	if(*p)
+		Truncated = true;
+	if(Truncated)
+	{
+		log_error("mail", "Reward command for mail %" PRId64 " was too long for client %d", Mail.m_MailId, ClientId);
+		GameServer()->SendChatTarget(ClientId, "This mail reward command is too long. It was not claimed.");
+		return false;
+	}
+	if(aCmd[0] == '\0')
+		return false;
+
 	GameServer()->Console()->ExecuteLine(aCmd, IConsole::CLIENT_ID_UNSPECIFIED);
+	return true;
 }
 
 void CVoteMenu::AddVoteImpl(const char *pDesc)
