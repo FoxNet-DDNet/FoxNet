@@ -138,6 +138,7 @@ class CConsole : public IConsole
 		void ResetVictim();
 		void SetVictim(int Victim);
 		void SetVictim(const char *pVictim);
+		bool HasVictim() const override;
 		int GetVictim() const override;
 	};
 

@@ -20,6 +20,8 @@ struct CPortalData
 
 class CPortal : public CEntityOwned
 {
+	MACRO_ALLOC_POOL_ID()
+
 	enum
 	{
 		NUM_PORTALS = 2,

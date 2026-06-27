@@ -22,6 +22,8 @@
 
 #include <vector>
 
+MACRO_ALLOC_POOL_ID_IMPL(CLightSaber, MAX_CLIENTS)
+
 CLightSaber::CLightSaber(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LIGHTSABER, Pos)
 {

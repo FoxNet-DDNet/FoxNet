@@ -97,6 +97,7 @@ public:
 
 		// DDRace
 
+		virtual bool HasVictim() const = 0;
 		virtual int GetVictim() const = 0;
 	};
 

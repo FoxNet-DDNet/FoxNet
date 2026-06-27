@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <iterator>
 
+MACRO_ALLOC_POOL_ID_IMPL(CPortal, MAX_CLIENTS)
+
 constexpr float MaxPortalRad = 56.0f;
 constexpr float MinPortalRad = 15.0f;
 constexpr int FadeOutTicks = SERVER_TICK_SPEED;

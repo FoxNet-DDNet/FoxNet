@@ -25,13 +25,13 @@
 public: \
 	void *operator new(size_t Size) \
 	{ \
-		void *pObj = malloc(Size); \
+		void *pObj = ::operator new(Size); \
 		mem_zero(pObj, Size); \
 		return pObj; \
 	} \
 	void operator delete(void *pPtr) \
 	{ \
-		free(pPtr); \
+		::operator delete(pPtr); \
 	} \
 \
 private:

@@ -13,6 +13,8 @@ constexpr float LIGHT_SABER_MAX_LENGTH = 220.0f;
 
 class CLightSaber : public CEntityOwned
 {
+	MACRO_ALLOC_POOL_ID()
+
 	vec2 m_From;
 	vec2 m_To;
 

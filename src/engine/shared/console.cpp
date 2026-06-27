@@ -1257,8 +1257,12 @@ std::unique_ptr<IConsole> CreateConsole(int FlagMask) { return std::make_unique<
 
 int CConsole::CResult::GetVictim() const
 {
-	dbg_assert(m_VictimId.has_value(), "m_VictimId has no value");
-	return m_VictimId.value();
+	return m_VictimId.value_or(-1);
+}
+
+bool CConsole::CResult::HasVictim() const
+{
+	return m_VictimId.has_value();
 }
 
 void CConsole::CResult::ResetVictim()

@@ -271,9 +271,36 @@ std::optional<std::vector<int>> CGameContext::ClientsForVictim(int ClientId, con
 			vClientIds.emplace_back(i);
 		}
 	}
+	else if(!str_comp(pVictim, "other") || !str_comp(pVictim, "others"))
+	{
+		const int MaxClients = pSelf->Server()->MaxClients();
+		for(int i = 0; i < MaxClients; i++)
+		{
+			if(i == ClientId || !pSelf->Server()->ClientIngame(i))
+				continue;
+
+			vClientIds.emplace_back(i);
+		}
+	}
 	else
 	{
-		return std::nullopt;
+		int VictimLowest = -1;
+		int VictimHighest = -1;
+		if(sscanf(pVictim, "%d-%d", &VictimLowest, &VictimHighest) != 2)
+			return std::nullopt;
+
+		if(VictimLowest > VictimHighest)
+			std::swap(VictimLowest, VictimHighest);
+
+		VictimLowest = std::clamp(VictimLowest, 0, pSelf->Server()->MaxClients() - 1);
+		VictimHighest = std::clamp(VictimHighest, 0, pSelf->Server()->MaxClients() - 1);
+		for(int i = VictimLowest; i <= VictimHighest; i++)
+		{
+			if(i == ClientId || !pSelf->Server()->ClientIngame(i))
+				continue;
+
+			vClientIds.emplace_back(i);
+		}
 	}
 
 	return std::make_optional(std::move(vClientIds));

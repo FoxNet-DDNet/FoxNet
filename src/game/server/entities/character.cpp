@@ -794,7 +794,7 @@ void CCharacter::FireWeapon()
 	case WEAPON_LIGHTSABER:
 	{
 		if(!m_pLightSaber)
-			m_pLightSaber = new CLightSaber(GameWorld(), m_pPlayer->GetCid(), m_Pos);
+			m_pLightSaber = new(m_pPlayer->GetCid()) CLightSaber(GameWorld(), m_pPlayer->GetCid(), m_Pos);
 		if(m_pLightSaber)
 			m_pLightSaber->OnFire();
 	}
@@ -803,7 +803,7 @@ void CCharacter::FireWeapon()
 	case WEAPON_PORTALGUN:
 	{
 		if(!m_pPortal)
-			m_pPortal = new CPortal(GameWorld(), m_pPlayer->GetCid(), m_Pos);
+			m_pPortal = new(m_pPlayer->GetCid()) CPortal(GameWorld(), m_pPlayer->GetCid(), m_Pos);
 		if(m_pPortal)
 			m_pPortal->OnFire();
 	}
@@ -2796,7 +2796,7 @@ bool CCharacter::Unfreeze()
 	if(m_FreezeTime > 0)
 	{
 		m_Armor = 10;
-		if(m_Core.m_ActiveWeapon >= 0 &&!m_Core.m_aWeapons[m_Core.m_ActiveWeapon].m_Got)
+		if(m_Core.m_ActiveWeapon >= 0 && !m_Core.m_aWeapons[m_Core.m_ActiveWeapon].m_Got)
 		{
 			for(int i = 0; i < NUM_EXTRA_WEAPONS; i++)
 			{
