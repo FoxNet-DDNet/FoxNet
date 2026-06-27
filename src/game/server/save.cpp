@@ -247,10 +247,6 @@ bool CSaveTee::Load(CCharacter *pChr, std::optional<int> Team)
 
 	pChr->m_ReloadTimer = m_ReloadTimer;
 
-	// <FoxNet
-	pChr->m_ShouldSolo = false;
-	// FoxNet>
-
 	pChr->SetSolo(m_IsSolo);
 
 	if(Team.has_value())

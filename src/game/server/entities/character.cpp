@@ -3188,17 +3188,19 @@ void CCharacter::FoxNetSpawn()
 	m_TelekinesisId = -1;
 	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
+	bool ShouldSolo = true;
 	if(g_Config.m_SvSoloServer || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
-		m_ShouldSolo = false;
+		ShouldSolo = false;
 
-	if(g_Config.m_SvSoloOnSpawn > 0 && m_ShouldSolo)
+	if(Team() != TEAM_FLOCK && Teams()->TeamSize(Team()) <= 1)
+		ShouldSolo = false; // Alone in a team
+
+	if(g_Config.m_SvSoloOnSpawn > 0 && ShouldSolo)
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
 		new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
 	}
-	if(!m_ShouldSolo)
-		m_ShouldSolo = true; // Next spawn will be solo
 }
 vec2 CCharacter::GetSnappedTargetPos(int SnappingClient)
 {
