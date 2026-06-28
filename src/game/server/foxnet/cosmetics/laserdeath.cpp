@@ -100,6 +100,6 @@ void CLaserDeath::Snap(int SnappingClient)
 
 		if(!m_SnapData.m_aIds[i].has_value())
 			continue;
-		SnapCosmeticLaserPos(SnappingClient, m_SnapData.m_aIds[i].value(), m_Owner, LaserPos, LaserPos, 0, LASERTYPE_GUN, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
+		SnapCosmeticLaserPos(SnappingClient, m_SnapData.m_aIds[i].value(), -1, LaserPos, LaserPos, 0, LASERTYPE_GUN, 100, COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 }
