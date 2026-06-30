@@ -353,7 +353,7 @@ void CItemRegistry::Init()
 		"Antennae", "H_A",
 		EItemFlag::Equippable, EExclusiveGroup::Hat,
 		// Price, MinLevel, Stars, Rarity
-		UnbuyablePrice, 30, 3, EItemRarity::Epic, "Wiggly antennae on your head",
+		100000, 30, 4, EItemRarity::Epic, "Wiggly antennae on your head",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetHatType(EHatType::Antennae); },
 		[](CPlayer &pl, const CItemConfig &, int) { if(pl.Cosmetics()->m_HatType == EHatType::Antennae) pl.SetHatType(EHatType::None); },
 		30});
@@ -418,8 +418,6 @@ void CItemRegistry::Init()
 		EItemFlag::Upgrade | EItemFlag::Stackable, EExclusiveGroup::None,
 		1000000, 60, 5, EItemRarity::Legendary, "Allows you to wear more cosmetics",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
-
-
 }
 
 std::vector<const CItemConfig *> CItemRegistry::SortedMap() const

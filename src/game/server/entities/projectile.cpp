@@ -121,8 +121,10 @@ vec2 CProjectile::GetPos(float Time, int ClientId)
 
 		CPlayer *pSnapPl = ClientId >= 0 ? GameServer()->m_apPlayers[ClientId] : nullptr;
 		if(pSnapPl && (pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns || ClientId == m_Owner))
+		{
 			if(m_GunType != EGunType::None)
 				Speed = 1100.0f;
+		}
 		break;
 	}
 
@@ -256,6 +258,20 @@ void CProjectile::Tick()
 					pOwnerChar->m_IsBlueTeleGunTeleport = TileFIndex == TILE_ALLOW_BLUE_TELE_GUN || IsBlueSwitchTeleGun;
 				}
 			}
+		}
+
+		if(m_GunType == EGunType::Snowflake && Collide)
+		{
+			m_StartTick = Server()->Tick();
+
+			vec2 Vel = CurPos - PrevPos;
+			m_Pos = NewPos;
+			Collision()->MovePoint(&m_Pos, &Vel, 1.0f, nullptr);
+
+			if(length_squared(Vel) > 0.0f)
+				m_Direction = normalize(Vel);
+
+			return;
 		}
 
 		if(Collide && m_Bouncing != 0)
