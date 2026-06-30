@@ -706,7 +706,11 @@ void CCharacter::FireWeapon()
 					vec2 PrevPos = pGren->GetPos(Pt);
 					vec2 CurPos = pGren->GetPos(Ct);
 					vec2 ColPos;
-					pGren->GetNearestAirPos(CurPos, PrevPos, &ColPos);
+					if(!pGren->GetNearestAirPos(CurPos, PrevPos, &ColPos))
+					{
+						if(!pGren->GetNearestAirPos(PrevPos, PrevPos, &ColPos))
+							break;
+					}
 					pGren->Reset();
 					ForceSetPos(ColPos);
 					// And Set PrevPos so GetMapIndices doesn't freak out
