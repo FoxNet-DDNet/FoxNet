@@ -5067,8 +5067,23 @@ const char *CGameContext::GameType()
 	return GameTypes[g_Config.m_SvFoxNetType];
 }
 const char *CGameContext::Version() const { return FOXNET_VERSION; }
+
+const char *CGameContext::VersionHash() const
+{
+	static char aVersion[32];
+	static char aHash[16] = "";
+	if(GIT_SHORTREV_HASH)
+		str_truncate(aHash, sizeof(aHash), GIT_SHORTREV_HASH, 8);
+
+	str_format(aVersion, sizeof(aVersion), "%s %s", FOXNET_VERSION, aHash);
+
+	return aVersion;
+}
 // FoxNet>
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
+
+
+
 
 IGameServer *CreateGameServer() { return new CGameContext; }
 

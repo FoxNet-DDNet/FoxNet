@@ -521,8 +521,11 @@ public:
 	int PersistentClientDataSize() const override { return sizeof(CPersistentClientData); }
 
 	CUuid GameUuid() const override;
+
 	const char *GameType() override;
 	const char *Version() const override;
+	const char *VersionHash() const override; // FoxNet
+
 	const char *NetVersion() const override;
 
 	// DDRace
