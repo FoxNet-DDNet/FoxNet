@@ -226,6 +226,8 @@ void CPortal::HandleTele()
 
 			const int ExitPortal = EnterPortal == 0 ? 1 : 0;
 			const vec2 Target = m_aData[ExitPortal].m_Pos;
+
+			pChr->m_PrevPos = Target;
 			pChr->ForceSetPos(Target);
 			vec2 Vel = pChr->GetVelocity();
 			constexpr float MaxVel = 125.0f;
