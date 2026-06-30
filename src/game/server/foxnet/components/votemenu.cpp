@@ -500,7 +500,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		}
 		else if(SubPage == SUB_SHOP_ITEMINFO)
 		{
-			if(IsOption(pVote, FormatItemVote(pPlayer, *Data.m_pLastItemInfo)))
+			if(Data.m_pLastItemInfo && IsOption(pVote, FormatItemVote(pPlayer, *Data.m_pLastItemInfo)))
 			{
 				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_pName);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
@@ -1401,8 +1401,8 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 		if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade)
 		{
-			const auto &Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
-			bool OwnsTooManyCosmeticUpgrades = Entry->second.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
+			const auto Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
+			bool OwnsTooManyCosmeticUpgrades = Entry != pAcc->m_Inventory.m_Map.end() && Entry->second.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
 			if(OwnsTooManyCosmeticUpgrades)
 			{
 				str_format(aBuf, sizeof(aBuf), "You can only own %d of '%s'", g_Config.m_SvMaxCosmeticUpgrades, pItem->m_pName);
