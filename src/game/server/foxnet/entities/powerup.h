@@ -46,8 +46,9 @@ class CPowerUp : public CEntity
 	CSnap m_Snap;
 
 	int m_Lifetime;
-
 	bool m_Switch;
+
+	int m_MaxCollections = 3;
 
 	CClientMask m_TeamMask;
 

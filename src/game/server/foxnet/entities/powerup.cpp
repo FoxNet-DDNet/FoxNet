@@ -25,8 +25,6 @@
 #include <iterator>
 #include <random>
 
-static constexpr int MAX_COLLECTIONS = 3; // Max number of players that can collect a powerup before it disappears
-
 CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp Type) :
 	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, true, Pos, 54)
 {
@@ -39,6 +37,20 @@ CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp T
 	
 	GameWorld()->InsertEntity(this);
 	SetData();
+
+	for(int i = 0; i < Server()->MaxClients(); i++)
+	{
+		if(!Server()->ClientIngame(i))
+			continue;
+
+		if(!GameServer()->GetPlayerChar(i))
+			continue;
+
+		if(!GameServer()->m_aAccounts[i].m_LoggedIn)
+			continue;
+
+		m_MaxCollections++;
+	}
 }
 
 void CPowerUp::SetData()
@@ -47,12 +59,12 @@ void CPowerUp::SetData()
 	switch(m_Data.m_Type)
 	{
 	case EPowerUp::XP:
-		m_Data.m_Value = GameServer()->RandGeometric(rng, 5, 30, 0.3);
+		m_Data.m_Value = GameServer()->RandGeometric(rng, 5, 40, 0.3);
 		m_Lifetime = 120 + m_Data.m_Value * 15;
 		break;
 	case EPowerUp::MONEY:
-		m_Data.m_Value = GameServer()->RandGeometric(rng, 3, 15, 0.3) * 25;
-		m_Lifetime = 120 + m_Data.m_Value / 2;
+		m_Data.m_Value = GameServer()->RandGeometric(rng, 3, 25, 0.3) * 25;
+		m_Lifetime = 120 + m_Data.m_Value * 0.45f;
 		break;
 	default:
 		m_Data.m_Value = 0;
@@ -122,7 +134,7 @@ void CPowerUp::Tick()
 		if(m_aClients[ClientId].m_Collected && m_aClients[ClientId].m_WasLoggedIn)
 			NumCollected++;
 
-		if(NumCollected >= MAX_COLLECTIONS)
+		if(NumCollected >= m_MaxCollections)
 		{
 			Reset();
 			return;
