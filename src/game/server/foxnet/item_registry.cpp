@@ -122,7 +122,7 @@ void CItemRegistry::Init()
 			}
 			else
 			{
-				int maxIdx = std::max(1, NUM_EMOTICONS - 1);
+				int maxIdx = std::max(1, (int)NUM_EMOTICONS);
 				int v = overrideValue;
 				if(v < 0)
 					v = 0;
