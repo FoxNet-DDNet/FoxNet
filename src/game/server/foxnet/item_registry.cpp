@@ -114,20 +114,20 @@ void CItemRegistry::Init()
 		"Emoticon Gun", "G_E",
 		EItemFlag::Equippable, EExclusiveGroup::None, // can be combined with type guns in original
 		16500, 10, 2, EItemRarity::Rare, "Shoot emotions at people",
-		[](CPlayer &pl, const CItemConfig &, int overrideValue) {
-			if(overrideValue < 0) // toggle
+		[](CPlayer &pl, const CItemConfig &, int OverrideValue) {
+			if(OverrideValue < 0) // toggle
 			{
 				int cur = pl.Cosmetics()->m_EmoticonGun;
 				pl.SetEmoticonGun(cur ? 0 : 1);
 			}
 			else
 			{
-				int maxIdx = std::max(1, (int)NUM_EMOTICONS);
-				int v = overrideValue;
+				constexpr int MaxIdx = NUM_EMOTICONS;
+				int v = OverrideValue;
 				if(v < 0)
 					v = 0;
-				if(v > maxIdx)
-					v = maxIdx;
+				if(v > MaxIdx)
+					v = MaxIdx;
 				pl.SetEmoticonGun(v);
 			}
 		},
