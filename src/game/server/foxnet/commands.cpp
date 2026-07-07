@@ -1760,7 +1760,7 @@ void CGameContext::ConUnloadMultiMap(IConsole::IResult *pResult, void *pUserData
 void CGameContext::ConReloadMultiMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	char aMapName[IO_MAX_PATH_LENGTH];
+	char aMapName[IO_MAX_PATH_LENGTH] = "";
 	if(pResult->NumArguments())
 	{
 		str_copy(aMapName, pResult->GetString(0), sizeof(aMapName));
@@ -1776,9 +1776,9 @@ void CGameContext::ConReloadMultiMap(IConsole::IResult *pResult, void *pUserData
 				str_copy(aMapName, pSelf->m_vMultiMaps[MultiMapIndex]->m_pMap->BaseName(), sizeof(aMapName));
 			}
 		}
-
-		pSelf->ReloadMapByName(aMapName);
 	}
+
+	pSelf->ReloadMapByName(aMapName);
 }
 
 void CGameContext::ConListMultiMaps(IConsole::IResult *pResult, void *pUserData)
