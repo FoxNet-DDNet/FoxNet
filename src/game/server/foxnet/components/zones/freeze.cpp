@@ -30,6 +30,13 @@ void CFreezeZone::OnTick()
 				continue;
 			if(pChr->Core()->m_IsInFreeze)
 				continue;
+			if(pChr->Core()->m_DeepFrozen)
+				continue;
+			if(pChr->Core()->m_LiveFrozen)
+				continue;
+
+			if(pChr->m_TileIndex == TILE_UNFREEZE || pChr->m_TileFIndex == TILE_UNFREEZE)
+				continue;
 
 			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 				continue;

@@ -27,6 +27,12 @@ void CUnfreezeZone::OnTick()
 
 		if(pChr->Core()->m_IsInFreeze)
 			continue;
+
+		if(pChr->Core()->m_DeepFrozen)
+			continue;
+		if(pChr->Core()->m_LiveFrozen)
+			continue;
+
 		if(pChr->m_FreezeTime == 0 && !pChr->m_InsideQuadFreeze)
 			continue;
 
