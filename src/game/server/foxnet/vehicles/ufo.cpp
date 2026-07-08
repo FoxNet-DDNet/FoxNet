@@ -147,6 +147,10 @@ void CVUfo::Snap(int SnappingClient)
 	if(!m_Active)
 		return;
 
+	const int UfoLaserType = g_Config.m_SvUfoLaserType;
+	if(UfoLaserType == -1)
+		return;
+
 	if(NetworkClipped(GameServer(), SnappingClient, m_pCharacter->m_Pos))
 		return;
 
@@ -186,7 +190,7 @@ void CVUfo::Snap(int SnappingClient)
 			int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
 			const bool SixUp = Server()->IsSixup(SnappingClient); // FoxNet
 			GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient),
-				m_Visual.m_aIds[i].value(), To, From, Server()->Tick(), ClientId, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
+				m_Visual.m_aIds[i].value(), To, From, Server()->Tick(), ClientId, UfoLaserType, -1, -1, LASERFLAG_NO_PREDICT);
 		}
 		else
 		{
@@ -196,7 +200,7 @@ void CVUfo::Snap(int SnappingClient)
 			Laser.m_ToX = round_to_int(m_Visual.m_aTo[i].x);
 			Laser.m_ToY = round_to_int(m_Visual.m_aTo[i].y);
 			Laser.m_TickOffset = 0;
-			Laser.m_Type = LASERTYPE_GUN;
+			Laser.m_Type = UfoLaserType;
 			Laser.m_Owner = ClientId;
 			Laser.m_Alpha = -1;
 			Laser.m_Flags = COSMETIC_LASER_FLAG_TO_HEAD | COSMETIC_FLAG_ANCHORED;

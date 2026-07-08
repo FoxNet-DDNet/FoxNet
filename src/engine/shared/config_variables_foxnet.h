@@ -58,7 +58,7 @@ MACRO_CONFIG_INT(SvUfoAccel, sv_ufo_accel, 12, 1, 200, CFGFLAG_SERVER, "Ufos acc
 MACRO_CONFIG_INT(SvUfoTranslateVel, sv_ufo_translate_vel, 1, 0, 1, CFGFLAG_SERVER, "Whether to use normal character velocity aswell as UFOs")
 MACRO_CONFIG_INT(SvUfoDisableFreeze, sv_ufo_disable_freeze, 1, 0, 1, CFGFLAG_SERVER, "Whether the character gets affected by freeze (cant move)")
 MACRO_CONFIG_INT(SvAutoUfo, sv_auto_ufo, 0, 0, 1, CFGFLAG_SERVER, "Automatically gives every player an UFO (always)")
-MACRO_CONFIG_INT(SvUfoLaserType, sv_ufo_laser_type, 0, 0, 6, CFGFLAG_SERVER, "Ufos laser type")
+MACRO_CONFIG_INT(SvUfoLaserType, sv_ufo_laser_type, 0, -1, 6, CFGFLAG_SERVER, "Ufos laser type")
 MACRO_CONFIG_INT(SvUfoHideHookColl, sv_ufo_hide_hook_coll, 2, 0, 2, CFGFLAG_SERVER, "Whether other people see UFO players hookcoll when flying down")
 MACRO_CONFIG_INT(SvUfoBrakes, sv_ufo_brakes, 0, 0, 1, CFGFLAG_SERVER, "Allows the UFO to instantly stop and stay still if player is flying up, down, and holding Fire")
 
