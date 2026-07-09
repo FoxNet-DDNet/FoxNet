@@ -1436,6 +1436,14 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 		Character.m_Armor = Armor;
 		Character.m_PlayerFlags = GetPlayer()->m_PlayerFlags;
 
+		// <FoxNet
+		if(m_Ufo.Active() && g_Config.m_SvUfoHideHookColl > 0)
+		{
+			if(g_Config.m_SvUfoHideHookColl == 1 || (g_Config.m_SvUfoHideHookColl == 2 && !m_Ufo.AllowHookColl()))
+				Character.m_PlayerFlags &= ~PLAYERFLAG_AIM;
+		}
+		// FoxNet>
+
 		Server()->SnapNewItem(Id, Character);
 	}
 	else
