@@ -241,6 +241,16 @@ namespace
 			       Sw == TILE_FREEZE || Sw == TILE_DFREEZE || Sw == TILE_LFREEZE;
 		};
 
+		// Deep freeze (TILE_DFREEZE) keeps the player frozen even after they leave
+		// the tile; it only clears at a DUNFREEZE tile. Normal/live freeze instead
+		// auto-thaws after a delay (see CCharacter::HandleTiles), so a player can
+		// cross it by momentum and land anywhere without needing an unfreeze tile.
+		const auto IsDeepFreezeAtIndex = [&](int Idx) -> bool {
+			return Data.m_GameTiles[Idx] == TILE_DFREEZE ||
+			       Data.m_FrontTiles[Idx] == TILE_DFREEZE ||
+			       Data.m_SwitchTiles[Idx] == TILE_DFREEZE;
+		};
+
 		const auto IsUnfreezeLikeAtIndex = [&](int Idx) -> bool {
 			const int Game = Data.m_GameTiles[Idx];
 			const int Front = Data.m_FrontTiles[Idx];
@@ -441,6 +451,67 @@ namespace
 		const int DirX[4] = {1, -1, 0, 0};
 		const int DirY[4] = {0, 0, 1, -1};
 
+		// How far (in tiles) a player can realistically carry momentum through a
+		// contiguous normal-freeze region before landing. Bounds the over-
+		// approximation of the momentum crossing below.
+		constexpr int MaxFreezeCrossTiles = 40;
+
+		// Flood through a connected region of normal (non-deep) freeze starting at
+		// (EntryX, EntryY), bounded by MaxFreezeCrossTiles, and collect the tile
+		// indices where the region exits into open space. Since normal freeze auto-
+		// thaws, each such exit is somewhere the player can end up after crossing.
+		// Deep-freeze tiles are treated as walls here: they don't thaw on their own,
+		// so crossing them by momentum doesn't make the far side reachable.
+		std::vector<uint32_t> FreezeStamp((size_t)W * H, 0);
+		uint32_t FreezeGen = 0;
+		std::deque<std::pair<int, int>> FreezeQ;
+		const auto CollectMomentumFreezeExits = [&](int EntryX, int EntryY, std::vector<int> &OutExits) {
+			OutExits.clear();
+			++FreezeGen;
+			FreezeQ.clear();
+
+			const int EntryIdx = ToIndex(EntryX, EntryY);
+			FreezeStamp[EntryIdx] = FreezeGen;
+			FreezeQ.emplace_back(EntryIdx, 0);
+
+			while(!FreezeQ.empty())
+			{
+				const auto [Idx, Dist] = FreezeQ.front();
+				FreezeQ.pop_front();
+
+				const int Cx = Idx % W;
+				const int Cy = Idx / W;
+				for(int k = 0; k < 4; ++k)
+				{
+					const int Nx = Cx + DirX[k];
+					const int Ny = Cy + DirY[k];
+					if(!InBounds(Nx, Ny))
+						continue;
+
+					const int NIdx = ToIndex(Nx, Ny);
+					if(FreezeStamp[NIdx] == FreezeGen)
+						continue;
+					FreezeStamp[NIdx] = FreezeGen;
+
+					if(IsBlockedForSpawnNav(Nx, Ny))
+						continue;
+
+					if(IsFreezeLikeAtIndex(NIdx))
+					{
+						if(IsDeepFreezeAtIndex(NIdx))
+							continue; // can't carry momentum through deep freeze
+						if(Dist + 1 < MaxFreezeCrossTiles)
+							FreezeQ.emplace_back(NIdx, Dist + 1);
+						continue;
+					}
+
+					// Non-freeze, non-blocked tile: the player thaws and lands here.
+					OutExits.push_back(NIdx);
+				}
+			}
+		};
+		std::vector<int> FreezeExits;
+
 		while(!Q.empty())
 		{
 			auto [X, Y, Cp, CrossedStart] = Q.front();
@@ -543,18 +614,41 @@ namespace
 
 				if(IsFreezeLikeAtIndex(NextIdx))
 				{
-					int UnfreezeIdx = -1;
-					if(!FindNearbyUnfreezeIndex(NextX, NextY, NextCrossedStart, Visited, UnfreezeIdx))
-						continue;
-
-					const int UnfreezeX = UnfreezeIdx % W;
-					const int UnfreezeY = UnfreezeIdx / W;
-					const bool UnfreezeCrossedStart = NextCrossedStart || IsStartAtIndex(UnfreezeIdx);
-					const size_t UnfreezeVisitedIdx = VisitedIndex(UnfreezeIdx, UnfreezeCrossedStart);
-					if(!Visited[UnfreezeVisitedIdx])
+					if(IsDeepFreezeAtIndex(NextIdx))
 					{
-						Visited[UnfreezeVisitedIdx] = 1;
-						Q.emplace_back(UnfreezeX, UnfreezeY, NextCp, UnfreezeCrossedStart);
+						// Deep freeze persists until a DUNFREEZE tile, so the far
+						// side is only reachable if an unfreeze tile is close by.
+						int UnfreezeIdx = -1;
+						if(!FindNearbyUnfreezeIndex(NextX, NextY, NextCrossedStart, Visited, UnfreezeIdx))
+							continue;
+
+						const int UnfreezeX = UnfreezeIdx % W;
+						const int UnfreezeY = UnfreezeIdx / W;
+						const bool UnfreezeCrossedStart = NextCrossedStart || IsStartAtIndex(UnfreezeIdx);
+						const size_t UnfreezeVisitedIdx = VisitedIndex(UnfreezeIdx, UnfreezeCrossedStart);
+						if(!Visited[UnfreezeVisitedIdx])
+						{
+							Visited[UnfreezeVisitedIdx] = 1;
+							Q.emplace_back(UnfreezeX, UnfreezeY, NextCp, UnfreezeCrossedStart);
+						}
+						continue;
+					}
+
+					// Normal/live freeze auto-thaws: a player can cross the whole
+					// region by momentum and land on any platform on the far side,
+					// with no unfreeze tile required.
+					CollectMomentumFreezeExits(NextX, NextY, FreezeExits);
+					for(const int ExitIdx : FreezeExits)
+					{
+						const int ExitX = ExitIdx % W;
+						const int ExitY = ExitIdx / W;
+						const bool ExitCrossedStart = NextCrossedStart || IsStartAtIndex(ExitIdx);
+						const size_t ExitVisitedIdx = VisitedIndex(ExitIdx, ExitCrossedStart);
+						if(!Visited[ExitVisitedIdx])
+						{
+							Visited[ExitVisitedIdx] = 1;
+							Q.emplace_back(ExitX, ExitY, NextCp, ExitCrossedStart);
+						}
 					}
 					continue;
 				}
@@ -589,6 +683,95 @@ namespace
 			std::erase_if(vSpawnCandidates, [&](const vec2 &Pos) {
 				return std::ranges::any_of(Data.m_Seeds, [&](const vec2 &Seed) {
 					return distance(Pos, Seed) <= ExclusionRadiusPx;
+				});
+			});
+		}
+
+		// Keep powerups strictly between the start and finish lines. The main flood
+		// carries CrossedStart monotonically, so after crossing the start line it can
+		// wander back into the spawn room and wrongly flag it as play area. Carve out
+		// the pre-start region geometrically and drop candidates in it, then add a
+		// buffer just inside the start/finish lines so powerups sit clearly within the
+		// play area (and near-finish over-the-top leaks get trimmed too).
+		if(!vSpawnCandidates.empty())
+		{
+			const auto IsFinishAt = [&](int X, int Y) -> bool {
+				if(!InBounds(X, Y))
+					return false;
+				const int Idx = ToIndex(X, Y);
+				return Data.m_GameTiles[Idx] == TILE_FINISH || Data.m_FrontTiles[Idx] == TILE_FINISH;
+			};
+			// Barrier for the pre-start flood: nav-blocks plus the start line itself.
+			const auto IsPreStartBarrier = [&](int X, int Y) -> bool {
+				if(!InBounds(X, Y))
+					return true;
+				return IsBlockedForSpawnNav(X, Y) || IsStartAtIndex(ToIndex(X, Y));
+			};
+
+			std::vector<uint8_t> PreStart((size_t)W * H, 0);
+			bool PreStartTouchesFinish = false;
+			if(HasAnyStartTiles)
+			{
+				std::deque<int> PreStartQ;
+				for(const vec2 &Seed : Data.m_Seeds)
+				{
+					const int Sx = std::clamp((int)std::floor(Seed.x / 32.0f), 0, W - 1);
+					const int Sy = std::clamp((int)std::floor(Seed.y / 32.0f), 0, H - 1);
+					const int Idx = ToIndex(Sx, Sy);
+					if(IsPreStartBarrier(Sx, Sy) || PreStart[Idx])
+						continue;
+					PreStart[Idx] = 1;
+					PreStartQ.push_back(Idx);
+				}
+				while(!PreStartQ.empty())
+				{
+					const int Idx = PreStartQ.front();
+					PreStartQ.pop_front();
+					const int Cx = Idx % W;
+					const int Cy = Idx / W;
+					for(int k = 0; k < 4; ++k)
+					{
+						const int Nx = Cx + DirX[k];
+						const int Ny = Cy + DirY[k];
+						if(!InBounds(Nx, Ny))
+							continue;
+						if(IsFinishAt(Nx, Ny))
+						{
+							PreStartTouchesFinish = true;
+							continue;
+						}
+						const int NIdx = ToIndex(Nx, Ny);
+						if(PreStart[NIdx] || IsPreStartBarrier(Nx, Ny))
+							continue;
+						PreStart[NIdx] = 1;
+						PreStartQ.push_back(NIdx);
+					}
+				}
+			}
+			// If the pre-start flood reaches the finish line, the spawns sit inside the
+			// play area rather than a separate spawn room, so dropping that region would
+			// wipe out real candidates. Only trust it as a spawn room otherwise.
+			const bool UsePreStart = HasAnyStartTiles && !PreStartTouchesFinish;
+
+			constexpr int BoundaryBufferTiles = 5;
+			constexpr float BoundaryBufferPx = BoundaryBufferTiles * 32.0f;
+			std::vector<vec2> BoundaryTiles;
+			for(int Y = 0; Y < H; ++Y)
+			{
+				for(int X = 0; X < W; ++X)
+				{
+					if(IsStartAtIndex(ToIndex(X, Y)) || IsFinishAt(X, Y))
+						BoundaryTiles.emplace_back(X * 32.0f + 16.0f, Y * 32.0f + 16.0f);
+				}
+			}
+
+			std::erase_if(vSpawnCandidates, [&](const vec2 &Pos) {
+				const int Px = std::clamp((int)std::floor(Pos.x / 32.0f), 0, W - 1);
+				const int Py = std::clamp((int)std::floor(Pos.y / 32.0f), 0, H - 1);
+				if(UsePreStart && PreStart[ToIndex(Px, Py)])
+					return true;
+				return std::ranges::any_of(BoundaryTiles, [&](const vec2 &Boundary) {
+					return distance(Pos, Boundary) <= BoundaryBufferPx;
 				});
 			});
 		}
