@@ -28,7 +28,7 @@ CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 
 		SetMultiMapIdx(GetPlayer()->MultiMapIdx());
 }
 
-bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
+bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer)
 {
 	if(m_MarkedForDestroy)
 		return false;
@@ -37,10 +37,7 @@ bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
-	if(!pSnapPlayer || !GetCharacter())
-		return false;
-
-	if(GetCharacter()->IsPaused())
+	if(!pSnapPlayer)
 		return false;
 
 	if(!TeamMask().test(SnappingClient))
@@ -58,6 +55,17 @@ bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 		*ppSnapPlayer = pSnapPlayer;
 
 	return true;
+}
+
+bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
+{
+	if(!GetCharacter())
+		return false;
+
+	if(GetCharacter()->IsPaused())
+		return false;
+
+	return CanSnapEntityNoChar(SnappingClient, ppSnapPlayer);
 }
 
 CPlayer *CEntityOwned::GetPlayer()

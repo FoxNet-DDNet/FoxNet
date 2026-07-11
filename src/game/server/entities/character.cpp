@@ -3382,7 +3382,7 @@ void CCharacter::DoTelekinesis()
 
 vec2 CCharacter::GetCursorPos()
 {
-	vec2 Target = vec2(Core()->m_Input.m_TargetX, Core()->m_Input.m_TargetY);
+	vec2 Target = vec2(Input()->m_TargetX, Input()->m_TargetY);
 	return GetPlayer()->m_CameraInfo.ConvertTargetToWorld(GetPos(), Target);
 }
 

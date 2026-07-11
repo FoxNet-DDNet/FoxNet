@@ -3,10 +3,6 @@
 
 #include "foxnet_entity.h"
 
-#include <array>
-#include <cmath>
-#include <utility>
-
 #include <base/log.h>
 #include <base/math.h>
 #include <base/system.h>
@@ -24,11 +20,17 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
+#include <array>
+#include <cmath>
+#include <random>
+#include <utility>
+
 CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir, vec2 MouseTarget, int Span) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_GUN_PROJECTILE, Pos)
 {
 	m_Pos = Pos;
 	m_Direction = Dir;
+	m_WantedDirection = Dir; // already "reached", so the first sway tick picks a fresh target
 	m_StartTick = Server()->Tick();
 
 	m_SpawnPos = Pos;
@@ -69,7 +71,10 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	else
 		m_MixedShield = false;
 
-	if(m_GunType == EGunType::Laser)
+	bool ExtraIdNeeded = m_GunType == EGunType::Laser ||
+			     m_GunType == EGunType::Intertwine;
+
+	if(ExtraIdNeeded)
 		m_ExtraId = Server()->SnapNewId();
 
 	GameWorld()->InsertEntity(this);
@@ -108,8 +113,26 @@ float CGunProjectile::GunCurvature()
 	return GetTuning(m_TuneZone)->m_GunCurvature;
 }
 
+float CGunProjectile::SpeedFactor()
+{
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+		return 0.7f;
+	if(m_GunType == EGunType::Intertwine)
+		return 0.8f;
+	return 1.0f;
+}
+
 vec2 CGunProjectile::RealPos(float Time)
 {
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+	{
+		return m_Pos + m_Direction * (GunSpeed() * SpeedFactor() * Time);
+	}
+	else if(m_GunType == EGunType::Intertwine)
+	{
+		return CalcPos(m_Pos, m_Direction, GunCurvature(), GunSpeed() * SpeedFactor(), Time);
+	}
+
 	return CalcPos(m_Pos, m_Direction, GunCurvature(), GunSpeed(), Time);
 }
 
@@ -124,9 +147,6 @@ void CGunProjectile::TickVanillaPhantom()
 	if(m_VanillaDead)
 		return;
 
-	// A plain bullet would die at its first wall or when its (shorter) lifetime ends.
-	// Once that happens we stop showing the vanilla bullet to cosmetics-off viewers,
-	// so their client doesn't keep extrapolating it straight through walls.
 	if(Server()->Tick() - m_SpawnTick >= m_VanillaLifeTicks)
 	{
 		m_VanillaDead = true;
@@ -139,8 +159,6 @@ void CGunProjectile::TickVanillaPhantom()
 	{
 		m_VanillaDead = true;
 
-		// Cosmetics-off viewers see a plain bullet die right here, so give them the same
-		// hit effect at this spot (cosmetic viewers get theirs where the real bullet dies).
 		vec2 Direction = normalize(CurPos - m_VanillaPrevPos);
 		if(Direction == vec2(0, 0))
 			Direction = m_SpawnDir;
@@ -153,8 +171,6 @@ void CGunProjectile::TickVanillaPhantom()
 
 void CGunProjectile::EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CClientMask Audience)
 {
-	// Within the audience, the fancy gun-hit effect (or confetti) goes to viewers with
-	// gun-hit effects on, plain damage indicator stars to those with them off.
 	CClientMask FancyMask = Audience & m_MaskInd;
 	CClientMask PlainMask = Audience & m_MaskIndOpp;
 
@@ -172,6 +188,53 @@ void CGunProjectile::EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CCl
 	GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
 }
 
+void CGunProjectile::TickSway()
+{
+	constexpr float TurnSpeed = 0.055f;
+	constexpr float MinTurn = 0.25f;
+	constexpr float MaxTurn = 0.90f;
+	constexpr float MaxConeFromSpawn = 1.0f;
+
+	auto WrapPi = [](float a) { return std::remainder(a, 2.0f * pi); };
+	auto Clamp = [](float v, float Lo, float Hi) { return v < Lo ? Lo : (v > Hi ? Hi : v); };
+
+	const float CurAngle = angle(m_Direction);
+	float ToWanted = WrapPi(angle(m_WantedDirection) - CurAngle);
+
+	if(absolute(ToWanted) <= TurnSpeed)
+	{
+		std::uniform_real_distribution<float> Dis(-MinTurn, MaxTurn);
+
+		const float Sign = random_float() < 0.5f ? -1.0f : 1.0f;
+
+		const float Target = CurAngle + Sign * Dis(Rng());
+		const float FromSpawn = Clamp(WrapPi(Target - angle(m_SpawnDir)), -MaxConeFromSpawn, MaxConeFromSpawn);
+		m_WantedDirection = direction(angle(m_SpawnDir) + FromSpawn);
+		ToWanted = WrapPi(angle(m_WantedDirection) - CurAngle);
+	}
+
+	const float Step = Clamp(ToWanted, -TurnSpeed, TurnSpeed);
+	m_Direction = direction(CurAngle + Step);
+}
+
+void CGunProjectile::TickControl()
+{
+	constexpr float TurnSpeed = 0.16f;
+
+	CCharacter *pOwnerChar = GetCharacter();
+	if(!pOwnerChar)
+		return;
+
+	vec2 Aim = pOwnerChar->GetCursorPos() - pOwnerChar->m_Pos;
+	if(length(Aim) < 0.001f)
+		return;
+
+	const float CurAngle = angle(m_Direction);
+	const float Diff = std::remainder(angle(Aim) - CurAngle, 2.0f * pi);
+	const float Step = Diff < -TurnSpeed ? -TurnSpeed : (Diff > TurnSpeed ? TurnSpeed : Diff);
+	m_Direction = direction(CurAngle + Step);
+}
+
 void CGunProjectile::Tick()
 {
 	if(m_MarkedForDestroy)
@@ -180,14 +243,23 @@ void CGunProjectile::Tick()
 	CCharacter *pOwnerChar = GetCharacter();
 	CPlayer *pOwner = GetPlayer();
 
-	// Keep the vanilla bullet (for cosmetics-off viewers) simulated independently of the
-	// real one, so it always dies exactly where a plain bullet would.
 	TickVanillaPhantom();
 
-	if(!pOwnerChar || !pOwnerChar->IsAlive())
+	if(!pOwner)
 	{
 		Reset();
 		return;
+	}
+
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+	{
+		if(m_GunType == EGunType::Sway)
+			TickSway();
+		else
+			TickControl();
+
+		m_Pos += m_Direction * (GunSpeed() * 0.7f / (float)Server()->TickSpeed());
+		m_StartTick = Server()->Tick();
 	}
 
 	float Pt = (Server()->Tick() - m_StartTick - 1) / (float)Server()->TickSpeed();
@@ -199,10 +271,10 @@ void CGunProjectile::Tick()
 	int Collide = Collision()->IntersectLine(PrevPos, CurPos, &ColPos, &NewPos);
 
 	CCharacter *pTargetChr = nullptr;
-	if(!pOwnerChar->GrenadeHitDisabled())
+	if(pOwnerChar && !pOwnerChar->GrenadeHitDisabled())
 		pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, 6.0f, ColPos, pOwnerChar, m_Owner);
 
-	if((pTargetChr && pTargetChr->Core()->m_Passive) || pOwnerChar->Core()->m_Passive)
+	if((pTargetChr && pTargetChr->Core()->m_Passive) || (pOwnerChar && pOwnerChar->Core()->m_Passive))
 		pTargetChr = nullptr;
 	if(pTargetChr && !pTargetChr->Core()->m_Hittable)
 		pTargetChr = nullptr;
@@ -220,7 +292,7 @@ void CGunProjectile::Tick()
 			pTargetChr->TakeDamage(vec2(0, 0), 0, m_Owner, WEAPON_GUN);
 
 		// Telegun
-		if(!GLClipped && pOwnerChar->HasTelegunGun())
+		if(!GLClipped && pOwnerChar && pOwnerChar->HasTelegunGun())
 		{
 			int MapIdx = Collision()->GetPureMapIndex(pTargetChr ? pTargetChr->m_Pos : ColPos);
 			int TileFIndex = Collision()->GetFrontTileIndex(MapIdx);
@@ -230,7 +302,6 @@ void CGunProjectile::Tick()
 			if(IsSwitchTeleGun || IsBlueSwitchTeleGun)
 			{
 				int Delay = Collision()->GetSwitchDelay(MapIdx);
-				// Delay specifies which weapon the tile works for (0 = all); this is a gun.
 				if(Delay == 2 || Delay == 3)
 					IsSwitchTeleGun = IsBlueSwitchTeleGun = false;
 			}
@@ -259,10 +330,6 @@ void CGunProjectile::Tick()
 
 		if(WallOnly && Behavior == WALL_BOUNCE)
 		{
-			// Reflect off the wall and keep living. Cap the step MovePoint takes so it
-			// can't tunnel through a tile when the bullet starts inside a solid (e.g.
-			// fired straight down while standing on a tile, since the muzzle spawns a few
-			// pixels into the floor).
 			vec2 Vel = CurPos - PrevPos;
 			const float MaxStep = 16.0f;
 			if(length(Vel) > MaxStep)
@@ -277,13 +344,8 @@ void CGunProjectile::Tick()
 		}
 
 		if(WallOnly && Behavior == WALL_PHASE)
-		{
-			// Pass straight through the wall and keep flying.
 			return;
-		}
 
-		// Otherwise the real bullet dies here (hit a player, a wall it doesn't pass
-		// through, or left the game layer).
 		vec2 Direction = normalize(NewPos - PrevPos);
 		if(Direction == vec2(0, 0))
 			Direction = m_Direction;
@@ -296,8 +358,6 @@ void CGunProjectile::Tick()
 					GameServer()->SendEmote(TargetId, m_EmoteGun - 1, i);
 		}
 
-		// Cosmetic viewers see the bullet die here; cosmetics-off viewers get their effect
-		// from the vanilla phantom instead (at the wall where a plain bullet would die).
 		EmitHitEffect(NewPos, CurPos, Direction, m_MaskGun);
 		Reset();
 		return;
@@ -333,21 +393,38 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 
 	const int Owner = m_Owner;
 
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+	{
+		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos, m_Direction);
+		return;
+	}
+	if(m_GunType == EGunType::Intertwine)
+	{
+		auto GetIntertwineOffset = [](float Time, float Phase, vec2 Dir) -> vec2 {
+			float Amplitude = 20.0f;
+			float Frequency = 0.5f;
+
+			vec2 PerpDir = vec2(-Dir.y, Dir.x);
+			return PerpDir * Amplitude * std::sin(Frequency * Time + Phase);
+		};
+
+		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, m_Direction), m_Direction);
+		SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, m_Direction), m_Direction);
+		return;
+	}
+
 	if(m_GunType == EGunType::Laser)
 	{
-		// PrevSnapPos trails SnapPos slightly so the laser looks continuous.
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();
 		vec2 PrevSnapPos = RealPos(Pt);
 
 		bool Supports = SnappingClient != SERVER_DEMO_CLIENT && GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps;
 		if(Supports)
 		{
-			// Modern clients draw the whole thing from one cosmetic laser.
 			SnapCosmeticLaserPos(SnappingClient, GetId().value(), Owner, SnapPos, PrevSnapPos, 0, LASERTYPE_DOOR, -1, COSMETIC_LASER_FLAG_FROM_HEAD | COSMETIC_LASER_FLAG_TO_HEAD);
 		}
 		else
 		{
-			// Older clients get a trailing segment plus a dot at the head, one per id.
 			std::array<int, 2> LaserIds = {m_ExtraId.value(), GetId().value()};
 			if(LaserIds[0] > LaserIds[1])
 				std::swap(LaserIds[0], LaserIds[1]);
@@ -374,10 +451,6 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 		return;
 	}
 
-	// No special bullet visual (plain / confetti / emote / phase): draw a normal bullet.
-	// It uses the launch parameters so it looks vanilla; for PhaseGun it simply keeps
-	// being snapped past the wall since the entity stays alive (unlike the vanilla
-	// bullet, this is not gated on m_VanillaDead).
 	SnapProjectileNetObj(SnappingClient);
 }
 
@@ -456,15 +529,101 @@ void CGunProjectile::SnapProjectileNetObj(int SnappingClient)
 	}
 }
 
+void CGunProjectile::SnapGunProjectile(int SnapId, int SnappingClient, int Owner, vec2 Pos, vec2 Dir)
+{
+	if(NetworkClipped(SnappingClient, Pos))
+		return;
+
+	const int Id = SnapId;
+
+	const int StartTick = Server()->Tick() - 1;
+
+	if(length(Dir) > 0.00001f)
+		Dir = normalize(Dir);
+
+	bool Supports = SnappingClient != SERVER_DEMO_CLIENT && GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps;
+	if(Supports)
+	{
+		int Rotation = round_to_int(angle(Dir) * 180.0f / pi);
+		Rotation = ((Rotation % 360) + 360) % 360;
+
+		CNetObj_CosmeticProjectile Projectile = {};
+		Projectile.m_X = (int)Pos.x;
+		Projectile.m_Y = (int)Pos.y;
+		Projectile.m_Type = WEAPON_GUN;
+		Projectile.m_Owner = m_Owner;
+		Projectile.m_Alpha = -1;
+		Projectile.m_Rotation = Rotation;
+		Projectile.m_Flags = 0;
+		Server()->SnapNewItem(Id, Projectile);
+		return;
+	}
+
+	const int Ver = GameServer()->GetClientVersion(SnappingClient);
+	const float Factor = SpeedFactor();
+	const int MaxPos = 0x7fffffff / 100;
+	bool LegacyCompatible = !(absolute((int)Pos.y) + 1 >= MaxPos || absolute((int)Pos.x) + 1 >= MaxPos);
+
+	if(Ver >= VERSION_DDNET_ENTITY_NETOBJS)
+	{
+		CNetObj_DDNetProjectile Proj = {};
+		Proj.m_X = round_to_int(Pos.x * 100.0f);
+		Proj.m_Y = round_to_int(Pos.y * 100.0f);
+		Proj.m_VelX = round_to_int(Dir.x * Factor * 1e6f);
+		Proj.m_VelY = round_to_int(Dir.y * Factor * 1e6f);
+		Proj.m_Type = WEAPON_GUN;
+		Proj.m_StartTick = StartTick;
+		Proj.m_Owner = -1;
+		Proj.m_SwitchNumber = 0;
+		Proj.m_TuneZone = m_TuneZone;
+		Proj.m_Flags = 0;
+		Server()->SnapNewItem(Id, Proj);
+	}
+	else if(Ver >= VERSION_DDNET_ANTIPING_PROJECTILE && LegacyCompatible)
+	{
+		float Angle = -std::atan2(Dir.x, Dir.y);
+		int Data = LEGACYPROJECTILEFLAG_IS_DDNET | LEGACYPROJECTILEFLAG_NO_OWNER;
+
+		CNetObj_DDRaceProjectile Proj = {};
+		Proj.m_X = (int)(Pos.x * 100.0f);
+		Proj.m_Y = (int)(Pos.y * 100.0f);
+		Proj.m_Angle = (int)(Angle * 1000000.0f);
+		Proj.m_Data = Data;
+		Proj.m_StartTick = StartTick;
+		Proj.m_Type = WEAPON_GUN;
+
+		if(Ver >= VERSION_DDNET_MSG_LEGACY)
+		{
+			Server()->SnapNewItem(Id, Proj);
+		}
+		else
+		{
+			CNetObj_Projectile Projectile = {};
+			static_assert(sizeof(Proj) == sizeof(Projectile));
+			mem_copy(&Projectile, &Proj, sizeof(Projectile));
+			Server()->SnapNewItem(Id, Projectile);
+		}
+	}
+	else
+	{
+		CNetObj_Projectile Proj = {};
+		Proj.m_X = (int)Pos.x;
+		Proj.m_Y = (int)Pos.y;
+		Proj.m_VelX = (int)(Dir.x * Factor * 100.0f);
+		Proj.m_VelY = (int)(Dir.y * Factor * 100.0f);
+		Proj.m_StartTick = StartTick;
+		Proj.m_Type = WEAPON_GUN;
+		Server()->SnapNewItem(Id, Proj);
+	}
+}
+
 void CGunProjectile::Snap(int SnappingClient)
 {
 	if(!GetId().has_value())
 		return;
-	if(!CanSnapEntity(SnappingClient))
+	if(!CanSnapEntityNoChar(SnappingClient))
 		return;
 
-	// The owner always sees their own gun cosmetic; others see it only with ShowGuns on.
-	// Checked live so toggling the setting takes effect immediately.
 	bool SeesCosmetic = SnappingClient == SERVER_DEMO_CLIENT || SnappingClient == m_Owner;
 	if(!SeesCosmetic)
 	{
