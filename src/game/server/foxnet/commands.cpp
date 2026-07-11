@@ -18,6 +18,7 @@
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/votemenu.h>
+#include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/entities/text/text.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
@@ -1476,6 +1477,55 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->m_LastBet = pSelf->Server()->Tick();
 }
 
+void CGameContext::ConNextRouletteTile(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int MapIdx = -1;
+	if(pResult->NumArguments())
+	{
+		const int Victim = pResult->GetVictim();
+		if(!CheckClientId(Victim) || !pSelf->m_apPlayers[Victim])
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", "Invalid player id");
+			return;
+		}
+		MapIdx = pSelf->m_apPlayers[Victim]->MultiMapIdx();
+	}
+	else
+	{
+		const int ClientId = pResult->m_ClientId;
+		if(!CheckClientId(ClientId) || !pSelf->m_apPlayers[ClientId])
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", "Specify a player id (e.g. next_roulette_tile <id>)");
+			return;
+		}
+		MapIdx = pSelf->m_apPlayers[ClientId]->MultiMapIdx();
+	}
+
+	CRoulette *pRoulette = static_cast<CRoulette *>(pSelf->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx));
+	if(!pRoulette)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", "No roulette on that map");
+		return;
+	}
+
+	const int Field = pRoulette->EndingField();
+	if(Field < 0)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", "No spin is prepared yet, the next tile isn't decided");
+		return;
+	}
+
+	const int Number = pRoulette->FieldNumber(Field);
+	const int Color = pRoulette->FieldColor(Field);
+	const char *pColor = Color == COLOR_RED ? "Red" : (Color == COLOR_GREEN ? "Green" : "Black");
+
+	char aBuf[64];
+	str_format(aBuf, sizeof(aBuf), "Next tile: %d (%s)", Number, pColor);
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", aBuf);
+}
+
 void CGameContext::ConReport(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2000,6 +2050,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Casino/Map related
 	Console()->Register("bet", "i[amount]", CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
+	Console()->Register("next_roulette_tile", "?v[id]", CFGFLAG_SERVER, ConNextRouletteTile, this, "Reveal the next roulette tile on the given player's map (defaults to your own)");
 	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
 	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
 	Console()->Register("exit", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");

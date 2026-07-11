@@ -3239,7 +3239,7 @@ void CCharacter::RouletteTileHandle()
 		return;
 
 	const int ClientId = GetPlayer()->GetCid();
-	const int Bet = GetPlayer()->m_BetAmount;
+	const int64_t Bet = GetPlayer()->m_BetAmount;
 
 	vec2 CursorPos = GetCursorPos();
 

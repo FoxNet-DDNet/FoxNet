@@ -972,6 +972,7 @@ private:
 	static void ConCosmetics(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetBet(IConsole::IResult *pResult, void *pUserData);
+	static void ConNextRouletteTile(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConReport(IConsole::IResult *pResult, void *pUserData);
 

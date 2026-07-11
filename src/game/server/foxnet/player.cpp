@@ -1187,7 +1187,7 @@ void CPlayer::SendAreaMotd(EArea Area)
 			"Pᴀʏᴏᴜᴛs:\n"
 			"Black | Red: 2x\n"
 			"3x dozens: 3x\n"
-			"Green [Zero]: 10x\n"
+			"Green [Zero]: 14x\n"
 			"\n"
 			"[Press Tab to hide]";
 		break;

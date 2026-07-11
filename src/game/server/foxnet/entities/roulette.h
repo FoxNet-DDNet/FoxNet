@@ -83,6 +83,7 @@ class CRoulette : public CEntity
 		{12, COLOR_RED}, {35, COLOR_BLACK}, {3, COLOR_RED}, {26, COLOR_BLACK}};
 
 	void SetState(RStates State);
+	void PrepareNextSpin();
 	int CalculateEndingField(int SpinDuration, float SlowDownFactor) const;
 	void ClearClientBet(int ClientId, bool Refund = false);
 
@@ -107,6 +108,10 @@ public:
 
 	void EvaluateBet(int ClientId, bool Silent = false);
 	RStates State() const { return m_State; }
+
+	int EndingField() const { return m_EndingField; }
+	int FieldNumber(int Field) const { return (Field >= 0 && Field < MAX_FIELDS) ? m_aFields[Field].m_Number : -1; }
+	int FieldColor(int Field) const { return (Field >= 0 && Field < MAX_FIELDS) ? m_aFields[Field].m_Color : -1; }
 
 	void Reset() override;
 	void Tick() override;

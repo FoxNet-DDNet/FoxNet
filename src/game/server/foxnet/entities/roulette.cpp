@@ -32,6 +32,7 @@ CRoulette::CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	m_Pos = Pos;
 	m_StartDelay = -1;
 	SetState(RStates::IDLE);
+	PrepareNextSpin();
 	GameWorld()->InsertEntity(this);
 }
 
@@ -183,15 +184,6 @@ void CRoulette::SetState(RStates State)
 	{
 		int Close = AmountOfCloseClients();
 
-		static std::random_device Rd;
-		static std::mt19937 Rng(Rd());
-		std::uniform_int_distribution<> DurationDist(MIN_SPIN_DURATION, MAX_SPIN_DURATION);
-		std::uniform_real_distribution<> SlowDist(0.35f, 0.7f);
-
-		m_SpinDuration = DurationDist(Rng);
-		m_SlowDownFactor = SlowDist(Rng);
-		m_EndingField = CalculateEndingField(m_SpinDuration, m_SlowDownFactor);
-
 		if(Close > 3)
 			m_StartDelay = Server()->TickSpeed() * 7.5; // 7.5 seconds
 		else if(Close > 1)
@@ -199,6 +191,18 @@ void CRoulette::SetState(RStates State)
 		else
 			m_StartDelay = Server()->TickSpeed() * 1.5; // 1.5 seconds
 	}
+}
+
+void CRoulette::PrepareNextSpin()
+{
+	static std::random_device Rd;
+	static std::mt19937 Rng(Rd());
+	std::uniform_int_distribution<> DurationDist(MIN_SPIN_DURATION, MAX_SPIN_DURATION);
+	std::uniform_real_distribution<> SlowDist(0.35f, 0.7f);
+
+	m_SpinDuration = DurationDist(Rng);
+	m_SlowDownFactor = SlowDist(Rng);
+	m_EndingField = CalculateEndingField(m_SpinDuration, m_SlowDownFactor);
 }
 
 int CRoulette::GetField(float Rotation) const
@@ -275,19 +279,22 @@ int CRoulette::CalculateEndingField(int SpinDuration, float SlowDownFactor) cons
 
 void CRoulette::ClearClientBet(int ClientId, bool Refund)
 {
-	if(Refund && m_aClients[ClientId].m_Active)
+	if(m_aClients[ClientId].m_Active)
 	{
-		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-		if(pPlayer && pPlayer->Acc()->m_LoggedIn)
-			pPlayer->GiveMoney(m_aClients[ClientId].m_BetAmount, false, true);
+		if(Refund)
+		{
+			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+			if(pPlayer && pPlayer->Acc()->m_LoggedIn)
+				pPlayer->GiveMoney(m_aClients[ClientId].m_BetAmount, false, true);
+		}
+
+		m_TotalWager -= m_aClients[ClientId].m_BetAmount;
+		if(m_TotalWager < 0)
+			m_TotalWager = 0;
+
+		if(m_Betters > 0)
+			m_Betters--;
 	}
-
-	m_TotalWager -= m_aClients[ClientId].m_BetAmount;
-	if(m_TotalWager < 0)
-		m_TotalWager = 0;
-
-	if(m_Betters > 0)
-		m_Betters--;
 
 	m_aClients[ClientId].m_BetAmount = -1;
 	m_aClients[ClientId].m_aBetOption[0] = '\0';
@@ -314,7 +321,7 @@ void CRoulette::EvaluateBet(int ClientId, bool Silent)
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Red") == 0 && Color == COLOR_RED)
 		PayoutMultiplier = 2;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Green") == 0 && Color == COLOR_GREEN)
-		PayoutMultiplier = 10;
+		PayoutMultiplier = 14;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Even") == 0 && Number != 0 && Number % 2 == 0)
 		PayoutMultiplier = 2;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Odd") == 0 && Number % 2 == 1)
@@ -382,10 +389,10 @@ void CRoulette::Tick()
 		if(m_RotationSpeed < 0.0f)
 		{
 			m_RotationSpeed = 0.0f;
-			SetState(RStates::IDLE);
 			for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 				EvaluateBet(ClientId);
-			m_EndingField = -1;
+			SetState(RStates::IDLE);
+			PrepareNextSpin();
 		}
 	}
 	m_Rotation += m_RotationSpeed;
