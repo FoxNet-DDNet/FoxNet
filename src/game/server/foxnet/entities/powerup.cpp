@@ -145,7 +145,7 @@ void CPowerUp::Tick()
 void CPowerUp::HandleClient(int ClientId)
 {
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-	if(!pChr || !pChr->IsAlive() || pChr->Team() != TEAM_FLOCK)
+	if(!pChr || !pChr->IsAlive() || (pChr->Team() != TEAM_FLOCK && !g_Config.m_SvSoloServer))
 		return;
 	if(pChr->MultiMapIdx() != MultiMapIdx())
 		return; // Prevent collection across maps
@@ -187,7 +187,6 @@ void CPowerUp::HandleClient(int ClientId)
 
 			if(m_Lifetime > Server()->TickSpeed() * 30)
 				m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
-			return;
 		}
 	}
 }
