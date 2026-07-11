@@ -21,7 +21,7 @@ public:
 	CProjectile(CGameWorld *pGameWorld, int MultiMapIdx, int Type, int Owner, vec2 Pos, vec2 Dir,
 		int Span, int FreezeTicks, bool Explosive, int SoundImpact, vec2 InitDir, int Layer = 0, int Number = 0);
 
-	vec2 GetPos(float Time, int ClientId = -1);
+	vec2 GetPos(float Time);
 
 	CNetObj_Projectile NetInfoVanilla() const;
 	bool NetIsInfoLegacyCompatible() const;
@@ -33,29 +33,6 @@ public:
 	void TickPaused() override;
 	void Snap(int SnappingClient) override;
 	void SwapClients(int Client1, int Client2) override;
-
-	// <FoxNet
-	EGunType m_GunType = EGunType::None;
-	bool m_MixedShield = false; // Switching between shield and heart
-	std::optional<int> m_ExtraId = -1; // Needed for m_LaserGun
-	CClientMask m_CosmeticMaskGun;
-	CClientMask m_OppCosmeticMaskGun;
-
-	CClientMask m_CosmeticMaskGunHit;
-	CClientMask m_OppCosmeticMaskGunHit;
-
-	void HandleGunHit(vec2 NewPos, CClientMask Mask, CPlayer *pOwner, CCharacter *pTargetChr);
-
-	// Shows the impact a plain bullet's death would create, but only to viewers who
-	// don't see the gun cosmetic (ShowGuns off) - used by wall pass-through gun types
-	// (Snowflake, PhaseGun) whose bullet keeps living for everyone else.
-	void CreateCosmeticGunWallImpact(vec2 Pos, vec2 Direction);
-
-	int m_EmoteGun = 0;
-	bool m_ConfettiGun = false;
-	bool m_PhaseGun = false;
-	int m_DamageIndEffect = 0;
-	// FoxNet>
 
 private:
 	vec2 m_Direction;
@@ -75,10 +52,6 @@ private:
 	int m_DDRaceTeam;
 	bool m_IsSolo;
 	vec2 m_InitDir;
-	// Set the first time a wall pass-through gun bullet (Snowflake / PhaseGun) hits a
-	// wall. From then on the bullet is hidden from - and creates no further effects for
-	// - viewers with the gun cosmetic off, since to them a plain bullet would have died.
-	bool m_HasHitOnce = false;
 
 public:
 	// <FoxNet

@@ -40,6 +40,7 @@
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
 #include <game/server/foxnet/entities/custom_projectile.h>
+#include <game/server/foxnet/entities/gun_projectile.h>
 #include <game/server/foxnet/entities/light_saber.h>
 #include <game/server/foxnet/entities/pickupdrop.h>
 #include <game/server/foxnet/entities/portal.h>
@@ -3321,21 +3322,17 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 	{
 		int Lifetime = (int)(Server()->TickSpeed() * GetCurrentTuning()->m_GunLifetime);
 
-		new CProjectile(
+		const EGunType GunType = GetPlayer()->Cosmetics()->m_GunType;
+
+		// Every gun bullet is a CGunProjectile: players with no cosmetic simply get a
+		// plain bullet with the normal hit indicator, cosmetic players get their effects.
+		new CGunProjectile(
 			GameWorld(),
-			MultiMapIdx(),
-			WEAPON_GUN, // Type
 			m_pPlayer->GetCid(), // Owner
 			ProjStartPos, // Pos
 			Direction, // Dir
-			Lifetime, // Span
-			false, // Freeze
-			false, // Explosive
-			-1, // SoundImpact
-			MouseTarget // InitDir
-		);
-
-		EGunType GunType = GetPlayer()->Cosmetics()->m_GunType;
+			MouseTarget, // InitDir
+			Lifetime); // Span
 
 		if(GunType == EGunType::Heart || GunType == EGunType::Mixed)
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask(EItemType::Gun));
