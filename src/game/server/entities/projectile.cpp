@@ -62,20 +62,33 @@ CProjectile::CProjectile(
 	m_IsSolo = pOwnerChar && pOwnerChar->GetCore().m_Solo;
 
 	// <FoxNet
-	m_CosmeticMask = CClientMask().set();
-	m_OppCosmeticMask = CClientMask().set().reset();
+	m_CosmeticMaskGun = m_CosmeticMaskGunHit = CClientMask().set();
+	m_OppCosmeticMaskGun = m_OppCosmeticMaskGunHit = CClientMask().set().reset();
 
-	if(pOwnerChar)
+	CPlayer *pOwner = m_Owner >= 0 ? GameServer()->m_apPlayers[m_Owner] : nullptr;
+
+	if(pOwner)
 	{
-		m_CosmeticMask = pOwnerChar->CosmeticMask(EItemType::Gun);
-		m_OppCosmeticMask = pOwnerChar->OppositeCosmeticMask(EItemType::Gun);
+		m_EmoteGun = pOwner->Cosmetics()->m_EmoticonGun;
+		m_ConfettiGun = pOwner->Cosmetics()->m_ConfettiGun;
+		m_PhaseGun = pOwner->Cosmetics()->m_PhaseGun;
+		m_DamageIndEffect = pOwner->Cosmetics()->m_DamageIndType;
 
-		CCosmetics *pCosmetics = pOwnerChar->GetPlayer()->Cosmetics();
+		CCosmetics *pCosmetics = pOwner->Cosmetics();
 		m_GunType = pCosmetics->m_GunType;
 		if(pCosmetics->m_GunType != EGunType::None)
 			m_LifeSpan *= 1.25;
 		if(m_GunType == EGunType::Laser)
 			m_ExtraId = Server()->SnapNewId();
+	}
+
+	if(pOwnerChar)
+	{
+		m_CosmeticMaskGun = pOwnerChar->CosmeticMask(EItemType::Gun);
+		m_OppCosmeticMaskGun = pOwnerChar->OppositeCosmeticMask(EItemType::Gun);
+
+		m_CosmeticMaskGunHit = pOwnerChar->CosmeticMask(EItemType::Indicator);
+		m_OppCosmeticMaskGunHit = pOwnerChar->OppositeCosmeticMask(EItemType::Indicator);
 
 		m_MixedShield = pOwnerChar->m_MixedShield;
 		pOwnerChar->m_MixedShield = !pOwnerChar->m_MixedShield;
@@ -141,9 +154,13 @@ void CProjectile::Tick()
 	vec2 NewPos;
 	int Collide = Collision()->IntersectLine(PrevPos, CurPos, &ColPos, &NewPos);
 	CCharacter *pOwnerChar = nullptr;
+	CPlayer *pOwner = nullptr;
 
 	if(m_Owner >= 0)
+	{
 		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
+		pOwner = GameServer()->m_apPlayers[m_Owner];
+	}
 
 	CCharacter *pTargetChr = nullptr;
 
@@ -158,9 +175,9 @@ void CProjectile::Tick()
 		pTargetChr = nullptr;
 
 	bool GLClipped = GameLayerClipped(CurPos);
-	if(pOwnerChar)
+	if(pOwner)
 	{
-		GLClipped = GameLayerClipped(CurPos) && !pOwnerChar->GetPlayer()->m_IgnoreGamelayer;
+		GLClipped = GameLayerClipped(CurPos) && !pOwner->m_IgnoreGamelayer;
 	}
 	// FoxNet>
 
@@ -260,16 +277,46 @@ void CProjectile::Tick()
 			}
 		}
 
-		if(m_GunType == EGunType::Snowflake && Collide)
+		// Wall pass-through gun cosmetics: the bullet keeps living on a wall hit for
+		// everyone who sees the cosmetic (Snowflake bounces, PhaseGun passes through).
+		// A player hit (pTargetChr) is a normal kill and falls through to HandleGunHit.
+		bool SnowflakeWall = m_GunType == EGunType::Snowflake && Collide;
+		bool PhaseWall = m_PhaseGun && Collide && !pTargetChr;
+		if(SnowflakeWall || PhaseWall)
 		{
-			m_StartTick = Server()->Tick();
-
 			vec2 Vel = CurPos - PrevPos;
-			m_Pos = NewPos;
-			Collision()->MovePoint(&m_Pos, &Vel, 1.0f, nullptr);
+			vec2 HitDir = length_squared(Vel) > 0.0f ? normalize(Vel) : m_Direction;
 
-			if(length_squared(Vel) > 0.0f)
-				m_Direction = normalize(Vel);
+			// To viewers with the gun cosmetic off a plain bullet would have died on
+			// this first wall, so show them that impact once and then hide the ghost
+			// (Snap() drops it while m_HasHitOnce is set).
+			if(!m_HasHitOnce)
+			{
+				m_HasHitOnce = true;
+				CreateCosmeticGunWallImpact(CurPos, HitDir);
+			}
+
+			if(SnowflakeWall)
+			{
+				// Bounce off the wall. Cap the step MovePoint takes so it can't tunnel
+				// straight through a tile: the full per-tick velocity is larger than a
+				// tile, so when the bullet starts inside a solid - e.g. fired straight
+				// down while standing on a tile, since the muzzle spawns a few pixels into
+				// the floor - MovePoint would otherwise jump clear through to the far side
+				// and keep going instead of reflecting.
+				const float MaxStep = 16.0f;
+				if(length(Vel) > MaxStep)
+					Vel = normalize(Vel) * MaxStep;
+
+				m_StartTick = Server()->Tick();
+				m_Pos = NewPos;
+				Collision()->MovePoint(&m_Pos, &Vel, 1.0f, nullptr);
+
+				if(length_squared(Vel) > 0.0f)
+					m_Direction = normalize(Vel);
+			}
+			// PhaseWall leaves position/direction untouched so the bullet flies straight
+			// through the wall and keeps going.
 
 			return;
 		}
@@ -290,7 +337,7 @@ void CProjectile::Tick()
 		}
 		else if(m_Type == WEAPON_GUN)
 		{
-			HandleGunHit(NewPos, TeamMask, pOwnerChar, pTargetChr);
+			HandleGunHit(NewPos, TeamMask, pOwner, pTargetChr);
 			return;
 		}
 		else
@@ -338,70 +385,82 @@ void CProjectile::Tick()
 	}
 }
 
-void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CCharacter *pOwnerChr, CCharacter *pTargetChr)
+void CProjectile::HandleGunHit(vec2 NewPos, CClientMask Mask, CPlayer *pOwner, CCharacter *pTargetChr)
 {
 	float Pt = (Server()->Tick() - m_StartTick - 1) / (float)Server()->TickSpeed();
 	float Ct = (Server()->Tick() - m_StartTick) / (float)Server()->TickSpeed();
 	vec2 PrevPos = GetPos(Pt);
 	vec2 CurPos = GetPos(Ct);
 
-	int EmoteGun = 0;
-	bool ConfettiGun = false;
-	bool PhaseGun = false;
-	int DamageIndEffect = 0;
-	bool CreateDmgInd = true;
-
 	vec2 Direction = normalize(NewPos - PrevPos);
 	if(Direction == vec2(0, 0))
 		Direction = m_Direction;
 
-	if(pOwnerChr)
-	{
-		EmoteGun = pOwnerChr->GetPlayer()->Cosmetics()->m_EmoticonGun;
-		ConfettiGun = pOwnerChr->GetPlayer()->Cosmetics()->m_ConfettiGun;
-		PhaseGun = pOwnerChr->GetPlayer()->Cosmetics()->m_PhaseGun;
-		DamageIndEffect = pOwnerChr->GetPlayer()->Cosmetics()->m_DamageIndType;
-	}
-	if(EmoteGun && pTargetChr)
+	CCharacter *pOwnerChr = nullptr;
+	if(pOwner)
+		pOwnerChr = pOwner->GetCharacter();
+
+	if(m_EmoteGun && pTargetChr)
 	{
 		const int TargetId = pTargetChr->GetPlayer()->GetCid();
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(m_CosmeticMask.test(i))
+			if(m_CosmeticMaskGun.test(i))
 			{
 				CClientMask TeamMask = CClientMask().set();
 
 				if(pOwnerChr && pOwnerChr->IsAlive())
 					TeamMask = pOwnerChr->TeamMask();
 
-				GameServer()->SendEmote(TargetId, EmoteGun - 1, i);
-				m_CosmeticMask.reset(i);
-				m_OppCosmeticMask.reset(i);
+				GameServer()->SendEmote(TargetId, m_EmoteGun - 1, i);
+				m_CosmeticMaskGun.reset(i);
+				m_OppCosmeticMaskGun.reset(i);
 			}
 		}
 	}
 
-	if(PhaseGun && !pTargetChr)
-		CreateDmgInd = false;
+	// Fancy hit effect for viewers with gun-hit effects on, plain damage indicator
+	// for viewers with them off.
+	CClientMask FancyMask = m_CosmeticMaskGunHit;
+	CClientMask PlainMask = m_OppCosmeticMaskGunHit;
 
-	if(CreateDmgInd)
+	// If this is a pass-through bullet (Snowflake / PhaseGun) that already "died" at a
+	// wall for viewers with the gun cosmetic off, don't give them a phantom hit effect
+	// somewhere they can no longer see the bullet - restrict to gun-cosmetic viewers.
+	if(m_HasHitOnce)
 	{
-		if(ConfettiGun)
-		{
-			vec2 AirPos;
-			GetNearestAirPos(NewPos, CurPos, &AirPos);
-			GameServer()->CreateBirthdayEffect(AirPos, m_CosmeticMask);
-		}
-		else
-		{
-			GameServer()->CreateIndEffect(DamageIndEffect, CurPos, Direction, m_CosmeticMask);
-		}
-		if(pOwnerChr)
-			GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, m_OppCosmeticMask);
+		FancyMask &= m_CosmeticMaskGun;
+		PlainMask &= m_CosmeticMaskGun;
 	}
 
-	if(!PhaseGun || m_LifeSpan == -1 || pTargetChr)
-		m_MarkedForDestroy = true;
+	if(m_ConfettiGun)
+	{
+		vec2 AirPos;
+		GetNearestAirPos(NewPos, CurPos, &AirPos);
+		GameServer()->CreateBirthdayEffect(AirPos, FancyMask);
+	}
+	else
+	{
+		GameServer()->CreateIndEffect(m_DamageIndEffect, CurPos, Direction, FancyMask);
+	}
+
+	if(pOwnerChr)
+		GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
+
+	m_MarkedForDestroy = true;
+}
+
+void CProjectile::CreateCosmeticGunWallImpact(vec2 Pos, vec2 Direction)
+{
+	// Reproduce a plain bullet's wall-death impact, but only for viewers with the gun
+	// cosmetic off (m_OppCosmeticMaskGun already excludes the owner). Style it per each
+	// viewer's own gun-hit-effect preference: fancy for those who have them on, plain
+	// for those who don't.
+	CClientMask FancyMask = m_OppCosmeticMaskGun & m_CosmeticMaskGunHit;
+	CClientMask PlainMask = m_OppCosmeticMaskGun & m_OppCosmeticMaskGunHit;
+
+	GameServer()->CreateIndEffect(m_DamageIndEffect, Pos, Direction, FancyMask);
+	GameServer()->CreateDamageInd(Pos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
 }
 
 void CProjectile::TickPaused()
@@ -630,6 +689,13 @@ void CProjectile::Snap(int SnappingClient)
 			return;
 		}
 	}
+
+	// A wall pass-through bullet (Snowflake / PhaseGun) keeps living, but its path no
+	// longer matches a plain bullet's once it has passed its first wall. Viewers with
+	// the gun cosmetic off would otherwise see the ghost bullet jump around / fly
+	// through walls, so hide it from them from that first wall hit onward.
+	if(m_HasHitOnce && pSnapPl && !pSnapPl->Acc()->m_Configs.m_Cosmetics.m_ShowGuns && SnappingClient != m_Owner)
+		return;
 	// FoxNet>
 	if(SnappingClientVersion >= VERSION_DDNET_ENTITY_NETOBJS)
 	{
