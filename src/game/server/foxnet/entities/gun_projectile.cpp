@@ -358,7 +358,14 @@ void CGunProjectile::Tick()
 					GameServer()->SendEmote(TargetId, m_EmoteGun - 1, i);
 		}
 
-		EmitHitEffect(NewPos, CurPos, Direction, m_MaskGun);
+		// Cosmetic viewers see the bullet die here. On a wall/game-layer death, cosmetics-off
+		// viewers instead get their effect from the vanilla phantom (at the wall a plain
+		// bullet would hit). But a player hit is real damage landing on the target for
+		// everyone, and the phantom never fires once the bullet dies here - so include
+		// cosmetics-off viewers too, otherwise the target sees no damage indicator.
+		CClientMask Audience = pTargetChr ? (m_MaskGun | m_MaskGunOpp) : m_MaskGun;
+
+		EmitHitEffect(NewPos, CurPos, Direction, Audience);
 		Reset();
 		return;
 	}
