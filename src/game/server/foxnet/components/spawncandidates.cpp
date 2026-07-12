@@ -945,31 +945,28 @@ void CSpawnCandidates::OnTick()
 	if(StartDeferredRebuild)
 		QueueRebuildSnapshot(DefaultMapIndex);
 
-	if(!g_Config.m_SvSpawnPowerUps)
+	if(!g_Config.m_SvPowerUps)
 		return;
 	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
 		return; // nah, too much work to make them work with tele grenades
 	if(!g_Config.m_SvAccounts)
 		return; // Powerups require accounts to store the data
-	if(GameServer()->m_vPowerups.size() >= 6)
+	if(GameServer()->m_vPowerups.size() >= g_Config.m_SvPowerUpsMax)
 		return;
 	if(GameServer()->m_PowerUpDelay > Server()->Tick())
 		return;
 
-	const auto RandomPos = GetRandomAccessiblePos();
-	if(!RandomPos)
+	const std::optional<vec2> RandomPos = GetRandomAccessiblePos();
+	if(!RandomPos.has_value())
 	{
 		GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
 		return;
 	}
 
-	std::mt19937 Rng{std::random_device{}()};
-	std::uniform_int_distribution<int> Dist((int)EPowerUp::INVALID + 1, (int)EPowerUp::NUM_TYPES - 1);
-	EPowerUp Type = (EPowerUp)Dist(Rng);
-	CPowerUp *NewPowerUp = new CPowerUp(&GameServer()->m_World, DefaultMapIndex, *RandomPos, Type);
+	CPowerUp *NewPowerUp = new CPowerUp(&GameServer()->m_World, DefaultMapIndex, RandomPos.value());
 
 	GameServer()->m_vPowerups.push_back(NewPowerUp);
-	GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 15;
+	GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvPowerUpsSpawnDelay * 0.1f);
 }
 
 std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()

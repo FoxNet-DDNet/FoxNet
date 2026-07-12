@@ -14,6 +14,7 @@ enum class EPowerUp
 	INVALID = 0,
 	XP,
 	MONEY,
+	BOOST,
 	NUM_TYPES
 };
 
@@ -27,9 +28,10 @@ public:
 class CSnap
 {
 public:
-	std::optional<int> m_aIds[NUM_LASERS];
-	vec2 m_aTo[NUM_LASERS];
-	vec2 m_aFrom[NUM_LASERS];
+	std::optional<int> m_Id;
+	vec2 m_To;
+	vec2 m_From;
+	int m_LaserType;
 };
 
 class CClients
@@ -43,7 +45,9 @@ public:
 
 class CPowerUp : public CEntity
 {
-	CSnap m_Snap;
+	std::array<CSnap, NUM_LASERS> m_Snap;
+
+	int m_StartTick;
 
 	int m_Lifetime;
 	bool m_Switch;
@@ -63,7 +67,7 @@ class CPowerUp : public CEntity
 	void HandleClient(int ClientId);
 
 public:
-	CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp Type);
+	CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos);
 
 	void OnFire();
 

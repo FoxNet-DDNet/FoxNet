@@ -1007,7 +1007,14 @@ public:
 	int64_t m_PowerUpDelay;
 	std::vector<CPowerUp *> m_vPowerups;
 
-	void OnCollectPowerup(int ClientId, const CPowerupData *pData) const;
+	void OnCollectPowerup(int ClientId, const CPowerupData *pData);
+
+	class CBoostData
+	{
+	public:
+		float m_Boost;
+		int m_Ticks;
+	} m_BoostData;
 
 	bool IsWeekend() const;
 

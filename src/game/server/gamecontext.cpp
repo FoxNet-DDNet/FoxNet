@@ -218,6 +218,7 @@ void CGameContext::Clear()
 	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
+	CBoostData BoostData = m_BoostData;
 	std::vector<CServerComponent *> vComponents = m_vpComponents;
 	// FoxNet>
 
@@ -240,6 +241,7 @@ void CGameContext::Clear()
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;
 	m_vpComponents = std::move(vComponents);
+	m_BoostData = BoostData;
 	for(auto &pComponent : m_vpComponents)
 		pComponent->InitComponent(this);
 	// FoxNet>

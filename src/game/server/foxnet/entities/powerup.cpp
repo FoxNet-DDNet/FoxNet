@@ -24,19 +24,36 @@
 #include <algorithm>
 #include <iterator>
 #include <random>
+#include <base/math.h>
+#include <array>
 
-CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp Type) :
+CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, true, Pos, 54)
 {
+	m_StartTick = Server()->Tick();
 	m_Pos = Pos;
-	m_Data.m_Type = Type;
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
-		m_Snap.m_aIds[i] = Server()->SnapNewId();
-	std::sort(std::begin(m_Snap.m_aIds), std::end(m_Snap.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
+		m_Snap[i].m_Id = Server()->SnapNewId();
+	std::sort(std::begin(m_Snap), std::end(m_Snap), [](const auto &a, const auto &b) { return a.m_Id.value() < b.m_Id.value(); });
 	
 	GameWorld()->InsertEntity(this);
+
 	SetData();
+}
+
+void CPowerUp::SetData()
+{
+	std::uniform_real_distribution<float> dis(0.0f, 100.0f);
+
+	float RandomFloat = dis(Rng());
+
+	if(RandomFloat < 0.5f && GameServer()->m_BoostData.m_Ticks <= 0)
+		m_Data.m_Type = EPowerUp::BOOST;
+	else if(RandomFloat < 50.0f)
+		m_Data.m_Type = EPowerUp::XP;
+	else
+		m_Data.m_Type = EPowerUp::MONEY;
 
 	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
@@ -51,20 +68,25 @@ CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, EPowerUp T
 
 		m_MaxCollections++;
 	}
-}
+	if(m_MaxCollections < 1)
+		m_MaxCollections = 1;
 
-void CPowerUp::SetData()
-{
-	std::mt19937 rng{std::random_device{}()};
+	constexpr int MinLifetime = 120;
+
 	switch(m_Data.m_Type)
 	{
 	case EPowerUp::XP:
-		m_Data.m_Value = GameServer()->RandGeometric(rng, 5, 40, 0.3);
-		m_Lifetime = 120 + m_Data.m_Value * 15;
+		m_Data.m_Value = GameServer()->RandGeometric(Rng(), 5, 35, 0.3);
+		m_Lifetime = MinLifetime + m_Data.m_Value * 15;
 		break;
 	case EPowerUp::MONEY:
-		m_Data.m_Value = GameServer()->RandGeometric(rng, 3, 25, 0.3) * 25;
-		m_Lifetime = 120 + m_Data.m_Value * 0.45f;
+		m_Data.m_Value = GameServer()->RandGeometric(Rng(), 3, 20, 0.3) * 25;
+		m_Lifetime = MinLifetime + m_Data.m_Value * 0.45f;
+		break;
+	case EPowerUp::BOOST:
+		m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 15, 0.3);
+		m_Lifetime = MinLifetime;
+		m_MaxCollections = 1;
 		break;
 	default:
 		m_Data.m_Value = 0;
@@ -83,8 +105,8 @@ void CPowerUp::Reset()
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
 	{
-		if(m_Snap.m_aIds[i].has_value())
-			Server()->SnapFreeId(m_Snap.m_aIds[i].value());
+		if(m_Snap[i].m_Id.has_value())
+			Server()->SnapFreeId(m_Snap[i].m_Id.value());
 	}
 
 	for(size_t i = 0; i < GameServer()->m_vPowerups.size(); i++)
@@ -194,24 +216,49 @@ void CPowerUp::HandleClient(int ClientId)
 void CPowerUp::SetPowerupVisual()
 {
 	for(int i = 0; i < NUM_LASERS; i++)
-		m_Snap.m_aTo[i] = m_Snap.m_aFrom[i] = vec2(0, 0);
+		m_Snap[i].m_To = m_Snap[i].m_From = vec2(0, 0);
 
 	float Len = 28.0f;
 
-	m_Snap.m_aTo[0] = m_Pos + vec2(-Len, -Len);
-	m_Snap.m_aFrom[0] = m_Pos + vec2(Len, -Len);
+	m_Snap[0].m_To = vec2(-Len, -Len);
+	m_Snap[0].m_From = vec2(Len, -Len);
 
-	m_Snap.m_aTo[1] = m_Pos + vec2(Len, -Len);
-	m_Snap.m_aFrom[1] = m_Pos + vec2(Len, Len);
+	m_Snap[1].m_To = vec2(Len, -Len);
+	m_Snap[1].m_From = vec2(Len, Len);
 
-	m_Snap.m_aTo[2] = m_Pos + vec2(Len, Len);
-	m_Snap.m_aFrom[2] = m_Pos + vec2(-Len, Len);
+	m_Snap[2].m_To = vec2(Len, Len);
+	m_Snap[2].m_From = vec2(-Len, Len);
 
-	m_Snap.m_aTo[3] = m_Pos + vec2(-Len, Len);
-	m_Snap.m_aFrom[3] = m_Pos + vec2(-Len, -Len);
+	m_Snap[3].m_To = vec2(-Len, Len);
+	m_Snap[3].m_From = vec2(-Len, -Len);
 
-	m_Snap.m_aTo[4] = m_Pos + vec2(-Len, -Len);
-	m_Snap.m_aFrom[4] = m_Pos + vec2(-Len, -Len);
+	m_Snap[4].m_To = vec2(-Len, -Len);
+	m_Snap[4].m_From = vec2(-Len, -Len);
+
+	int LaserType;
+
+	if(m_Data.m_Type == EPowerUp::XP)
+		LaserType = LASERTYPE_GUN;
+	else if(m_Data.m_Type == EPowerUp::MONEY)
+		LaserType = LASERTYPE_SHOTGUN;
+	else if(m_Data.m_Type == EPowerUp::BOOST)
+		LaserType = LASERTYPE_FREEZE;
+	else
+		LaserType = LASERTYPE_DOOR;
+
+	for(size_t i = 0; i < NUM_LASERS; i++)
+	{
+		m_Snap[i].m_LaserType = LaserType;
+	}
+
+	//if(m_Data.m_Type == EPowerUp::BOOST)
+	//{
+	//	for(size_t i = 0; i < NUM_LASERS; i++)
+	//	{
+	//		Rotate(vec2(0, 0), &m_Snap[i].m_To, pi * 0.25f);
+	//		Rotate(vec2(0, 0), &m_Snap[i].m_From, pi * 0.25f);
+	//	}
+	//}
 }
 
 void CPowerUp::Snap(int SnappingClient)
@@ -246,20 +293,18 @@ void CPowerUp::Snap(int SnappingClient)
 	const int SnappingClientVersion = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 
-	if(Server()->Tick() % Server()->TickSpeed() == 0)
+	if((Server()->Tick() - m_StartTick) % Server()->TickSpeed() == 0)
 		m_Switch = !m_Switch;
 
 	GameServer()->SnapPickup(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), GetId().value(), m_Pos, m_Switch, 0, -1, PICKUPFLAG_NO_PREDICT);
 
-	int Type = m_Data.m_Type == EPowerUp::XP ? LASERTYPE_GUN : LASERTYPE_SHOTGUN;
-
 	for(int i = 0; i < NUM_LASERS; i++)
 	{
-		if(!m_Snap.m_aIds[i].has_value())
+		if(!m_Snap[i].m_Id.has_value())
 			continue;
 
-		vec2 To = m_Snap.m_aTo[i];
-		vec2 From = m_Snap.m_aFrom[i];
-		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_Snap.m_aIds[i].value(), To, From, Server()->Tick(), -1, Type);
+		vec2 To = m_Pos + m_Snap[i].m_To;
+		vec2 From = m_Pos + m_Snap[i].m_From;
+		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_Snap[i].m_Id.value(), To, From, Server()->Tick(), -1, m_Snap[i].m_LaserType);
 	}
 }

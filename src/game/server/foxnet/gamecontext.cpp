@@ -109,6 +109,11 @@ void CGameContext::FoxNetTick()
 		}
 	}
 
+	if(m_BoostData.m_Ticks > 0)
+		m_BoostData.m_Ticks--;
+	else
+		m_BoostData.m_Boost = 0.0f;
+
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnTick();
 
@@ -1313,7 +1318,7 @@ void CGameContext::OnPreReload()
 	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
-void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) const
+void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData)
 {
 	if(ClientId < 0 || ClientId >= Server()->MaxClients())
 		return;
@@ -1331,25 +1336,40 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData) con
 		return;
 	}
 
-	char aBuf[128];
-
 	long MsgAmount = (long)(pData->m_Value * pPlayer->StatMultiplier());
 
 	switch(pData->m_Type)
 	{
 	case EPowerUp::XP:
+	{
 		pPlayer->GiveXP(pData->m_Value);
-		str_format(aBuf, sizeof(aBuf), "+%ldXP for collecting a PowerUp!", MsgAmount);
-		break;
+		if(!HidePowerUps)
+			pPlayer->SendChatFmt("+%ldXP for collecting a PowerUp!", MsgAmount);
+	}
+	break;
 	case EPowerUp::MONEY:
+	{
 		pPlayer->GiveMoney(pData->m_Value);
-		str_format(aBuf, sizeof(aBuf), "+%ld%s for collecting a PowerUp!", MsgAmount, g_Config.m_SvCurrencyName);
-		break;
+		if(!HidePowerUps)
+			pPlayer->SendChatFmt("+%ld%s for collecting a PowerUp!", MsgAmount, g_Config.m_SvCurrencyName);
+	}
+	break;
+	case EPowerUp::BOOST:
+	{
+		constexpr int Minutes = 60;
+		const float BoostAmount = pData->m_Value * 0.1f;
+
+		m_BoostData.m_Boost = BoostAmount;
+		m_BoostData.m_Ticks = Server()->TickSpeed() * Minutes * 60;
+
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "+%.1fx Boost for %d minutes collected by '%s'!", BoostAmount, Minutes, Server()->ClientName(ClientId));
+		SendChat(-1, 0, aBuf);
+	}
+	break;
 	default:
 		break;
 	}
-	if(!HidePowerUps)
-		SendChatTarget(ClientId, aBuf);
 }
 
 bool CGameContext::IsWeekend() const

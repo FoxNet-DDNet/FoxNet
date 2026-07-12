@@ -92,7 +92,9 @@ MACRO_CONFIG_INT(SvDropsHammerable, sv_drops_hammerable, 1, 0, 1, CFGFLAG_SERVER
 MACRO_CONFIG_INT(SvDropsMaxPerPlayer, sv_drops_max_per_player, 4, 0, 8, CFGFLAG_SERVER | CFGFLAG_GAME, "How many weapons a player can have dropped")
 
 // PowerUps
-MACRO_CONFIG_INT(SvSpawnPowerUps, sv_spawn_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
+MACRO_CONFIG_INT(SvPowerUps, sv_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
+MACRO_CONFIG_INT(SvPowerUpsMax, sv_powerups_max, 6, 1, 100, CFGFLAG_SERVER | CFGFLAG_GAME, "Maximum number of powerups that can spawn")
+MACRO_CONFIG_INT(SvPowerUpsSpawnDelay, sv_powerups_spawn_delay, 150, 1, 10000, CFGFLAG_SERVER | CFGFLAG_GAME, "Delay between powerup spawns in deciseconds (1 = 0.1 seconds)")
 
 // Solo on Spawn
 MACRO_CONFIG_INT(SvSoloOnSpawn, sv_solo_on_spawn, 0, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether Players Should be solod on spawn + how long in seconds")

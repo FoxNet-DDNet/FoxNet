@@ -1281,6 +1281,9 @@ float CPlayer::StatMultiplier()
 	if(GameServer()->IsWeekend())
 		Multiplier += 1.0f;
 
+	if(GameServer()->m_BoostData.m_Ticks > 0)
+		Multiplier += GameServer()->m_BoostData.m_Boost;
+
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
