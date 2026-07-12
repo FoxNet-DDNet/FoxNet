@@ -951,7 +951,7 @@ void CSpawnCandidates::OnTick()
 		return; // nah, too much work to make them work with tele grenades
 	if(!g_Config.m_SvAccounts)
 		return; // Powerups require accounts to store the data
-	if(GameServer()->m_vPowerups.size() >= g_Config.m_SvPowerUpsMax)
+	if(GameServer()->m_vPowerups.size() >= (size_t)g_Config.m_SvPowerUpsMax)
 		return;
 	if(GameServer()->m_PowerUpDelay > Server()->Tick())
 		return;

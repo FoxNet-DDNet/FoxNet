@@ -174,6 +174,11 @@ void CGunProjectile::EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CCl
 	CClientMask FancyMask = Audience & m_MaskInd;
 	CClientMask PlainMask = Audience & m_MaskIndOpp;
 
+	GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
+
+	if(m_EmoteGun)
+		return;
+
 	if(m_ConfettiGun)
 	{
 		vec2 AirPos;
@@ -184,8 +189,6 @@ void CGunProjectile::EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CCl
 	{
 		GameServer()->CreateIndEffect(m_DamageIndEffect, CurPos, Direction, FancyMask);
 	}
-
-	GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
 }
 
 void CGunProjectile::TickSway()
