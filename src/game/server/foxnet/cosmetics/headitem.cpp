@@ -344,7 +344,7 @@ void CHeadItem::SnapAntennae(int SnappingClient)
 	const int NumPoints = 2;
 	CCharacter *pOwnerChr = GetCharacter();
 
-	vec2 HatFrom[NumPoints] = {vec2(-23.5f, -45.0f), vec2(0.0f, -43.5f)};
+	vec2 HatFrom[NumPoints] = {vec2(-25.0f, -39.0f), vec2(-2.0f, -43.5f)};
 	vec2 HatTo[NumPoints] = {vec2(-5.0f, -9.0f), vec2(5.0f, -9.0f)};
 
 	int Flags[NumPoints] = {COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD, COSMETIC_FLAG_ANCHORED | COSMETIC_LASER_FLAG_FROM_HEAD};
