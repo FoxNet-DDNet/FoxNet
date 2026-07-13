@@ -4475,6 +4475,11 @@ void CGameContext::OnInit(const void *pPersistentData)
 	else
 		m_pController = new CGameControllerDDNet(this);
 
+	for(const char *pReservedGameType : {"DM", "TDM", "CTF", "LMS", "LTS"})
+	{
+		dbg_assert(str_comp(m_pController->m_pGameType, pReservedGameType) != 0, "Using reserved gametype '%s' is not allowed", m_pController->m_pGameType);
+	}
+
 	ReadCensorList();
 
 	m_TeeHistorianActive = g_Config.m_SvTeeHistorian;
@@ -5017,7 +5022,7 @@ void CGameContext::UpdatePlayerMaps()
 			if(!pChr->CanSnapCharacter(i))
 				Dist[j].first = 1e8;
 			else
-				Dist[j].first = length_squared(m_apPlayers[i]->m_ViewPos - pChr->GetPos());
+				Dist[j].first = distance_squared(m_apPlayers[i]->m_ViewPos, pChr->GetPos());
 		}
 
 		// always send the player themselves, even if all in same position

@@ -11,9 +11,11 @@
 #include <game/editor/editor_history.h>
 #include <game/editor/editor_server_settings.h>
 #include <game/editor/editor_trackers.h>
+#include <game/editor/envelope_editor.h>
 #include <game/editor/map_grid.h>
 #include <game/editor/map_view.h>
 #include <game/editor/mapitems/envelope.h>
+#include <game/editor/mapitems/envelope_evaluator.h>
 #include <game/editor/mapitems/layer.h>
 #include <game/editor/proof_mode.h>
 #include <game/editor/quad_art.h>
@@ -75,6 +77,7 @@ public:
 		m_SoundSourcePropTracker(this),
 		m_SoundSourceRectShapePropTracker(this),
 		m_SoundSourceCircleShapePropTracker(this),
+		m_EnvelopeEvaluator(this),
 		m_pEditor(pEditor)
 	{
 	}
@@ -165,6 +168,8 @@ public:
 	CMapGrid::CState m_MapGridState;
 	CProofMode::CState m_ProofModeState;
 	CQuadKnife::CState m_QuadKnifeState;
+	CMapEnvelopeEvaluator m_EnvelopeEvaluator;
+	CEnvelopeEditor::CState m_EnvelopeEditorState;
 
 	// Housekeeping
 	void Clean();
