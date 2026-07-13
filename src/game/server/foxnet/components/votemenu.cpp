@@ -91,7 +91,6 @@ constexpr const char *MAIL_ONLY_UNREAD = "Only show unread mails";
 
 constexpr const char *MAIL_MARK_ALL_READ = "✔ Mark all as read";
 constexpr const char *MAIL_CLAIM_ALL_REWARDS = "⬇️ Claim all Rewards";
-
 constexpr const char *MAIL_DELETE_ALL_READ = "✘ Delete all read Mails";
 
 constexpr const char *MAIL_CLAIM_REWARD = "⬇️ Claim Reward";
@@ -104,6 +103,9 @@ constexpr const char *SHOP_ONLY_AFFORDABLE = "Only show Affordable Items";
 constexpr const char *MAIN_MENU_PAGE = "↩ Main Menu ↩";
 constexpr const char *BACKPAGE = "↩ Back ↩";
 
+// Stable suffix of the profile multiplier line; clicking it opens the Boosters page
+constexpr const char *MULTIPLIER_LABEL = "XP & Money";
+
 // Server Info Page
 constexpr const char *SERVER_INFO_DISCORD = "Discord:";
 constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribute:";
@@ -115,12 +117,13 @@ void CVoteMenu::OnConsoleInit()
 {
 	str_copy(m_aPages[PAGE_MAIN], ConvertToSmallCaps("Main Menu")); // Not shown
 
+	str_copy(m_aPages[PAGE_BOOSTERS], ConvertToSmallCaps("Boosters"));
 	str_copy(m_aPages[PAGE_SERVERINFO], ConvertToSmallCaps("Server Info"));
-	str_copy(m_aPages[PAGE_SETTINGS], ConvertToSmallCaps("Settings"));
-	str_copy(m_aPages[PAGE_MAILBOX], ConvertToSmallCaps("Mailbox"));
+	str_copy(m_aPages[PAGE_VOTES], ConvertToSmallCaps("Votes"));
 	str_copy(m_aPages[PAGE_SHOP], ConvertToSmallCaps("Shop"));
 	str_copy(m_aPages[PAGE_INVENTORY], ConvertToSmallCaps("Inventory"));
-	str_copy(m_aPages[PAGE_VOTES], ConvertToSmallCaps("Votes"));
+	str_copy(m_aPages[PAGE_MAILBOX], ConvertToSmallCaps("Mailbox"));
+	str_copy(m_aPages[PAGE_SETTINGS], ConvertToSmallCaps("Settings"));
 	str_copy(m_aPages[PAGE_ADMIN], ConvertToSmallCaps("Admin"));
 }
 
@@ -147,6 +150,13 @@ bool CVoteMenu::OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId)
 			SetPage(ClientId, i);
 			return true;
 		}
+	}
+
+	// Clicking the profile multiplier line opens the Boosters breakdown page
+	if(str_find(pVote, MULTIPLIER_LABEL) && IsPageAllowed(ClientId, PAGE_BOOSTERS))
+	{
+		SetPage(ClientId, PAGE_BOOSTERS);
+		return true;
 	}
 
 	if(IsCustomVoteOption(pMsg, ClientId))
@@ -712,6 +722,9 @@ void CVoteMenu::OnTick()
 		if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 			continue;
 
+		if((GameServer()->m_apPlayers[ClientId]->m_PlayerFlags & PLAYERFLAG_IN_MENU) && !(GameServer()->m_apPlayers[ClientId]->m_PrevPlayerFlags & PLAYERFLAG_IN_MENU))
+			GameServer()->ClearVotes(ClientId); // Update the menu when the player opens it
+
 		if(m_aClientData[ClientId].m_RetryTick == Server()->Tick() && m_aClientData[ClientId].m_RetryTick != -1)
 		{
 			if(GetPage(ClientId) == PAGE_VOTES)
@@ -757,6 +770,8 @@ void CVoteMenu::UpdatePages(int ClientId)
 	if(Page == PAGE_VOTES)
 		return;
 
+	const float StatMultiplier = pPlayer->StatMultiplier();
+
 	if(Page == PAGE_SETTINGS)
 	{
 		if(memcmp(&pAcc->m_Configs, &OldAcc.m_Configs, sizeof(pAcc->m_Configs)) != 0)
@@ -774,7 +789,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 			Changes = true;
 		if(pAcc->m_Deaths != OldAcc.m_Deaths)
 			Changes = true;
-		if(pAcc->m_Inventory.m_Map != OldAcc.m_Inventory.m_Map)
+		if(StatMultiplier != m_aClientData[ClientId].m_StatMultiplier)
 			Changes = true;
 	}
 	if(Page == PAGE_MAILBOX || Page == PAGE_MAIN)
@@ -807,11 +822,21 @@ void CVoteMenu::UpdatePages(int ClientId)
 		if(memcmp(&pAcc->m_Inventory.m_Cosmetics, &OldAcc.m_Inventory.m_Cosmetics, sizeof(pAcc->m_Inventory.m_Cosmetics)) != 0)
 			Changes = true;
 	}
+	if(Page == PAGE_BOOSTERS)
+	{
+		// Refresh once per second so the cycling Server Booster credit and the
+		// PowerUp countdown stay up to date.
+		if(Server()->Tick() % Server()->TickSpeed() == 0)
+			Changes = true;
+	}
 
 	if(Changes)
 	{
 		m_aClientData[ClientId].m_Account = GameServer()->m_aAccounts[ClientId];
 		m_aClientData[ClientId].m_Cosmetics = *pPlayer->Cosmetics();
+
+		m_aClientData[ClientId].m_StatMultiplier = pPlayer->StatMultiplier();
+
 		GameServer()->ClearVotes(ClientId);
 	}
 }
@@ -835,7 +860,7 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 	if(Page == PAGE_ADMIN && Server()->GetAuthedState(ClientId) >= AUTHED_MOD) // Allow Mod Access
 		return true;
 
-	if(pAcc->m_LoggedIn && (Page == PAGE_INVENTORY || Page == PAGE_MAILBOX || Page == PAGE_SHOP))
+	if(pAcc->m_LoggedIn && (Page == PAGE_INVENTORY || Page == PAGE_MAILBOX || Page == PAGE_SHOP || Page == PAGE_BOOSTERS))
 		return true;
 
 	return false;
@@ -872,6 +897,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 	switch(Page)
 	{
 	case PAGE_MAIN: PrepareMainMenu(ClientId); break;
+	case PAGE_BOOSTERS: PrepareBoosters(ClientId); break;
 	case PAGE_VOTES: PrepareNormalVotes(ClientId); break;
 	case PAGE_SETTINGS: PrepareSettings(ClientId); break;
 	case PAGE_MAILBOX: PrepareMailbox(ClientId); break;
@@ -963,6 +989,11 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 		GameServer()->ClearVotes(ClientId);
 }
 
+static void FormatMultiplier(char *pBuffer, size_t BufferSize,CPlayer *pPlayer, bool ArrowHead)
+{
+	str_format(pBuffer, BufferSize, "%s%.1fx %s", ArrowHead ? "➤ " : "", pPlayer->StatMultiplier(), MULTIPLIER_LABEL);
+}
+
 void CVoteMenu::PrepareMainMenu(int ClientId)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
@@ -1019,8 +1050,8 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 			str_format(aBuf, sizeof(aBuf), "│ Deaths: %" PRId64, pAcc->m_Deaths);
 			AddVoteText(aBuf);
 			AddVoteText(ConvertToSmallCaps("├─────────   Boosters"));
-			str_format(aBuf, sizeof(aBuf), "│ %.1fx XP & Money", pPlayer->StatMultiplier());
-			AddVoteText(aBuf);
+			FormatMultiplier(aBuf, sizeof(aBuf), pPlayer, true);
+			AddVoteText(aBuf, EPrefix::LONG_LINE);
 			AddVoteText("╰────────────────────");
 			AddVoteSeparator();
 		}
@@ -1031,6 +1062,8 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 			continue;
 		if(i == PAGE_MAIN)
 			continue;
+		if(i == PAGE_BOOSTERS)
+			continue; // Reached via the profile multiplier line, not the page list
 
 		std::string PageName = m_aPages[i];
 
@@ -1050,6 +1083,90 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 
 		AddVoteText(PageName.c_str(), EPrefix::ARROWHEAD);
 	}
+}
+
+void CVoteMenu::PrepareBoosters(int ClientId)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	if(Server()->ClientSlotEmpty(ClientId))
+		return;
+
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	char aBuf[VOTE_DESC_LENGTH];
+
+	AddVoteText(ConvertToSmallCaps("╭────────   Total Booster"));
+	FormatMultiplier(aBuf, sizeof(aBuf), pPlayer, false);
+	AddVoteText(aBuf, EPrefix::LONG_LINE);
+	AddVoteText(ConvertToSmallCaps("├───────   Listed"));
+
+	bool AnyBooster = false;
+
+	// Weekend boost applies to everyone
+	if(GameServer()->IsWeekend())
+	{
+		AddVoteText("│ +1.0x Weekend Boost");
+		AnyBooster = true;
+	}
+
+	// PowerUp boost is global and time-limited
+	if(GameServer()->m_BoostData.m_Ticks > 0)
+	{
+		const int Seconds = GameServer()->m_BoostData.m_Ticks / Server()->TickSpeed();
+		const float Boost = GameServer()->m_BoostData.m_Boost;
+		if(Seconds >= 3600)
+			str_format(aBuf, sizeof(aBuf), "│ +%.1fx PowerUp Booster for %.1f Hours", Boost, Seconds / 3600.0f);
+		else if(Seconds >= 60)
+			str_format(aBuf, sizeof(aBuf), "│ +%.1fx PowerUp Booster for %.1f Minutes", Boost, Seconds / 60.0f);
+		else
+			str_format(aBuf, sizeof(aBuf), "│ +%.1fx PowerUp Booster for %d Seconds", Boost, Seconds);
+		AddVoteText(aBuf);
+		AnyBooster = true;
+	}
+
+	// Account-based boosters only apply while logged in (see CPlayer::StatMultiplier)
+
+	// Server Booster grants a flat +1.5x if anyone owns the Booster item.
+	// Cycle the crediting player once per second so everyone providing it is shown.
+	std::vector<int> vBoosterIds;
+	for(int i = 0; i < Server()->MaxClients(); i++)
+	{
+		if(Server()->ClientSlotEmpty(i))
+			continue;
+		CPlayer *pOther = GameServer()->m_apPlayers[i];
+		if(pOther && pOther->OwnsItem(EItemId::Booster))
+			vBoosterIds.push_back(i);
+	}
+	if(!vBoosterIds.empty())
+	{
+		const int Cycle = (int)((Server()->Tick() / Server()->TickSpeed()) % (int)vBoosterIds.size());
+		str_format(aBuf, sizeof(aBuf), "│ +1.5x Server Booster by %s", Server()->ClientName(vBoosterIds[Cycle]));
+		AddVoteText(aBuf);
+		AnyBooster = true;
+	}
+
+	if(pPlayer->OwnsItem(EItemId::VIP))
+	{
+		AddVoteText("│ +2.5x VIP Booster");
+		AnyBooster = true;
+	}
+	if(pPlayer->OwnsItem(EItemId::MVP))
+	{
+		AddVoteText("│ +3.5x MVP Booster");
+		AnyBooster = true;
+	}
+
+	if(!AnyBooster)
+		AddVoteText("│ No active boosters");
+
+	AddVoteText("╰────────────────────");
 }
 
 void CVoteMenu::PrepareNormalVotes(int ClientId)
@@ -1884,7 +2001,7 @@ bool CVoteMenu::ExecMailCmd(int ClientId, const CMailBox::CMail &Mail)
 void CVoteMenu::AddVoteImpl(const char *pDesc)
 {
 	const int Length = str_length(pDesc);
-	dbg_assert(Length < VOTE_DESC_LENGTH, "Vote description too long '%s'", pDesc);
+	dbg_assert(Length < VOTE_DESC_LENGTH, "Vote description too long: %d '%s'", Length, pDesc);
 	m_vDescriptions.emplace_back(pDesc);
 }
 

@@ -613,6 +613,7 @@ void CPlayer::OnDirectInput(const CNetObj_PlayerInput *pNewInput)
 
 void CPlayer::OnPredictedEarlyInput(const CNetObj_PlayerInput *pNewInput)
 {
+	m_PrevPlayerFlags = m_PlayerFlags;
 	m_PlayerFlags = pNewInput->m_PlayerFlags;
 
 	if(!m_pCharacter && m_Team != TEAM_SPECTATORS && (pNewInput->m_Fire & 1))

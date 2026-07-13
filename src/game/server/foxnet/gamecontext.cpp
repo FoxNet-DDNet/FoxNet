@@ -1357,13 +1357,29 @@ void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData)
 	case EPowerUp::BOOST:
 	{
 		constexpr int Minutes = 60;
+		const int AddTicks = Server()->TickSpeed() * Minutes * 60;
 		const float BoostAmount = pData->m_Value * 0.1f;
 
-		m_BoostData.m_Boost = BoostAmount;
-		m_BoostData.m_Ticks = Server()->TickSpeed() * Minutes * 60;
-
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "+%.1fx Boost for %d minutes collected by '%s'!", BoostAmount, Minutes, Server()->ClientName(ClientId));
+		if(m_BoostData.m_Ticks > 0)
+		{
+			m_BoostData.m_Ticks += AddTicks;
+			if(BoostAmount > m_BoostData.m_Boost)
+			{
+				m_BoostData.m_Boost = BoostAmount;
+				str_format(aBuf, sizeof(aBuf), "Boost upgraded to %.1fx and extended by %d minutes by '%s'!", m_BoostData.m_Boost, Minutes, Server()->ClientName(ClientId));
+			}
+			else
+			{
+				str_format(aBuf, sizeof(aBuf), "+%d minutes of %.1fx Boost added by '%s'!", Minutes, m_BoostData.m_Boost, Server()->ClientName(ClientId));
+			}
+		}
+		else
+		{
+			m_BoostData.m_Boost = BoostAmount;
+			m_BoostData.m_Ticks = AddTicks;
+			str_format(aBuf, sizeof(aBuf), "+%.1fx Boost for %d minutes collected by '%s'!", BoostAmount, Minutes, Server()->ClientName(ClientId));
+		}
 		SendChat(-1, 0, aBuf);
 	}
 	break;

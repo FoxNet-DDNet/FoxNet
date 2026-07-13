@@ -20,14 +20,15 @@ enum Pages
 	PAGE_NONE = -1,
 
 	PAGE_MAIN = 0,
-	PAGE_SERVERINFO = 1,
-	PAGE_SETTINGS = 2,
-	PAGE_MAILBOX = 3,
-	PAGE_SHOP = 4,
-	PAGE_INVENTORY = 5,
-	PAGE_VOTES = 6,
-	PAGE_ADMIN = 7,
-	NUM_PAGES = 8,
+	PAGE_BOOSTERS,
+	PAGE_SERVERINFO,
+	PAGE_VOTES,
+	PAGE_SHOP,
+	PAGE_INVENTORY,
+	PAGE_MAILBOX,
+	PAGE_SETTINGS,
+	PAGE_ADMIN,
+	NUM_PAGES,
 };
 
 enum AdminSubPages
@@ -147,6 +148,8 @@ class CVoteMenu : public CServerComponent
 		const CItemConfig *m_pLastItemInfo = nullptr;
 		// After executing a file with a bunch of votes, we need to resend after some ticks
 		int64_t m_RetryTick = -1;
+
+		float m_StatMultiplier = 1.0f;
 	};
 	CClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
@@ -170,6 +173,7 @@ class CVoteMenu : public CServerComponent
 	void AddVoteValueOption(const char *pDescription, int Value, int Max, const char *pSuffixDesc);
 
 	void PrepareMainMenu(int ClientId);
+	void PrepareBoosters(int ClientId);
 	void PrepareNormalVotes(int ClientId);
 	void PrepareSettings(int ClientId);
 	void PrepareMailbox(int ClientId);
