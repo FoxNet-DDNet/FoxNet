@@ -951,6 +951,10 @@ private:
 	static void ConPayMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
 	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetLevel(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetXp(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetMoney(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetDeaths(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConToggleItem(IConsole::IResult *pResult, void *pUserData);
 

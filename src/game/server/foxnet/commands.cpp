@@ -116,6 +116,86 @@ void CGameContext::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 		pPlayer->GiveXP(Amount, "", false);
 }
 
+void CGameContext::ConSetLevel(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	const int64_t Level = std::max<int64_t>(0, pResult->GetInteger(1));
+	pPlayer->Acc()->m_Level = Level;
+	pSelf->m_AccountManager.SaveAccountsInfo(ClientId, *pPlayer->Acc());
+	log_info("account", "Set level to %" PRId64 " for player %s", Level, pSelf->Server()->ClientName(ClientId));
+}
+
+void CGameContext::ConSetXp(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	const int64_t Xp = std::max<int64_t>(0, pResult->GetInteger(1));
+	pPlayer->Acc()->m_XP = Xp;
+	pSelf->m_AccountManager.SaveAccountsInfo(ClientId, *pPlayer->Acc());
+	log_info("account", "Set xp to %" PRId64 " for player %s", Xp, pSelf->Server()->ClientName(ClientId));
+}
+
+void CGameContext::ConSetMoney(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	const int64_t Money = std::max<int64_t>(0, pResult->GetInteger(1));
+	pPlayer->Acc()->m_Money = Money;
+	pSelf->m_AccountManager.SaveAccountsInfo(ClientId, *pPlayer->Acc());
+	log_info("account", "Set money to %" PRId64 " for player %s", Money, pSelf->Server()->ClientName(ClientId));
+}
+
+void CGameContext::ConSetDeaths(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+		return;
+
+	const int64_t Deaths = std::max<int64_t>(0, pResult->GetInteger(1));
+	pPlayer->Acc()->m_Deaths = Deaths;
+	pSelf->m_AccountManager.SaveAccountsInfo(ClientId, *pPlayer->Acc());
+	log_info("account", "Set deaths to %" PRId64 " for player %s", Deaths, pSelf->Server()->ClientName(ClientId));
+}
+
 void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2044,6 +2124,10 @@ void CGameContext::RegisterFoxNetCommands()
 	// Account
 	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
 	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
+	Console()->Register("set_level", "v[id] i[level]", CFGFLAG_SERVER, ConSetLevel, this, "Set player (id) level");
+	Console()->Register("set_xp", "v[id] i[xp]", CFGFLAG_SERVER, ConSetXp, this, "Set player (id) xp");
+	Console()->Register("set_money", "v[id] i[money]", CFGFLAG_SERVER, ConSetMoney, this, "Set player (id) money");
+	Console()->Register("set_deaths", "v[id] i[deaths]", CFGFLAG_SERVER, ConSetDeaths, this, "Set player (id) deaths");
 
 	// Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
