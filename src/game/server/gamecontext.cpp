@@ -66,6 +66,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include "foxnet/item_registry.h"
 
 // Not thread-safe!
 class CClientChatLogger : public ILogger
@@ -1170,7 +1171,8 @@ void CGameContext::SendTuningParams(int ClientId, int Zone)
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "Invalid ClientId: %d", ClientId);
 	dbg_assert(m_apPlayers[ClientId], "client %d without player", ClientId);
 
-	CCharacter *pCharacter = m_apPlayers[ClientId]->GetCharacter();
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	CCharacter *pCharacter = pPlayer->GetCharacter();
 	int NeededFakeTuning = pCharacter ? pCharacter->NeededFaketuning() : 0;
 
 	CTuningParams Params = TuningList(m_apPlayers[ClientId]->MultiMapIdx())[Zone];

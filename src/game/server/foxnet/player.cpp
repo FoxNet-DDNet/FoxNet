@@ -66,7 +66,7 @@ void CPlayer::FoxNetTick()
 		LootBoxTick();
 
 	RainbowTick();
-	if(Server()->Tick() % (Server()->TickSpeed() * 60) == 0) // Check every minute
+	if(Server()->Tick() % (Server()->TickSpeed() * 5) == 0)
 		ExpireItems();
 
 	if(m_BetAmount > Acc()->m_Money)

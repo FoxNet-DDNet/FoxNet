@@ -418,6 +418,12 @@ void CItemRegistry::Init()
 		EItemFlag::Upgrade | EItemFlag::Stackable, EExclusiveGroup::None,
 		1000000, 60, 5, EItemRarity::Legendary, "Allows you to wear more cosmetics",
 		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
+
+	Add({EItemId::GunAutoFireUpgrade, EItemType::Other,
+		"Gun Auto Fire Upgrade", "GAFU",
+		EItemFlag::Upgrade, EExclusiveGroup::None,
+		UnbuyablePrice /*600000*/, 40, 3, EItemRarity::Legendary, "Allows your gun to fire automatically",
+		[](CPlayer &, const CItemConfig &, int) {}, nullptr, ForeverDays});
 }
 
 std::vector<const CItemConfig *> CItemRegistry::SortedMap() const

@@ -305,7 +305,7 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 			Entry.m_ExpiresAt += Duration;
 		else
 			Entry.m_ExpiresAt = Now + Duration;
-		if(Days == ForeverDays)
+		if(Days == ForeverDays || EffectiveDays == ForeverDays)
 			Entry.m_ExpiresAt = ForeverDays;
 		Entry.m_Quantity = 1;
 	}

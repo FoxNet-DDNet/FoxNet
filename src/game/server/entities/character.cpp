@@ -553,6 +553,11 @@ void CCharacter::FireWeapon()
 	if(!g_Config.m_SvDeepfly && m_Core.m_ActiveWeapon == WEAPON_HAMMER && m_Core.m_DeepFrozen)
 		return;
 
+	// <FoxNet
+	if(GetPlayer()->OwnsItem(EItemId::GunAutoFireUpgrade) && m_Core.m_ActiveWeapon == WEAPON_GUN)
+		FullAuto = true;
+	// FoxNet>
+
 	// check if we gonna fire
 	bool WillFire = false;
 	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
@@ -1374,7 +1379,6 @@ void CCharacter::SnapCharacter(int SnappingClient, int Id)
 
 			if(!GetCurrentTuning()->m_PlayerHammering)
 				Faketuning |= FAKETUNE_NOHAMMER;
-
 			// FoxNet>
 		}
 		if(Faketuning != m_NeededFaketuning)
@@ -1652,7 +1656,6 @@ void CCharacter::Snap(int SnappingClient)
 
 	// <FoxNet
 	DDNetCharacter.m_TuneZoneOverride = m_TuneZoneOverride;
-
 	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 
 	if(SnapPlayer)

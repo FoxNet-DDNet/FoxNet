@@ -59,6 +59,7 @@ enum class EItemId
 	LootCaseRare,
 	LootCaseExotic,
 	MaxCosmeticsUpgrade,
+	GunAutoFireUpgrade,
 };
 
 enum class EItemType
