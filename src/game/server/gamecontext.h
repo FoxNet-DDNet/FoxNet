@@ -1016,8 +1016,8 @@ public:
 	class CBoostData
 	{
 	public:
-		float m_Boost;
-		int m_Ticks;
+		float m_Boost = 0.0f;
+		int m_Ticks = 0;
 	} m_BoostData;
 
 	bool IsWeekend() const;
