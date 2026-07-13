@@ -1055,6 +1055,7 @@ void CGameContext::ConIncludeInServerInfo(IConsole::IResult *pResult, void *pUse
 		pPlayer->m_IncludeServerInfo = !pPlayer->m_IncludeServerInfo;
 	else
 		pPlayer->m_IncludeServerInfo = Include;
+	pSelf->Server()->ExpireServerInfo();
 	log_info("server", "Set include in server info to %d for player '%s'", pPlayer->m_IncludeServerInfo, pSelf->Server()->ClientName(Victim));
 }
 
@@ -2164,7 +2165,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Chain("ban_range", ConchainScriptingBan, this);
 	Console()->Chain("unban_range", ConchainScriptingBan, this);
 
-	Console()->Chain("sv_multimap", ConchainMultimap, this);
+	Console()->Chain("sv_multimaps", ConchainMultimap, this);
 }
 void CGameContext::ConchainMultimap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {

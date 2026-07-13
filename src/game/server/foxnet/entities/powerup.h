@@ -2,6 +2,9 @@
 #ifndef GAME_SERVER_FOXNET_ENTITIES_POWERUP_H
 #define GAME_SERVER_FOXNET_ENTITIES_POWERUP_H
 
+#include <array>
+#include <optional>
+
 #include <base/vmath.h>
 
 #include <game/server/entity.h>
@@ -25,27 +28,27 @@ public:
 	long m_Value = 0;
 };
 
-class CSnap
-{
-public:
-	std::optional<int> m_Id;
-	vec2 m_To;
-	vec2 m_From;
-	int m_LaserType;
-};
-
-class CClients
-{
-public:
-	bool m_Collected = false;
-	bool m_WasLoggedIn = false;
-
-	NETADDR m_Addr;
-};
-
 class CPowerUp : public CEntity
 {
-	std::array<CSnap, NUM_LASERS> m_Snap;
+	class CSnapData
+	{
+	public:
+		std::optional<int> m_Id;
+		vec2 m_To;
+		vec2 m_From;
+		int m_LaserType;
+	};
+
+	class CClients
+	{
+	public:
+		bool m_Collected = false;
+		bool m_WasLoggedIn = false;
+
+		NETADDR m_Addr;
+	};
+
+	std::array<CSnapData, NUM_LASERS> m_aSnap;
 
 	int m_StartTick;
 

@@ -34,8 +34,8 @@ CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	m_Pos = Pos;
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
-		m_Snap[i].m_Id = Server()->SnapNewId();
-	std::sort(std::begin(m_Snap), std::end(m_Snap), [](const auto &a, const auto &b) { return a.m_Id.value() < b.m_Id.value(); });
+		m_aSnap.at(i).m_Id = Server()->SnapNewId();
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const auto &a, const auto &b) { return a.m_Id.value() < b.m_Id.value(); });
 	
 	GameWorld()->InsertEntity(this);
 
@@ -105,8 +105,8 @@ void CPowerUp::Reset()
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
 	{
-		if(m_Snap[i].m_Id.has_value())
-			Server()->SnapFreeId(m_Snap[i].m_Id.value());
+		if(m_aSnap.at(i).m_Id.has_value())
+			Server()->SnapFreeId(m_aSnap.at(i).m_Id.value());
 	}
 
 	for(size_t i = 0; i < GameServer()->m_vPowerups.size(); i++)
@@ -216,24 +216,24 @@ void CPowerUp::HandleClient(int ClientId)
 void CPowerUp::SetPowerupVisual()
 {
 	for(int i = 0; i < NUM_LASERS; i++)
-		m_Snap[i].m_To = m_Snap[i].m_From = vec2(0, 0);
+		m_aSnap.at(i).m_To = m_aSnap.at(i).m_From = vec2(0, 0);
 
 	float Len = 28.0f;
 
-	m_Snap[0].m_To = vec2(-Len, -Len);
-	m_Snap[0].m_From = vec2(Len, -Len);
+	m_aSnap.at(0).m_To = vec2(-Len, -Len);
+	m_aSnap.at(0).m_From = vec2(Len, -Len);
 
-	m_Snap[1].m_To = vec2(Len, -Len);
-	m_Snap[1].m_From = vec2(Len, Len);
+	m_aSnap.at(1).m_To = vec2(Len, -Len);
+	m_aSnap.at(1).m_From = vec2(Len, Len);
 
-	m_Snap[2].m_To = vec2(Len, Len);
-	m_Snap[2].m_From = vec2(-Len, Len);
+	m_aSnap.at(2).m_To = vec2(Len, Len);
+	m_aSnap.at(2).m_From = vec2(-Len, Len);
 
-	m_Snap[3].m_To = vec2(-Len, Len);
-	m_Snap[3].m_From = vec2(-Len, -Len);
+	m_aSnap.at(3).m_To = vec2(-Len, Len);
+	m_aSnap.at(3).m_From = vec2(-Len, -Len);
 
-	m_Snap[4].m_To = vec2(-Len, -Len);
-	m_Snap[4].m_From = vec2(-Len, -Len);
+	m_aSnap.at(4).m_To = vec2(-Len, -Len);
+	m_aSnap.at(4).m_From = vec2(-Len, -Len);
 
 	int LaserType;
 
@@ -248,15 +248,15 @@ void CPowerUp::SetPowerupVisual()
 
 	for(size_t i = 0; i < NUM_LASERS; i++)
 	{
-		m_Snap[i].m_LaserType = LaserType;
+		m_aSnap.at(i).m_LaserType = LaserType;
 	}
 
 	//if(m_Data.m_Type == EPowerUp::BOOST)
 	//{
 	//	for(size_t i = 0; i < NUM_LASERS; i++)
 	//	{
-	//		Rotate(vec2(0, 0), &m_Snap[i].m_To, pi * 0.25f);
-	//		Rotate(vec2(0, 0), &m_Snap[i].m_From, pi * 0.25f);
+	//		Rotate(vec2(0, 0), &m_aSnap.at(i).m_To, pi * 0.25f);
+	//		Rotate(vec2(0, 0), &m_aSnap.at(i).m_From, pi * 0.25f);
 	//	}
 	//}
 }
@@ -300,11 +300,11 @@ void CPowerUp::Snap(int SnappingClient)
 
 	for(int i = 0; i < NUM_LASERS; i++)
 	{
-		if(!m_Snap[i].m_Id.has_value())
+		if(!m_aSnap.at(i).m_Id.has_value())
 			continue;
 
-		vec2 To = m_Pos + m_Snap[i].m_To;
-		vec2 From = m_Pos + m_Snap[i].m_From;
-		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_Snap[i].m_Id.value(), To, From, Server()->Tick(), -1, m_Snap[i].m_LaserType);
+		vec2 To = m_Pos + m_aSnap.at(i).m_To;
+		vec2 From = m_Pos + m_aSnap.at(i).m_From;
+		GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_aSnap.at(i).m_Id.value(), To, From, Server()->Tick(), -1, m_aSnap.at(i).m_LaserType, -1, -1, LASERFLAG_NO_PREDICT);
 	}
 }

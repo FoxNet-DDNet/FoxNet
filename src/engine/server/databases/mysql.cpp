@@ -73,7 +73,7 @@ public:
 	void Print(const char *pMode) override;
 	// <FoxNet
 	const char *Int64Type() const override { return "BIGINT"; }
-	// >FoxNet
+	// FoxNet>
 	const char *BinaryCollate() const override { return "utf8mb4_bin"; }
 	void ToUnixTimestamp(const char *pTimestamp, char *aBuf, unsigned int BufferSize) override;
 	const char *InsertTimestampAsUtc() const override { return "?"; }
@@ -126,7 +126,7 @@ private:
 	void StoreErrorStmt(const char *pContext);
 	bool ConnectImpl();
 	bool PrepareAndExecuteStatement(const char *pStmt);
-	bool ResetStatement();
+	bool ResetStatement(); // FoxNet
 
 	union UParameterExtra
 	{
@@ -205,6 +205,19 @@ bool CMysqlConnection::PrepareAndExecuteStatement(const char *pStmt)
 	}
 	return true;
 }
+
+// <FoxNet
+bool CMysqlConnection::ResetStatement()
+{
+	m_pStmt = std::unique_ptr<MYSQL_STMT, CStmtDeleter>(mysql_stmt_init(&m_Mysql));
+	if(!m_pStmt)
+	{
+		StoreErrorMysql("stmt_init");
+		return false;
+	}
+	return true;
+}
+// FoxNet>
 
 void CMysqlConnection::Print(const char *pMode)
 {

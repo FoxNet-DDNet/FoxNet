@@ -4724,7 +4724,6 @@ void CServer::RegisterCommands()
 	Console()->Chain("sv_reserved_slots", ConchainSpecialInfoupdate, this);
 	Console()->Chain("sv_spectator_slots", ConchainSpecialInfoupdate, this);
 	// <FoxNet
-	Console()->Chain("include_serverinfo", ConchainSpecialInfoupdate, this);
 	Console()->Chain("sv_foxnet_type", ConchainSpecialInfoupdate, this);
 	Console()->Chain("sv_accounts_forced", ConchainSpecialInfoupdate, this);
 	// FoxNet>
