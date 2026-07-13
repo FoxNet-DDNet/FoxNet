@@ -3469,12 +3469,12 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	if(GameServer()->m_VoteCloseTime && (GetPlayer()->m_Vote == 0 || (GetPlayer()->m_Vote != 0 && (GetPlayer()->m_PlayerFlags & PLAYERFLAG_SCOREBOARD))))
 		return;
 
-	int Ability = GetPlayer()->Cosmetics()->m_Ability;
+	const int Ability = GetPlayer()->Cosmetics()->m_Ability;
 
-	bool NoCooldown = !Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
+	const bool NoCooldown = !Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
 
-	bool F3 = pMsg->m_Vote == 1;
-	bool F4 = pMsg->m_Vote == -1;
+	const bool F3 = pMsg->m_Vote == 1;
+	const bool F4 = pMsg->m_Vote == -1;
 
 	if(F3 && (m_VoteActionDelay <= 0 || NoCooldown))
 	{
@@ -3490,10 +3490,10 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	if(GetPlayer()->IsPaused())
 		return;
 
-	if(Acc()->m_LoggedIn && F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
+	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_LoggedIn && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
 	{
-		vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
-		int Type = Core()->m_ActiveWeapon;
+		const vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
+		const int Type = Core()->m_ActiveWeapon;
 
 		DropWeapon(Type, m_Core.m_Vel * 0.7f + Dir * vec2(5.0f, 6.0f));
 	}
@@ -3578,6 +3578,9 @@ bool CCharacter::CanDropWeapon(int Type)
 	if(!g_Config.m_SvAllowWeaponDrops)
 		return false;
 
+	if(m_LastWeaponDropTick + g_Config.m_SvWeaponDropCooldown > Server()->Tick())
+		return false;
+
 	if(Type < 0 || Type >= NUM_EXTRA_WEAPONS)
 		return false;
 
@@ -3619,6 +3622,7 @@ void CCharacter::DropWeapon(int Type, vec2 Dir, bool Death)
 
 	CPickupDrop *pPickup = new CPickupDrop(GameWorld(), MultiMapIdx(), GetPlayer()->GetCid(), m_Pos, Team(), m_TeleCheckpoint, Dir, Lifetime, Type);
 	GetPlayer()->m_vPickupDrops.push_back(pPickup);
+	m_LastWeaponDropTick = Server()->Tick();
 
 	if(!Death)
 	{

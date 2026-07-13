@@ -90,6 +90,7 @@ MACRO_CONFIG_INT(SvDropWeaponOnDeath, sv_drop_weapon_on_death, 0, 0, 1, CFGFLAG_
 MACRO_CONFIG_INT(SvDropsInFreezeFloat, sv_drops_in_freeze_float, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Make Weapon Drops in freeze float up")
 MACRO_CONFIG_INT(SvDropsHammerable, sv_drops_hammerable, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether drops can be hammered")
 MACRO_CONFIG_INT(SvDropsMaxPerPlayer, sv_drops_max_per_player, 4, 0, 8, CFGFLAG_SERVER | CFGFLAG_GAME, "How many weapons a player can have dropped")
+MACRO_CONFIG_INT(SvWeaponDropCooldown, sv_weapon_drop_cooldown, 10, 0, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "Cooldown for weapon drops in ticks (50 ticks = 1 second)")
 
 // PowerUps
 MACRO_CONFIG_INT(SvPowerUps, sv_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
