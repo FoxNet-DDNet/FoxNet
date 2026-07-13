@@ -105,6 +105,17 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwne
 	GameWorld()->InsertEntity(this);
 }
 
+void CPickupDrop::RemoveFromOwner()
+{
+	if(m_LastOwner < 0 || m_LastOwner >= MAX_CLIENTS)
+		return;
+	CPlayer *pPlayer = GameServer()->m_apPlayers[m_LastOwner];
+	if(!pPlayer)
+		return;
+	auto &vDrops = pPlayer->m_vPickupDrops;
+	vDrops.erase(std::remove(vDrops.begin(), vDrops.end(), this), vDrops.end());
+}
+
 void CPickupDrop::Reset(bool PickedUp)
 {
 	if(m_MarkedForDestroy)
@@ -119,17 +130,7 @@ void CPickupDrop::Reset(bool PickedUp)
 			Server()->SnapFreeId(m_aIds[i].value());
 	}
 
-	if(m_LastOwner >= 0)
-	{
-		if(CPlayer *pPlayer = GameServer()->m_apPlayers[m_LastOwner])
-		{
-			for(size_t i = 0; i < pPlayer->m_vPickupDrops.size(); i++)
-			{
-				if(pPlayer->m_vPickupDrops[i] == this)
-					pPlayer->m_vPickupDrops.erase(pPlayer->m_vPickupDrops.begin() + i);
-			}
-		}
-	}
+	RemoveFromOwner();
 
 	if(!PickedUp)
 		GameServer()->CreateDeath(m_Pos, -1, PickupMask(-1));
@@ -149,11 +150,12 @@ void CPickupDrop::Tick()
 	if(m_MarkedForDestroy)
 		return;
 
-	if(m_LastOwner >= 0 && (!GameServer()->m_apPlayers[m_LastOwner] && g_Config.m_SvResetDropsOnLeave))
+	if(m_LastOwner >= 0 && (!GameServer()->m_apPlayers[m_LastOwner] && g_Config.m_SvWeaponDropsResetOnLeave))
 	{
 		Reset();
 		return;
 	}
+
 	m_Lifetime--;
 	if(m_Lifetime <= 0)
 	{
@@ -234,7 +236,7 @@ void CPickupDrop::HandleSkippableTiles(int Index)
 	{
 		if(GameServer()->m_pController->Teams().IsPractice(Team()))
 		{
-			if(g_Config.m_SvDropsInFreezeFloat)
+			if(g_Config.m_SvWeaponDropsInFreezeFloat)
 				m_InsideFreeze = true;
 		}
 		else
@@ -498,7 +500,7 @@ void CPickupDrop::HandleTiles(int Index)
 	m_Vel = ClampVel(m_MoveRestrictions, m_Vel);
 	if(m_TileIndex == TILE_FREEZE || m_TileFIndex == TILE_FREEZE)
 	{
-		if(g_Config.m_SvDropsInFreezeFloat)
+		if(g_Config.m_SvWeaponDropsInFreezeFloat)
 			m_InsideFreeze = true;
 	}
 

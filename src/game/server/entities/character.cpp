@@ -613,7 +613,7 @@ void CCharacter::FireWeapon()
 
 		float Strength = GetCurrentTuning()->m_HammerStrength;
 
-		if(g_Config.m_SvDropsHammerable)
+		if(g_Config.m_SvWeaponDropsHammerable)
 			GameServer()->OnHammerHit(this, ProjStartPos, Strength);
 
 		CEntity *apEnts[MAX_CLIENTS];
@@ -3099,12 +3099,22 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 	if(!Server()->IsRconAuthed(GetPlayer()->GetCid()))
 		GameServer()->UnsetTelekinesis(GetPlayer()->GetCid());
 
+	if(g_Config.m_SvWeaponDropsResetOnDeath)
+	{
+		for(CPickupDrop *pPickup : GetPlayer()->m_vPickupDrops)
+		{
+			if(pPickup)
+				pPickup->Reset(false);
+		}
+		GetPlayer()->m_vPickupDrops.clear();
+	}
+
 	if(Acc()->m_LoggedIn)
 		Acc()->m_Deaths++;
 
 	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
-	if(g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponOnDeath)
+	if(g_Config.m_SvWeaponDrops && g_Config.m_SvWeaponDropsOnDeath)
 	{
 		for(int W = NUM_WEAPONS; W < NUM_EXTRA_WEAPONS; W++)
 		{
@@ -3139,11 +3149,10 @@ void CCharacter::FoxNetTick()
 	if(m_VoteActionDelay >= 0)
 		m_VoteActionDelay--;
 
-	if(GetPlayer()->m_vPickupDrops.size() > (size_t)(g_Config.m_SvDropsMaxPerPlayer))
+	if(GetPlayer()->m_vPickupDrops.size() > (size_t)(g_Config.m_SvWeaponDropsMaxPerPlayer))
 	{
 		// remove oldest drop
-		auto pPickup = GetPlayer()->m_vPickupDrops.begin();
-		(*pPickup)->Reset(false);
+		(*GetPlayer()->m_vPickupDrops.begin())->Reset(false);
 	}
 
 	if(m_IsRainbowHooked && GetPowerHooked() != HOOKTYPE_RAINBOW)
@@ -3490,7 +3499,7 @@ void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	if(GetPlayer()->IsPaused())
 		return;
 
-	if(F4 && g_Config.m_SvAllowWeaponDrops && g_Config.m_SvDropWeaponVoteNo && Acc()->m_LoggedIn && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
+	if(F4 && g_Config.m_SvWeaponDrops && g_Config.m_SvWeaponDropsVoteNo && Acc()->m_LoggedIn && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
 	{
 		const vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
 		const int Type = Core()->m_ActiveWeapon;
@@ -3575,10 +3584,10 @@ void CCharacter::UpdateWeaponIndicator()
 
 bool CCharacter::CanDropWeapon(int Type)
 {
-	if(!g_Config.m_SvAllowWeaponDrops)
+	if(!g_Config.m_SvWeaponDrops)
 		return false;
 
-	if(m_LastWeaponDropTick + g_Config.m_SvWeaponDropCooldown > Server()->Tick())
+	if(m_LastWeaponDropTick + g_Config.m_SvWeaponDropsCooldown > Server()->Tick())
 		return false;
 
 	if(Type < 0 || Type >= NUM_EXTRA_WEAPONS)

@@ -63,6 +63,7 @@ public:
 
 	CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
 
+	void RemoveFromOwner();
 	void Reset(bool PickedUp);
 	void Reset() override { Reset(false); }
 	void Tick() override;
