@@ -464,9 +464,9 @@ int64_t CPlayer::GetDiscountedPrice(int64_t Price)
 	float Discount = 0.0f;
 
 	if(OwnsItem(EItemId::VIP))
-		Discount = 0.10f;
+		Discount = 0.05f;
 	if(OwnsItem(EItemId::MVP))
-		Discount = 0.25f;
+		Discount = 0.15f;
 
 	return (int64_t)(Price * (1.0f - Discount));
 }
