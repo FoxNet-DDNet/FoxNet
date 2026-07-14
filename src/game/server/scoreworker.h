@@ -299,6 +299,7 @@ struct CSqlMapCacheRequest : ISqlData
 	char m_aMapper[128];
 	int m_Points;
 	int m_Stars;
+	char m_aSize[8];
 	char m_aTimestamp[24];
 	CGameContext *m_pGameServer;
 };
@@ -313,7 +314,17 @@ struct CSqlNewMapEntry : ISqlData
 	char m_aMapper[128];
 	int m_Points;
 	int m_Stars;
+	char m_aSize[8];
 	char m_aTimestamp[32];
+};
+
+struct CSqlUpdateMapEntrySize : ISqlData
+{
+	CSqlUpdateMapEntrySize(std::shared_ptr<CScorePlayerResult> pResult) :
+		ISqlData(std::move(pResult)) {}
+
+	char m_aMapName[MAX_MAP_LENGTH];
+	char m_aSize[8];
 };
 
 struct CSqlRemoveMapEntry : ISqlData
@@ -353,6 +364,7 @@ struct CScoreWorker
 	static bool SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	// <FoxNet
 	static bool InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
+	static bool UpdateMapEntrySize(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool RemoveMapEntry(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 
 	static bool RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);

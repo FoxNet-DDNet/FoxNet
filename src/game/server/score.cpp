@@ -416,7 +416,7 @@ void CScore::GetSaves(int ClientId)
 	ExecPlayerThread(CScoreWorker::GetSaves, "get saves", ClientId, "", 0);
 }
 // <FoxNet
-void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const char *pMapper, int Points, int Stars, const char *pTimestamp)
+void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const char *pMapper, int Points, int Stars, const char *pSize, const char *pTimestamp)
 {
 	auto pResult = std::make_shared<CScorePlayerResult>();
 	auto Tmp = std::make_unique<CSqlNewMapEntry>(pResult);
@@ -426,9 +426,21 @@ void CScore::InsertMapEntry(const char *pMapName, const char *pServer, const cha
 	str_copy(Tmp->m_aMapper, pMapper, sizeof(Tmp->m_aMapper));
 	Tmp->m_Points = Points;
 	Tmp->m_Stars = Stars;
+	str_copy(Tmp->m_aSize, pSize, sizeof(Tmp->m_aSize));
 	str_copy(Tmp->m_aTimestamp, pTimestamp, sizeof(Tmp->m_aTimestamp));
 
 	m_pPool->ExecuteWrite(CScoreWorker::InsertMapEntry, std::move(Tmp), "insert map entry");
+}
+
+void CScore::UpdateMapEntrySize(const char *pMapName, const char *pSize)
+{
+	auto pResult = std::make_shared<CScorePlayerResult>();
+	auto Tmp = std::make_unique<CSqlUpdateMapEntrySize>(pResult);
+
+	str_copy(Tmp->m_aMapName, pMapName, sizeof(Tmp->m_aMapName));
+	str_copy(Tmp->m_aSize, pSize, sizeof(Tmp->m_aSize));
+
+	m_pPool->ExecuteWrite(CScoreWorker::UpdateMapEntrySize, std::move(Tmp), "update map entry size");
 }
 
 void CScore::RemoveMapEntry(const char *pMapName)

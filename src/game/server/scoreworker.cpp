@@ -400,7 +400,7 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	char aMedianMapTime[2048];
 	char aBuf[4096];
 	str_format(aBuf, sizeof(aBuf),
-		"SELECT l.Map, l.Server, Mapper, Points, Stars, "
+		"SELECT l.Map, l.Server, Mapper, Points, Stars, Size, "
 		"  (SELECT COUNT(Name) FROM %s_race WHERE Map = l.Map) AS Finishes, "
 		"  (SELECT COUNT(DISTINCT Name) FROM %s_race WHERE Map = l.Map) AS Finishers, "
 		"  (%s) AS Median, "
@@ -446,12 +446,15 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		pSqlServer->GetString(3, aMapper, sizeof(aMapper));
 		int Points = GetIntOrDefault(pSqlServer, 4);
 		int Stars = GetIntOrDefault(pSqlServer, 5);
-		int Finishes = GetIntOrDefault(pSqlServer, 6);
-		int Finishers = GetIntOrDefault(pSqlServer, 7);
-		float Median = pSqlServer->GetOptionalFloat(8).value_or(-1.0f);
-		int Stamp = GetIntOrDefault(pSqlServer, 9);
-		int Ago = GetIntOrDefault(pSqlServer, 10);
-		float OwnTime = pSqlServer->GetOptionalFloat(11).value_or(-1.0f);
+		char aSize[32] = "\0";
+		if(!pSqlServer->IsNull(6))
+			pSqlServer->GetString(6, aSize, sizeof(aSize));
+		int Finishes = GetIntOrDefault(pSqlServer, 7);
+		int Finishers = GetIntOrDefault(pSqlServer, 8);
+		float Median = pSqlServer->GetOptionalFloat(9).value_or(-1.0f);
+		int Stamp = GetIntOrDefault(pSqlServer, 10);
+		int Ago = GetIntOrDefault(pSqlServer, 11);
+		float OwnTime = pSqlServer->GetOptionalFloat(12).value_or(-1.0f);
 
 		char aAgoString[40] = "\0";
 		char aReleasedString[60] = "\0";
@@ -488,11 +491,17 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 				", your time: %s", aBuf);
 		}
 
+		char aSizeString[40] = "\0";
+		if(aSize[0] != '\0')
+		{
+			str_format(aSizeString, sizeof(aSizeString), ", size: %s", aSize);
+		}
+
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-			"\"%s\" by %s on %s, %s, %d %s%s, %d %s by %d %s%s%s",
+			"\"%s\" by %s on %s, %s, %d %s%s%s, %d %s by %d %s%s%s",
 			aMap, aMapper, aServer, aStars,
 			Points, Points == 1 ? "point" : "points",
-			aReleasedString,
+			aReleasedString, aSizeString,
 			Finishes, Finishes == 1 ? "finish" : "finishes",
 			Finishers, Finishers == 1 ? "tee" : "tees",
 			aMedianString, aOwnFinishesString);
@@ -1966,7 +1975,7 @@ bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf),
-		"INSERT INTO %s_maps (Map, Server, Mapper, Points, Stars, Timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO %s_maps (Map, Server, Mapper, Points, Stars, Size, Timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		pSqlServer->GetPrefix());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
@@ -1978,7 +1987,8 @@ bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 	pSqlServer->BindString(3, pData->m_aMapper);
 	pSqlServer->BindInt(4, pData->m_Points);
 	pSqlServer->BindInt(5, pData->m_Stars);
-	pSqlServer->BindString(6, pData->m_aTimestamp);
+	pSqlServer->BindString(6, pData->m_aSize);
+	pSqlServer->BindString(7, pData->m_aTimestamp);
 	pSqlServer->Print();
 
 	int NumInserted = 0;
@@ -1992,6 +2002,40 @@ bool CScoreWorker::InsertMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 	}
 
 	log_info("sql", "Inserted map entry for map '%s'", pData->m_aMap);
+	return true;
+}
+
+bool CScoreWorker::UpdateMapEntrySize(IDbConnection *pSqlServer, const ISqlData *pGameData, Write /*w*/, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlUpdateMapEntrySize *>(pGameData);
+	if(!pData)
+	{
+		return false;
+	}
+
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf),
+		"UPDATE %s_maps SET Size = ? WHERE Map = ?",
+		pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+	{
+		return false;
+	}
+
+	pSqlServer->BindString(1, pData->m_aSize);
+	pSqlServer->BindString(2, pData->m_aMapName);
+
+	int NumUpdated = 0;
+	if(!pSqlServer->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	if(NumUpdated != 1)
+	{
+		log_warn("sql", "Failed to update map entry size for map '%s'", pData->m_aMapName);
+		return false;
+	}
+
+	log_info("sql", "Updated map entry size for map '%s'", pData->m_aMapName);
 	return true;
 }
 
@@ -2163,7 +2207,7 @@ bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGame
 
 	char aSql[512];
 	str_format(aSql, sizeof(aSql),
-		"SELECT Server, Mapper, Points, Stars, Timestamp "
+		"SELECT Server, Mapper, Points, Stars, Size, Timestamp "
 		"FROM %s_maps WHERE LOWER(Map)=LOWER(?) LIMIT 1",
 		pSqlServer->GetPrefix());
 
@@ -2182,7 +2226,11 @@ bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGame
 		pSqlServer->GetString(2, pReq->m_aMapper, sizeof(pReq->m_aMapper));
 		pReq->m_Points = GetIntOrDefault(pSqlServer, 3);
 		pReq->m_Stars = GetIntOrDefault(pSqlServer, 4);
-		pSqlServer->GetString(5, pReq->m_aTimestamp, sizeof(pReq->m_aTimestamp));
+		if(!pSqlServer->IsNull(5))
+			pSqlServer->GetString(5, pReq->m_aSize, sizeof(pReq->m_aSize));
+		else
+			pReq->m_aSize[0] = '\0';
+		pSqlServer->GetString(6, pReq->m_aTimestamp, sizeof(pReq->m_aTimestamp));
 
 		if(pReq->m_pGameServer)
 		{
@@ -2191,6 +2239,7 @@ bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGame
 			str_copy(Dst.m_aMapper, pReq->m_aMapper, sizeof(Dst.m_aMapper));
 			Dst.m_Points = pReq->m_Points;
 			Dst.m_Stars = pReq->m_Stars;
+			str_copy(Dst.m_aSize, pReq->m_aSize, sizeof(Dst.m_aSize));
 			str_copy(Dst.m_aTimestamp, pReq->m_aTimestamp, sizeof(Dst.m_aTimestamp));
 		}
 	}

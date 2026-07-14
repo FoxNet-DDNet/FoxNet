@@ -961,6 +961,7 @@ private:
 	static void ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConInsertMapEntry(IConsole::IResult *pResult, void *pUserData);
+	static void ConUpdateMapEntrySize(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveMapEntry(IConsole::IResult *pResult, void *pUserData);
 	static void ConInsertRecord(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveRecord(IConsole::IResult *pResult, void *pUserData);
@@ -1029,6 +1030,7 @@ public:
 		char m_aMapper[128] = "Unknown";
 		int m_Points = 0;
 		int m_Stars = 0;
+		char m_aSize[8] = "";
 		char m_aTimestamp[24] = "Unknown";
 	} m_MapInfoCache;
 

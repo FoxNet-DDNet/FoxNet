@@ -1299,9 +1299,10 @@ void CGameContext::ConInsertMapEntry(IConsole::IResult *pResult, void *pUserData
 	const char *pMapper = pResult->GetString(2);
 	int Points = pResult->GetInteger(3);
 	int Stars = pResult->GetInteger(4);
+	const char *pSize = pResult->GetString(5);
 	char aTimestamp[32];
-	if(pResult->NumArguments() > 5)
-		str_copy(aTimestamp, pResult->GetString(5), sizeof(aTimestamp));
+	if(pResult->NumArguments() > 6)
+		str_copy(aTimestamp, pResult->GetString(6), sizeof(aTimestamp));
 	else
 	{
 		time_t Now = time(0);
@@ -1324,7 +1325,22 @@ void CGameContext::ConInsertMapEntry(IConsole::IResult *pResult, void *pUserData
 		return;
 	}
 
-	pSelf->Score()->InsertMapEntry(pMap, pServer, pMapper, Points, Stars, aTimestamp);
+	pSelf->Score()->InsertMapEntry(pMap, pServer, pMapper, Points, Stars, pSize, aTimestamp);
+}
+
+void CGameContext::ConUpdateMapEntrySize(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pMapName = pResult->GetString(0);
+	const char *pSize = pResult->GetString(1);
+
+	if(!pMapName)
+	{
+		log_info("score", "ConUpdateMapEntrySize: no map specified");
+		return;
+	}
+
+	pSelf->Score()->UpdateMapEntrySize(pMapName, pSize);
 }
 
 void CGameContext::ConRemoveMapEntry(IConsole::IResult *pResult, void *pUserData)
@@ -2114,7 +2130,8 @@ void CGameContext::RegisterFoxNetCommands()
 	// Console()->Register("hide_powerups", "?v[id]", CFGFLAG_SERVER, ConHidePowerUps, this, "Hides Powerups for Player (id)");
 
 	// Records
-	Console()->Register("map_entry_insert", "s[mapname] s[server] s[mapper] i[points] i[stars] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
+	Console()->Register("map_entry_insert", "s[mapname] s[server] s[mapper] i[points] i[stars] s[size] ?r[timestamp]", CFGFLAG_SERVER, ConInsertMapEntry, this, "Insert a new map entry into the ddnet_maps sql table");
+	Console()->Register("update_map_entry_size", "s[mapname] s[size]", CFGFLAG_SERVER, ConUpdateMapEntrySize, this, "Update the size field of a map entry in the ddnet_maps sql table");
 	Console()->Register("map_entry_remove", "s[mapname]", CFGFLAG_SERVER, ConRemoveMapEntry, this, "Remove a map entry from the ddnet_maps sql table");
 
 	Console()->Register("record_insert", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConInsertRecord, this, "Insert a new record for that name on the given map with given time");

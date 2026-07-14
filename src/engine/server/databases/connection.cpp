@@ -80,6 +80,7 @@ void IDbConnection::FormatCreateMaps(char *aBuf, unsigned int BufferSize) const
 		"  Mapper VARCHAR(128) COLLATE %s NOT NULL, "
 		"  Points INT DEFAULT 0, "
 		"  Stars INT DEFAULT 0, "
+		"  Size VARCHAR(8) DEFAULT NULL, "
 		"  Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
 		"  PRIMARY KEY (Map)"
 		")",
