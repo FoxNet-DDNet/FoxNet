@@ -185,6 +185,10 @@ void CPowerUp::HandleClient(int ClientId)
 	if(pChr->MultiMapIdx() != MultiMapIdx())
 		return; // Prevent collection across maps
 
+	CPlayer *pCollectingPlayer = pChr->GetPlayer();
+	if(!pCollectingPlayer || pCollectingPlayer->Acc()->m_Configs.m_HidePowerUps)
+		return;
+
 	CClientMask TeamMask = pChr->TeamMask();
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -217,7 +221,7 @@ void CPowerUp::HandleClient(int ClientId)
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 
 			m_aClients[ClientId].m_Collected = true;
-			m_aClients[ClientId].m_WasLoggedIn = pChr->GetPlayer()->Acc()->m_LoggedIn;
+			m_aClients[ClientId].m_WasLoggedIn = pCollectingPlayer->Acc()->m_LoggedIn;
 			m_aClients[ClientId].m_Addr = *Server()->ClientAddr(ClientId);
 
 			if(m_Lifetime > Server()->TickSpeed() * 30)

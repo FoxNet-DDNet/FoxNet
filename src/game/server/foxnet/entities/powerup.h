@@ -55,7 +55,7 @@ class CPowerUp : public CEntity
 	int m_Lifetime;
 	bool m_Switch;
 
-	int m_MaxCollections = 3;
+	int m_MaxCollections = 0;
 
 	CClientMask m_TeamMask;
 
