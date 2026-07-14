@@ -280,7 +280,7 @@ void CScore::ShowTopPoints(int ClientId, int Offset)
 	ExecPlayerThread(CScoreWorker::ShowTopPoints, "show top points", ClientId, "", Offset);
 }
 
-void CScore::RandomMap(int ClientId, int MinStars, int MaxStars)
+void CScore::RandomMap(int ClientId, int MinStars, int MaxStars, const char *pSize)
 {
 	auto pResult = std::make_shared<CScoreRandomMapResult>(ClientId);
 	GameServer()->m_SqlRandomMapResult = pResult;
@@ -288,6 +288,7 @@ void CScore::RandomMap(int ClientId, int MinStars, int MaxStars)
 	auto Tmp = std::make_unique<CSqlRandomMapRequest>(pResult);
 	Tmp->m_MinStars = MinStars;
 	Tmp->m_MaxStars = MaxStars;
+	str_copy(Tmp->m_aSize, pSize, sizeof(Tmp->m_aSize));
 	str_copy(Tmp->m_aCurrentMap, GameServer()->Map()->BaseName());
 	str_copy(Tmp->m_aServerType, g_Config.m_SvServerType);
 	str_copy(Tmp->m_aRequestingPlayer, ClientId == -1 ? "nameless tee" : GameServer()->Server()->ClientName(ClientId));
@@ -295,7 +296,7 @@ void CScore::RandomMap(int ClientId, int MinStars, int MaxStars)
 	m_pPool->Execute(CScoreWorker::RandomMap, std::move(Tmp), "random map");
 }
 
-void CScore::RandomUnfinishedMap(int ClientId, int MinStars, int MaxStars)
+void CScore::RandomUnfinishedMap(int ClientId, int MinStars, int MaxStars, const char *pSize)
 {
 	auto pResult = std::make_shared<CScoreRandomMapResult>(ClientId);
 	GameServer()->m_SqlRandomMapResult = pResult;
@@ -303,6 +304,7 @@ void CScore::RandomUnfinishedMap(int ClientId, int MinStars, int MaxStars)
 	auto Tmp = std::make_unique<CSqlRandomMapRequest>(pResult);
 	Tmp->m_MinStars = MinStars;
 	Tmp->m_MaxStars = MaxStars;
+	str_copy(Tmp->m_aSize, pSize, sizeof(Tmp->m_aSize));
 	str_copy(Tmp->m_aCurrentMap, GameServer()->Map()->BaseName());
 	str_copy(Tmp->m_aServerType, g_Config.m_SvServerType);
 	str_copy(Tmp->m_aRequestingPlayer, ClientId == -1 ? "nameless tee" : GameServer()->Server()->ClientName(ClientId));

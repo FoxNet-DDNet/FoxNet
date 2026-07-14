@@ -1535,35 +1535,33 @@ bool CScoreWorker::RandomMap(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	const auto *pData = dynamic_cast<const CSqlRandomMapRequest *>(pGameData);
 	auto *pResult = dynamic_cast<CScoreRandomMapResult *>(pGameData->m_pResult.get());
 
+	const bool FilterStars = in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5);
+	const bool FilterSize = pData->m_aSize[0] != '\0';
+	const char *pStarCondition = FilterStars ? " AND Stars BETWEEN ? AND ?" : "";
+	const char *pSizeCondition = FilterSize ? " AND Size = ?" : "";
+
 	char aBuf[512];
-	if(in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5))
+	str_format(aBuf, sizeof(aBuf),
+		"SELECT Map FROM %s_maps "
+		"WHERE Server = ? AND Map != ?%s%s "
+		"ORDER BY %s LIMIT 1",
+		pSqlServer->GetPrefix(), pStarCondition, pSizeCondition, pSqlServer->Random());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
-		str_format(aBuf, sizeof(aBuf),
-			"SELECT Map FROM %s_maps "
-			"WHERE Server = ? AND Map != ? AND Stars BETWEEN ? AND ? "
-			"ORDER BY %s LIMIT 1",
-			pSqlServer->GetPrefix(), pSqlServer->Random());
-		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		{
-			return false;
-		}
-		pSqlServer->BindInt(3, pData->m_MinStars);
-		pSqlServer->BindInt(4, pData->m_MaxStars);
-	}
-	else
-	{
-		str_format(aBuf, sizeof(aBuf),
-			"SELECT Map FROM %s_maps "
-			"WHERE Server = ? AND Map != ? "
-			"ORDER BY %s LIMIT 1",
-			pSqlServer->GetPrefix(), pSqlServer->Random());
-		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		{
-			return false;
-		}
+		return false;
 	}
 	pSqlServer->BindString(1, pData->m_aServerType);
 	pSqlServer->BindString(2, pData->m_aCurrentMap);
+	int BindIndex = 3;
+	if(FilterStars)
+	{
+		pSqlServer->BindInt(BindIndex++, pData->m_MinStars);
+		pSqlServer->BindInt(BindIndex++, pData->m_MaxStars);
+	}
+	if(FilterSize)
+	{
+		pSqlServer->BindString(BindIndex++, pData->m_aSize);
+	}
 
 	bool End;
 	if(!pSqlServer->Step(&End, pError, ErrorSize))
@@ -1586,49 +1584,40 @@ bool CScoreWorker::RandomUnfinishedMap(IDbConnection *pSqlServer, const ISqlData
 	const auto *pData = dynamic_cast<const CSqlRandomMapRequest *>(pGameData);
 	auto *pResult = dynamic_cast<CScoreRandomMapResult *>(pGameData->m_pResult.get());
 
+	const bool FilterStars = in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5);
+	const bool FilterSize = pData->m_aSize[0] != '\0';
+	const char *pStarCondition = FilterStars ? " AND Stars BETWEEN ? AND ?" : "";
+	const char *pSizeCondition = FilterSize ? " AND Size = ?" : "";
+
 	char aBuf[512];
-	if(in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5))
+	str_format(aBuf, sizeof(aBuf),
+		"SELECT Map "
+		"FROM %s_maps "
+		"WHERE Server = ? AND Map != ?%s%s AND Map NOT IN ("
+		"  SELECT Map "
+		"  FROM %s_race "
+		"  WHERE Name = ?"
+		") ORDER BY %s "
+		"LIMIT 1",
+		pSqlServer->GetPrefix(), pStarCondition, pSizeCondition,
+		pSqlServer->GetPrefix(), pSqlServer->Random());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
-		str_format(aBuf, sizeof(aBuf),
-			"SELECT Map "
-			"FROM %s_maps "
-			"WHERE Server = ? AND Map != ? AND Stars BETWEEN ? AND ? AND Map NOT IN ("
-			"  SELECT Map "
-			"  FROM %s_race "
-			"  WHERE Name = ?"
-			") ORDER BY %s "
-			"LIMIT 1",
-			pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pSqlServer->Random());
-		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		{
-			return false;
-		}
-		pSqlServer->BindString(1, pData->m_aServerType);
-		pSqlServer->BindString(2, pData->m_aCurrentMap);
-		pSqlServer->BindInt(3, pData->m_MinStars);
-		pSqlServer->BindInt(4, pData->m_MaxStars);
-		pSqlServer->BindString(5, pData->m_aRequestingPlayer);
+		return false;
 	}
-	else
+	pSqlServer->BindString(1, pData->m_aServerType);
+	pSqlServer->BindString(2, pData->m_aCurrentMap);
+	int BindIndex = 3;
+	if(FilterStars)
 	{
-		str_format(aBuf, sizeof(aBuf),
-			"SELECT Map "
-			"FROM %s_maps AS maps "
-			"WHERE Server = ? AND Map != ? AND Map NOT IN ("
-			"  SELECT Map "
-			"  FROM %s_race as race "
-			"  WHERE Name = ?"
-			") ORDER BY %s "
-			"LIMIT 1",
-			pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pSqlServer->Random());
-		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		{
-			return false;
-		}
-		pSqlServer->BindString(1, pData->m_aServerType);
-		pSqlServer->BindString(2, pData->m_aCurrentMap);
-		pSqlServer->BindString(3, pData->m_aRequestingPlayer);
+		pSqlServer->BindInt(BindIndex++, pData->m_MinStars);
+		pSqlServer->BindInt(BindIndex++, pData->m_MaxStars);
 	}
+	if(FilterSize)
+	{
+		pSqlServer->BindString(BindIndex++, pData->m_aSize);
+	}
+	pSqlServer->BindString(BindIndex++, pData->m_aRequestingPlayer);
 
 	bool End;
 	if(!pSqlServer->Step(&End, pError, ErrorSize))

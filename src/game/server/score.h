@@ -66,8 +66,8 @@ public:
 	void ShowTimes(int ClientId, const char *pName, int Offset = 1);
 	void ShowTimes(int ClientId, int Offset = 1);
 
-	void RandomMap(int ClientId, int MinStars, int MaxStars);
-	void RandomUnfinishedMap(int ClientId, int MinStars, int MaxStars);
+	void RandomMap(int ClientId, int MinStars, int MaxStars, const char *pSize);
+	void RandomUnfinishedMap(int ClientId, int MinStars, int MaxStars, const char *pSize);
 
 	void SaveTeam(int ClientId, const char *pCode, const char *pServer);
 	void LoadTeam(const char *pCode, int ClientId);

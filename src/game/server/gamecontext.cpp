@@ -68,6 +68,8 @@
 #include <vector>
 #include "foxnet/item_registry.h"
 
+static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize);
+
 // Not thread-safe!
 class CClientChatLogger : public ILogger
 {
@@ -2548,16 +2550,20 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 
 				if((str_endswith(pOption->m_aCommand, "random_map") || str_endswith(pOption->m_aCommand, "random_unfinished_map")))
 				{
-					if(str_length(aReason) == 1 && aReason[0] >= '0' && aReason[0] <= '5')
+					if(pMsg->m_pReason[0])
 					{
-						int Stars = aReason[0] - '0';
-						str_format(aCmd, sizeof(aCmd), "%s %d", pOption->m_aCommand, Stars);
-					}
-					else if(str_length(aReason) == 3 && aReason[1] == '-' && aReason[0] >= '0' && aReason[0] <= '5' && aReason[2] >= '0' && aReason[2] <= '5')
-					{
-						int Start = aReason[0] - '0';
-						int End = aReason[2] - '0';
-						str_format(aCmd, sizeof(aCmd), "%s %d %d", pOption->m_aCommand, Start, End);
+						int MinStars;
+						int MaxStars;
+						char aSize[9];
+						if(!ParseRandomMapReason(aReason, &MinStars, &MaxStars, aSize, sizeof(aSize)))
+						{
+							SendChatTarget(ClientId, "Invalid random map filter");
+							return;
+						}
+						if(MinStars != -1 || aSize[0] != '\0')
+							str_format(aCmd, sizeof(aCmd), "%s %s", pOption->m_aCommand, aReason);
+						else
+							str_copy(aCmd, pOption->m_aCommand);
 					}
 					else
 					{
@@ -3552,18 +3558,107 @@ void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pController->ChangeMap(pResult->GetString(0));
 }
 
+static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize)
+{
+	*pMinStars = -1;
+	*pMaxStars = -1;
+	pSize[0] = '\0';
+
+	if(pReason == nullptr || pReason[0] == '\0')
+		return true;
+
+	char aReason[32];
+	str_copy(aReason, pReason, sizeof(aReason));
+
+	char *pSizePart = nullptr;
+	char *pColon = nullptr;
+	for(char *p = aReason; *p; p++)
+	{
+		if(*p == ':')
+		{
+			if(pColon != nullptr)
+				return false;
+			pColon = p;
+			*pColon = '\0';
+			pSizePart = pColon + 1;
+		}
+	}
+
+	char *pStarsPart = aReason;
+	if(pColon == nullptr)
+	{
+		bool HasDigit = false;
+		bool IsStars = true;
+		for(const char *p = aReason; *p; p++)
+		{
+			if(*p >= '0' && *p <= '9')
+				HasDigit = true;
+			else if(*p != '-')
+				IsStars = false;
+		}
+		if(!HasDigit || !IsStars)
+		{
+			pStarsPart = nullptr;
+			pSizePart = aReason;
+		}
+	}
+
+	if(pStarsPart != nullptr && pStarsPart[0] != '\0')
+	{
+		char *pDash = nullptr;
+		for(char *p = pStarsPart; *p; p++)
+		{
+			if(*p == '-')
+			{
+				if(pDash != nullptr)
+					return false;
+				pDash = p;
+				*pDash = '\0';
+			}
+		}
+
+		int MinStars;
+		int MaxStars;
+		if(!str_toint(pStarsPart, &MinStars))
+			return false;
+		if(pDash != nullptr)
+		{
+			if(!str_toint(pDash + 1, &MaxStars))
+				return false;
+		}
+		else
+			MaxStars = MinStars;
+
+		if(!in_range(MinStars, 0, 5) || !in_range(MaxStars, 0, 5) || MinStars > MaxStars)
+			return false;
+
+		*pMinStars = MinStars;
+		*pMaxStars = MaxStars;
+	}
+
+	if(pSizePart != nullptr && pSizePart[0] != '\0')
+	{
+		if(str_comp(pSizePart, "-") == 0)
+			return true;
+		str_copy(pSize, pSizePart, SizeBufferSize);
+	}
+
+	return true;
+}
+
 void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	const int ClientId = pResult->m_ClientId == -1 ? pSelf->m_VoteCreator : pResult->m_ClientId;
-	int MinStars = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : -1;
-	int MaxStars = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : MinStars;
+	int MinStars;
+	int MaxStars;
+	char aSize[9];
 
-	if(!in_range(MinStars, -1, 5) || !in_range(MaxStars, -1, 5))
+	if(!ParseRandomMapReason(pResult->NumArguments() > 0 ? pResult->GetString(0) : "", &MinStars, &MaxStars, aSize, sizeof(aSize)))
 		return;
 
-	pSelf->m_pScore->RandomMap(ClientId, MinStars, MaxStars);
+	pSelf->m_pScore->RandomMap(ClientId, MinStars, MaxStars, aSize);
 }
 
 void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData)
@@ -3571,13 +3666,14 @@ void CGameContext::ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUse
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	const int ClientId = pResult->m_ClientId == -1 ? pSelf->m_VoteCreator : pResult->m_ClientId;
-	int MinStars = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : -1;
-	int MaxStars = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : MinStars;
+	int MinStars;
+	int MaxStars;
+	char aSize[9];
 
-	if(!in_range(MinStars, -1, 5) || !in_range(MaxStars, -1, 5))
+	if(!ParseRandomMapReason(pResult->NumArguments() > 0 ? pResult->GetString(0) : "", &MinStars, &MaxStars, aSize, sizeof(aSize)))
 		return;
 
-	pSelf->m_pScore->RandomUnfinishedMap(ClientId, MinStars, MaxStars);
+	pSelf->m_pScore->RandomUnfinishedMap(ClientId, MinStars, MaxStars, aSize);
 }
 
 void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
@@ -4159,8 +4255,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
-	Console()->Register("random_map", "?i[stars] ?i[max stars]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map");
-	Console()->Register("random_unfinished_map", "?i[stars] ?i[max stars]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomUnfinishedMap, this, "Random unfinished map");
+	Console()->Register("random_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map, optionally filtered like 1-3, S, or 1-3:S");
+	Console()->Register("random_unfinished_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomUnfinishedMap, this, "Random unfinished map, optionally filtered like 1-3, S, or 1-3:S");
 	Console()->Register("restart", "?i[seconds]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("server_alert", "r[message]", CFGFLAG_SERVER, ConServerAlert, this, "Send a server alert message to all players");
 	Console()->Register("mod_alert", "v[id] r[message]", CFGFLAG_SERVER, ConModAlert, this, "Send a moderator alert message to player");

@@ -60,15 +60,25 @@ struct Score : public testing::TestWithParam<IDbConnection *>
 		ASSERT_TRUE(CScoreWorker::LoadBestTime(m_pConn, &loadBestTimeReq, m_aError, sizeof(m_aError))) << m_aError;
 	}
 
-	void InsertMap(const char *pName, const char *pMapper, const char *pServer, int Points, int Stars)
+	void InsertMap(const char *pName, const char *pMapper, const char *pServer, int Points, int Stars, const char *pSize = nullptr)
 	{
 		char aTimestamp[32];
 		str_timestamp_format(aTimestamp, sizeof(aTimestamp), TimestampFormat::SPACE);
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf),
-			"%s into %s_maps(Map, Server, Mapper, Points, Stars, Timestamp) "
-			"VALUES (\"%s\", \"%s\", \"%s\", %d, %d, %s)",
-			m_pConn->InsertIgnore(), m_pConn->GetPrefix(), pName, pServer, pMapper, Points, Stars, m_pConn->InsertTimestampAsUtc());
+		if(pSize != nullptr)
+		{
+			str_format(aBuf, sizeof(aBuf),
+				"%s into %s_maps(Map, Server, Mapper, Points, Stars, Size, Timestamp) "
+				"VALUES (\"%s\", \"%s\", \"%s\", %d, %d, \"%s\", %s)",
+				m_pConn->InsertIgnore(), m_pConn->GetPrefix(), pName, pServer, pMapper, Points, Stars, pSize, m_pConn->InsertTimestampAsUtc());
+		}
+		else
+		{
+			str_format(aBuf, sizeof(aBuf),
+				"%s into %s_maps(Map, Server, Mapper, Points, Stars, Timestamp) "
+				"VALUES (\"%s\", \"%s\", \"%s\", %d, %d, %s)",
+				m_pConn->InsertIgnore(), m_pConn->GetPrefix(), pName, pServer, pMapper, Points, Stars, m_pConn->InsertTimestampAsUtc());
+		}
 		ASSERT_TRUE(m_pConn->PrepareStatement(aBuf, m_aError, sizeof(m_aError))) << m_aError;
 		m_pConn->BindString(1, aTimestamp);
 		int NumInserted = 0;
@@ -597,6 +607,40 @@ TEST_P(RandomMap, StarsRangeExists)
 	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "");
 }
 
+TEST_P(RandomMap, SizeExists)
+{
+	InsertMap("Short Map", "Mapper", "Novice", 1, 1, "S");
+	str_copy(m_RandomMapRequest.m_aSize, "S");
+	ASSERT_TRUE(CScoreWorker::RandomMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
+	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "Short Map");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "");
+}
+
+TEST_P(RandomMap, StarsAndSizeExists)
+{
+	InsertMap("Medium Map", "Mapper", "Novice", 1, 2, "M");
+	m_RandomMapRequest.m_MinStars = 2;
+	m_RandomMapRequest.m_MaxStars = 2;
+	str_copy(m_RandomMapRequest.m_aSize, "M");
+	ASSERT_TRUE(CScoreWorker::RandomMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
+	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "Medium Map");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "");
+}
+
+TEST_P(RandomMap, StarsAndSizeDoesntExist)
+{
+	InsertMap("Medium Map", "Mapper", "Novice", 1, 2, "M");
+	m_RandomMapRequest.m_MinStars = 2;
+	m_RandomMapRequest.m_MaxStars = 2;
+	str_copy(m_RandomMapRequest.m_aSize, "S");
+	ASSERT_TRUE(CScoreWorker::RandomMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
+	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "No maps found on this server!");
+}
+
 TEST_P(RandomMap, StarsDoesntExist)
 {
 	m_RandomMapRequest.m_MinStars = 3;
@@ -614,6 +658,16 @@ TEST_P(RandomMap, UnfinishedExists)
 	ASSERT_TRUE(CScoreWorker::RandomUnfinishedMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
 	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
 	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "Kobra 3");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "");
+}
+
+TEST_P(RandomMap, UnfinishedSizeExists)
+{
+	InsertMap("Short Map", "Mapper", "Novice", 1, 1, "S");
+	str_copy(m_RandomMapRequest.m_aSize, "S");
+	ASSERT_TRUE(CScoreWorker::RandomUnfinishedMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
+	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "Short Map");
 	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "");
 }
 

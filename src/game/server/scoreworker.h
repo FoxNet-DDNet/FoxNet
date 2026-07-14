@@ -117,6 +117,9 @@ struct CSqlRandomMapRequest : ISqlData
 	CSqlRandomMapRequest(std::shared_ptr<CScoreRandomMapResult> pResult) :
 		ISqlData(std::move(pResult))
 	{
+		m_MinStars = -1;
+		m_MaxStars = -1;
+		m_aSize[0] = '\0';
 	}
 
 	char m_aServerType[32];
@@ -124,6 +127,7 @@ struct CSqlRandomMapRequest : ISqlData
 	char m_aRequestingPlayer[MAX_NAME_LENGTH];
 	int m_MinStars;
 	int m_MaxStars;
+	char m_aSize[9];
 };
 
 struct CSqlScoreData : ISqlData
