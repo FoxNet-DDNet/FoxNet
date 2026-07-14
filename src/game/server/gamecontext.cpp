@@ -2609,10 +2609,14 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 			// <FoxNet
 			bool IsValid = false;
 
-			if(str_find(pMsg->m_pValue, m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing"))
+			const char *pVoteLockType = m_MapVoteLock ? "ALLOW Map Changing" : "LOCK Map Changing";
+			if(str_find(pMsg->m_pValue, pVoteLockType))
 			{
 				IsValid = true;
-				str_copy(aDesc, pMsg->m_pValue);
+				if(g_Config.m_SvVoteSkipPrefix)
+					str_copy(aDesc, pVoteLockType);
+				else
+					str_copy(aDesc, pMsg->m_pValue);
 				str_copy(aCmd, "map_vote_lock");
 			}
 
