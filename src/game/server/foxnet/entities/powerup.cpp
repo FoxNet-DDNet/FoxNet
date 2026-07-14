@@ -2,6 +2,7 @@
 #include "powerup.h"
 
 #include <base/log.h>
+#include <base/math.h>
 #include <base/net.h>
 #include <base/system.h>
 #include <base/vmath.h>
@@ -22,10 +23,9 @@
 #include <game/teamscore.h>
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <random>
-#include <base/math.h>
-#include <array>
 
 CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	CEntity(pGameWorld, MultiMapIdx, CGameWorld::ENTTYPE_POWERUP, true, Pos, 54)
@@ -36,7 +36,7 @@ CPowerUp::CPowerUp(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	for(size_t i = 0; i < NUM_LASERS; i++)
 		m_aSnap.at(i).m_Id = Server()->SnapNewId();
 	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const auto &a, const auto &b) { return a.m_Id.value() < b.m_Id.value(); });
-	
+
 	GameWorld()->InsertEntity(this);
 
 	SetData();
@@ -60,10 +60,23 @@ void CPowerUp::SetData()
 		if(!Server()->ClientIngame(i))
 			continue;
 
-		if(!GameServer()->GetPlayerChar(i))
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+
+		if(!pPlayer)
+			continue;
+
+		if(pPlayer->IsAfk())
+			continue;
+
+		CCharacter *pChr = pPlayer->GetCharacter();
+
+		if(!pChr)
 			continue;
 
 		if(!GameServer()->m_aAccounts[i].m_LoggedIn)
+			continue;
+
+		if(pChr->Team() != TEAM_FLOCK)
 			continue;
 
 		m_MaxCollections++;
