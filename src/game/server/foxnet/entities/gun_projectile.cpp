@@ -162,21 +162,21 @@ void CGunProjectile::TickVanillaPhantom()
 		vec2 Direction = normalize(CurPos - m_VanillaPrevPos);
 		if(Direction == vec2(0, 0))
 			Direction = m_SpawnDir;
-		EmitHitEffect(BeforePos, ColPos, Direction, m_MaskGunOpp);
+		EmitHitEffect(false, BeforePos, ColPos, Direction, m_MaskGunOpp);
 		return;
 	}
 
 	m_VanillaPrevPos = CurPos;
 }
 
-void CGunProjectile::EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CClientMask Audience)
+void CGunProjectile::EmitHitEffect(bool HitPlayer, vec2 NewPos, vec2 CurPos, vec2 Direction, CClientMask Audience)
 {
 	CClientMask FancyMask = Audience & m_MaskInd;
 	CClientMask PlainMask = Audience & m_MaskIndOpp;
 
 	GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
 
-	if(m_EmoteGun)
+	if(m_EmoteGun && HitPlayer)
 		return;
 
 	if(m_ConfettiGun)
@@ -368,7 +368,7 @@ void CGunProjectile::Tick()
 		// cosmetics-off viewers too, otherwise the target sees no damage indicator.
 		CClientMask Audience = pTargetChr ? (m_MaskGun | m_MaskGunOpp) : m_MaskGun;
 
-		EmitHitEffect(NewPos, CurPos, Direction, Audience);
+		EmitHitEffect(pTargetChr != nullptr, NewPos, CurPos, Direction, Audience);
 		Reset();
 		return;
 	}

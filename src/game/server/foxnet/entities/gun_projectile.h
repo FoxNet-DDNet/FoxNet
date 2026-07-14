@@ -76,7 +76,7 @@ private:
 	void TickSway();
 	void TickControl();
 
-	void EmitHitEffect(vec2 NewPos, vec2 CurPos, vec2 Direction, CClientMask Audience);
+	void EmitHitEffect(bool HitPlayer, vec2 NewPos, vec2 CurPos, vec2 Direction, CClientMask Audience);
 
 	void SnapCosmeticBullet(int SnappingClient);
 	void SnapVanillaBullet(int SnappingClient);
