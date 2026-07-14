@@ -48,7 +48,7 @@ void CPowerUp::SetData()
 
 	float RandomFloat = dis(Rng());
 
-	if(RandomFloat < 0.8f)
+	if(RandomFloat < 1.5f)
 		m_Data.m_Type = EPowerUp::BOOST;
 	else if(RandomFloat < 50.0f)
 		m_Data.m_Type = EPowerUp::XP;
