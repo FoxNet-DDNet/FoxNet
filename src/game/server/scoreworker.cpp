@@ -446,7 +446,7 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		pSqlServer->GetString(3, aMapper, sizeof(aMapper));
 		int Points = GetIntOrDefault(pSqlServer, 4);
 		int Stars = GetIntOrDefault(pSqlServer, 5);
-		char aSize[32] = "\0";
+		char aSize[8] = "\0";
 		if(!pSqlServer->IsNull(6))
 			pSqlServer->GetString(6, aSize, sizeof(aSize));
 		int Finishes = GetIntOrDefault(pSqlServer, 7);
@@ -491,7 +491,7 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 				", your time: %s", aBuf);
 		}
 
-		char aSizeString[40] = "\0";
+		char aSizeString[16] = "\0";
 		if(aSize[0] != '\0')
 		{
 			str_format(aSizeString, sizeof(aSizeString), "size: %s", aSize);
@@ -499,7 +499,7 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
 			"\"%s\" by %s on %s, %s, %s, %d %s%s, %d %s by %d %s%s%s",
-			aMap, aMapper, aServer, aStars, aSize,
+			aMap, aMapper, aServer, aStars, aSizeString,
 			Points, Points == 1 ? "point" : "points",
 			aReleasedString,
 			Finishes, Finishes == 1 ? "finish" : "finishes",
