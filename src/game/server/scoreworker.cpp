@@ -499,9 +499,9 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
 			"\"%s\" by %s on %s, %s, %d %s%s%s, %d %s by %d %s%s%s",
-			aMap, aMapper, aServer, aStars,
+			aMap, aSizeString, aMapper, aServer, aStars,
 			Points, Points == 1 ? "point" : "points",
-			aReleasedString, aSizeString,
+			aReleasedString,
 			Finishes, Finishes == 1 ? "finish" : "finishes",
 			Finishers, Finishers == 1 ? "tee" : "tees",
 			aMedianString, aOwnFinishesString);
