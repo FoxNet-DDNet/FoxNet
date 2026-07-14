@@ -3562,6 +3562,112 @@ void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pController->ChangeMap(pResult->GetString(0));
 }
 
+static bool IsRandomMapReasonSeparator(char c)
+{
+	return c == ':' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+static bool ApplyRandomMapStars(const char *pStars, int *pMinStars, int *pMaxStars)
+{
+	if(pStars == nullptr || pStars[0] == '\0')
+		return true;
+	if(*pMinStars != -1 || *pMaxStars != -1)
+		return false;
+
+	char aStars[16];
+	str_copy(aStars, pStars, sizeof(aStars));
+
+	char *pDash = nullptr;
+	for(char *p = aStars; *p; p++)
+	{
+		if(*p == '-')
+		{
+			if(pDash != nullptr)
+				return false;
+			pDash = p;
+			*pDash = '\0';
+		}
+	}
+
+	int MinStars;
+	int MaxStars;
+	if(!str_toint(aStars, &MinStars))
+		return false;
+	if(pDash != nullptr)
+	{
+		if(!str_toint(pDash + 1, &MaxStars))
+			return false;
+	}
+	else
+		MaxStars = MinStars;
+
+	if(MinStars > MaxStars)
+		std::swap(MinStars, MaxStars);
+
+	if(!in_range(MinStars, 0, 5) || !in_range(MaxStars, 0, 5))
+		return false;
+
+	*pMinStars = MinStars;
+	*pMaxStars = MaxStars;
+	return true;
+}
+
+static bool ApplyRandomMapSize(const char *pSizeToken, char *pSize, int SizeBufferSize)
+{
+	if(pSizeToken == nullptr || pSizeToken[0] == '\0' || str_comp(pSizeToken, "-") == 0)
+		return true;
+	if(pSize[0] != '\0' && str_comp_nocase(pSize, pSizeToken) != 0)
+		return false;
+
+	str_copy(pSize, pSizeToken, SizeBufferSize);
+	return true;
+}
+
+static bool ParseRandomMapReasonToken(const char *pToken, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize)
+{
+	if(pToken[0] == '\0')
+		return true;
+
+	int FirstDigit = -1;
+	for(int i = 0; pToken[i]; i++)
+	{
+		if(pToken[i] >= '0' && pToken[i] <= '9')
+		{
+			FirstDigit = i;
+			break;
+		}
+	}
+
+	if(FirstDigit == -1)
+		return ApplyRandomMapSize(pToken, pSize, SizeBufferSize);
+
+	char aStars[16] = "";
+	char aSize[9] = "";
+	if(FirstDigit == 0)
+	{
+		int i = 0;
+		while(pToken[i] >= '0' && pToken[i] <= '9')
+			i++;
+		if(pToken[i] == '-')
+		{
+			i++;
+			if(!(pToken[i] >= '0' && pToken[i] <= '9'))
+				return false;
+			while(pToken[i] >= '0' && pToken[i] <= '9')
+				i++;
+		}
+		str_copy(aStars, pToken, std::min<int>(i + 1, sizeof(aStars)));
+		str_copy(aSize, pToken + i, sizeof(aSize));
+	}
+	else
+	{
+		str_copy(aSize, pToken, std::min<int>(FirstDigit + 1, sizeof(aSize)));
+		str_copy(aStars, pToken + FirstDigit, sizeof(aStars));
+	}
+
+	return ApplyRandomMapStars(aStars, pMinStars, pMaxStars) && ApplyRandomMapSize(aSize, pSize, SizeBufferSize);
+}
+
 static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize)
 {
 	*pMinStars = -1;
@@ -3574,77 +3680,28 @@ static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxS
 	char aReason[32];
 	str_copy(aReason, pReason, sizeof(aReason));
 
-	char *pSizePart = nullptr;
-	char *pColon = nullptr;
-	for(char *p = aReason; *p; p++)
+	char *pTokenStart = nullptr;
+	for(char *p = aReason;; p++)
 	{
-		if(*p == ':')
+		if(*p != '\0' && !IsRandomMapReasonSeparator(*p))
 		{
-			if(pColon != nullptr)
+			if(pTokenStart == nullptr)
+				pTokenStart = p;
+			continue;
+		}
+
+		if(pTokenStart != nullptr)
+		{
+			const char OriginalChar = *p;
+			*p = '\0';
+			if(!ParseRandomMapReasonToken(pTokenStart, pMinStars, pMaxStars, pSize, SizeBufferSize))
 				return false;
-			pColon = p;
-			*pColon = '\0';
-			pSizePart = pColon + 1;
-		}
-	}
-
-	char *pStarsPart = aReason;
-	if(pColon == nullptr)
-	{
-		bool HasDigit = false;
-		bool IsStars = true;
-		for(const char *p = aReason; *p; p++)
-		{
-			if(*p >= '0' && *p <= '9')
-				HasDigit = true;
-			else if(*p != '-')
-				IsStars = false;
-		}
-		if(!HasDigit || !IsStars)
-		{
-			pStarsPart = nullptr;
-			pSizePart = aReason;
-		}
-	}
-
-	if(pStarsPart != nullptr && pStarsPart[0] != '\0')
-	{
-		char *pDash = nullptr;
-		for(char *p = pStarsPart; *p; p++)
-		{
-			if(*p == '-')
-			{
-				if(pDash != nullptr)
-					return false;
-				pDash = p;
-				*pDash = '\0';
-			}
+			*p = OriginalChar;
+			pTokenStart = nullptr;
 		}
 
-		int MinStars;
-		int MaxStars;
-		if(!str_toint(pStarsPart, &MinStars))
-			return false;
-		if(pDash != nullptr)
-		{
-			if(!str_toint(pDash + 1, &MaxStars))
-				return false;
-		}
-		else
-			MaxStars = MinStars;
-
-		if(!in_range(MinStars, 0, 5) || !in_range(MaxStars, 0, 5) || MinStars > MaxStars)
-			return false;
-
-		*pMinStars = MinStars;
-		*pMaxStars = MaxStars;
-	}
-
-	if(pSizePart != nullptr && pSizePart[0] != '\0')
-	{
-		if(str_comp(pSizePart, "-") == 0)
-			return true;
-		str_copy(pSize, pSizePart, SizeBufferSize);
+		if(*p == '\0')
+			break;
 	}
 
 	return true;
@@ -4259,8 +4316,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("switch_open", "i[switch]", CFGFLAG_SERVER | CFGFLAG_GAME, ConSwitchOpen, this, "Whether a switch is deactivated by default (otherwise activated)");
 	Console()->Register("pause_game", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
 	Console()->Register("change_map", "r[map]", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
-	Console()->Register("random_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map, optionally filtered like 1-3, S, or 1-3:S");
-	Console()->Register("random_unfinished_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomUnfinishedMap, this, "Random unfinished map, optionally filtered like 1-3, S, or 1-3:S");
+	Console()->Register("random_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomMap, this, "Random map, optionally filtered like 1-3, S, 1-3:S, or S 1-3");
+	Console()->Register("random_unfinished_map", "?r[stars_or_size]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRandomUnfinishedMap, this, "Random unfinished map, optionally filtered like 1-3, S, 1-3:S, or S 1-3");
 	Console()->Register("restart", "?i[seconds]", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("server_alert", "r[message]", CFGFLAG_SERVER, ConServerAlert, this, "Send a server alert message to all players");
 	Console()->Register("mod_alert", "v[id] r[message]", CFGFLAG_SERVER, ConModAlert, this, "Send a moderator alert message to player");
