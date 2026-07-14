@@ -1538,14 +1538,16 @@ bool CScoreWorker::RandomMap(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	const bool FilterStars = in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5);
 	const bool FilterSize = pData->m_aSize[0] != '\0';
 	const char *pStarCondition = FilterStars ? " AND Stars BETWEEN ? AND ?" : "";
-	const char *pSizeCondition = FilterSize ? " AND Size = ?" : "";
+	char aSizeCondition[128] = "";
+	if(FilterSize)
+		str_format(aSizeCondition, sizeof(aSizeCondition), " AND Size = %s", pSqlServer->CollateNocase());
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf),
 		"SELECT Map FROM %s_maps "
 		"WHERE Server = ? AND Map != ?%s%s "
 		"ORDER BY %s LIMIT 1",
-		pSqlServer->GetPrefix(), pStarCondition, pSizeCondition, pSqlServer->Random());
+		pSqlServer->GetPrefix(), pStarCondition, aSizeCondition, pSqlServer->Random());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
 		return false;
@@ -1587,7 +1589,9 @@ bool CScoreWorker::RandomUnfinishedMap(IDbConnection *pSqlServer, const ISqlData
 	const bool FilterStars = in_range(pData->m_MinStars, 0, 5) && in_range(pData->m_MaxStars, 0, 5);
 	const bool FilterSize = pData->m_aSize[0] != '\0';
 	const char *pStarCondition = FilterStars ? " AND Stars BETWEEN ? AND ?" : "";
-	const char *pSizeCondition = FilterSize ? " AND Size = ?" : "";
+	char aSizeCondition[128] = "";
+	if(FilterSize)
+		str_format(aSizeCondition, sizeof(aSizeCondition), " AND Size = %s", pSqlServer->CollateNocase());
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf),
@@ -1599,7 +1603,7 @@ bool CScoreWorker::RandomUnfinishedMap(IDbConnection *pSqlServer, const ISqlData
 		"  WHERE Name = ?"
 		") ORDER BY %s "
 		"LIMIT 1",
-		pSqlServer->GetPrefix(), pStarCondition, pSizeCondition,
+		pSqlServer->GetPrefix(), pStarCondition, aSizeCondition,
 		pSqlServer->GetPrefix(), pSqlServer->Random());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
