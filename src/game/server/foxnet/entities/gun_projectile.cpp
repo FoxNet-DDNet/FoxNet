@@ -287,6 +287,12 @@ void CGunProjectile::Tick()
 	if(m_LifeSpan > -1)
 		m_LifeSpan--;
 
+	if(m_LifeSpan == -1)
+	{
+		Reset();
+		return;
+	}
+
 	bool IsWeaponCollide = pTargetChr && pTargetChr->IsAlive() && !pTargetChr->CanCollide(m_Owner);
 
 	if((pTargetChr || Collide || GLClipped) && !IsWeaponCollide)
@@ -369,12 +375,6 @@ void CGunProjectile::Tick()
 		CClientMask Audience = pTargetChr ? (m_MaskGun | m_MaskGunOpp) : m_MaskGun;
 
 		EmitHitEffect(pTargetChr != nullptr, NewPos, CurPos, Direction, Audience);
-		Reset();
-		return;
-	}
-
-	if(m_LifeSpan == -1)
-	{
 		Reset();
 		return;
 	}
