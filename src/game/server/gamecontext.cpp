@@ -1923,7 +1923,25 @@ bool CGameContext::OnClientDataPersist(int ClientId, void *pData)
 	pPersistent->m_IsSpectator = m_apPlayers[ClientId]->GetTeam() == TEAM_SPECTATORS;
 	pPersistent->m_IsAfk = m_apPlayers[ClientId]->IsAfk();
 	pPersistent->m_LastWhisperTo = m_apPlayers[ClientId]->m_LastWhisperTo;
+	if(m_aAccounts[ClientId].m_LoggedIn)
+		pPersistent->m_pAccountSession = new CAccountSession(m_aAccounts[ClientId]);
 	return true;
+}
+
+void CGameContext::OnClientDataDrop(int ClientId, void *pData)
+{
+	CPersistentClientData *pPersistentData = (CPersistentClientData *)pData;
+	if(pPersistentData && pPersistentData->m_pAccountSession)
+	{
+		CAccountSession *pAccountSession = pPersistentData->m_pAccountSession;
+		pPersistentData->m_pAccountSession = nullptr;
+		if(pAccountSession->m_LoggedIn)
+			m_AccountManager.OnLogout(ClientId, *pAccountSession);
+		delete pAccountSession;
+	}
+
+	delete m_apPersistentData[ClientId];
+	m_apPersistentData[ClientId] = nullptr;
 }
 
 void CGameContext::OnClientConnected(int ClientId, void *pData)
@@ -1937,6 +1955,12 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 		Spec = pPersistentData->m_IsSpectator;
 		Afk = pPersistentData->m_IsAfk;
 		LastWhisperTo = pPersistentData->m_LastWhisperTo;
+		if(pPersistentData->m_pAccountSession)
+		{
+			m_aAccounts[ClientId] = std::move(*pPersistentData->m_pAccountSession);
+			delete pPersistentData->m_pAccountSession;
+			pPersistentData->m_pAccountSession = nullptr;
+		}
 	}
 	else
 	{
@@ -4535,6 +4559,7 @@ void CGameContext::RegisterChatCommands()
 void CGameContext::OnInit(const void *pPersistentData)
 {
 	const CPersistentData *pPersistent = (const CPersistentData *)pPersistentData;
+	m_IsMapReload = pPersistentData != nullptr;
 
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConfigManager = Kernel()->RequestInterface<IConfigManager>();

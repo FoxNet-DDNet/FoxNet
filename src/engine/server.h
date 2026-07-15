@@ -358,6 +358,10 @@ public:
 	// client connects for the next map.
 	virtual bool OnClientDataPersist(int ClientId, void *pData) = 0;
 
+	// Called when a client disconnects before its persistent map-change data
+	// could be consumed by OnClientConnected.
+	virtual void OnClientDataDrop(int ClientId, void *pPersistentData) {}
+
 	// Called when a client connects.
 	//
 	// If it is reconnecting to the game after a map change, the

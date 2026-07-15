@@ -1451,9 +1451,12 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 	const NETADDR Addr = *pThis->ClientAddr(ClientId);
 #endif
 
-    // notify the mod about the drop
+	// Notify the game about the drop. During a map change there is no player
+	// object yet, but the game must still be allowed to release persistent data.
 	if(pThis->GameServer()->PlayerExists(ClientId))
 		pThis->GameServer()->OnClientDrop(ClientId, pReason);
+	else if(pThis->m_aClients[ClientId].m_HasPersistentData)
+		pThis->GameServer()->OnClientDataDrop(ClientId, pThis->m_aClients[ClientId].m_pPersistentData);
 
 	pThis->m_aClients[ClientId].m_State = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientId].m_aName[0] = 0;
@@ -3498,7 +3501,9 @@ int CServer::Run()
 					// ask the game for the data it wants to persist past a map change
 					for(int i = 0; i < MAX_CLIENTS; i++)
 					{
-						if(m_aClients[i].m_State == CClient::STATE_INGAME)
+						// STATE_READY clients already have a player and may have an
+						// authenticated account even though they have not entered yet.
+						if(GameServer()->PlayerExists(i))
 						{
 							m_aClients[i].m_HasPersistentData = GameServer()->OnClientDataPersist(i, m_aClients[i].m_pPersistentData);
 						}
@@ -3760,6 +3765,13 @@ int CServer::Run()
 		pDisconnectReason = m_aShutdownReason;
 
 	// <FoxNet
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(!m_aClients[i].m_HasPersistentData)
+			continue;
+		GameServer()->OnClientDataDrop(i, m_aClients[i].m_pPersistentData);
+		m_aClients[i].m_HasPersistentData = false;
+	}
 	GameServer()->OnPreShutdown();
 	// FoxNet>
 

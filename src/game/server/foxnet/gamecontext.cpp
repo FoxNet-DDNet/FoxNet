@@ -1313,9 +1313,7 @@ void CGameContext::OnPreReload()
 
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
-		m_AccountManager.Logout(i);
 	}
-	m_AccountManager.LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
 void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData)

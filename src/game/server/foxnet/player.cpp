@@ -207,7 +207,8 @@ void CPlayer::FoxNetReset()
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 
-	Acc()->m_Inventory = CInventory();
+	if(!Acc()->m_LoggedIn)
+		Acc()->m_Inventory = CInventory();
 	m_vPickupDrops.clear();
 
 	if(GameServer()->m_apPersistentData[GetCid()])
@@ -216,7 +217,24 @@ void CPlayer::FoxNetReset()
 		delete GameServer()->m_apPersistentData[GetCid()];
 		GameServer()->m_apPersistentData[GetCid()] = nullptr;
 	}
-	if(!Acc()->m_LoggedIn)
+	if(Acc()->m_LoggedIn)
+	{
+		// Map reload destroys cosmetic entities together with the old game world.
+		// Reset the derived runtime state so apply callbacks do not early-return,
+		// then recreate every equipped cosmetic without toggling inventory values
+		// or invoking consumable item behavior.
+		Inv()->m_Cosmetics.Reset();
+		for(const auto &[ItemName, Entry] : Inv()->m_Map)
+		{
+			if(Entry.m_Value <= 0)
+				continue;
+			const CItemConfig *pCfg = GameServer()->m_Shop.FindItem(ItemName.c_str());
+			if(!pCfg || !HasFlag(pCfg->m_Flags, EItemFlag::Equippable) || !pCfg->m_Apply)
+				continue;
+			pCfg->m_Apply(*this, *pCfg, Entry.m_Value);
+		}
+	}
+	else
 		GameServer()->m_AccountManager.ForceLogin(GetCid(), Acc()->m_aUsername, true, true);
 }
 

@@ -287,9 +287,11 @@ class CGameContext : public IGameServer
 		bool m_IsSpectator;
 		bool m_IsAfk;
 		int m_LastWhisperTo;
+		CAccountSession *m_pAccountSession = nullptr;
 	};
 
 public:
+	bool IsMapReload() const { return m_IsMapReload; }
 	IServer *Server() const { return m_pServer; }
 	IConfigManager *ConfigManager() const { return m_pConfigManager; }
 	CConfig *Config() { return m_pConfig; }
@@ -494,6 +496,7 @@ public:
 	void OnStartInfoNetMessage(const CNetMsg_Cl_StartInfo *pMsg, int ClientId);
 
 	bool OnClientDataPersist(int ClientId, void *pData) override;
+	void OnClientDataDrop(int ClientId, void *pPersistentData) override;
 	void OnClientConnected(int ClientId, void *pData) override;
 	void OnClientEnter(int ClientId) override;
 	void OnClientDrop(int ClientId, const char *pReason) override;
@@ -1037,6 +1040,7 @@ public:
 	bool m_InitRandomMap = false;
 
 	CAccountSession m_aAccounts[MAX_CLIENTS];
+	bool m_IsMapReload = false;
 
 	void ClearVotes(int ClientId);
 

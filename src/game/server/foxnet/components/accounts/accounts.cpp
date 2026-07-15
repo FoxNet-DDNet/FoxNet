@@ -307,12 +307,15 @@ SHA256_DIGEST CAccounts::HashPassword(const char *pPassword)
 
 void CAccounts::OnInit()
 {
+	if(GameServer()->IsMapReload())
+		return;
 	LogoutAllAccountsPort(Server()->Port(), g_Config.m_SvAccountsInstance);
 }
 
 void CAccounts::OnClientDrop(int ClientId, const char *pReason)
 {
-	Logout(ClientId);
+	if(!Logout(ClientId))
+		GameServer()->m_aAccounts[ClientId] = CAccountSession();
 }
 
 void CAccounts::OnTick()
