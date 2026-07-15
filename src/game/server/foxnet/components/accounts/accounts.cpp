@@ -847,7 +847,7 @@ void CAccounts::SetPassword(const char *pUsername, const char *pNewPassword)
 
 void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 {
-	if(!DbPool() || !pName[0])
+	if(!pName[0])
 		return;
 	auto SendProfile = [this, ClientId, NameCopy = std::string(pName)](const CAccResult &Data) {
 		char aBuf[128];
@@ -892,6 +892,36 @@ void CAccounts::ShowAccProfile(int ClientId, const char *pName)
 		GameServer()->SendChatTarget(ClientId, aBuf);
 		GameServer()->SendChatTarget(ClientId, "╰───────────────────────");
 	};
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		const CAccountSession &Account = GameServer()->m_aAccounts[i];
+		if(!Account.m_LoggedIn)
+			continue;
+		if(str_comp_nocase(Server()->ClientName(i), pName) != 0 &&
+			str_comp_nocase(Account.m_aLastName, pName) != 0 &&
+			str_comp_nocase(Account.m_aUsername, pName) != 0)
+			continue;
+
+		CAccResult CachedData;
+		str_copy(CachedData.m_aUsername, Account.m_aUsername);
+		str_copy(CachedData.m_PlayerName, Server()->ClientName(i));
+		str_copy(CachedData.m_LastPlayerName, Account.m_aLastName);
+		CachedData.m_LoggedIn = true;
+		CachedData.m_LastLogin = Account.m_LastLogin;
+		CachedData.m_Playtime = Account.m_Playtime;
+		CachedData.m_Deaths = Account.m_Deaths;
+		CachedData.m_Kills = Account.m_Kills;
+		CachedData.m_Level = Account.m_Level;
+		CachedData.m_XP = Account.m_XP;
+		CachedData.m_Money = Account.m_Money;
+		CachedData.m_Disabled = Account.m_Disabled;
+		SendProfile(CachedData);
+		return;
+	}
+
+	if(!DbPool())
+		return;
 	auto QueryByUsername = [this, ClientId, pNameStr = std::string(pName), SendProfile]() {
 		auto pRes2 = std::make_shared<CAccResult>();
 		auto pReq2 = std::make_unique<CAccSelectByUser>(pRes2);
