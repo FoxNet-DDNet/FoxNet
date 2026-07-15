@@ -47,6 +47,7 @@ private:
 
 	vec2 m_VanillaPrevPos;
 	bool m_VanillaDead;
+	bool m_CosmeticDead;
 
 	EGunType m_GunType;
 	bool m_PhaseGun;

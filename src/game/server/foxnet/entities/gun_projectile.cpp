@@ -40,6 +40,7 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 
 	m_VanillaPrevPos = Pos;
 	m_VanillaDead = false;
+	m_CosmeticDead = false;
 
 	CCharacter *pOwnerChar = GetCharacter();
 	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
@@ -258,10 +259,15 @@ void CGunProjectile::Tick()
 	CPlayer *pOwner = GetPlayer();
 
 	TickVanillaPhantom();
-
 	if(!pOwner)
 	{
 		Reset();
+		return;
+	}
+	if(m_CosmeticDead)
+	{
+		if(m_VanillaDead)
+			Reset();
 		return;
 	}
 
@@ -300,7 +306,9 @@ void CGunProjectile::Tick()
 
 	if(m_LifeSpan == -1)
 	{
-		Reset();
+		m_CosmeticDead = true;
+		if(m_VanillaDead)
+			Reset();
 		return;
 	}
 
@@ -381,12 +389,14 @@ void CGunProjectile::Tick()
 		// Cosmetic viewers see the bullet die here. On a wall/game-layer death, cosmetics-off
 		// viewers instead get their effect from the vanilla phantom (at the wall a plain
 		// bullet would hit). But a player hit is real damage landing on the target for
-		// everyone, and the phantom never fires once the bullet dies here - so include
-		// cosmetics-off viewers too, otherwise the target sees no damage indicator.
+		// everyone, and the phantom only tracks walls and lifetime - so include cosmetics-off
+		// viewers too, otherwise the target sees no damage indicator.
 		CClientMask Audience = pTargetChr ? (m_MaskGun | m_MaskGunOpp) : m_MaskGun;
 
 		EmitHitEffect(pTargetChr != nullptr, NewPos, CurPos, Direction, Audience);
-		Reset();
+		m_CosmeticDead = true;
+		if(m_VanillaDead)
+			Reset();
 		return;
 	}
 
@@ -406,6 +416,9 @@ void CGunProjectile::Tick()
 
 void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 {
+	if(m_CosmeticDead)
+		return;
+
 	const int Ct = Server()->Tick() - m_StartTick;
 	const float Time = Ct / (float)Server()->TickSpeed();
 	vec2 SnapPos = RealPos(Time);
