@@ -67,6 +67,7 @@ private:
 	EWallBehavior WallBehavior() const;
 
 	vec2 RealPos(float Time);
+	vec2 RealDirection(float Time);
 	vec2 VanillaPos(int Tick);
 	float GunSpeed();
 	float GunCurvature();

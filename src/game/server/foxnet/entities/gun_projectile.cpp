@@ -136,6 +136,17 @@ vec2 CGunProjectile::RealPos(float Time)
 	return CalcPos(m_Pos, m_Direction, GunCurvature(), GunSpeed(), Time);
 }
 
+vec2 CGunProjectile::RealDirection(float Time)
+{
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+		return m_Direction;
+
+	const float Speed = GunSpeed() * SpeedFactor();
+	vec2 Direction = m_Direction;
+	Direction.y += 2.0f * GunCurvature() / 10000.0f * Speed * Time;
+	return normalize(Direction);
+}
+
 vec2 CGunProjectile::VanillaPos(int Tick)
 {
 	float Time = (Tick - m_SpawnTick) / (float)Server()->TickSpeed();
@@ -396,7 +407,8 @@ void CGunProjectile::Tick()
 void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 {
 	const int Ct = Server()->Tick() - m_StartTick;
-	vec2 SnapPos = RealPos(Ct / (float)Server()->TickSpeed());
+	const float Time = Ct / (float)Server()->TickSpeed();
+	vec2 SnapPos = RealPos(Time);
 
 	if(NetworkClipped(SnappingClient, SnapPos))
 		return;
@@ -410,16 +422,17 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 	}
 	if(m_GunType == EGunType::Intertwine)
 	{
-		auto GetIntertwineOffset = [](float Time, float Phase, vec2 Dir) -> vec2 {
+		const vec2 Direction = RealDirection(Time);
+		auto GetIntertwineOffset = [](float T, float Phase, vec2 Dir) -> vec2 {
 			float Amplitude = 20.0f;
 			float Frequency = 0.5f;
 
 			vec2 PerpDir = vec2(-Dir.y, Dir.x);
-			return PerpDir * Amplitude * std::sin(Frequency * Time + Phase);
+			return PerpDir * Amplitude * std::sin(Frequency * T + Phase);
 		};
 
-		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, m_Direction), m_Direction);
-		SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, m_Direction), m_Direction);
+		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, Direction), Direction);
+		SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, Direction), Direction);
 		return;
 	}
 
