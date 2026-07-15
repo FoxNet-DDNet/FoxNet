@@ -97,7 +97,7 @@ void CPowerUp::SetData()
 		m_Lifetime = MinLifetime + m_Data.m_Value * 0.45f;
 		break;
 	case EPowerUp::BOOST:
-		m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 2, 0.3);
+		m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 25, 0.3);
 		m_Lifetime = MinLifetime;
 		m_MaxCollections = 1;
 		break;

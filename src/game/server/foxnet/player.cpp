@@ -219,10 +219,6 @@ void CPlayer::FoxNetReset()
 	}
 	if(Acc()->m_LoggedIn)
 	{
-		// Map reload destroys cosmetic entities together with the old game world.
-		// Reset the derived runtime state so apply callbacks do not early-return,
-		// then recreate every equipped cosmetic without toggling inventory values
-		// or invoking consumable item behavior.
 		Inv()->m_Cosmetics.Reset();
 		for(const auto &[ItemName, Entry] : Inv()->m_Map)
 		{
