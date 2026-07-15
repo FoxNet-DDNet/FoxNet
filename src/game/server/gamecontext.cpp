@@ -69,6 +69,7 @@
 #include "foxnet/item_registry.h"
 
 static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize);
+static bool BuildRandomMapVoteCommand(const char *pBaseCommand, const char *pReason, char *pCommand, int CommandSize);
 
 // Not thread-safe!
 class CClientChatLogger : public ILogger
@@ -2574,24 +2575,10 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 
 				if((str_endswith(pOption->m_aCommand, "random_map") || str_endswith(pOption->m_aCommand, "random_unfinished_map")))
 				{
-					if(pMsg->m_pReason[0])
+					if(!BuildRandomMapVoteCommand(pOption->m_aCommand, pMsg->m_pReason, aCmd, sizeof(aCmd)))
 					{
-						int MinStars;
-						int MaxStars;
-						char aSize[9];
-						if(!ParseRandomMapReason(aReason, &MinStars, &MaxStars, aSize, sizeof(aSize)))
-						{
-							SendChatTarget(ClientId, "Invalid random map filter");
-							return;
-						}
-						if(MinStars != -1 || aSize[0] != '\0')
-							str_format(aCmd, sizeof(aCmd), "%s %s", pOption->m_aCommand, aReason);
-						else
-							str_copy(aCmd, pOption->m_aCommand);
-					}
-					else
-					{
-						str_copy(aCmd, pOption->m_aCommand);
+						SendChatTarget(ClientId, "Invalid random map filter");
+						return;
 					}
 				}
 				else
@@ -3731,6 +3718,28 @@ static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxS
 	return true;
 }
 
+static bool BuildRandomMapVoteCommand(const char *pBaseCommand, const char *pReason, char *pCommand, int CommandSize)
+{
+	if(pReason == nullptr || pReason[0] == '\0')
+	{
+		str_copy(pCommand, pBaseCommand, CommandSize);
+		return true;
+	}
+
+	int MinStars;
+	int MaxStars;
+	char aSize[9];
+	if(!ParseRandomMapReason(pReason, &MinStars, &MaxStars, aSize, sizeof(aSize)))
+		return false;
+
+	if(MinStars != -1 || aSize[0] != '\0')
+		str_format(pCommand, CommandSize, "%s %s", pBaseCommand, pReason);
+	else
+		str_copy(pCommand, pBaseCommand, CommandSize);
+
+	return true;
+}
+
 void CGameContext::ConRandomMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -4061,10 +4070,23 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 		{
 			if(str_comp_nocase(pValue, pOption->m_aDescription) == 0)
 			{
+				char aCommand[VOTE_CMD_LENGTH];
+				if((str_endswith(pOption->m_aCommand, "random_map") || str_endswith(pOption->m_aCommand, "random_unfinished_map")))
+				{
+					if(!BuildRandomMapVoteCommand(pOption->m_aCommand, pResult->NumArguments() > 2 ? pResult->GetString(2) : "", aCommand, sizeof(aCommand)))
+					{
+						pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Invalid random map filter");
+						return;
+					}
+				}
+				else
+				{
+					str_copy(aCommand, pOption->m_aCommand);
+				}
 				str_format(aBuf, sizeof(aBuf), "authorized player forced server option '%s' (%s)", pValue, pReason);
 				pSelf->SendChatTarget(-1, aBuf, FLAG_SIX);
 				pSelf->m_VoteCreator = pResult->m_ClientId;
-				pSelf->Console()->ExecuteLine(pOption->m_aCommand, IConsole::CLIENT_ID_UNSPECIFIED);
+				pSelf->Console()->ExecuteLine(aCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 				break;
 			}
 
