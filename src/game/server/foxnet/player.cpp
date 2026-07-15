@@ -29,6 +29,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/components/shop.h>
+#include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
@@ -50,6 +51,12 @@ CAccountSession *CPlayer::Acc() { return &GameServer()->m_aAccounts[m_ClientId];
 CInventory *CPlayer::Inv() { return &Acc()->m_Inventory; }
 CCosmetics *CPlayer::Cosmetics() { return &Acc()->m_Inventory.m_Cosmetics; }
 
+void CPlayer::FoxNetPreTick()
+{
+	// Handle telekinesis before everything
+	HandleTelekinesis();
+}
+
 void CPlayer::FoxNetTick()
 {
 	if(!Acc()->m_LoggedIn && m_RetryAutoLogin)
@@ -61,6 +68,9 @@ void CPlayer::FoxNetTick()
 			m_LastAutoLoginAttempt.reset();
 		}
 	}
+
+	if(m_VoteActionDelay >= 0)
+		m_VoteActionDelay--;
 
 	if(m_LootBoxData.m_Opening)
 		LootBoxTick();
@@ -1414,4 +1424,152 @@ int CPlayer::GetShowOthers()
 	m_CachedShowOthers = m_ShowOthers;
 	m_ShowOthersCacheTick = CurrentTick;
 	return m_ShowOthers;
+}
+
+void CPlayer::HandleTelekinesis()
+{
+	int &TeleId = m_TelekinesisId;
+	if(!CheckClientId(TeleId))
+		return;
+	CCharacter *pChr = GetCharacter();
+
+	CCharacter *pTeleChr = GameServer()->GetPlayerChar(TeleId);
+
+	if(!IsPaused() && GetTeam() != TEAM_SPECTATORS)
+		m_GrabbedWhileSpec = false;
+
+	if(pTeleChr)
+	{
+		if(!pTeleChr->GetPlayer())
+		{
+			TeleId = -1;
+			return;
+		}
+		if(!pTeleChr->IsAlive())
+			return;
+
+		if(pTeleChr->GetPlayer()->m_TelekinesisImmunity)
+		{
+			TeleId = -1;
+			return;
+		}
+
+		const bool TelekinesisWeapoin = pChr && pChr->GetActiveWeapon() == WEAPON_TELEKINESIS;
+
+		if(TelekinesisWeapoin || Cosmetics()->m_Ability == ABILITY_TELEKINESIS)
+		{
+			pTeleChr->SetPosition(GetCursorPos(m_GrabbedWhileSpec));
+			pTeleChr->ResetVelocity();
+		}
+		else
+		{
+			TeleId = -1;
+			return;
+		}
+	}
+}
+
+
+void CPlayer::DoTelekinesis()
+{
+	bool SpecPos = IsPaused() || GetTeam() == TEAM_SPECTATORS;
+	const vec2 CursorPos = GetCursorPos(SpecPos);
+	CCharacter *pChr = GetCharacter();
+
+	if(m_TelekinesisId == -1)
+	{
+		float Zoom = std::max(1.5f, m_CameraInfo.GetZoom());
+		CCharacter *pClosest = GameServer()->m_World.ClosestCharacter(CursorPos, CCharacterCore::PhysicalSize() * Zoom, pChr);
+		if(!pClosest)
+			return; // no one close
+		if(!pClosest->IsAlive())
+			return; // dead
+		for(int i = 0; i < Server()->MaxClients(); i++)
+		{
+			const CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+			if(pPlayer && pPlayer->m_TelekinesisId == pClosest->GetPlayer()->GetCid())
+				return; // already telekinesis
+		}
+		if(GetShowOthers() != SHOW_OTHERS_ON && pChr)
+		{
+			if(!pChr->Teams()->m_Core.SameTeam(GetCid(), pClosest->GetPlayer()->GetCid()) && pChr->Team() != TEAM_SUPER)
+				return; // not same team
+		}
+
+		if(pClosest->GetPlayer()->m_TelekinesisId == GetCid())
+			return; // dont telekinesis back
+		if(pClosest->GetPlayer()->m_TelekinesisImmunity)
+			return; // immunity
+		m_TelekinesisId = pClosest->GetPlayer()->GetCid();
+		m_GrabbedWhileSpec = SpecPos;
+	}
+	else
+		m_TelekinesisId = -1;
+
+	CClientMask &TeamMask = CClientMask().set();
+	if(pChr)
+		TeamMask = pChr->TeamMask();
+	else if(m_TelekinesisId >= 0 && GameServer()->GetPlayerChar(m_TelekinesisId))
+		TeamMask = GameServer()->GetPlayerChar(m_TelekinesisId)->TeamMask();
+
+	GameServer()->CreateSound(CursorPos, SOUND_NINJA_HIT, TeamMask);
+
+	m_VoteActionDelay = 125 * Server()->TickSpeed() / 1000;
+}
+
+
+void CPlayer::VoteAction(EVoteAction Action)
+{
+	if(Server()->ClientSlotEmpty(GetCid()))
+		return;
+
+	if(GameServer()->m_VoteCloseTime && (m_Vote == 0 || (m_Vote != 0 && (m_PlayerFlags & PLAYERFLAG_SCOREBOARD))))
+		return;
+
+	const int Ability = Cosmetics()->m_Ability;
+
+	const bool NoCooldown = Server()->GetAuthedState(GetCid());
+
+	const bool F3 = Action == EVoteAction::Yes;
+	const bool F4 = Action == EVoteAction::No;
+
+	CCharacter *pChr = GetCharacter();
+
+	if(F3 && (m_VoteActionDelay <= 0 || NoCooldown))
+	{
+		if(pChr && Ability == ABILITY_FIREWORK)
+		{
+			new CFirework(pChr->GameWorld(), GetCid(), pChr->GetPos());
+			m_VoteActionDelay = Server()->TickSpeed() * 3;
+		}
+		else if(Ability == ABILITY_TELEKINESIS)
+			DoTelekinesis();
+	}
+
+	if(IsPaused())
+		return;
+
+	const bool WeaponDropsEnabled = g_Config.m_SvWeaponDrops && g_Config.m_SvWeaponDropsVoteNo;
+	const bool AccountDropsEnabled = Acc()->m_LoggedIn && Acc()->m_Configs.m_WeaponDropsUsingVoteNo;
+
+	if(F4 && pChr && WeaponDropsEnabled && AccountDropsEnabled)
+	{
+		const vec2 Dir = normalize(vec2(pChr->Input()->m_TargetX, pChr->Input()->m_TargetY));
+		const int Type = pChr->GetActiveWeapon();
+
+		pChr->DropWeapon(Type, pChr->GetVelocity() * 0.7f + Dir * vec2(5.0f, 6.0f));
+	}
+}
+
+vec2 CPlayer::GetCursorPos(bool UseSpecPosIfPaused)
+{
+	CCharacter *pChr = GetCharacter();
+	const vec2 ViewPos = m_ViewPos;
+	vec2 CursorPos = m_ViewPos;
+	if(pChr)
+		CursorPos = pChr->GetCursorPos();
+	if(UseSpecPosIfPaused && IsPaused())
+		CursorPos = ViewPos;
+
+	return CursorPos;
 }

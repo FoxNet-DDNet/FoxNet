@@ -132,6 +132,8 @@ void CGameContext::FoxNetTick()
 		if(!pPlayer)
 			continue;
 
+		pPlayer->HandleTelekinesis();
+
 		SendConditionalCommands(ClientId);
 	}
 }
@@ -1082,14 +1084,14 @@ const char *CGameContext::HookTypeName(int HookType)
 	return "Unknown";
 }
 
-void CGameContext::UnsetTelekinesis(int ClientId)
+void CGameContext::UnsetTelekinesis(int ClientId) const
 {
 	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
-		CCharacter *pChr = GetPlayerChar(i);
-		if(pChr && pChr->m_TelekinesisId == ClientId)
+		CPlayer *pPlayer = m_apPlayers[i];
+		if(pPlayer && pPlayer->m_TelekinesisId == ClientId)
 		{
-			pChr->m_TelekinesisId = -1;
+			pPlayer->m_TelekinesisId = -1;
 			break; // can break here, every entity can only be picked by one player using telekinesis at the time
 		}
 	}

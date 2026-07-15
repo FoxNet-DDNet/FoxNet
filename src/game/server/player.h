@@ -36,6 +36,13 @@ struct CScorePlayerResult;
 constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
 constexpr int DefaultMapIndex = 0;
 
+enum class EVoteAction
+{
+	No = -1,
+	None = 0,
+	Yes = 1,
+};
+
 enum class EArea
 {
 	Game,
@@ -433,6 +440,8 @@ public:
 	std::optional<CSaveTee> m_LastDeath;
 
 	// <FoxNet
+	void FoxNetPreTick();
+
 private:
 	void FoxNetReset();
 	void Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
@@ -442,6 +451,7 @@ private:
 	void RainbowSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
 	void RainbowTick();
 	void ExpireItems();
+
 	void FoxNetTick();
 
 	void LootBoxTick();
@@ -614,10 +624,20 @@ public:
 	std::optional<int64_t> m_LastAutoLoginAttempt;
 	bool m_RetryAutoLogin = false;
 
+	// Telekinesis
+	void HandleTelekinesis();
+	void DoTelekinesis();
+	bool m_GrabbedWhileSpec = false;
+	int m_TelekinesisId = -1; // Should be a CEntity so PickupDrops can be telekinesised
+
+	int m_VoteActionDelay;
+	void VoteAction(EVoteAction Action);
+
+	vec2 GetCursorPos(bool UseSpecPosIfPaused = false);
+
 private:
 	mutable int m_CachedShowOthers = -1;
 	mutable int m_ShowOthersCacheTick = -1;
-
 	// FoxNet>
 };
 #endif

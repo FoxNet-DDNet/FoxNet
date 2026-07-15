@@ -79,9 +79,6 @@ MACRO_CONFIG_INT(SvQStopaGivesDj, sv_qstopa_gives_dj, 0, 0, 1, CFGFLAG_SERVER | 
 // Debug Id Pool
 MACRO_CONFIG_INT(SvDebugIdPool, sv_debug_id_pool, 0, 0, 1, CFGFLAG_SERVER, "Debug Id allocation")
 
-// Abilities
-MACRO_CONFIG_INT(SvNoAuthCooldown, sv_no_auth_cooldown, 0, 0, 1, CFGFLAG_SERVER, "whether theres a cooldown for abilities on authed players")
-
 // Weapon Drops
 MACRO_CONFIG_INT(SvWeaponDrops, sv_weapondrops, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Turns on functionality for /weapondrop")
 MACRO_CONFIG_INT(SvWeaponDropsVoteNo, sv_weapondrops_vote_no, 1, 0, 1, CFGFLAG_SERVER, "requires sv_allow_weapon_drops, drop weapons using f4 (vote no)")

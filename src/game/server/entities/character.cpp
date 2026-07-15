@@ -36,7 +36,6 @@
 #include <game/server/foxnet/component.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/components/zones/roulette.h>
-#include <game/server/foxnet/cosmetics/firework.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
 #include <game/server/foxnet/entities/custom_projectile.h>
@@ -92,7 +91,6 @@ CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastI
 	}
 
 	// <FoxNet
-	m_TelekinesisId = -1;
 	m_IsRainbowHooked = false;
 	m_TuneZoneOverride = -1;
 	m_InSnake = false;
@@ -781,7 +779,7 @@ void CCharacter::FireWeapon()
 		// <FoxNet
 	case WEAPON_TELEKINESIS:
 	{
-		DoTelekinesis();
+		GetPlayer()->DoTelekinesis();
 	}
 	break;
 
@@ -3144,10 +3142,6 @@ void CCharacter::FoxNetTick()
 
 	m_Snake.Tick();
 	m_Ufo.Tick();
-	HandleTelekinesis();
-
-	if(m_VoteActionDelay >= 0)
-		m_VoteActionDelay--;
 
 	if(GetPlayer()->m_vPickupDrops.size() > (size_t)(g_Config.m_SvWeaponDropsMaxPerPlayer))
 	{
@@ -3210,7 +3204,6 @@ void CCharacter::FoxNetSpawn()
 	m_Snake.OnSpawn(this);
 	m_Ufo.OnSpawn(this);
 	m_PowerHookedId = -1;
-	m_TelekinesisId = -1;
 	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
 	bool ShouldSolo = true;
@@ -3293,41 +3286,6 @@ void CCharacter::UnSpawnSolo(bool Unsolo)
 	m_SpawnSolo = false;
 }
 
-void CCharacter::HandleTelekinesis()
-{
-	int &tId = m_TelekinesisId;
-	if(!CheckClientId(tId))
-		return;
-
-	if(CCharacter *pChr = GameServer()->GetPlayerChar(tId))
-	{
-		if(!pChr || !pChr->GetPlayer())
-		{
-			tId = -1;
-			return;
-		}
-		if(!pChr->IsAlive())
-			return;
-
-		if(pChr->GetPlayer()->m_TelekinesisImmunity)
-		{
-			tId = -1;
-			return;
-		}
-
-		if(GetActiveWeapon() == WEAPON_TELEKINESIS || GetPlayer()->Cosmetics()->m_Ability == ABILITY_TELEKINESIS)
-		{
-			pChr->m_Core.m_Pos = GetCursorPos();
-			pChr->m_Core.m_Vel = vec2(0.f, 0.0f);
-		}
-		else
-		{
-			tId = -1;
-			return;
-		}
-	}
-}
-
 void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 {
 	if(!m_Core.m_Jetpack || !m_pPlayer->m_NinjaJetpack || m_Core.m_HasTelegunGun)
@@ -3357,40 +3315,6 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 }
 
 // ToDo: @qxdFox: Allow Telekinesis in Spectator team
-void CCharacter::DoTelekinesis()
-{
-	if(m_TelekinesisId == -1)
-	{
-		float Zoom = std::max(1.0f, GetPlayer()->m_CameraInfo.GetZoom());
-		CCharacter *pClosest = GameServer()->m_World.ClosestCharacter(GetCursorPos(), CCharacterCore::PhysicalSize() * Zoom, this);
-		if(!pClosest)
-			return; // no one close
-		if(!pClosest->IsAlive())
-			return; // dead
-		for(int i = 0; i < Server()->MaxClients(); i++)
-		{
-			CCharacter *pChr = GameServer()->GetPlayerChar(i);
-			if(pChr && pChr->m_TelekinesisId == pClosest->GetPlayer()->GetCid())
-				return; // already telekinesis
-		}
-		if(GetPlayer()->GetShowOthers() != SHOW_OTHERS_ON)
-		{
-			if(!Teams()->m_Core.SameTeam(GetPlayer()->GetCid(), pClosest->GetPlayer()->GetCid()) && Team() != TEAM_SUPER)
-				return; // not same team
-		}
-
-		if(pClosest->m_TelekinesisId == GetPlayer()->GetCid())
-			return; // dont telekinesis back
-		if(pClosest->GetPlayer()->m_TelekinesisImmunity)
-			return; // immunity
-		m_TelekinesisId = pClosest->GetPlayer()->GetCid();
-	}
-	else
-		m_TelekinesisId = -1;
-	GameServer()->CreateSound(m_Pos, SOUND_NINJA_HIT, TeamMask());
-
-	m_VoteActionDelay = GetFireDelay(Core()->m_ActiveWeapon) * Server()->TickSpeed() / 1000;
-}
 
 vec2 CCharacter::GetCursorPos()
 {
@@ -3471,41 +3395,6 @@ void CCharacter::SetHookable(bool Active)
 void CCharacter::SetCollidable(bool Active)
 {
 	m_Core.m_Collidable = Active;
-}
-
-void CCharacter::VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId)
-{
-	if(GameServer()->m_VoteCloseTime && (GetPlayer()->m_Vote == 0 || (GetPlayer()->m_Vote != 0 && (GetPlayer()->m_PlayerFlags & PLAYERFLAG_SCOREBOARD))))
-		return;
-
-	const int Ability = GetPlayer()->Cosmetics()->m_Ability;
-
-	const bool NoCooldown = !Server()->ClientSlotEmpty(ClientId) && Server()->GetAuthedState(ClientId) && g_Config.m_SvNoAuthCooldown;
-
-	const bool F3 = pMsg->m_Vote == 1;
-	const bool F4 = pMsg->m_Vote == -1;
-
-	if(F3 && (m_VoteActionDelay <= 0 || NoCooldown))
-	{
-		if(Ability == ABILITY_FIREWORK)
-		{
-			new CFirework(GameWorld(), m_pPlayer->GetCid(), m_Pos);
-			m_VoteActionDelay = Server()->TickSpeed() * 3;
-		}
-		else if(Ability == ABILITY_TELEKINESIS)
-			DoTelekinesis();
-	}
-
-	if(GetPlayer()->IsPaused())
-		return;
-
-	if(F4 && g_Config.m_SvWeaponDrops && g_Config.m_SvWeaponDropsVoteNo && Acc()->m_LoggedIn && Acc()->m_Configs.m_WeaponDropsUsingVoteNo)
-	{
-		const vec2 Dir = normalize(vec2(Input()->m_TargetX, Input()->m_TargetY));
-		const int Type = Core()->m_ActiveWeapon;
-
-		DropWeapon(Type, m_Core.m_Vel * 0.7f + Dir * vec2(5.0f, 6.0f));
-	}
 }
 
 bool CCharacter::IsWeaponIndicator()

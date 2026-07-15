@@ -1055,7 +1055,7 @@ public:
 	bool IsValidHookPower(int HookPower);
 	const char *HookTypeName(int HookType);
 
-	void UnsetTelekinesis(int ClientId);
+	void UnsetTelekinesis(int ClientId) const;
 
 	bool SendFakeTuningParams(int ClientId, const CTuningParams &FakeTuning, bool RealTune = false);
 	bool ResetFakeTunes(int ClientId, int Zone);

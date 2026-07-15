@@ -342,8 +342,6 @@ public:
 	CClientMask CosmeticMask(EItemType Type);
 	CClientMask OppositeCosmeticMask(EItemType Type);
 
-	// Telekinesis
-	int m_TelekinesisId = -1; // Should be a CEntity so PickupDrops can be telekinesised
 	vec2 GetCursorPos();
 
 	int GetPowerHooked();
@@ -359,14 +357,10 @@ public:
 
 	void SetFakeTuned(bool Active, std::optional<const CTuningParams> Tuning = std::nullopt);
 
-	void DoTelekinesis();
-
 	void SetPassive(bool Active);
 	void SetHittable(bool Active);
 	void SetHookable(bool Active);
 	void SetCollidable(bool Active);
-
-	void VoteAction(const CNetMsg_Cl_Vote *pMsg, int ClientId);
 
 	// weapon indicator
 	void UpdateWeaponIndicator();
@@ -412,10 +406,7 @@ private:
 	vec2 m_HookBasePos = vec2(0, 0);
 	void OnPlayerHook();
 
-	int m_VoteActionDelay;
-
 	void FoxNetTick();
-	void HandleTelekinesis();
 	void HandleSpawnSolo();
 	void FoxNetSpawn();
 	// FoxNet>
