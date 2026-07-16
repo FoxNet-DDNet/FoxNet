@@ -648,9 +648,6 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 	// aka ban them
 
 	std::vector<std::string> FoundStrings;
-	std::vector<int> Times;
-	FoundStrings.clear();
-	Times.clear();
 
 	for(const auto &Entry : m_vChatDetection)
 	{
@@ -660,7 +657,11 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 		if(str_find_nocase(pText, Entry.String()))
 		{
 			FoundStrings.emplace_back(Entry.String());
-			Times.push_back(Entry.Time());
+
+			if(Entry.Time() > BanDuration && BanDuration >= 0)
+				BanDuration = Entry.Time();
+			else if(Entry.Time() == -1)
+				BanDuration = -1;
 
 			Count += Entry.Addition();
 
@@ -671,8 +672,6 @@ bool CGameContext::ChatDetection(int ClientId, const char *pMsg)
 				str_copy(Reason, Entry.Reason());
 		}
 	}
-	if(!Times.empty())
-		BanDuration = *std::max_element(Times.begin(), Times.end());
 
 	char InfoMsg[256] = "";
 	if(!FoundStrings.empty())
@@ -778,9 +777,6 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 	char Reason[64] = "Name Detection Auto Ban";
 
 	std::vector<std::string> FoundStrings;
-	std::vector<int> Times;
-	FoundStrings.clear();
-	Times.clear();
 
 	for(const auto &Entry : m_vNameDetection)
 	{
@@ -813,17 +809,16 @@ bool CGameContext::NameDetection(int ClientId, const char *pName, bool PreventNa
 		if(FoundEntry)
 		{
 			FoundStrings.emplace_back(Entry.String());
-			Times.push_back(Entry.Time());
+
+			if(Entry.Time() > BanDuration && BanDuration >= 0)
+				BanDuration = Entry.Time();
+			else if(Entry.Time() == -1)
+				BanDuration = -1;
 
 			if(str_comp(Entry.Reason(), "") != 0)
 				str_copy(Reason, Entry.Reason());
 		}
 	}
-
-	if(!Times.empty())
-		BanDuration = *std::max_element(Times.begin(), Times.end());
-	else
-		BanDuration = 0;
 
 	if(!FoundStrings.empty())
 	{
