@@ -375,14 +375,14 @@ void CItemRegistry::Init()
 	Add(CItemConfig(EItemId::VIP, EItemType::Upgrades,
 		"VIP", "VIP",
 		EItemFlag::Upgrade | EItemFlag::Role, EExclusiveGroup::None,
-		300000, 40, 2, EItemRarity::Mythic, "Grants a +2.5x boost on XP/Money\nand a discount on all Items",
+		300000, 40, 2, EItemRarity::Mythic, "Grants a +2.5x boost on XP/Money\nand a 5% discount on all Items",
 		nullptr, nullptr)
 	);
 
 	Add(CItemConfig(EItemId::MVP, EItemType::Upgrades,
 		"MVP", "MVP",
 		EItemFlag::Upgrade | EItemFlag::Role, EExclusiveGroup::None,
-		650000, 65, 1, EItemRarity::Legendary, "Grants a +3.5x boost on XP/Money\nand a discount on all Items",
+		650000, 65, 1, EItemRarity::Legendary, "Grants a +3.5x boost on XP/Money\nand a 10% discount on all Items",
 		nullptr, nullptr)
 	);
 
