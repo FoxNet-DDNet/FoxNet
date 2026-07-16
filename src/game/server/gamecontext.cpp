@@ -1149,6 +1149,21 @@ void CGameContext::AbortVoteKickOnDisconnect(int ClientId)
 		m_VoteEnforce = VOTE_ENFORCE_ABORT;
 }
 
+bool CGameContext::IsVetoEligible(int ClientId) const
+{
+	if(IsKickVote() || IsSpecVote() || !g_Config.m_SvVoteVetoTime)
+		return false;
+
+	const CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer || pPlayer->IsAfk() || pPlayer->GetTeam() == TEAM_SPECTATORS)
+		return false;
+
+	const CCharacter *pCharacter = pPlayer->GetCharacter();
+	return (Server()->Tick() - pPlayer->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
+		(pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
+			(Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime);
+}
+
 void CGameContext::SendTuningParams(int ClientId, int Zone)
 {
 	if(ClientId == -1)
@@ -1349,7 +1364,7 @@ void CGameContext::OnTick()
 											     GetPlayerChar(m_VoteCreator)->Team() != GetPlayerChar(i)->Team())))
 						continue;
 
-					if(m_apPlayers[i]->IsAfk() && i != m_VoteCreator)
+					if(m_apPlayers[i]->IsAfk())
 						continue;
 
 					// can't vote in kick and spec votes in the beginning after joining
@@ -1370,8 +1385,8 @@ void CGameContext::OnTick()
 						if(!m_apPlayers[j] || aVoteChecked[j] || apAddresses[j] == nullptr || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0)
 							continue;
 
-						// count the latest vote by this ip
-						if(CurVotePos < m_apPlayers[j]->m_VotePos)
+						// Count the latest vote by a non-AFK player on this IP.
+						if(!m_apPlayers[j]->IsAfk() && CurVotePos < m_apPlayers[j]->m_VotePos)
 						{
 							CurVote = m_apPlayers[j]->m_Vote;
 							CurVotePos = m_apPlayers[j]->m_VotePos;
@@ -1396,10 +1411,7 @@ void CGameContext::OnTick()
 							if(i != j && (!m_apPlayers[j] || apAddresses[j] == nullptr || net_addr_comp_noport(apAddresses[j], apAddresses[i]) != 0))
 								continue;
 
-							if(m_apPlayers[j] && !m_apPlayers[j]->IsAfk() && m_apPlayers[j]->GetTeam() != TEAM_SPECTATORS &&
-								((Server()->Tick() - m_apPlayers[j]->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
-									(m_apPlayers[j]->GetCharacter() && m_apPlayers[j]->GetCharacter()->m_DDRaceState == ERaceState::STARTED &&
-										(Server()->Tick() - m_apPlayers[j]->GetCharacter()->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime)))
+							if(IsVetoEligible(j))
 							{
 								if(CurVote == 0)
 									Veto = true;
@@ -2854,6 +2866,10 @@ void CGameContext::OnVoteNetMessage(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 	if(!m_VoteCloseTime)
 		return;
 
+	// Vote messages are not player activity. In particular, ignore automatic vote
+	// packets from clients that have already been marked as AFK.
+	if(pPlayer->IsAfk())
+		return;
 
 	if(g_Config.m_SvSpamprotection && pPlayer->m_LastVoteTry && pPlayer->m_LastVoteTry + Server()->TickSpeed() * 3 > Server()->Tick())
 		return;
@@ -2871,9 +2887,21 @@ void CGameContext::OnVoteNetMessage(const CNetMsg_Cl_Vote *pMsg, int ClientId)
 		return;
 	}
 
+	const int PreviousVote = pPlayer->m_Vote;
 	pPlayer->m_Vote = pMsg->m_Vote;
 	pPlayer->m_VotePos = ++m_VotePos;
 	m_VoteUpdate = true;
+
+	if(pMsg->m_Vote < 0 && PreviousVote >= 0 && IsVetoEligible(ClientId))
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "'%s' voted no with veto rights", Server()->ClientName(ClientId));
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(m_apPlayers[i] && Server()->GetAuthedState(i) != AUTHED_NO)
+				SendChatTarget(i, aBuf);
+		}
+	}
 
 	CNetMsg_Sv_YourVote Msg = {pMsg->m_Vote};
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientId);

@@ -382,6 +382,7 @@ public:
 	void SendVoteSet(int ClientId);
 	void SendVoteStatus(int ClientId, int Total, int Yes, int No);
 	void AbortVoteKickOnDisconnect(int ClientId);
+	bool IsVetoEligible(int ClientId) const;
 
 	int m_VoteCreator;
 	int m_VoteType;
