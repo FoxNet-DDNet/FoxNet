@@ -366,31 +366,11 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 			if(IsOption(pVote, MAIL_CLAIM_ALL_REWARDS))
 			{
-				int Claimed = 0;
-				int Failed = 0;
 				for(auto &Mail : Acc.m_MailBox.m_vMails)
 				{
-					const bool HasUnclaimedReward = !Mail.m_UsedCmd && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
+					const bool HasUnclaimedReward = !Mail.m_UsedCmd && !Mail.m_ClaimPending && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
 					if(HasUnclaimedReward)
-					{
-						if(ExecMailCmd(ClientId, Mail))
-						{
-							Mail.m_UsedCmd = true;
-							GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, Mail.m_MailId, true);
-							Claimed++;
-						}
-						else
-						{
-							Failed++;
-						}
-					}
-				}
-				if(Failed > 0)
-				{
-					char aBuf[128];
-					str_format(aBuf, sizeof(aBuf), "Claimed %d mail reward%s. %d reward%s could not be claimed and remain available.",
-						Claimed, Claimed == 1 ? "" : "s", Failed, Failed == 1 ? "" : "s");
-					GameServer()->SendChatTarget(ClientId, aBuf);
+						ClaimMailReward(ClientId, Mail.m_MailId);
 				}
 				return true;
 			}
@@ -446,14 +426,12 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				{
 					GameServer()->SendChatTarget(ClientId, "This mails rewards have already been claimed.");
 				}
-				else
+				else if(TargetMail.m_ClaimPending)
 				{
-					if(ExecMailCmd(ClientId, TargetMail))
-					{
-						TargetMail.m_UsedCmd = true;
-						GameServer()->m_AccountManager.SetMailUsedCmd(Acc.m_aUsername, TargetMail.m_MailId, TargetMail.m_UsedCmd);
-					}
+					GameServer()->SendChatTarget(ClientId, "This mail reward claim is still being processed.");
 				}
+				else
+					ClaimMailReward(ClientId, TargetMail.m_MailId);
 
 				return true;
 			}
@@ -802,7 +780,7 @@ void CVoteMenu::UpdatePages(int ClientId)
 			{
 				const CMailBox::CMail &NewMail = pAcc->m_MailBox.m_vMails[i];
 				const CMailBox::CMail &OldMail = OldAcc.m_MailBox.m_vMails[i];
-				if(NewMail.m_Unread != OldMail.m_Unread || NewMail.m_UsedCmd != OldMail.m_UsedCmd)
+				if(NewMail.m_Unread != OldMail.m_Unread || NewMail.m_UsedCmd != OldMail.m_UsedCmd || NewMail.m_ClaimPending != OldMail.m_ClaimPending)
 				{
 					Changes = true;
 					break;
@@ -1323,7 +1301,7 @@ void CVoteMenu::PrepareMailbox(int ClientId)
 		const bool HasReward = Mail.m_aCmdName[0] && Mail.m_aCmd[0];
 
 		AddVoteText(ConvertToSmallCaps("╭───────── Mail Details"));
-		if(!Mail.m_UsedCmd && HasReward)
+		if(!Mail.m_UsedCmd && !Mail.m_ClaimPending && HasReward)
 			AddVoteText(MAIL_CLAIM_REWARD, EPrefix::LONG_LINE);
 		AddVoteText(MAIL_DELETE, EPrefix::LONG_LINE);
 		AddVoteText("╰────────────────────");
@@ -1910,6 +1888,63 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 			return true;
 	}
 	return false;
+}
+
+void CVoteMenu::ClaimMailReward(int ClientId, int64_t MailId)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS || Server()->ClientSlotEmpty(ClientId))
+		return;
+
+	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	auto FindMail = [&Acc, MailId]() {
+		return std::find_if(Acc.m_MailBox.m_vMails.begin(), Acc.m_MailBox.m_vMails.end(), [MailId](const CMailBox::CMail &Mail) {
+			return Mail.m_MailId == MailId;
+		});
+	};
+
+	auto It = FindMail();
+	if(It == Acc.m_MailBox.m_vMails.end() || It->m_UsedCmd || It->m_ClaimPending || !It->m_aCmdName[0] || !It->m_aCmd[0])
+		return;
+
+	It->m_ClaimPending = true;
+	const CMailBox::CMail Mail = *It;
+	const std::string Username = Acc.m_aUsername;
+
+	GameServer()->m_AccountManager.ClaimMailReward(ClientId, MailId, [this, ClientId, MailId, Mail, Username](bool DbSuccess, bool Claimed) {
+		CAccountSession &CurrentAcc = GameServer()->m_aAccounts[ClientId];
+		auto CurrentIt = std::find_if(CurrentAcc.m_MailBox.m_vMails.begin(), CurrentAcc.m_MailBox.m_vMails.end(), [MailId](const CMailBox::CMail &CurrentMail) {
+			return CurrentMail.m_MailId == MailId;
+		});
+
+		if(CurrentIt != CurrentAcc.m_MailBox.m_vMails.end())
+			CurrentIt->m_ClaimPending = false;
+
+		if(!DbSuccess)
+		{
+			GameServer()->SendChatTarget(ClientId, "The database could not claim this mail reward. It remains available.");
+			return;
+		}
+
+		if(!Claimed)
+		{
+			if(CurrentIt != CurrentAcc.m_MailBox.m_vMails.end())
+				CurrentIt->m_UsedCmd = true;
+			GameServer()->SendChatTarget(ClientId, "This mail reward has already been claimed.");
+			return;
+		}
+
+		// Only grant the reward after the conditional database update succeeded.
+		if(ExecMailCmd(ClientId, Mail))
+		{
+			if(CurrentIt != CurrentAcc.m_MailBox.m_vMails.end())
+				CurrentIt->m_UsedCmd = true;
+		}
+		else
+		{
+			// Command validation failed, so restore the mail's previous state.
+			GameServer()->m_AccountManager.SetMailUsedCmd(Username.c_str(), MailId, false);
+		}
+	});
 }
 
 const char *CVoteMenu::FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item)

@@ -231,6 +231,19 @@ struct CAccSetMailUsedCmd : ISqlData
 	int m_UsedCmd = 0;
 };
 
+struct CAccClaimMailResult : CAccResult
+{
+	bool m_Claimed = false;
+};
+
+struct CAccClaimMailReward : ISqlData
+{
+	CAccClaimMailReward(std::shared_ptr<CAccClaimMailResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	int64_t m_MailId = 0;
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+};
+
 struct CAccDeleteMail : ISqlData
 {
 	CAccDeleteMail() :
@@ -298,6 +311,7 @@ struct CAccountsWorker
 
 	static bool SetMailRead(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool ClaimMailReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);

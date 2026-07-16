@@ -1128,6 +1128,53 @@ void CAccounts::SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used)
 	DbPool()->ExecuteWrite(CAccountsWorker::SetMailUsedCmd, std::move(pReq), "acc set mail used cmd");
 }
 
+void CAccounts::ClaimMailReward(int ClientId, int64_t MailId, std::function<void(bool DbSuccess, bool Claimed)> &&Cb)
+{
+	if(!DbPool() || !CheckClientId(ClientId) || Server()->ClientSlotEmpty(ClientId))
+	{
+		if(Cb)
+			Cb(false, false);
+		return;
+	}
+
+	const CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pExpectedPlayer || !Acc.m_LoggedIn || !Acc.m_aUsername[0])
+	{
+		if(Cb)
+			Cb(false, false);
+		return;
+	}
+
+	const std::string Username = Acc.m_aUsername;
+	auto pRes = std::make_shared<CAccClaimMailResult>();
+	auto pReq = std::make_unique<CAccClaimMailReward>(pRes);
+	str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
+	pReq->m_MailId = MailId;
+
+	AddPending(pRes, [this, ClientId, MailId, pExpectedPlayer, Username, Cb = std::move(Cb)](CAccResult &BaseRes) mutable {
+		auto *pClaimRes = dynamic_cast<CAccClaimMailResult *>(&BaseRes);
+		const bool DbSuccess = BaseRes.m_Success && pClaimRes;
+		const bool Claimed = DbSuccess && pClaimRes->m_Claimed;
+		const bool SessionStillActive = IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer) &&
+			GameServer()->m_aAccounts[ClientId].m_LoggedIn &&
+			str_comp(GameServer()->m_aAccounts[ClientId].m_aUsername, Username.c_str()) == 0;
+
+		if(Claimed && !SessionStillActive)
+		{
+			// The reward was reserved for a session that disappeared before the
+			// database acknowledged it. Restore the previous unclaimed state.
+			SetMailUsedCmd(Username.c_str(), MailId, false);
+			return;
+		}
+
+		if(SessionStillActive && Cb)
+			Cb(DbSuccess, Claimed);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::ClaimMailReward, std::move(pReq), "acc claim mail reward");
+}
+
 void CAccounts::DeleteMail(const char *pUsername, int64_t MailId)
 {
 	if(!DbPool())

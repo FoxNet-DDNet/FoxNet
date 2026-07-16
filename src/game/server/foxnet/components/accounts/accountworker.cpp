@@ -1099,6 +1099,33 @@ bool CAccountsWorker::SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData,
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
+bool CAccountsWorker::ClaimMailReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccClaimMailReward *>(pData);
+	auto *pRes = dynamic_cast<CAccClaimMailResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+		return false;
+
+	char aSql[256];
+	str_copy(aSql,
+		"UPDATE foxnet_account_mailbox "
+		"SET UsedCommand = 1 "
+		"WHERE Username = ? AND MailId = ? AND UsedCommand = 0",
+		sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindInt64(Param++, pReq->m_MailId);
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	pRes->m_Claimed = NumUpdated == 1;
+	return true;
+}
+
 bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccDeleteMail *>(pData);

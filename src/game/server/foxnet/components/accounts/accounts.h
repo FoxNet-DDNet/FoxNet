@@ -84,6 +84,7 @@ public:
 		char m_aCmd[4096];
 		char m_aCmdName[4096];
 		bool m_UsedCmd;
+		bool m_ClaimPending = false;
 		bool m_Unread;
 	};
 	std::vector<CMail> m_vMails;
@@ -243,6 +244,7 @@ public:
 
 	void SetMailRead(const char *pUsername, int64_t MailId, bool Read);
 	void SetMailUsedCmd(const char *pUsername, int64_t MailId, bool Used);
+	void ClaimMailReward(int ClientId, int64_t MailId, std::function<void(bool DbSuccess, bool Claimed)> &&Cb);
 	void DeleteMail(const char *pUsername, int64_t MailId);
 
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
