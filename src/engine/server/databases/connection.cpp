@@ -157,6 +157,20 @@ void IDbConnection::FormatCreateAccounts(char *aBuf, unsigned int BufferSize) co
 		Int64Type());
 }
 
+void IDbConnection::FormatCreateAccountRegistrations(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_account_registrations ("
+		"  IP VARCHAR(45) COLLATE %s NOT NULL, "
+		"  Slot INTEGER NOT NULL, "
+		"  Username VARCHAR(32) COLLATE %s NOT NULL, "
+		"  PRIMARY KEY (Username), "
+		"  UNIQUE (IP, Slot)"
+		")",
+		BinaryCollate(),
+		BinaryCollate());
+}
+
 void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int BufferSize) const
 {
 	str_format(aBuf, BufferSize,

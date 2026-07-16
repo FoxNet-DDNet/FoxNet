@@ -14,6 +14,14 @@ class IGameController;
 
 struct CAccResult : ISqlResult
 {
+	enum class ERegisterStatus
+	{
+		NONE,
+		SUCCESS,
+		USERNAME_TAKEN,
+		IP_LIMIT_REACHED,
+	};
+
 	enum
 	{
 		MAX_MESSAGES = 15,
@@ -21,6 +29,7 @@ struct CAccResult : ISqlResult
 	};
 
 	bool m_Found = false;
+	ERegisterStatus m_RegisterStatus = ERegisterStatus::NONE;
 	bool m_LoginStateUpdated = false;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
@@ -64,7 +73,9 @@ struct CAccRegisterRequest : ISqlData
 		ISqlData(std::move(pRes)) {}
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PasswordHash[ACC_MAX_PASSW_LENGTH] = "";
+	char m_RegisterIP[46] = "";
 	int64_t m_RegisterDate = 0;
+	int m_MaxAccountsPerIP = 2;
 };
 struct CAccLoginRequest : ISqlData
 {

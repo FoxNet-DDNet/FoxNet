@@ -172,6 +172,9 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateAccounts(aBuf, sizeof(aBuf));
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+		FormatCreateAccountRegistrations(aBuf, sizeof(aBuf));
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 
 		FormatCreateAccountInventory(aBuf, sizeof(aBuf));
 		if(!Execute(aBuf, pError, ErrorSize))

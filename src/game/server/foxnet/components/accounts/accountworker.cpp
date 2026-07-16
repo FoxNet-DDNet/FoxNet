@@ -34,6 +34,22 @@ static bool ConsumeRemainingRows(IDbConnection *pSql, bool *pEnd, char *pError, 
 	return true;
 }
 
+static bool EnsureAccountRegistrationsTable(IDbConnection *pSql, char *pError, int ErrorSize)
+{
+	char aSql[512];
+	str_format(aSql, sizeof(aSql),
+		"CREATE TABLE IF NOT EXISTS foxnet_account_registrations ("
+		"IP VARCHAR(45) COLLATE %s NOT NULL, "
+		"Slot INTEGER NOT NULL, "
+		"Username VARCHAR(32) COLLATE %s NOT NULL, "
+		"PRIMARY KEY (Username), UNIQUE (IP, Slot))",
+		pSql->BinaryCollate(), pSql->BinaryCollate());
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	int NumUpdated = 0;
+	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
 static bool LoadInventoryAndEquipment(IDbConnection *pSql, const char *pUsername, CInventory &Inv, char *pError, int ErrorSize)
 {
 	// Clear current inventory & cosmetics
@@ -413,21 +429,84 @@ bool CAccountsWorker::Register(IDbConnection *pSql, const ISqlData *pData, Write
 {
 	const auto *pReq = dynamic_cast<const CAccRegisterRequest *>(pData);
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
-
-	char aSql[256];
-	str_copy(aSql, "INSERT INTO foxnet_accounts (Username, Password, RegisterDate) VALUES (?, ?, ?)", sizeof(aSql));
-	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+	if(!pReq || !pRes)
+		return false;
+	if(!EnsureAccountRegistrationsTable(pSql, pError, ErrorSize))
 		return false;
 
+	char aSql[256];
+	str_copy(aSql, "SELECT Username FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
 	pSql->BindString(1, pReq->m_aUsername);
-	pSql->BindString(2, pReq->m_PasswordHash);
-	pSql->BindInt64(3, pReq->m_RegisterDate);
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	if(!End)
+	{
+		pRes->m_RegisterStatus = CAccResult::ERegisterStatus::USERNAME_TAKEN;
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+		pRes->m_Completed.store(true);
+		return true;
+	}
 
+	bool aSlotsUsed[10]{};
+	str_copy(aSql, "SELECT Slot FROM foxnet_account_registrations WHERE IP = ?", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_RegisterIP);
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	while(!End)
+	{
+		const int Slot = pSql->GetInt(1);
+		if(Slot >= 1 && Slot <= 10)
+			aSlotsUsed[Slot - 1] = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+	}
+
+	int FreeSlot = -1;
+	for(int i = 0; i < pReq->m_MaxAccountsPerIP; ++i)
+	{
+		if(!aSlotsUsed[i])
+		{
+			FreeSlot = i + 1;
+			break;
+		}
+	}
+	if(FreeSlot < 0)
+	{
+		pRes->m_RegisterStatus = CAccResult::ERegisterStatus::IP_LIMIT_REACHED;
+		pRes->m_Completed.store(true);
+		return true;
+	}
+
+	str_copy(aSql, "INSERT INTO foxnet_account_registrations (IP, Slot, Username) VALUES (?, ?, ?)", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_RegisterIP);
+	pSql->BindInt(2, FreeSlot);
+	pSql->BindString(3, pReq->m_aUsername);
 	int NumUpdated = 0;
 	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
 		return false;
 
-	pRes->m_Success = NumUpdated == 1;
+	str_copy(aSql, "INSERT INTO foxnet_accounts (Username, Password, RegisterDate) VALUES (?, ?, ?)", sizeof(aSql));
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	pSql->BindString(2, pReq->m_PasswordHash);
+	pSql->BindInt64(3, pReq->m_RegisterDate);
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+	{
+		DeleteRowsByUsername(pSql, "foxnet_account_registrations", pReq->m_aUsername, &NumUpdated, pError, ErrorSize);
+		return false;
+	}
+
+	pRes->m_RegisterStatus = NumUpdated == 1 ? CAccResult::ERegisterStatus::SUCCESS : CAccResult::ERegisterStatus::USERNAME_TAKEN;
+	pRes->m_Success = pRes->m_RegisterStatus == CAccResult::ERegisterStatus::SUCCESS;
 	pRes->m_Completed.store(true);
 
 	if(pRes->m_Success)
@@ -919,6 +998,8 @@ bool CAccountsWorker::DeleteAccount(IDbConnection *pSql, const ISqlData *pData, 
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
 	if(!pReq || !pRes)
 		return false;
+	if(!EnsureAccountRegistrationsTable(pSql, pError, ErrorSize))
+		return false;
 
 	char aSql[256];
 	str_copy(aSql, "SELECT Username FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
@@ -939,6 +1020,8 @@ bool CAccountsWorker::DeleteAccount(IDbConnection *pSql, const ISqlData *pData, 
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_config", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
 		return false;
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_inventory", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
+	if(!DeleteRowsByUsername(pSql, "foxnet_account_registrations", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
 		return false;
 	if(!DeleteRowsByUsername(pSql, "foxnet_accounts", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
 		return false;

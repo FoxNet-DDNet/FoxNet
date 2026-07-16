@@ -58,29 +58,6 @@ void CAccounts::ConRegister(IConsole::IResult *pResult, void *pUserData)
 	const char *pUser = pResult->GetString(0);
 	const char *pPass = pResult->GetString(1);
 
-	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
-	if(!pPlayer)
-		return;
-	if(pPlayer->m_AccRegisters >= g_Config.m_SvAccountsMaxRegister)
-	{
-		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [||%s||] was banned for 1440 minutes for too many '/register's.\n"
-						     "ver: %s (%d) [%s]",
-			pSelf->Server()->ClientName(ClientId),
-			pAddr,
-			pSelf->Server()->GetCustomClient(ClientId),
-			pSelf->Server()->GetClientVersion(ClientId),
-			pSelf->Server()->GetClientVersionStr(ClientId));
-		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Register (%d%s)", pSelf->Server()->Port(), FormatServerInsntance(" | "));
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-		char aCmdBuf[512];
-		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/register's");
-		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
-		return;
-	}
-
 	pSelf->Register(ClientId, pUser, pPass);
 }
 
@@ -444,7 +421,8 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 				GameServer()->SendChatTarget(ClientId, "Your account is disabled");
 			return;
 		}
-		const char *pSuccessMessage = Silent ? "" : Auto ? "Automatically logged into your account" : "Logged in successfully";
+		const char *pSuccessMessage = Silent ? "" : Auto ? "Automatically logged into your account" :
+								   "Logged in successfully";
 		OnLogin(ClientId, Res, pSuccessMessage);
 	});
 	DbPool()->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
@@ -571,12 +549,16 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	auto pReq = std::make_unique<CAccRegisterRequest>(pRes);
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	str_copy(pReq->m_PasswordHash, HashedPassword, sizeof(pReq->m_PasswordHash));
+	str_copy(pReq->m_RegisterIP, Server()->ClientAddrString(ClientId, false), sizeof(pReq->m_RegisterIP));
+	pReq->m_MaxAccountsPerIP = g_Config.m_SvAccountsMaxRegister;
 	time_t Now = time(0);
 	pReq->m_RegisterDate = Now;
 	AddPending(pRes, [this, ClientId, pExpectedPlayer](CAccResult &Res) {
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
-		if(!Res.m_Success)
+		if(Res.m_RegisterStatus == CAccResult::ERegisterStatus::IP_LIMIT_REACHED)
+			GameServer()->SendChatTarget(ClientId, "[Err] This IP address has already registered the maximum number of accounts");
+		else if(Res.m_RegisterStatus != CAccResult::ERegisterStatus::SUCCESS)
 			GameServer()->SendChatTarget(ClientId, "[Err] Username is already taken");
 		else
 		{
@@ -1191,8 +1173,8 @@ void CAccounts::ClaimMailReward(int ClientId, int64_t MailId, std::function<void
 		const bool DbSuccess = BaseRes.m_Success && pClaimRes;
 		const bool Claimed = DbSuccess && pClaimRes->m_Claimed;
 		const bool SessionStillActive = IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer) &&
-			GameServer()->m_aAccounts[ClientId].m_LoggedIn &&
-			str_comp(GameServer()->m_aAccounts[ClientId].m_aUsername, Username.c_str()) == 0;
+						GameServer()->m_aAccounts[ClientId].m_LoggedIn &&
+						str_comp(GameServer()->m_aAccounts[ClientId].m_aUsername, Username.c_str()) == 0;
 
 		if(Claimed && !SessionStillActive)
 		{

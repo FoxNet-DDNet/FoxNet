@@ -26,7 +26,7 @@ MACRO_CONFIG_INT(SvAccounts, sv_accounts, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE
 MACRO_CONFIG_INT(SvAccountsForced, sv_accounts_forced, 0, 0, 1, CFGFLAG_SERVER, "Whether an account is necessary to play or not")
 MACRO_CONFIG_INT(SvAccountsAllowRegister, sv_accounts_allow_register, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Whether to allow new account registrations")
 MACRO_CONFIG_INT(SvAccountsMaxLoginAttempts, sv_accounts_max_login_attempts, 5, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of login attempts before a ban")
-MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of register attempts before a ban")
+MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of accounts that can be registered per IP address")
 MACRO_CONFIG_STR(SvAccountsInstance, sv_accounts_instance, 16, "", CFGFLAG_SERVER | CFGFLAG_SAVE, "Unique account instance/region identifier for shared databases (e.g. eu-1, us-1)")
 
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
@@ -151,7 +151,6 @@ MACRO_CONFIG_INT(SvLogExtra, sv_log_extra, 0, 0, 2, CFGFLAG_SERVER, "Whether to 
 // Random Stuff
 MACRO_CONFIG_INT(SvTeeCursor, sv_tee_cursor, 0, 0, 1, CFGFLAG_SERVER, "Display everyones position at their cursor")
 MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER, "Set everyones snapping velocity to 0 (disables interpolation on the client)")
-
 
 // Hide and Seek
 MACRO_CONFIG_INT(SvMinigamesSameIp, sv_minigames_same_ip, 0, 0, 1, CFGFLAG_SERVER, "Whether to allow the same ip in minigames")

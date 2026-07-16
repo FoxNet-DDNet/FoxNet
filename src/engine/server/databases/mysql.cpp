@@ -251,7 +251,7 @@ bool CMysqlConnection::ConnectImpl()
 	{
 		if(m_pStmt && mysql_stmt_field_count(m_pStmt.get()) > 0 && mysql_stmt_free_result(m_pStmt.get()))
 		{
-            StoreErrorStmt("free_result");
+			StoreErrorStmt("free_result");
 			dbg_msg("mysql", "can't free last result %s", m_aErrorDetail);
 		}
 		if(m_pStmt && mysql_stmt_reset(m_pStmt.get()))
@@ -275,9 +275,9 @@ bool CMysqlConnection::ConnectImpl()
 					return false;
 				}
 			}
-           return true;
+			return true;
 		}
-        StoreErrorMysql("select_db");
+		StoreErrorMysql("select_db");
 		dbg_msg("mysql", "connection check failed, trying to reconnect %s", m_aErrorDetail);
 		m_pStmt = nullptr;
 		mysql_close(&m_Mysql);
@@ -345,6 +345,7 @@ bool CMysqlConnection::ConnectImpl()
 		char aCreatePoints[1024];
 		// <FoxNet
 		char aCreateAccounts[1024];
+		char aCreateAccountRegistrations[1024];
 		char aCreateInventory[1024];
 		char aCreateMailbox[1024];
 		char aCreateAccountConfig[1024];
@@ -356,6 +357,7 @@ bool CMysqlConnection::ConnectImpl()
 		FormatCreatePoints(aCreatePoints, sizeof(aCreatePoints));
 		// <FoxNet
 		FormatCreateAccounts(aCreateAccounts, sizeof(aCreateAccounts));
+		FormatCreateAccountRegistrations(aCreateAccountRegistrations, sizeof(aCreateAccountRegistrations));
 		FormatCreateAccountInventory(aCreateInventory, sizeof(aCreateInventory));
 		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox));
 		FormatCreateAccountConfig(aCreateAccountConfig, sizeof(aCreateAccountConfig));
@@ -368,6 +370,7 @@ bool CMysqlConnection::ConnectImpl()
 			!PrepareAndExecuteStatement(aCreatePoints) ||
 			// <FoxNet
 			!PrepareAndExecuteStatement(aCreateAccounts) ||
+			!PrepareAndExecuteStatement(aCreateAccountRegistrations) ||
 			!PrepareAndExecuteStatement(aCreateInventory) ||
 			!PrepareAndExecuteStatement(aCreateMailbox) ||
 			!PrepareAndExecuteStatement(aCreateAccountConfig)
