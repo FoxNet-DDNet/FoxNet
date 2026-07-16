@@ -548,6 +548,9 @@ bool CPlayer::ReachedItemLimit(const CItemConfig *pCfg)
 		if(Item.second.m_Id == EItemId::MaxCosmeticsUpgrade)
 			Amount -= Mit->second.m_Quantity;
 
+		if(HasFlag(Other.m_Flags, EItemFlag::Upgrade))
+			continue; // Upgrades aren't cosmetics
+
 		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == pCfg->m_Group)
 			continue;
 		if(!HasFlag(Other.m_Flags, EItemFlag::Equippable))
@@ -611,7 +614,9 @@ bool CPlayer::UseItem(const CItemConfig *pCfg, int OverrideValue, bool Force)
 
 	int Equip = OverrideValue >= 0 ? OverrideValue : !CurrentlyEquipped;
 
-	if(ReachedItemLimit(pCfg) && Equip != 0 && !Force)
+	const bool IsUpgrade = HasFlag(pCfg->m_Flags, EItemFlag::Upgrade); // Upgrades aren't cosmetics
+
+	if(!IsUpgrade && ReachedItemLimit(pCfg) && Equip != 0 && !Force)
 	{
 		SendChat("You have reached the limit of equipped cosmetics. Unequip some other items first.");
 		return false;
