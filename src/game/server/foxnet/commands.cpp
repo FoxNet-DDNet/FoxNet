@@ -204,11 +204,6 @@ void CGameContext::ConAddChatDetectionString(IConsole::IResult *pResult, void *p
 	bool Ban = pResult->GetInteger(2);
 	int BanTime = pResult->GetInteger(3);
 	float Addition = pResult->GetFloat(4);
-	if(BanTime < 0)
-	{
-		log_info("chat-detection", "Ban time must be greater than 0");
-		return;
-	}
 	if(Addition <= 0.0f)
 		Addition = 1.0f;
 	for(const auto &Words : pSelf->m_vChatDetection)
@@ -291,11 +286,6 @@ void CGameContext::ConAddNameDetectionString(IConsole::IResult *pResult, void *p
 	const char *Reason = pResult->GetString(1);
 	int BanTime = pResult->GetInteger(2);
 	int ExactName = pResult->NumArguments() > 3 ? pResult->GetInteger(3) : 0;
-	if(BanTime < 0)
-	{
-		log_info("name-detection", "Ban time must be greater than 0");
-		return;
-	}
 	if(ExactName < 0 || ExactName > 2)
 	{
 		log_info("name-detection", "Exact Name must be between 0 and 2");
