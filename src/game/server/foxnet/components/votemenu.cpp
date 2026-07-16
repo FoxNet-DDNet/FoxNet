@@ -490,7 +490,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		{
 			if(Data.m_pLastItemInfo && IsOption(pVote, FormatItemVote(pPlayer, *Data.m_pLastItemInfo)))
 			{
-				GameServer()->m_Shop.BuyItem(ClientId, Data.m_pLastItemInfo->m_pName);
+				GameServer()->m_Shop.BuyItem(pPlayer, Data.m_pLastItemInfo->m_pName);
 				SetSubPage(ClientId, SUB_SHOP_MAIN);
 				return true;
 			}
@@ -525,9 +525,6 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
-
-			if(HasFlag(Item.m_Flags, EItemFlag::Upgrade))
-				continue;
 
 			if(IsOptionWithSuffix(pVote, Item.m_pName))
 			{
@@ -1374,8 +1371,6 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
-			if(Item.m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
-				continue;
 			if(Item.m_Type != Type)
 				continue;
 			if(Item.m_Price == UnbuyablePrice)
@@ -1389,8 +1384,6 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
-			if(Item.m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
-				continue;
 			if(Item.m_Type != Type)
 				continue;
 			if(Item.m_Price == UnbuyablePrice)
@@ -1445,9 +1438,6 @@ void CVoteMenu::PrepareShop(int ClientId)
 
 		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
-			if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
-				continue;
-
 			if(str_comp(ItemTypeToName(pItem->m_Type), pMeta) != 0)
 				continue;
 
@@ -1458,7 +1448,13 @@ void CVoteMenu::PrepareShop(int ClientId)
 				continue;
 			AmountShown++;
 			char aName[VOTE_DESC_LENGTH];
-			str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
+			const int MaxOfThisType = pItem->m_MaxOfThisType;
+			const auto Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
+			bool OwnsMax = Entry != pAcc->m_Inventory.m_Map.end() && Entry->second.m_Quantity >= MaxOfThisType;
+			if(MaxOfThisType > 0 && OwnsMax)
+				str_format(aName, sizeof(aName), "%s [MAXXED]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
+			else
+				str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
 
 			AddVoteText(aName, EPrefix::ARROWHEAD);
 		}
@@ -1494,14 +1490,24 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteText("╰────────────────────");
 		AddVoteSeparator();
 
-		if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade)
+		const int MaxOfThisType = pItem->m_MaxOfThisType;
+		if(MaxOfThisType > 0)
 		{
 			const auto Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
-			bool OwnsTooManyCosmeticUpgrades = Entry != pAcc->m_Inventory.m_Map.end() && Entry->second.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
-			if(OwnsTooManyCosmeticUpgrades)
+			bool OwnsMax = Entry != pAcc->m_Inventory.m_Map.end() && Entry->second.m_Quantity >= MaxOfThisType;
+			if(OwnsMax)
 			{
-				str_format(aBuf, sizeof(aBuf), "You can only own %d of '%s'", g_Config.m_SvMaxCosmeticUpgrades, pItem->m_pName);
-				AddVoteText(aBuf);
+				if(MaxOfThisType > 1)
+				{
+					str_format(aBuf, sizeof(aBuf), "You already own the Max Amount of this Item!", MaxOfThisType, pItem->m_pName);
+					AddVoteText(aBuf);
+				}
+				else
+				{
+					str_format(aBuf, sizeof(aBuf), "You already own the this Item!", MaxOfThisType, pItem->m_pName);
+					AddVoteText(aBuf);
+
+				}
 				return;
 			}
 		}
@@ -1572,9 +1578,6 @@ void CVoteMenu::PrepareInventory(int ClientId)
 
 		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
-			if(pItem->m_Id == EItemId::MaxCosmeticsUpgrade && !g_Config.m_SvMaxCosmeticUpgrades)
-				continue;
-
 			const char *pItemName = pItem->m_pName;
 
 			if(!Acc.m_Inventory.Has(pItemName))
@@ -1603,7 +1606,12 @@ void CVoteMenu::PrepareInventory(int ClientId)
 				str_format(aVoteName, sizeof(aVoteName), "%s [→ %s]", pItemName, TimeBuf);
 			}
 			else
-				str_format(aVoteName, sizeof(aVoteName), "%s [→ ∞]", pItemName);
+			{
+				if(HasFlag(pItem->m_Flags, EItemFlag::Upgrade))
+					str_format(aVoteName, sizeof(aVoteName), "%s", pItemName);
+				else
+					str_format(aVoteName, sizeof(aVoteName), "%s [→ ∞]", pItemName);
+			}
 
 			if(HasFlag(pItem->m_Flags, EItemFlag::Stackable))
 			{

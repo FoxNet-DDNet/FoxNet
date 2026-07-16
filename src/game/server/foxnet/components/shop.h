@@ -36,11 +36,11 @@ public:
 	const CItemConfig *FindItem(const char *pName) const { return m_Registry.FindByName(pName); }
 	const CItemConfig *FindItem(EItemId Id) const { return m_Registry.FindById(Id); }
 
-	bool BuyItem(int ClientId, const char *pName);
-	bool GiveItem(int ClientId, const CItemConfig *pItem, int Days = -1, const char *pFrom = "Server");
-	bool GiveItem(int ClientId, const char *pName, int Days = -1, const char *pFrom = "Server");
+	bool BuyItem(CPlayer *pPlayer, const char *pName);
+	bool GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days = -1, const char *pFrom = "Server");
+	bool GiveItem(CPlayer *pPlayer, const char *pName, int Days = -1, const char *pFrom = "Server");
 
-	bool RemoveItem(int ClientId, const char *pName, const char *pBy = "Server");
+	bool RemoveItem(CPlayer *pPlayer, const char *pName, const char *pBy = "Server");
 
 	const CItemConfig *RandomItemByRarity(EItemRarity Rarity, bool AllowAny);
 

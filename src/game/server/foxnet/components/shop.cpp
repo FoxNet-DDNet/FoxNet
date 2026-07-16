@@ -44,8 +44,12 @@ void CShop::ConBuyItem(IConsole::IResult *pResult, void *pUserData)
 	const int ClientId = pResult->m_ClientId;
 	if(!CheckClientId(ClientId))
 		return;
+	CPlayer *pPlayer = pSelf->GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
 	const char *pItem = pResult->GetString(0);
-	pSelf->BuyItem(ClientId, pItem);
+	pSelf->BuyItem(pPlayer, pItem);
 }
 
 void CShop::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
@@ -63,7 +67,7 @@ void CShop::ConGiveItem(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->GiveItem(ClientId, pItemName, -2, aFrom);
+	pSelf->GiveItem(pPlayer, pItemName, -2, aFrom);
 }
 
 void CShop::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
@@ -83,7 +87,7 @@ void CShop::ConGiveItemDays(IConsole::IResult *pResult, void *pUserData)
 	if(CheckClientId(ClientId))
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
-	pSelf->GiveItem(ClientId, pItemName, Days, aFrom);
+	pSelf->GiveItem(pPlayer, pItemName, Days, aFrom);
 }
 
 void CShop::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
@@ -101,7 +105,7 @@ void CShop::ConGiveItemForever(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aFrom, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->GiveItem(ClientId, pItemName, ForeverDays, aFrom);
+	pSelf->GiveItem(pPlayer, pItemName, ForeverDays, aFrom);
 }
 
 void CShop::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
@@ -120,7 +124,7 @@ void CShop::ConRemoveItem(IConsole::IResult *pResult, void *pUserData)
 		str_copy(aBy, pSelf->Server()->ClientName(ClientId));
 
 	const char *pItemName = pResult->GetString(1);
-	pSelf->RemoveItem(ClientId, pItemName, aBy);
+	pSelf->RemoveItem(pPlayer, pItemName, aBy);
 }
 
 void CShop::AddItems()
@@ -183,110 +187,103 @@ void CShop::EditItem(const char *pName, int Price, int MinLevel)
 	log_info("shop", "%s", aBuf);
 }
 
-bool CShop::BuyItem(int ClientId, const char *pName)
+bool CShop::BuyItem(CPlayer *pPlayer, const char *pName)
 {
-	char aBuf[256];
+	if(!pPlayer)
+		return false;
 
 	const CItemConfig *pCfg = FindItem(pName);
 	if(!pCfg)
 		return false;
 
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	CAccountSession *pAcc = pPlayer->Acc();
 
 	if(!g_Config.m_SvAccounts)
 	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		pPlayer->SendChat("Accounts are disabled.");
 		return false;
 	}
 
-	if(!Acc.m_LoggedIn)
+	if(!pAcc->m_LoggedIn)
 	{
-		GameServer()->SendChatTarget(ClientId, "You aren't logged in.");
+		pPlayer->SendChat("You aren't logged in.");
 
 		return false;
 	}
 
 	if(pCfg->m_Price <= 0)
 	{
-		GameServer()->SendChatTarget(ClientId, "Invalid Item.");
+		pPlayer->SendChat("Invalid Item.");
 		return false;
 	}
-
-	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return false;
 
 	if(!pPlayer->CanUseMoney())
 	{
-		GameServer()->SendChatTarget(ClientId, "You cannot use Money right now");
-		GameServer()->SendChatTarget(ClientId, "Try again later");
+		pPlayer->SendChat("You cannot use Money right now");
+		pPlayer->SendChat("Try again later");
 		return false;
 	}
-	if(Acc.m_Level < pCfg->m_MinLevel)
+	if(pAcc->m_Level < pCfg->m_MinLevel)
 	{
-		str_format(aBuf, sizeof(aBuf), "You need atleast Level %d to buy %s", pCfg->m_MinLevel, pCfg->m_pName);
-		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "You are currently Level %" PRId64, Acc.m_Level);
-		GameServer()->SendChatTarget(ClientId, aBuf);
+		pPlayer->SendChatFmt("You need atleast Level %d to buy %s", pCfg->m_MinLevel, pCfg->m_pName);
+		pPlayer->SendChatFmt("You are currently Level %" PRId64, pAcc->m_Level);
 		return false;
 	}
 
 	int Price = pPlayer->GetDiscountedPrice(pCfg->m_Price);
 
-	if(Acc.m_Money < Price)
+	if(pAcc->m_Money < Price)
 	{
-		str_format(aBuf, sizeof(aBuf), "You don't have enough Money to buy %s", pCfg->m_pName);
-		GameServer()->SendChatTarget(ClientId, aBuf);
-		str_format(aBuf, sizeof(aBuf), "You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
-		GameServer()->SendChatTarget(ClientId, aBuf);
+		pPlayer->SendChatFmt("You don't have enough Money to buy %s", pCfg->m_pName);
+		pPlayer->SendChatFmt("You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
 		return false;
 	}
 
-	if(pCfg->m_Id == EItemId::MaxCosmeticsUpgrade)
+	const int MaxOfThisType = pCfg->m_MaxOfThisType;
+	if(MaxOfThisType > 0)
 	{
-		auto &Entry = Acc.m_Inventory.Entry(pCfg->m_pName);
-		bool OwnsTooManyCosmeticUpgrades = Entry.m_Quantity >= g_Config.m_SvMaxCosmeticUpgrades;
+		auto &Entry = pAcc->m_Inventory.Entry(pCfg->m_pName);
+		bool OwnsTooManyCosmeticUpgrades = Entry.m_Quantity >= MaxOfThisType;
 		if(OwnsTooManyCosmeticUpgrades)
 		{
-			str_format(aBuf, sizeof(aBuf), "You can only own %d of '%s'", g_Config.m_SvMaxCosmeticUpgrades, pCfg->m_pName);
-			GameServer()->SendChatTarget(ClientId, aBuf);
+			if(MaxOfThisType > 1)
+				pPlayer->SendChatFmt("You can only own %d of '%s'", MaxOfThisType, pCfg->m_pName);
 			return false;
 		}
 	}
 
 	pPlayer->TakeMoney(Price, true);
-	GiveItem(ClientId, pCfg, pCfg->m_DefaultDays, "Shop");
+	GiveItem(pPlayer, pCfg, pCfg->m_DefaultDays, "Shop");
 
-	str_format(aBuf, sizeof(aBuf), "Successfully bought Item '%s'", pCfg->m_pName);
-	GameServer()->SendChatTarget(ClientId, aBuf);
+	pPlayer->SendChatFmt("Successfully bought Item '%s'", pCfg->m_pName);
 
 	if(pCfg->m_Group == EExclusiveGroup::Hat)
 	{
 		int TypeHat = (int)pPlayer->Cosmetics()->m_HatType;
 		if(TypeHat <= (int)EHatType::Ninja && TypeHat > (int)EHatType::None)
-			GameServer()->SendChatTarget(ClientId, "Hats can be rotated! Head to the settings section to change the rotation");
+			pPlayer->SendChat("Hats can be rotated! Head to the settings section to change the rotation");
 	}
 
 	return true;
 }
 
-bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const char *pFrom)
+bool CShop::GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days, const char *pFrom)
 {
 	if(!g_Config.m_SvAccounts)
 	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		pPlayer->SendChat("Accounts are disabled.");
 		return false;
 	}
 
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(!Acc.m_LoggedIn)
+	CAccountSession *pAcc = pPlayer->Acc();
+	if(!pAcc->m_LoggedIn)
 	{
-		log_info("shop", "ClientId %d isn't logged in", ClientId);
+		log_info("shop", "ClientId %d isn't logged in", pPlayer->GetCid());
 		return false;
 	}
 
-	auto &Entry = Acc.m_Inventory.Entry(pItem->m_pName);
-	const bool Owned = Acc.m_Inventory.Owns(pItem->m_pName);
+	auto &Entry = pAcc->m_Inventory.Entry(pItem->m_pName);
+	const bool Owned = pAcc->m_Inventory.Owns(pItem->m_pName);
 
 	int64_t Now = time(0);
 	if(!Owned)
@@ -310,45 +307,48 @@ bool CShop::GiveItem(int ClientId, const CItemConfig *pItem, int Days, const cha
 		Entry.m_Quantity = 1;
 	}
 
-	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
+	if(!pPlayer->ReachedItemLimit(pItem) && (HasFlag(pItem->m_Flags, EItemFlag::Equippable)))
+		pPlayer->UseItem(pItem, -1, false);
+
+	GameServer()->m_AccountManager.SaveAccountsInfo(pPlayer->GetCid(), *pAcc);
 	return true;
 }
 
-bool CShop::GiveItem(int ClientId, const char *pName, int Days, const char *pFrom)
+bool CShop::GiveItem(CPlayer *pPlayer, const char *pName, int Days, const char *pFrom)
 {
 	if(!g_Config.m_SvAccounts)
 	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		pPlayer->SendChat("Accounts are disabled.");
 		return false;
 	}
 
 	const CItemConfig *pCfg = FindItem(pName);
 	if(!pCfg)
 	{
-		log_info("shop", "Attempted to give non-existing item \"%s\" to ClientId %d", pName, ClientId);
+		log_info("shop", "Attempted to give non-existing item \"%s\" to ClientId %d", pName, pPlayer->GetCid());
 		return false;
 	}
 
-	return GiveItem(ClientId, pCfg, Days, pFrom);
+	return GiveItem(pPlayer, pCfg, Days, pFrom);
 }
 
-bool CShop::RemoveItem(int ClientId, const char *pItemName, const char *pByName)
+bool CShop::RemoveItem(CPlayer *pPlayer, const char *pItemName, const char *pByName)
 {
 	if(!g_Config.m_SvAccounts)
 	{
-		GameServer()->SendChatTarget(ClientId, "Accounts are disabled.");
+		pPlayer->SendChat("Accounts are disabled.");
 		return false;
 	}
 
-	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
-	if(!Acc.m_LoggedIn)
+	CAccountSession *pAcc = pPlayer->Acc();
+	if(!pAcc->m_LoggedIn)
 		return false;
-	auto &Entry = Acc.m_Inventory.Entry(pItemName);
-	if(!Acc.m_Inventory.Owns(pItemName))
+	auto &Entry = pAcc->m_Inventory.Entry(pItemName);
+	if(!pAcc->m_Inventory.Owns(pItemName))
 		return false;
 	Entry.m_Quantity = 0;
 	Entry.m_ExpiresAt = 0;
-	GameServer()->m_AccountManager.SaveAccountsInfo(ClientId, Acc);
+	GameServer()->m_AccountManager.SaveAccountsInfo(pPlayer->GetCid(), *pAcc);
 	return true;
 }
 

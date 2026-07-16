@@ -1,17 +1,19 @@
 #ifndef GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 #define GAME_SERVER_FOXNET_ITEM_REGISTRY_H
 
+#include "fontconvert.h"
+
 #include <algorithm>
 #include <functional>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
-#include "fontconvert.h"
 
 constexpr int MaxItemStars = 5;
 
 constexpr int UnbuyablePrice = -1;
 constexpr int ForeverDays = -1;
+constexpr int NoMaxOfThisType = -1;
 
 enum class EItemId
 {
@@ -64,7 +66,7 @@ enum class EItemId
 
 enum class EItemType
 {
-	Role,
+	Upgrades,
 	Case,
 	Hat,
 	Gun,
@@ -73,7 +75,6 @@ enum class EItemType
 	Death,
 	Indicator,
 	Rainbow,
-	Other,
 	COUNT
 };
 
@@ -94,7 +95,8 @@ enum class EItemFlag
 	Consumable = 1 << 1,
 	LootCase = 1 << 2,
 	Upgrade = 1 << 3,
-	Stackable = 1 << 4,
+	Role = 1 << 4,
+	Stackable = 1 << 5,
 };
 
 constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
@@ -123,7 +125,7 @@ inline const char *ItemTypeToName(EItemType Type)
 {
 	switch(Type)
 	{
-	case EItemType::Role: return ConvertToSmallCaps("Roles");
+	case EItemType::Upgrades: return ConvertToSmallCaps("Upgrades");
 	case EItemType::Case: return ConvertToSmallCaps("Cases");
 	case EItemType::Hat: return ConvertToSmallCaps("Hats");
 	case EItemType::Gun: return ConvertToSmallCaps("Guns");
@@ -132,7 +134,6 @@ inline const char *ItemTypeToName(EItemType Type)
 	case EItemType::Death: return ConvertToSmallCaps("Death Effects");
 	case EItemType::Indicator: return ConvertToSmallCaps("Gun Hit Effects");
 	case EItemType::Rainbow: return ConvertToSmallCaps("Rainbow Effects");
-	case EItemType::Other: return ConvertToSmallCaps("Other");
 	default: return ConvertToSmallCaps("Unknown");
 	}
 }
@@ -167,9 +168,9 @@ static constexpr int PriceMaxRare = 25000;
 static constexpr int PriceMinEpic = PriceMaxRare + 1;
 static constexpr int PriceMaxEpic = 125000;
 static constexpr int PriceMinMythic = PriceMaxEpic + 1;
-static constexpr int PriceMaxMythic = 300000;
+static constexpr int PriceMaxMythic = 500000;
 static constexpr int PriceMinLegendary = PriceMaxMythic + 1;
-static constexpr int PriceMaxLegendary = 1000000;
+static constexpr int PriceMaxLegendary = 1500000;
 
 inline EItemRarity SuggestRarityFromPrice(long Price)
 {
@@ -262,6 +263,7 @@ public:
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Apply;
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Remove;
 	int m_DefaultDays = 30;
+	int m_MaxOfThisType = NoMaxOfThisType;
 
 	CItemConfig(EItemId Id,
 		EItemType Type,
@@ -276,8 +278,9 @@ public:
 		const char *pDescription,
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
-		int DefaultDays = 30) :
-		m_Id(Id), m_Type(Type), m_pName(pName), m_pShortcut(pShortcut), m_Flags(Flags), m_Group(Group), m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription), m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays) {}
+		int DefaultDays = 30,
+		int MaxOfThisType = NoMaxOfThisType) :
+		m_Id(Id), m_Type(Type), m_pName(pName), m_pShortcut(pShortcut), m_Flags(Flags), m_Group(Group), m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription), m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays), m_MaxOfThisType(MaxOfThisType) {}
 };
 
 class CItemRegistry

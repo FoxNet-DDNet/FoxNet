@@ -545,7 +545,7 @@ bool CPlayer::ReachedItemLimit(const CItemConfig *pCfg)
 		if(Mit == Inv()->m_Map.end())
 			continue;
 
-		if(Item.second.m_Id == EItemId::MaxCosmeticsUpgrade && g_Config.m_SvMaxCosmeticUpgrades)
+		if(Item.second.m_Id == EItemId::MaxCosmeticsUpgrade)
 			Amount -= Mit->second.m_Quantity;
 
 		if(Other.m_Group != EExclusiveGroup::None && Other.m_Group == pCfg->m_Group)
@@ -586,6 +586,11 @@ void CPlayer::UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pE
 bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 {
 	const CItemConfig *pCfg = GameServer()->m_Shop.Registry().FindByName(pName);
+	return UseItem(pCfg, OverrideValue, Force);
+}
+
+bool CPlayer::UseItem(const CItemConfig *pCfg, int OverrideValue, bool Force)
+{
 	if(!pCfg)
 		return false;
 	if(!Acc()->m_LoggedIn && !Force)
@@ -597,6 +602,9 @@ bool CPlayer::UseItem(const char *pName, int OverrideValue, bool Force)
 		OpenLootCase(*pCfg);
 		return true;
 	}
+
+	if(!HasFlag(pCfg->m_Flags, EItemFlag::Consumable) && !HasFlag(pCfg->m_Flags, EItemFlag::Equippable))
+		return false;
 
 	CInventoryEntry &Entry = Inv()->Entry(pCfg->m_pName);
 	const bool CurrentlyEquipped = Entry.m_Value;
@@ -765,7 +773,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 		}
 		DayPick -= d.m_Weight;
 	}
-	GameServer()->m_Shop.GiveItem(GetCid(), pSelectedItem, RewardDays, "Loot Case");
+	GameServer()->m_Shop.GiveItem(this, pSelectedItem, RewardDays, "Loot Case");
 
 	m_LootBoxData.m_pLootBox = &CaseCfg;
 	m_LootBoxData.m_pGotItem = pSelectedItem;

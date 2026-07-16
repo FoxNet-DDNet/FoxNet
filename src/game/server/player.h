@@ -133,6 +133,8 @@ public:
 	int m_DamageIndType = 0;
 
 	// Guns
+	bool m_GunAutoFire = false;
+
 	int m_EmoticonGun = 0;
 	bool m_ConfettiGun = false;
 	bool m_PhaseGun = false;
@@ -529,6 +531,7 @@ public:
 
 	void UnequipExclusiveGroup(EExclusiveGroup Group, const CItemConfig *pExcept);
 	bool UseItem(const char *pName, int OverrideValue, bool Force = false);
+	bool UseItem(const CItemConfig *pCfg, int OverrideValue, bool Force = false);
 
 	bool ReachedItemLimit(const CItemConfig *pCfg);
 

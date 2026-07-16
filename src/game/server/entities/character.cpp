@@ -552,7 +552,7 @@ void CCharacter::FireWeapon()
 		return;
 
 	// <FoxNet
-	if(GetPlayer()->OwnsItem(EItemId::GunAutoFireUpgrade) && m_Core.m_ActiveWeapon == WEAPON_GUN)
+	if(GetPlayer()->Cosmetics()->m_GunAutoFire && m_Core.m_ActiveWeapon == WEAPON_GUN)
 		FullAuto = true;
 	// FoxNet>
 
