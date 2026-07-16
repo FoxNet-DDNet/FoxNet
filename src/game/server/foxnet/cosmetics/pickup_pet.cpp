@@ -21,7 +21,7 @@
 #include <cmath>
 
 CPickupPet::CPickupPet(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PICKUP, Pos)
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PICKUPPET, Pos)
 {
 	m_Pos = Pos;
 	m_PetMode = 1;

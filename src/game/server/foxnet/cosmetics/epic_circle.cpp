@@ -19,7 +19,7 @@
 #include <cmath>
 
 CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
-	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PROJECTILE, Pos)
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_EPIC_CIRCLE, Pos)
 {
 	m_Pos = Pos;
 
