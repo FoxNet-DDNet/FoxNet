@@ -579,7 +579,7 @@ bool CAccountsWorker::Login(IDbConnection *pSql, const ISqlData *pData, char *pE
 	return true;
 }
 
-bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *p = dynamic_cast<const CAccUpdLoginState *>(pData);
 	auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
@@ -609,7 +609,7 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 	int NumUpdated = 0;
 	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
 		return false;
-	if(pRes)
+	if(pRes && w == Write::NORMAL)
 		pRes->m_LoginStateUpdated = NumUpdated == 1;
 	return true;
 }
