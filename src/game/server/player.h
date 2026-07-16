@@ -496,6 +496,7 @@ public:
 
 	int m_AccLoginAttempts;
 	int m_AccRegisters;
+	bool m_LoginPending;
 
 	CAccountSession *Acc();
 	CInventory *Inv();

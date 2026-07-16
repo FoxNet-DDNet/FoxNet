@@ -400,39 +400,52 @@ bool CAccounts::ForceLogin(int ClientId, const char *pUsername, bool Silent, boo
 	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pExpectedPlayer)
 		return false;
+	if(pExpectedPlayer->Acc()->m_LoggedIn)
+	{
+		if(!Silent)
+			GameServer()->SendChatTarget(ClientId, "You are already logged in");
+		return false;
+	}
+	if(pExpectedPlayer->m_LoginPending)
+	{
+		if(!Silent)
+			GameServer()->SendChatTarget(ClientId, "Login already in progress");
+		return false;
+	}
+	pExpectedPlayer->m_LoginPending = true;
 	auto pRes = std::make_shared<CAccResult>();
 	auto pReq = std::make_unique<CAccSelectByUser>(pRes);
 	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
 	AddPending(pRes, [this, ClientId, pExpectedPlayer, Silent, Auto](CAccResult &Res) {
-		if(!Res.m_Success || !Res.m_Found)
-			return;
 		if(!IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
 			return;
+		if(!Res.m_Success || !Res.m_Found)
+		{
+			pExpectedPlayer->m_LoginPending = false;
+			return;
+		}
 		if(pExpectedPlayer->Acc()->m_LoggedIn)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			GameServer()->SendChatTarget(ClientId, "You are already logged in");
 			return;
 		}
 		if(Res.m_LoggedIn)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			if(!Silent)
 				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
 			return;
 		}
 		if(Res.m_Disabled && Auto)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			if(!Silent)
 				GameServer()->SendChatTarget(ClientId, "Your account is disabled");
 			return;
 		}
-		if(!Silent)
-		{
-			if(Auto)
-				GameServer()->SendChatTarget(ClientId, "Automatically logged into your account");
-			else
-				GameServer()->SendChatTarget(ClientId, "Logged in successfully");
-		}
-		OnLogin(ClientId, Res);
+		const char *pSuccessMessage = Silent ? "" : Auto ? "Automatically logged into your account" : "Logged in successfully";
+		OnLogin(ClientId, Res, pSuccessMessage);
 	});
 	DbPool()->Execute(CAccountsWorker::SelectByUsername, std::move(pReq), "acc select by username");
 	return true;
@@ -447,6 +460,17 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pExpectedPlayer)
 		return;
+	if(pExpectedPlayer->Acc()->m_LoggedIn)
+	{
+		GameServer()->SendChatTarget(ClientId, "You are already logged in");
+		return;
+	}
+	if(pExpectedPlayer->m_LoginPending)
+	{
+		GameServer()->SendChatTarget(ClientId, "Login already in progress");
+		return;
+	}
+	pExpectedPlayer->m_LoginPending = true;
 	char HashedPassword[ACC_MAX_PASSW_LENGTH];
 	sha256_str(HashPassword(pPassword), HashedPassword, ACC_MAX_PASSW_LENGTH);
 	auto pRes = std::make_shared<CAccResult>();
@@ -458,11 +482,13 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 			return;
 		if(pExpectedPlayer->Acc()->m_LoggedIn)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			GameServer()->SendChatTarget(ClientId, "You are already logged in");
 			return;
 		}
 		if(!Res.m_Success || !Res.m_Found)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			GameServer()->SendChatTarget(ClientId, "Login failed");
 			if(GameServer()->m_apPlayers[ClientId])
 				GameServer()->m_apPlayers[ClientId]->m_AccLoginAttempts++;
@@ -470,16 +496,17 @@ void CAccounts::Login(int ClientId, const char *pUsername, const char *pPassword
 		}
 		if(Res.m_Disabled)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			GameServer()->SendChatTarget(ClientId, "Your account is disabled");
 			return;
 		}
 		if(Res.m_LoggedIn)
 		{
+			pExpectedPlayer->m_LoginPending = false;
 			GameServer()->SendChatTarget(ClientId, "Account is already logged in");
 			return;
 		}
-		GameServer()->SendChatTarget(ClientId, "Login successful");
-		OnLogin(ClientId, Res);
+		OnLogin(ClientId, Res, "Login successful");
 	});
 	DbPool()->Execute(CAccountsWorker::Login, std::move(pReq), "acc login");
 }
@@ -562,7 +589,7 @@ bool CAccounts::Register(int ClientId, const char *pUsername, const char *pPassw
 	return true;
 }
 
-void CAccounts::OnLogin(int ClientId, CAccResult &Res)
+void CAccounts::OnLogin(int ClientId, CAccResult &Res, const char *pSuccessMessage)
 {
 	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
 	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
@@ -586,6 +613,7 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	const CInventory Inventory = Res.m_Inventory;
 	const CMailBox MailBox = Res.m_MailBox;
 	const CAccConfigs Configs = Res.m_Configs;
+	const std::string SuccessMessage = pSuccessMessage ? pSuccessMessage : "";
 
 	auto pUpdRes = std::make_shared<CAccResult>();
 	auto pUpd = std::make_unique<CAccUpdLoginState>();
@@ -601,11 +629,14 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 	AddPending(pUpdRes, [this, ClientId, pExpectedPlayer, NeedsOverride, FastInput, FastInputAmount, Now,
 				    Username = UsernameCopy, LastName = LastNameCopy, CurrentIp = CurrentIpCopy, LastIp = LastIpCopy,
 				    RegisterDate, Playtime, Deaths, Kills, Level, Xp, Money, Inventory, MailBox, Configs,
-				    PlayerName = std::string(pPlayerName)](CAccResult &UpdRes) {
-		if(!UpdRes.m_Success)
+				    PlayerName = std::string(pPlayerName), SuccessMessage](CAccResult &UpdRes) {
+		if(!UpdRes.m_Success || !UpdRes.m_LoginStateUpdated)
 		{
 			if(IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer))
-				GameServer()->SendChatTarget(ClientId, "Account is already logged in");
+			{
+				pExpectedPlayer->m_LoginPending = false;
+				GameServer()->SendChatTarget(ClientId, UpdRes.m_Success ? "Account is already logged in" : "Login failed");
+			}
 			return;
 		}
 
@@ -676,6 +707,9 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res)
 		Session.m_MailBox = MailBox;
 		Session.m_LastMailboxFetch = Now;
 		Session.m_MailboxFetchPending = false;
+		pExpectedPlayer->m_LoginPending = false;
+		if(!SuccessMessage.empty())
+			GameServer()->SendChatTarget(ClientId, SuccessMessage.c_str());
 		GameServer()->OnLogin(ClientId);
 
 		// Apply equipped items to player cosmetics

@@ -214,7 +214,7 @@ public:
 	void Login(int ClientId, const char *pUsername, const char *pPassword);
 	bool Logout(int ClientId, bool WaitForCompletion = false); // immediate
 
-	void OnLogin(int ClientId, struct CAccResult &Res);
+	void OnLogin(int ClientId, struct CAccResult &Res, const char *pSuccessMessage);
 	void OnLogout(int ClientId, CAccountSession &AccInfo, bool WaitForCompletion = false);
 
 	void SaveAccountsInfo(int ClientId, CAccountSession &AccInfo);

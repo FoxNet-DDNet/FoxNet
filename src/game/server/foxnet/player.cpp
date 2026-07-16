@@ -197,6 +197,7 @@ void CPlayer::FoxNetReset()
 
 	m_AccLoginAttempts = 0;
 	m_AccRegisters = 0;
+	m_LoginPending = false;
 
 	m_IncludeServerInfo = true;
 	if(Server()->DebugDummy(GetCid()))

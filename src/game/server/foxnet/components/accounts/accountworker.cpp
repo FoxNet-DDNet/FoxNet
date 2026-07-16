@@ -531,7 +531,7 @@ bool CAccountsWorker::UpdateLoginState(IDbConnection *pSql, const ISqlData *pDat
 	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
 		return false;
 	if(pRes)
-		pRes->m_Success = NumUpdated == 1;
+		pRes->m_LoginStateUpdated = NumUpdated == 1;
 	return true;
 }
 

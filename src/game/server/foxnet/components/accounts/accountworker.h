@@ -21,6 +21,7 @@ struct CAccResult : ISqlResult
 	};
 
 	bool m_Found = false;
+	bool m_LoginStateUpdated = false;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 	char m_PlayerName[MAX_NAME_LENGTH] = "";
 	char m_LastPlayerName[MAX_NAME_LENGTH] = "";
