@@ -226,7 +226,7 @@ void CItemRegistry::Init()
 		}});
 
 	Add({EItemId::DeathLaser, EItemType::Death, "Laser Death", "D_L", EItemFlag::Equippable,
-		EExclusiveGroup::DeathEffect, 17500, 10,
+		EExclusiveGroup::DeathEffect, 17500, 30,
 		"Become wizard and summon lasers on death!",
 		[](CPlayer &pl, const CItemConfig &, int) {
 			pl.SetDeathEffect(EDeathEffect::Laser);
