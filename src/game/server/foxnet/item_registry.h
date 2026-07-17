@@ -35,6 +35,7 @@ enum class EItemId
 	DeathHammerHit,
 	DeathIndicator,
 	DeathLaser,
+	DeathMeteor,
 	TrailStar,
 	TrailDot,
 	HammerHat,

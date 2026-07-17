@@ -348,8 +348,8 @@ void CEntityOwned::SnapCosmeticProjectilePos(int SnappingClient, int SnapId,  in
 		Projectile.m_X = (int)Pos.x;
 		Projectile.m_Y = (int)Pos.y;
 		Projectile.m_Type = Type;
-		Projectile.m_Owner = -1;
-		Projectile.m_Alpha = 100;
+		Projectile.m_Owner = m_Owner;
+		Projectile.m_Alpha = -1;
 		Projectile.m_Rotation = Rotation;
 		Projectile.m_Flags = 0;
 		Server()->SnapNewItem(Id, Projectile);

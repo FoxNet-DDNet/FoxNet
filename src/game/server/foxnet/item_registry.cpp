@@ -235,6 +235,16 @@ void CItemRegistry::Init()
 			if(pl.Cosmetics()->m_DeathEffect == EDeathEffect::Laser)
 				pl.SetDeathEffect(EDeathEffect::None);
 		}});
+	Add({EItemId::DeathMeteor, EItemType::Death, "Meteor Death", "D_M", EItemFlag::Equippable,
+		EExclusiveGroup::DeathEffect, UnbuyablePrice /*275000*/, 10,
+		"Summon a harmless meteor on death!",
+		[](CPlayer &pl, const CItemConfig &, int) {
+			pl.SetDeathEffect(EDeathEffect::Meteor);
+		},
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_DeathEffect == EDeathEffect::Meteor)
+				pl.SetDeathEffect(EDeathEffect::None);
+		}});
 
 	// Trails
 	Add({EItemId::TrailStar, EItemType::Trail, "Star Trail", "T_S", EItemFlag::Equippable,
