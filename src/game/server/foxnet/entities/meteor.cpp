@@ -25,6 +25,7 @@
 #include <optional>
 #include <random>
 #include <vector>
+#include <game/server/player.h>
 
 constexpr float MinMaxOffsetX = 350.0f;
 
@@ -248,8 +249,20 @@ void CMeteor::Tick()
 
 void CMeteor::Snap(int SnappingClient)
 {
-	if(!CanSnapEntityMask(SnappingClient, m_StartTeamMask))
-		return;
+	if(m_IsCosmetic)
+	{
+		CPlayer *pSnapPlayer;
+		if(!CanSnapEntity(SnappingClient, &pSnapPlayer))
+			return;
+
+		if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowDeaths)
+			return;
+	}
+	else
+	{
+		if(!CanSnapEntityMask(SnappingClient, m_StartTeamMask))
+			return;
+	}
 
 	static constexpr float GrenadeDistance = 12.0f;
 	static constexpr float LaserDistance = 18.0f;
