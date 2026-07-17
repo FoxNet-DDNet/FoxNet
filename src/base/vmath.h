@@ -260,6 +260,12 @@ inline void Rotate(const vec2 &Center, vec2 *pPoint, const float &Rotation)
 	pPoint->y = (x * sinf(Rotation) + y * cosf(Rotation) + Center.y);
 }
 
+inline vec2 CircleDirection(const int &Part, const int &NumParts)
+{
+	vec2 Direction = direction(360.0f / (float)NumParts * Part * (pi / 180.0f));
+	return Direction;
+}
+
 // ------------------------------------
 template<Numeric T>
 class vector3_base

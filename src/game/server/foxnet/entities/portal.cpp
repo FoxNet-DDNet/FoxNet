@@ -271,23 +271,17 @@ void CPortal::HandleTele()
 		}
 	}
 }
-inline vec2 CPortal::CirclePos(int Portal, int Part) const
-{
-	vec2 Direction = direction(360.0f / (float)CPortal::SEGMENTS * Part * (pi / 180.0f));
-	Direction *= m_aData[Portal].m_PortalRadius;
-	return Direction;
-}
 
 void CPortal::SetPortalVisual()
 {
-	for(int p = 0; p < NUM_PORTALS; p++)
+	for(int Portal = 0; Portal < NUM_PORTALS; Portal++)
 	{
 		for(int i = 0; i < SEGMENTS + 1; i++)
 		{
-			m_Snap[p].m_aTo[i] = CirclePos(p, i);
-			m_Snap[p].m_aFrom[i] = CirclePos(p, i + 1);
+			m_Snap[Portal].m_aTo[i] = CircleDirection(i, SEGMENTS) * m_aData[Portal].m_PortalRadius;
+			m_Snap[Portal].m_aFrom[i] = CircleDirection(i + 1, SEGMENTS) * m_aData[Portal].m_PortalRadius;
 		}
-		m_Snap[p].m_aFrom[SEGMENTS] = CirclePos(p, SEGMENTS);
+		m_Snap[Portal].m_aFrom[SEGMENTS] = CircleDirection(SEGMENTS, SEGMENTS) * m_aData[Portal].m_PortalRadius;
 	}
 }
 

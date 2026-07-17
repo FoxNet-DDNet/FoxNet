@@ -44,6 +44,7 @@ class CPickupDrop : public CEntity
 
 	void SnapPickupDropPickup(int SnappingClient, int SnapId, int OldFlags, const vec2 &Pos, int Type, int SubType, int Rotation, int Alpha, int Flags);
 	void SnapPickupDropLaser(int SnappingClient, int SnapId, const vec2 &From, const vec2 &To, int Type, int Alpha, int Flags);
+	void SnapPickupDropProjectile(int SnapId, int SnappingClient, int Type, vec2 Pos, vec2 Dir);
 
 public:
 	CClientMask PickupMask(int Asker);

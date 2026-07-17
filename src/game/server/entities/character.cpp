@@ -41,6 +41,7 @@
 #include <game/server/foxnet/entities/custom_projectile.h>
 #include <game/server/foxnet/entities/gun_projectile.h>
 #include <game/server/foxnet/entities/light_saber.h>
+#include <game/server/foxnet/entities/meteor.h>
 #include <game/server/foxnet/entities/pickupdrop.h>
 #include <game/server/foxnet/entities/portal.h>
 #include <game/server/foxnet/entities/roulette.h>
@@ -554,6 +555,8 @@ void CCharacter::FireWeapon()
 	// <FoxNet
 	if(GetPlayer()->Cosmetics()->m_GunAutoFire && m_Core.m_ActiveWeapon == WEAPON_GUN)
 		FullAuto = true;
+	if(m_Core.m_ActiveWeapon == WEAPON_METEOR)
+		FullAuto = true;
 	// FoxNet>
 
 	// check if we gonna fire
@@ -816,6 +819,13 @@ void CCharacter::FireWeapon()
 			m_pPortal->OnFire();
 	}
 	break;
+
+	case WEAPON_METEOR:
+	{
+		new CMeteor(GameWorld(), m_pPlayer->GetCid(), GetCursorPos());
+		GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, TeamMask());
+	}
+	break;
 		// FoxNet>
 	}
 
@@ -848,6 +858,7 @@ float CCharacter::GetFireDelay(int Weapon)
 	case WEAPON_TELEKINESIS: return (float)GetCurrentTuning()->m_TelekinesisFireDelay;
 	case WEAPON_LIGHTSABER: return (float)GetCurrentTuning()->m_LightsaberFireDelay;
 	case WEAPON_PORTALGUN: return (float)GetCurrentTuning()->m_PortalgunFireDelay;
+	case WEAPON_METEOR: return (float)125.0f;
 	default: dbg_assert(false, "invalid weapon"); return 0.0f; // this value should not be reached
 	}
 }
@@ -3430,6 +3441,8 @@ const char *GetWeaponName(int Weapon)
 		return "Lightsaber";
 	case WEAPON_PORTALGUN:
 		return "Portal Gun";
+	case WEAPON_METEOR:
+		return "Meteor Gun";
 	}
 	return "Unknown";
 }

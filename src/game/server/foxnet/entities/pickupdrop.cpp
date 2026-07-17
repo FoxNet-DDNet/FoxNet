@@ -81,6 +81,91 @@ void CPickupDrop::SnapPickupDropLaser(int SnappingClient, int SnapId, const vec2
 	Server()->SnapNewItem(SnapId, Laser);
 }
 
+void CPickupDrop::SnapPickupDropProjectile(int SnapId, int SnappingClient, int Type, vec2 Pos, vec2 Dir)
+{
+	const int Id = SnapId;
+
+	const int StartTick = Server()->Tick() - 1;
+
+	if(length(Dir) > 0.00001f)
+		Dir = normalize(Dir);
+
+	bool Supports = SnappingClient != SERVER_DEMO_CLIENT && GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps;
+	if(Supports)
+	{
+		int Rotation = round_to_int(angle(Dir) * 180.0f / pi);
+		Rotation = ((Rotation % 360) + 360) % 360;
+
+		CNetObj_CosmeticProjectile Projectile = {};
+		Projectile.m_X = (int)Pos.x;
+		Projectile.m_Y = (int)Pos.y;
+		Projectile.m_Type = Type;
+		Projectile.m_Owner = -1;
+		Projectile.m_Alpha = 100;
+		Projectile.m_Rotation = Rotation;
+		Projectile.m_Flags = 0;
+		Server()->SnapNewItem(Id, Projectile);
+		return;
+	}
+
+	const int Ver = GameServer()->GetClientVersion(SnappingClient);
+	const float Factor = 0;
+	const int MaxPos = 0x7fffffff / 100;
+	bool LegacyCompatible = !(absolute((int)Pos.y) + 1 >= MaxPos || absolute((int)Pos.x) + 1 >= MaxPos);
+
+	if(Ver >= VERSION_DDNET_ENTITY_NETOBJS)
+	{
+		CNetObj_DDNetProjectile Proj = {};
+		Proj.m_X = round_to_int(Pos.x * 100.0f);
+		Proj.m_Y = round_to_int(Pos.y * 100.0f);
+		Proj.m_VelX = round_to_int(Dir.x * Factor * 1e6f);
+		Proj.m_VelY = round_to_int(Dir.y * Factor * 1e6f);
+		Proj.m_Type = Type;
+		Proj.m_StartTick = StartTick;
+		Proj.m_Owner = -1;
+		Proj.m_SwitchNumber = 0;
+		Proj.m_TuneZone = m_TuneZone;
+		Proj.m_Flags = 0;
+		Server()->SnapNewItem(Id, Proj);
+	}
+	else if(Ver >= VERSION_DDNET_ANTIPING_PROJECTILE && LegacyCompatible)
+	{
+		float Angle = -std::atan2(Dir.x, Dir.y);
+		int Data = LEGACYPROJECTILEFLAG_IS_DDNET | LEGACYPROJECTILEFLAG_NO_OWNER;
+
+		CNetObj_DDRaceProjectile Proj = {};
+		Proj.m_X = (int)(Pos.x * 100.0f);
+		Proj.m_Y = (int)(Pos.y * 100.0f);
+		Proj.m_Angle = (int)(Angle * 1000000.0f);
+		Proj.m_Data = Data;
+		Proj.m_StartTick = StartTick;
+		Proj.m_Type = Type;
+
+		if(Ver >= VERSION_DDNET_MSG_LEGACY)
+		{
+			Server()->SnapNewItem(Id, Proj);
+		}
+		else
+		{
+			CNetObj_Projectile Projectile = {};
+			static_assert(sizeof(Proj) == sizeof(Projectile));
+			mem_copy(&Projectile, &Proj, sizeof(Projectile));
+			Server()->SnapNewItem(Id, Projectile);
+		}
+	}
+	else
+	{
+		CNetObj_Projectile Proj = {};
+		Proj.m_X = (int)Pos.x;
+		Proj.m_Y = (int)Pos.y;
+		Proj.m_VelX = (int)(Dir.x * Factor * 100.0f);
+		Proj.m_VelY = (int)(Dir.y * Factor * 100.0f);
+		Proj.m_StartTick = StartTick;
+		Proj.m_Type = Type;
+		Server()->SnapNewItem(Id, Proj);
+	}
+}
+
 CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime, int Type) :
 	CEntity(pGameWorld, MultiMapIndex, CGameWorld::ENTTYPE_PICKUPDROP, true, Pos, 28)
 {
@@ -605,31 +690,31 @@ void CPickupDrop::Snap(int SnappingClient)
 	if(GetId().has_value())
 		SnapPickupDropPickup(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, m_Pos, POWERUP_WEAPON, SubType, 0, Alpha);
 
-	vec2 OffSet = vec2(0.0f, -32.0f);
+	vec2 Offset = vec2(0.0f, -32.0f);
 	if(m_Type == WEAPON_HEARTGUN)
 	{
 		if(m_aIds[0].has_value())
-			SnapPickupDropPickup(SnappingClient, m_aIds[0].value(), PICKUPFLAG_NO_PREDICT, m_Pos + OffSet, POWERUP_HEALTH, SubType, 0, Alpha, 0);
+			SnapPickupDropPickup(SnappingClient, m_aIds[0].value(), PICKUPFLAG_NO_PREDICT, m_Pos + Offset, POWERUP_HEALTH, SubType, 0, Alpha, 0);
 	}
 	else if(m_Type == WEAPON_LIGHTSABER)
 	{
 		if(m_aIds[0].has_value())
-			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, Alpha, COSMETIC_LASER_FLAG_FROM_HEAD);
+			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + Offset, m_Pos + Offset, LASERTYPE_GUN, Alpha, COSMETIC_LASER_FLAG_FROM_HEAD);
 	}
 	else if(m_Type == WEAPON_PORTALGUN)
 	{
 		if(m_aIds[0].has_value())
-			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + OffSet, m_Pos + OffSet, LASERTYPE_GUN, Alpha, COSMETIC_LASER_FLAG_FROM_HEAD);
-		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + OffSet;
+			SnapPickupDropLaser(SnappingClient, m_aIds[0].value(), m_Pos + Offset, m_Pos + Offset, LASERTYPE_GUN, Alpha, COSMETIC_LASER_FLAG_FROM_HEAD);
+		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + Offset;
 
-		CNetObj_Projectile Proj = {};
 
-		Proj.m_X = (int)(m_Pos.x + Spin.x);
-		Proj.m_Y = (int)(m_Pos.y + Spin.y);
-		Proj.m_VelX = 0;
-		Proj.m_VelY = 0;
-		Proj.m_StartTick = 0;
-		Proj.m_Type = WEAPON_HAMMER;
-		Server()->SnapNewItem(m_aIds[1].value(), Proj);
+		SnapPickupDropProjectile(m_aIds[1].value(), SnappingClient, WEAPON_HAMMER, m_Pos + Spin, vec2(0, 0));
+	}
+	else if(m_Type == WEAPON_METEOR)
+	{
+		const float Time = Tick * 0.25f;
+		const vec2 Spin = normalize(vec2(cos(Time), sin(Time)));
+
+		SnapPickupDropProjectile(m_aIds[0].value(), SnappingClient, WEAPON_GRENADE, m_Pos + Offset, Spin);
 	}
 }

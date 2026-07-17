@@ -23,6 +23,7 @@ public:
 
 	CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
+	bool CanSnapEntityMask(int SnappingClient, CClientMask Mask, CPlayer **ppSnapPlayer = nullptr);
 	bool CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer = nullptr);
 	bool CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer = nullptr);
 
@@ -34,12 +35,13 @@ public:
 	CClientMask CosmeticMask(EItemType ItemType);
 	CClientMask TeamMask();
 
-	bool SnapCosmeticPickupPos(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Pos, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 0);
-	bool SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 0);
-	
-	bool SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Offset, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 1);
-	bool SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 1);
-	bool SnapCosmeticProjectile(int SnappingClient, int SnapId, int Owner, const vec2 &Offset, const vec2 &Target, int StartTick, int Type, int Alpha = -1, int Flags = 1);
+	void SnapCosmeticPickupPos(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Pos, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 0);
+	void SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 0);
+	void SnapCosmeticProjectilePos(int SnappingClient, int SnapId, int Type, vec2 Pos, vec2 Dir = vec2(0, 0));
+
+	void SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Offset, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 1);
+	void SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 1);
+	void SnapCosmeticProjectile(int SnappingClient, int SnapId, int Owner, const vec2 &Offset, const vec2 &Target, int StartTick, int Type, int Alpha = -1, int Flags = 1);
 
 	void Reset() override {}
 	void Tick() override {}

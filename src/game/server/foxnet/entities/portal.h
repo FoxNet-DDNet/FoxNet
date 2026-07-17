@@ -41,7 +41,6 @@ class CPortal : public CEntityOwned
 	};
 	CSnapPortal m_Snap[NUM_PORTALS];
 
-	vec2 CirclePos(int Portal, int Part) const;
 	void SetPortalVisual();
 
 	CPortalData m_aData[NUM_PORTALS];
