@@ -234,8 +234,6 @@ inline int SuggestStarsFromPrice(long Price)
 	return std::clamp(Stars, 1, 5);
 }
 
-void ValidateItemPricing(long Price, int Stars, EItemRarity Rarity, const char *pItemName);
-
 enum class EExclusiveGroup
 {
 	None,
@@ -279,8 +277,53 @@ public:
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
 		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
 		int DefaultDays = 30,
-		int MaxOfThisType = NoMaxOfThisType) :
-		m_Id(Id), m_Type(Type), m_pName(pName), m_pShortcut(pShortcut), m_Flags(Flags), m_Group(Group), m_Price(Price), m_MinLevel(MinLevel), m_Stars(Stars), m_Rarity(Rarity), m_pDescription(pDescription), m_Apply(std::move(Apply)), m_Remove(std::move(Remove)), m_DefaultDays(DefaultDays), m_MaxOfThisType(MaxOfThisType) {}
+		int MaxOfThisType = NoMaxOfThisType)
+	{
+		m_Id = Id;
+		m_Type = Type;
+		m_pName = pName;
+		m_pShortcut = pShortcut;
+		m_Flags = Flags;
+		m_Group = Group;
+		m_Price = Price;
+		m_MinLevel = MinLevel;
+		m_Stars = Stars;
+		m_Rarity = Rarity;
+		m_pDescription = pDescription;
+		m_Apply = Apply;
+		m_Remove = Remove;
+		m_DefaultDays = DefaultDays;
+		m_MaxOfThisType = MaxOfThisType;
+	}
+
+	CItemConfig(EItemId Id,
+		EItemType Type,
+		const char *pName,
+		const char *pShortcut,
+		EItemFlag Flags,
+		EExclusiveGroup Group,
+		int Price,
+		int MinLevel,
+		const char *pDescription,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
+		int DefaultDays = 30,
+		int MaxOfThisType = NoMaxOfThisType)
+	{
+		m_Id = Id;
+		m_Type = Type;
+		m_pName = pName;
+		m_pShortcut = pShortcut;
+		m_Flags = Flags;
+		m_Group = Group;
+		m_Price = Price;
+		m_MinLevel = MinLevel;
+		m_pDescription = pDescription;
+		m_Apply = Apply;
+		m_Remove = Remove;
+		m_DefaultDays = DefaultDays;
+		m_MaxOfThisType = MaxOfThisType;
+	}
 };
 
 class CItemRegistry

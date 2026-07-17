@@ -1001,7 +1001,7 @@ void CPlayer::SetHatType(EHatType Type)
 }
 // NOLINTEND(clang-analyzer-unix.Malloc)
 
-void CPlayer::SetDeathEffect(int Type)
+void CPlayer::SetDeathEffect(EDeathEffect Type)
 {
 	Cosmetics()->m_DeathEffect = Type;
 }

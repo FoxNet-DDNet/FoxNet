@@ -580,7 +580,7 @@ void CGameContext::ConDeathEffect(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	int Type = pResult->NumArguments() < 1 ? 0 : pResult->GetInteger(0);
-	pPlayer->SetDeathEffect(Type);
+	pPlayer->SetDeathEffect(static_cast<EDeathEffect>(Type));
 	log_info("cosmetics", "Set death effect to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 

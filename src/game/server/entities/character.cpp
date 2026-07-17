@@ -1245,31 +1245,38 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	// <FoxNet
 	switch(GetPlayer()->Cosmetics()->m_DeathEffect)
 	{
-	case DEATHTYPE_HAMMERHIT:
+	case EDeathEffect::HammerHit:
 	{
 		GameServer()->CreateHammerHit(m_Pos, CosmeticMask(EItemType::Death));
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, CosmeticMask(EItemType::Death));
 		break;
 	}
-	case DEATHTYPE_EXPLOSION:
+	case EDeathEffect::Explosion:
 	{
 		GameServer()->Explosion(m_Pos, CosmeticMask(EItemType::Death));
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_EXPLODE, CosmeticMask(EItemType::Death));
 		break;
 	}
-	case DEATHTYPE_LASER:
+	case EDeathEffect::Laser:
 	{
 		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death));
 		new CLaserDeath(GameWorld(), GetPlayer()->GetCid(), m_Pos, CosmeticMask(EItemType::Death));
 		break;
 	}
-	case DEATHTYPE_DAMAGEIND:
+	case EDeathEffect::DamageInd:
 	{
 		for(int i = 0; i < 8; i++)
 			GameServer()->CreateDamageInd(m_Pos, 0.84f + (i * 0.76f), 1, CosmeticMask(EItemType::Death));
 		break;
 	}
-	case DEATHTYPE_NONE: GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death)); break;
+	case EDeathEffect::Meteor:
+	{
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death)); 
+		new CMeteor(GameWorld(), GetPlayer()->GetCid(), GetPos(), true);
+		break;
+	}
+	default:
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death)); break;
 	}
 	// This only gets created if a player has cosmetics turned off
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask(EItemType::Death));

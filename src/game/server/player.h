@@ -71,17 +71,18 @@ enum Indicators
 	NUM_INDTYPES
 };
 
-enum KillEffects
+enum class EDeathEffect
 {
-	DEATHTYPE_NONE = 0,
-	DEATHTYPE_HAMMERHIT,
-	DEATHTYPE_EXPLOSION,
-	DEATHTYPE_DAMAGEIND,
-	DEATHTYPE_LASER,
-	NUM_DEATHTYPES
+	None = 0,
+	HammerHit,
+	Explosion,
+	DamageInd,
+	Laser,
+	Meteor,
+	COUNT
 };
 
-enum TrailTypes
+enum ETrailTypes
 {
 	TRAILTYPE_NONE = 0,
 	TRAILTYPE_STAR,
@@ -129,7 +130,7 @@ public:
 	bool m_Bloody = false;
 	bool m_InverseAim = false;
 
-	int m_DeathEffect = 0;
+	EDeathEffect m_DeathEffect = EDeathEffect::None;
 	int m_DamageIndType = 0;
 
 	// Guns
@@ -551,7 +552,7 @@ public:
 	void SetHidePowerUps(bool Active);
 
 	// Death Effect
-	void SetDeathEffect(int Type);
+	void SetDeathEffect(EDeathEffect Type);
 
 	void SetHeartHat(bool Active);
 	void SetHatType(EHatType Type);

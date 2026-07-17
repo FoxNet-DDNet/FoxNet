@@ -26,7 +26,7 @@
 #include <random>
 #include <vector>
 
-constexpr float MinMaxOffsetX = 300.0f;
+constexpr float MinMaxOffsetX = 350.0f;
 
 constexpr float TileSize = 32.0f;
 constexpr float OffsetY = TileSize * -35.0f;
@@ -97,28 +97,34 @@ vec2 CMeteor::GetRandomStartPos()
 	std::uniform_real_distribution<float> DisX(-MinMaxOffsetX, MinMaxOffsetX);
 
 	vec2 RandomOffset = vec2(DisX(Rng()), OffsetY);
+	if(m_IsCosmetic)
+		RandomOffset.y = OffsetY * 0.5f;
 
 	return m_TargetPos + RandomOffset;
 }
 
-CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 CursorPos) :
-	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LIGHTSABER, CursorPos)
+CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosmetic) :
+	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_LIGHTSABER, TargetPos)
 {
-	const vec2 CharPos = GetCharacter()->GetPos();
-	if(distance(CharPos, CursorPos) > MaxDistanceFromPlayer)
-	{
-		const vec2 Dir = normalize(CursorPos - CharPos);
-		CursorPos = CharPos + Dir * MaxDistanceFromPlayer;
-	}
+	m_IsCosmetic = IsCosmetic;
+	m_Pos = TargetPos;
 	m_StartTick = Server()->Tick();
-	m_TargetPos = FindTargetBlock(CursorPos);
-	m_Pos = CursorPos;
-
 	m_State = EState::Falling;
-
-	m_CurrentPos = m_SummonPos = GetRandomStartPos();
-
 	m_StartTeam = GetCharacter()->Team();
+
+	const vec2 CharPos = GetCharacter()->GetPos();
+	if(!m_IsCosmetic)
+	{
+		if(distance(CharPos, TargetPos) > MaxDistanceFromPlayer)
+		{
+			const vec2 Dir = normalize(TargetPos - CharPos);
+			TargetPos = CharPos + Dir * MaxDistanceFromPlayer;
+		}
+		m_TargetPos = FindTargetBlock(TargetPos);
+	}
+	else
+		m_TargetPos = TargetPos;
+	m_CurrentPos = m_SummonPos = GetRandomStartPos();
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		m_aIds[i] = Server()->SnapNewId().value();
@@ -208,9 +214,14 @@ void CMeteor::Tick()
 
 		if(m_CurrentPos.y >= LowestPosition) // Don't check collision until low enough
 		{
-			const std::optional<vec2> SolidHitPos = HitSolid(PrevPos, m_CurrentPos);
-			if(SolidHitPos.has_value() && (!HitPos.has_value() || distance(PrevPos, SolidHitPos.value()) < distance(PrevPos, HitPos.value())))
-				HitPos = SolidHitPos;
+			if(m_IsCosmetic)
+				HitPos = m_TargetPos;
+			else
+			{
+				const std::optional<vec2> SolidHitPos = HitSolid(PrevPos, m_CurrentPos);
+				if(SolidHitPos.has_value() && (!HitPos.has_value() || distance(PrevPos, SolidHitPos.value()) < distance(PrevPos, HitPos.value())))
+					HitPos = SolidHitPos;
+			}
 		}
 
 		if(HitPos.has_value())
@@ -223,7 +234,12 @@ void CMeteor::Tick()
 	{
 		static constexpr size_t NumExplosions = 2;
 		for(size_t i = 0; i < NumExplosions; i++)
-			GameServer()->CreateExplosion(m_CurrentPos, m_Owner, WEAPON_METEOR, false, m_StartTeam, MultiMapIdx(), m_StartTeamMask);
+		{
+			if(m_IsCosmetic)
+				GameServer()->Explosion(m_CurrentPos, m_StartTeamMask);
+			else
+				GameServer()->CreateExplosion(m_CurrentPos, m_Owner, WEAPON_METEOR, false, m_StartTeam, MultiMapIdx(), m_StartTeamMask);
+		}
 
 		GameServer()->CreateSound(m_CurrentPos, SOUND_GRENADE_EXPLODE, m_StartTeamMask);
 		Reset();

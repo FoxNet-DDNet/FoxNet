@@ -41,8 +41,10 @@ class CMeteor : public CEntityOwned
 	int m_StartTick;
 	int m_StartTeam; // DDRace Team
 
+	bool m_IsCosmetic;
+
 public:
-	CMeteor(CGameWorld *pGameWorld, int Owner, vec2 CursorPos);
+	CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosmetic = false);
 
 	void Reset() override;
 	void Tick() override;
