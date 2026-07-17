@@ -24,6 +24,47 @@ const char *CTuningParams::ms_apNames[] =
 #undef MACRO_TUNING_PARAM
 };
 
+static constexpr CCustomWeaponInfo s_aCustomWeaponInfos[] = {
+#define MACRO_CUSTOM_WEAPON(Id, DisplayName, SnapWeapon, DefaultFireDelay, AutoFire, Help) \
+	{WEAPON_##Id, #Id, DisplayName, SnapWeapon, DefaultFireDelay, AutoFire, Help},
+#include "custom_weapons.h"
+#undef MACRO_CUSTOM_WEAPON
+};
+static_assert(sizeof(s_aCustomWeaponInfos) / sizeof(s_aCustomWeaponInfos[0]) == (int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS);
+
+const CCustomWeaponInfo *GetCustomWeaponInfo(int Weapon)
+{
+	if(Weapon < (int)NUM_WEAPONS || Weapon >= (int)NUM_EXTRA_WEAPONS)
+		return nullptr;
+	return &s_aCustomWeaponInfos[Weapon - (int)NUM_WEAPONS];
+}
+
+const char *CTuningParams::Name(int Index)
+{
+	constexpr int NumRegularTuneParams = sizeof(ms_apNames) / sizeof(ms_apNames[0]);
+	if(Index < 0 || Index >= Num())
+		return "";
+	if(Index < NumRegularTuneParams)
+		return ms_apNames[Index];
+
+	struct CCustomFireDelayNames
+	{
+		char m_aaNames[(int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS][64] = {{0}};
+
+		CCustomFireDelayNames()
+		{
+			for(int i = 0; i < (int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS; ++i)
+			{
+				str_utf8_tolower(s_aCustomWeaponInfos[i].m_pId, m_aaNames[i], sizeof(m_aaNames[i]));
+				str_append(m_aaNames[i], "_fire_delay", sizeof(m_aaNames[i]));
+			}
+		}
+	};
+	static const CCustomFireDelayNames s_CustomFireDelayNames;
+	const int CustomWeaponIndex = Index - NumRegularTuneParams;
+	return s_CustomFireDelayNames.m_aaNames[CustomWeaponIndex];
+}
+
 bool CTuningParams::Set(int Index, float Value)
 {
 	if(Index < 0 || Index >= Num())
@@ -67,12 +108,21 @@ float CTuningParams::GetWeaponFireDelay(int Weapon) const
 	case WEAPON_GRENADE: return (float)m_GrenadeFireDelay / 1000.0f;
 	case WEAPON_LASER: return (float)m_LaserFireDelay / 1000.0f;
 	case WEAPON_NINJA: return (float)m_NinjaFireDelay / 1000.0f;
-	// <FoxNet
-	case WEAPON_HEARTGUN: return (float)m_HeartgunFireDelay / 1000.0f;
-	case WEAPON_TELEKINESIS: return (float)m_TelekinesisFireDelay / 1000.0f;
-	// FoxNet>
-	default: dbg_assert_failed("invalid weapon");
+	default:
+		if(GetCustomWeaponInfo(Weapon))
+			return GetCustomWeaponFireDelay(Weapon) / 1000.0f;
+		dbg_assert_failed("invalid weapon");
 	}
+}
+
+float CTuningParams::GetCustomWeaponFireDelay(int Weapon) const
+{
+	if(!GetCustomWeaponInfo(Weapon))
+	{
+		dbg_assert_failed("invalid custom weapon");
+		return 0.0f;
+	}
+	return (float)m_aCustomWeaponFireDelays[Weapon - (int)NUM_WEAPONS];
 }
 
 static_assert(std::numeric_limits<char>::is_signed, "char must be signed for StrToInts to work correctly");

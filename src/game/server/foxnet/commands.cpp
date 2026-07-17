@@ -1140,17 +1140,13 @@ void CGameContext::ConTelekinesisImmunity(IConsole::IResult *pResult, void *pUse
 	log_info("server", "Set telekinesis immunity to %d for player %s", pPlayer->m_TelekinesisImmunity, pSelf->Server()->ClientName(Victim));
 }
 
-void CGameContext::ConTelekinesis(IConsole::IResult *pResult, void *pUserData)
+void CGameContext::SetCustomWeapon(int ClientId, int Weapon)
 {
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
-
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	CCharacter *pChr = GetPlayerChar(ClientId);
 
 	if(!pChr)
 		return;
 
-	const int Weapon = WEAPON_TELEKINESIS;
 	const bool GotWeapon = pChr->GetWeaponGot(Weapon);
 
 	if(GotWeapon)
@@ -1160,71 +1156,45 @@ void CGameContext::ConTelekinesis(IConsole::IResult *pResult, void *pUserData)
 		pChr->GiveWeapon(Weapon);
 		pChr->SetActiveWeapon(Weapon);
 	}
+}
+void CGameContext::ConTelekinesis(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
+
+	pSelf->SetCustomWeapon(Victim, WEAPON_TELEKINESIS);
 }
 
 void CGameContext::ConHeartGun(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
+	const int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
-
-	if(!pChr)
-		return;
-
-	const int Weapon = WEAPON_HEARTGUN;
-	const bool GotWeapon = pChr->GetWeaponGot(Weapon);
-
-	if(GotWeapon)
-		pChr->GiveWeapon(Weapon, true);
-	else
-	{
-		pChr->GiveWeapon(Weapon);
-		pChr->SetActiveWeapon(Weapon);
-	}
+	pSelf->SetCustomWeapon(Victim, WEAPON_HEARTGUN);
 }
 
 void CGameContext::ConLightsaber(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
+	const int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
-
-	if(!pChr)
-		return;
-	const int Weapon = WEAPON_LIGHTSABER;
-	const bool GotWeapon = pChr->GetWeaponGot(Weapon);
-
-	if(GotWeapon)
-		pChr->GiveWeapon(Weapon, true);
-	else
-	{
-		pChr->GiveWeapon(Weapon);
-		pChr->SetActiveWeapon(Weapon);
-	}
+	pSelf->SetCustomWeapon(Victim, WEAPON_LIGHTSABER);
 }
 
 void CGameContext::ConPortalGun(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
+	const int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
 
-	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	pSelf->SetCustomWeapon(Victim, WEAPON_PORTALGUN);
+}
 
-	if(!pChr)
-		return;
+void CGameContext::ConMeteorGun(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int Victim = pResult->NumArguments() > 1 ? pResult->m_ClientId : pResult->GetVictim();
 
-	const int Weapon = WEAPON_PORTALGUN;
-	const bool GotWeapon = pChr->GetWeaponGot(Weapon);
-
-	if(GotWeapon)
-		pChr->GiveWeapon(Weapon, true);
-	else
-	{
-		pChr->GiveWeapon(Weapon);
-		pChr->SetActiveWeapon(Weapon);
-	}
+	pSelf->SetCustomWeapon(Victim, WEAPON_METEOR);
 }
 
 void CGameContext::ConSetObfuscated(IConsole::IResult *pResult, void *pUserData)
@@ -2076,6 +2046,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("heartgun", "?v[id]", CFGFLAG_SERVER, ConHeartGun, this, "Gives/Takes a heartgun to/from player (id)");
 	Console()->Register("lightsaber", "?v[id]", CFGFLAG_SERVER, ConLightsaber, this, "Gives/Takes a lightsaber to/from player (id)");
 	Console()->Register("portalgun", "?v[id]", CFGFLAG_SERVER, ConPortalGun, this, "Gives/Takes the portal gun to/from player (id)");
+	Console()->Register("meteorgun", "?v[id]", CFGFLAG_SERVER, ConMeteorGun, this, "Gives/Takes the portal gun to/from player (id)");
 
 	Console()->Register("obfuscate", "?v[id]", CFGFLAG_SERVER, ConSetObfuscated, this, "Makes players (id) name obfuscated");
 	Console()->Register("spider_hook", "?v[id]", CFGFLAG_SERVER, ConSetSpiderHook, this, "whether player (id) has spider hook");

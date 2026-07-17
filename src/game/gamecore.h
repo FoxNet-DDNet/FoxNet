@@ -26,13 +26,26 @@ enum ExtraWeapons
 {
 	WEAPON_NONE = -1,
 
-	WEAPON_TELEKINESIS = NUM_WEAPONS,
-	WEAPON_HEARTGUN,
-	WEAPON_LIGHTSABER,
-	WEAPON_PORTALGUN,
-	WEAPON_METEOR,
+	WEAPON_EXTRA_BEGIN = NUM_WEAPONS - 1,
+#define MACRO_CUSTOM_WEAPON(Id, DisplayName, SnapWeapon, DefaultFireDelay, AutoFire, Help) WEAPON_##Id,
+#include "custom_weapons.h"
+#undef MACRO_CUSTOM_WEAPON
 	NUM_EXTRA_WEAPONS,
 };
+
+class CCustomWeaponInfo
+{
+public:
+	int m_Weapon;
+	const char *m_pId;
+	const char *m_pDisplayName;
+	int m_SnapWeapon;
+	int m_DefaultFireDelay;
+	bool m_AutoFire;
+	const char *m_pHelp;
+};
+
+const CCustomWeaponInfo *GetCustomWeaponInfo(int Weapon);
 // FoxNet>
 
 class CTuneParam
@@ -65,11 +78,19 @@ public:
 #define MACRO_TUNING_PARAM(Name, ScriptName, Value, Description) m_##Name.Set((int)((Value) * 100.0f));
 #include "tuning.h"
 #undef MACRO_TUNING_PARAM
+
+		for(int Weapon = (int)NUM_WEAPONS; Weapon < (int)NUM_EXTRA_WEAPONS; ++Weapon)
+		{
+			const CCustomWeaponInfo *pWeaponInfo = GetCustomWeaponInfo(Weapon);
+			m_aCustomWeaponFireDelays[Weapon - (int)NUM_WEAPONS].Set(pWeaponInfo->m_DefaultFireDelay * 100);
+		}
 	}
 
 #define MACRO_TUNING_PARAM(Name, ScriptName, Value, Description) CTuneParam m_##Name;
 #include "tuning.h"
 #undef MACRO_TUNING_PARAM
+
+	CTuneParam m_aCustomWeaponFireDelays[(int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS];
 
 	static int Num()
 	{
@@ -81,8 +102,9 @@ public:
 	bool Set(const char *pName, float Value);
 	bool Get(int Index, float *pValue) const;
 	bool Get(const char *pName, float *pValue) const;
-	static const char *Name(int Index) { return ms_apNames[Index]; }
+	static const char *Name(int Index);
 	float GetWeaponFireDelay(int Weapon) const;
+	float GetCustomWeaponFireDelay(int Weapon) const;
 
 	static const CTuningParams DEFAULT;
 };
@@ -223,7 +245,7 @@ public:
 		int m_Ammo;
 		int m_Ammocost;
 		bool m_Got;
-	} m_aWeapons[NUM_EXTRA_WEAPONS];
+	} m_aWeapons[(int)NUM_EXTRA_WEAPONS];
 
 	// ninja
 	struct

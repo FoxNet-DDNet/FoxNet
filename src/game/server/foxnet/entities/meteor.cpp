@@ -94,7 +94,6 @@ vec2 CMeteor::FindTargetBlock(vec2 InitialPos)
 
 vec2 CMeteor::GetRandomStartPos()
 {
-	const vec2 TargetPos = m_TargetPos;
 	std::uniform_real_distribution<float> DisX(-MinMaxOffsetX, MinMaxOffsetX);
 
 	vec2 RandomOffset = vec2(DisX(Rng()), OffsetY);
@@ -223,7 +222,7 @@ void CMeteor::Tick()
 	if(m_State == EState::Explosion)
 	{
 		static constexpr size_t NumExplosions = 2;
-		for(size_t i = 0; i < 2; i++)
+		for(size_t i = 0; i < NumExplosions; i++)
 			GameServer()->CreateExplosion(m_CurrentPos, m_Owner, WEAPON_METEOR, false, m_StartTeam, MultiMapIdx(), m_StartTeamMask);
 
 		GameServer()->CreateSound(m_CurrentPos, SOUND_GRENADE_EXPLODE, m_StartTeamMask);
@@ -236,11 +235,6 @@ void CMeteor::Snap(int SnappingClient)
 	if(!CanSnapEntityMask(SnappingClient, m_StartTeamMask))
 		return;
 
-	const int SnappingClientVersion = Server()->GetClientVersion(SnappingClient);
-	const bool SixUp = Server()->IsSixup(SnappingClient);
-
-	float RouletteLength = g_Config.m_SvRouletteLength;
-
 	static constexpr float GrenadeDistance = 12.0f;
 	static constexpr float LaserDistance = 18.0f;
 
@@ -249,10 +243,8 @@ void CMeteor::Snap(int SnappingClient)
 		const int Id = m_aIds[i];
 
 		const int Tick = Server()->Tick() - m_StartTick;
-		const float Time = Tick * 0.25f;
 		const float Spin = Tick * 0.35f;
-
-		const bool Reverse = m_StartTick % 2 == 0;
+;
 		if(i < NumGrenades) // 3 Grenades
 		{
 			vec2 GrenadeOffset = CircleDirection(i, NumGrenades) * GrenadeDistance;

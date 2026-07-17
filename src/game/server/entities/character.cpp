@@ -555,7 +555,7 @@ void CCharacter::FireWeapon()
 	// <FoxNet
 	if(GetPlayer()->Cosmetics()->m_GunAutoFire && m_Core.m_ActiveWeapon == WEAPON_GUN)
 		FullAuto = true;
-	if(m_Core.m_ActiveWeapon == WEAPON_METEOR)
+	if(const CCustomWeaponInfo *pWeaponInfo = GetCustomWeaponInfo(m_Core.m_ActiveWeapon); pWeaponInfo && pWeaponInfo->m_AutoFire)
 		FullAuto = true;
 	// FoxNet>
 
@@ -854,12 +854,11 @@ float CCharacter::GetFireDelay(int Weapon)
 	case WEAPON_GRENADE: return (float)GetCurrentTuning()->m_GrenadeFireDelay;
 	case WEAPON_LASER: return (float)GetCurrentTuning()->m_LaserFireDelay;
 	case WEAPON_NINJA: return (float)GetCurrentTuning()->m_NinjaFireDelay;
-	case WEAPON_HEARTGUN: return (float)GetCurrentTuning()->m_HeartgunFireDelay;
-	case WEAPON_TELEKINESIS: return (float)GetCurrentTuning()->m_TelekinesisFireDelay;
-	case WEAPON_LIGHTSABER: return (float)GetCurrentTuning()->m_LightsaberFireDelay;
-	case WEAPON_PORTALGUN: return (float)GetCurrentTuning()->m_PortalgunFireDelay;
-	case WEAPON_METEOR: return (float)125.0f;
-	default: dbg_assert(false, "invalid weapon"); return 0.0f; // this value should not be reached
+	default:
+		if(GetCustomWeaponInfo(Weapon))
+			return GetCurrentTuning()->GetCustomWeaponFireDelay(Weapon);
+		dbg_assert(false, "invalid weapon");
+		return 0.0f; // this value should not be reached
 	}
 }
 
@@ -3413,37 +3412,10 @@ bool CCharacter::IsWeaponIndicator()
 	return m_LastWeaponIndTick > Server()->Tick() - Server()->TickSpeed() * 10;
 }
 
-const char *GetWeaponName(int Weapon)
+static const char *GetWeaponName(int Weapon)
 {
-	switch(Weapon)
-	{
-	case -2:
-		return "Heart";
-	case -1:
-		return "Armor";
-	case WEAPON_HAMMER:
-		return "Hammer";
-	case WEAPON_GUN:
-		return "Gun";
-	case WEAPON_SHOTGUN:
-		return "Shotgun";
-	case WEAPON_GRENADE:
-		return "Grenade";
-	case WEAPON_LASER:
-		return "Laser";
-	case WEAPON_NINJA:
-		return "Ninja";
-	case WEAPON_TELEKINESIS:
-		return "Telekinesis";
-	case WEAPON_HEARTGUN:
-		return "Heart Gun";
-	case WEAPON_LIGHTSABER:
-		return "Lightsaber";
-	case WEAPON_PORTALGUN:
-		return "Portal Gun";
-	case WEAPON_METEOR:
-		return "Meteor Gun";
-	}
+	if(const CCustomWeaponInfo *pWeaponInfo = GetCustomWeaponInfo(Weapon))
+		return pWeaponInfo->m_pDisplayName;
 	return "Unknown";
 }
 
@@ -3456,21 +3428,23 @@ void CCharacter::UpdateWeaponIndicator()
 	const char *pName = GetWeaponName(GetActiveWeapon());
 
 	char aBuf[256] = "";
-	if(!Server()->IsSixup(m_pPlayer->GetCid()))
+	if(GetActiveWeapon() >= NUM_WEAPONS)
 	{
-		if(GameServer()->GetClientVersion(m_pPlayer->GetCid()) < VERSION_DDNET_NEW_HUD)
+		if(!Server()->IsSixup(m_pPlayer->GetCid()))
 		{
-			str_format(aBuf, sizeof(aBuf), "Weapon: %s%s", pName, aAmmo);
+			if(GameServer()->GetClientVersion(m_pPlayer->GetCid()) < VERSION_DDNET_NEW_HUD)
+			{
+				str_format(aBuf, sizeof(aBuf), "Weapon: %s%s", pName, aAmmo);
+			}
+			else
+			{
+				str_format(aBuf, sizeof(aBuf), "> %s%s", pName, aAmmo);
+			}
 		}
 		else
 		{
-			if(GetActiveWeapon() >= NUM_WEAPONS)
-				str_format(aBuf, sizeof(aBuf), "> %s%s", pName, aAmmo);
+			str_format(aBuf, sizeof(aBuf), "> %s%s <", pName, aAmmo);
 		}
-	}
-	else
-	{
-		str_format(aBuf, sizeof(aBuf), "> %s%s <", pName, aAmmo);
 	}
 
 	// dont update, when we change between vanilla weapons, so that no "" is being sent to remove another broadcast, for example a money broadcast

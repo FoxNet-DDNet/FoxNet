@@ -2299,6 +2299,7 @@ set_src(GAME_SHARED GLOB src/game
   alloc.h
   collision.cpp
   collision.h
+  custom_weapons.h
   envelopes.cpp
   envelopes.h
   gamecore.cpp

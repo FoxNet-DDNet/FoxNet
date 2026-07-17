@@ -212,6 +212,22 @@ void CTeeHistorian::WriteHeader(const CGameInfo *pGameInfo)
 #include <game/tuning.h>
 #undef MACRO_TUNING_PARAM
 
+	for(int Weapon = (int)NUM_WEAPONS; Weapon < (int)NUM_EXTRA_WEAPONS; ++Weapon)
+	{
+		const CCustomWeaponInfo *pWeaponInfo = GetCustomWeaponInfo(Weapon);
+		const int FireDelay = pGameInfo->m_pTuning->m_aCustomWeaponFireDelays[Weapon - (int)NUM_WEAPONS].Get();
+		if(FireDelay == pWeaponInfo->m_DefaultFireDelay * 100)
+			continue;
+
+		const int TuneIndex = CTuningParams::Num() - ((int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS) + (Weapon - (int)NUM_WEAPONS);
+		str_format(aJson, sizeof(aJson), "%s\"%s\":\"%d\"",
+			First ? "" : ",",
+			E(aBuffer1, CTuningParams::Name(TuneIndex)),
+			FireDelay);
+		Write(aJson, str_length(aJson));
+		First = false;
+	}
+
 	str_copy(aJson, "},\"uuids\":[");
 	Write(aJson, str_length(aJson));
 

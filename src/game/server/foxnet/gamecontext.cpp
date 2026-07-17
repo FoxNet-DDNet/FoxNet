@@ -1135,31 +1135,8 @@ void CGameContext::Explosion(vec2 Pos, CClientMask Mask)
 
 int CGameContext::GetWeaponType(int Weapon)
 {
-	switch(Weapon)
-	{
-	case WEAPON_HAMMER:
-		return WEAPON_HAMMER;
-	case WEAPON_GUN:
-		return WEAPON_GUN;
-	case WEAPON_SHOTGUN:
-		return WEAPON_SHOTGUN;
-	case WEAPON_GRENADE:
-		return WEAPON_GRENADE;
-	case WEAPON_LASER:
-		return WEAPON_LASER;
-	case WEAPON_NINJA:
-		return WEAPON_NINJA;
-	case WEAPON_TELEKINESIS:
-		return WEAPON_GUN;
-	case WEAPON_HEARTGUN:
-		return WEAPON_GUN;
-	case WEAPON_LIGHTSABER:
-		return WEAPON_GUN;
-	case WEAPON_PORTALGUN:
-		return WEAPON_LASER;
-	case WEAPON_METEOR:
-		return WEAPON_GRENADE;
-	}
+	if(const CCustomWeaponInfo *pWeaponInfo = GetCustomWeaponInfo(Weapon))
+		return pWeaponInfo->m_SnapWeapon;
 	return Weapon;
 }
 

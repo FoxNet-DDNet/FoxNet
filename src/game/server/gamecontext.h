@@ -943,10 +943,12 @@ private:
 
 	static void ConTelekinesisImmunity(IConsole::IResult *pResult, void *pUserData);
 
+	void SetCustomWeapon(int ClientId, int Weapon);
 	static void ConTelekinesis(IConsole::IResult *pResult, void *pUserData);
 	static void ConHeartGun(IConsole::IResult *pResult, void *pUserData);
 	static void ConLightsaber(IConsole::IResult *pResult, void *pUserData);
 	static void ConPortalGun(IConsole::IResult *pResult, void *pUserData);
+	static void ConMeteorGun(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConSetObfuscated(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData);
