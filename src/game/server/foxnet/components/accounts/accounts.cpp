@@ -1168,7 +1168,7 @@ void CAccounts::ClaimMailReward(int ClientId, int64_t MailId, std::function<void
 	str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
 	pReq->m_MailId = MailId;
 
-	AddPending(pRes, [this, ClientId, MailId, pExpectedPlayer, Username, Cb = std::move(Cb)](CAccResult &BaseRes) mutable {
+	AddPending(pRes, [this, ClientId, MailId, pExpectedPlayer, Username, Callback = std::move(Cb)](CAccResult &BaseRes) mutable {
 		auto *pClaimRes = dynamic_cast<CAccClaimMailResult *>(&BaseRes);
 		const bool DbSuccess = BaseRes.m_Success && pClaimRes;
 		const bool Claimed = DbSuccess && pClaimRes->m_Claimed;
@@ -1184,8 +1184,8 @@ void CAccounts::ClaimMailReward(int ClientId, int64_t MailId, std::function<void
 			return;
 		}
 
-		if(SessionStillActive && Cb)
-			Cb(DbSuccess, Claimed);
+		if(SessionStillActive && Callback)
+			Callback(DbSuccess, Claimed);
 	});
 
 	DbPool()->ExecuteWrite(CAccountsWorker::ClaimMailReward, std::move(pReq), "acc claim mail reward");
