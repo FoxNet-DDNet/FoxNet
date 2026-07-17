@@ -472,7 +472,7 @@ public:
 	void Close();
 
 	//
-	int Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken);
+	int Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken, int *pNumPacketsProcessed = nullptr, int MaxPackets = -1);
 	int Send(CNetChunk *pChunk);
 	void Update();
 

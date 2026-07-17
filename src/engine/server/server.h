@@ -148,6 +148,7 @@ public:
 		int m_State;
 		int m_Latency;
 		int m_SnapRate;
+		int64_t m_PreauthStartTime;
 
 		double m_Traffic;
 		int64_t m_TrafficSince;

@@ -730,6 +730,7 @@ int CServer::Init()
 		Client.m_AuthKey = -1;
 		Client.m_Latency = 0;
 		Client.m_Sixup = false;
+		Client.m_PreauthStartTime = 0;
 		Client.m_RedirectDropTime = 0;
 	}
 
@@ -1341,6 +1342,7 @@ int CServer::NewClientNoAuthCallback(int ClientId, void *pUser)
 	pThis->m_aClients[ClientId].m_GotDDNetVersionPacket = false;
 	pThis->m_aClients[ClientId].m_DDNetVersionSettled = false;
 	pThis->m_aClients[ClientId].Reset();
+	pThis->m_aClients[ClientId].m_PreauthStartTime = 0;
 
 	pThis->GameServer()->TeehistorianRecordPlayerJoin(ClientId, false);
 	pThis->Antibot()->OnEngineClientJoin(ClientId);
@@ -1380,6 +1382,7 @@ int CServer::NewClientCallback(int ClientId, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientId].m_GotDDNetVersionPacket = false;
 	pThis->m_aClients[ClientId].m_DDNetVersionSettled = false;
 	pThis->m_aClients[ClientId].Reset();
+	pThis->m_aClients[ClientId].m_PreauthStartTime = time_get();
 	pThis->m_aClients[ClientId].m_Sixup = Sixup;
 
 	pThis->GameServer()->TeehistorianRecordPlayerJoin(ClientId, Sixup);
@@ -1469,6 +1472,7 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientId].m_MaplistEntryToSend = CClient::MAPLIST_UNINITIALIZED;
 	pThis->m_aClients[ClientId].m_Traffic = 0;
 	pThis->m_aClients[ClientId].m_TrafficSince = 0;
+	pThis->m_aClients[ClientId].m_PreauthStartTime = 0;
 	pThis->m_aClients[ClientId].m_ShowIps = false;
 	pThis->m_aClients[ClientId].m_DebugDummy = false;
 	pThis->m_aClients[ClientId].m_ForceHighBandwidthOnSpectate = false;
@@ -3084,17 +3088,41 @@ void CServer::UpdateServerInfo(bool Resend)
 
 void CServer::PumpNetwork(bool PacketWaiting)
 {
+	// Keep enough headroom for normal traffic while ensuring that a sustained UDP
+	// flood cannot monopolize the main thread and stall simulation ticks. Both
+	// limits are needed: Recv filters some datagrams internally, while one valid
+	// datagram may contain many chunks.
+	static constexpr int MAX_NETWORK_PACKETS_PER_PUMP = 512;
+	static constexpr int MAX_NETWORK_CHUNKS_PER_PUMP = 1024;
+
 	CNetChunk Packet;
 	SECURITY_TOKEN ResponseToken;
 
 	m_NetServer.Update();
+	if(Config()->m_SvPreauthTimeout > 0)
+	{
+		const int64_t PreauthDeadline = time_get() - time_freq() * Config()->m_SvPreauthTimeout;
+		for(int ClientId = 0; ClientId < MaxClients(); ClientId++)
+		{
+			const CClient &Client = m_aClients[ClientId];
+			if((Client.m_State == CClient::STATE_PREAUTH || Client.m_State == CClient::STATE_AUTH) &&
+				Client.m_PreauthStartTime < PreauthDeadline)
+			{
+				m_NetServer.Drop(ClientId, "Pre-authentication timeout");
+			}
+		}
+	}
 
 	if(PacketWaiting)
 	{
 		// process packets
 		ResponseToken = NET_SECURITY_TOKEN_UNKNOWN;
-		while(m_NetServer.Recv(&Packet, &ResponseToken))
+		int NumPacketsProcessed = 0;
+		int NumChunksProcessed = 0;
+		while(NumChunksProcessed < MAX_NETWORK_CHUNKS_PER_PUMP &&
+			m_NetServer.Recv(&Packet, &ResponseToken, &NumPacketsProcessed, MAX_NETWORK_PACKETS_PER_PUMP))
 		{
+			NumChunksProcessed++;
 			if(Packet.m_ClientId == -1)
 			{
 				if(ResponseToken == NET_SECURITY_TOKEN_UNKNOWN && m_pRegister->OnPacket(&Packet))

@@ -588,13 +588,19 @@ static bool IsDDNetControlMsg(const CNetPacketConstruct *pPacket)
 /*
 	TODO: chopp up this function into smaller working parts
 */
-int CNetServer::Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken)
+int CNetServer::Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken, int *pNumPacketsProcessed, int MaxPackets)
 {
 	while(true)
 	{
 		// Unpack next chunk from stored packet if available
 		if(m_PacketChunkUnpacker.UnpackNextChunk(pChunk))
 			return 1;
+
+		// Do not let a continuously readable UDP socket starve the server tick loop.
+		// In particular, invalid and control packets are consumed inside this function
+		// and would otherwise not be visible to the caller for rate limiting.
+		if(pNumPacketsProcessed && MaxPackets >= 0 && *pNumPacketsProcessed >= MaxPackets)
+			break;
 
 		// TODO: empty the recvinfo
 		NETADDR Addr;
@@ -604,6 +610,8 @@ int CNetServer::Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken)
 		// no more packets for now
 		if(Bytes <= 0)
 			break;
+		if(pNumPacketsProcessed)
+			(*pNumPacketsProcessed)++;
 
 		// check if we just should drop the packet
 		char aBuf[128];
