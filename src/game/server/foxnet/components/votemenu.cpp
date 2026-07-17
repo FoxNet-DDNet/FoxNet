@@ -1452,7 +1452,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			const auto Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
 			bool OwnsMax = Entry != pAcc->m_Inventory.m_Map.end() && Entry->second.m_Quantity >= MaxOfThisType;
 			if(MaxOfThisType > 0 && OwnsMax)
-				str_format(aName, sizeof(aName), "%s [MAXXED]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
+				str_format(aName, sizeof(aName), "%s [MAXXED]", pItem->m_pName);
 			else
 				str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
 
@@ -1499,13 +1499,11 @@ void CVoteMenu::PrepareShop(int ClientId)
 			{
 				if(MaxOfThisType > 1)
 				{
-					str_format(aBuf, sizeof(aBuf), "You already own the Max Amount of this Item!", MaxOfThisType, pItem->m_pName);
-					AddVoteText(aBuf);
+					AddVoteText("You already own the Max Amount of this Item!");
 				}
 				else
 				{
-					str_format(aBuf, sizeof(aBuf), "You already own the this Item!", MaxOfThisType, pItem->m_pName);
-					AddVoteText(aBuf);
+					AddVoteText("You already own the this Item!");
 
 				}
 				return;
