@@ -1123,9 +1123,6 @@ int CPlayer::NumDDraceHudRows()
 	if(pChr->Teams()->IsPractice(pChr->Team()) || pChr->Teams()->TeamLocked(pChr->Team()) || pChr->Core()->m_DeepFrozen || pChr->Core()->m_LiveFrozen)
 		Rows++;
 
-	if(GameServer()->m_VoteCloseTime)
-		Rows = 3;
-
 	return Rows;
 }
 
@@ -1146,9 +1143,9 @@ void CPlayer::SendBroadcast(const char *pText)
 	GameServer()->SendBroadcast(pText, GetCid());
 }
 
-void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset)
+void CPlayer::SendBroadcastHud(const std::vector<std::string> &Messages, int Offset)
 {
-	if(pMessages.empty())
+	if(Messages.empty())
 		return;
 	if(HasImportantBroadcast())
 		return; // Other broadcast is being sent
@@ -1157,10 +1154,13 @@ void CPlayer::SendBroadcastHud(const std::vector<std::string> &pMessages, int Of
 	Offset = std::max(Offset, 0);
 	int NextLines = NumDDraceHudRows() + Offset;
 
+	if(GameServer()->m_VoteCloseTime && m_VotePos == 0 && NextLines < 5 && NextLines > 1)
+		NextLines = 5;
+
 	for(int i = 0; i < NextLines; i++)
 		str_append(aBuf, "\n", sizeof(aBuf));
 
-	for(const std::string &Message : pMessages)
+	for(const std::string &Message : Messages)
 	{
 		str_append(aBuf, Message.c_str(), sizeof(aBuf));
 		str_append(aBuf, "\n", sizeof(aBuf));

@@ -596,7 +596,7 @@ public:
 	int NumDDraceHudRows();
 	void SendBroadcast(const char *pText);
 
-	void SendBroadcastHud(const std::vector<std::string> &pMessages, int Offset = -1);
+	void SendBroadcastHud(const std::vector<std::string> &Messages, int Offset = -1);
 	void ClearBroadcast() { SendBroadcast(""); }
 
 	void SendChat(const char *pMsg);
