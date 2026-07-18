@@ -1059,12 +1059,36 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 
 	constexpr float TileSize = 32.0f;
 	constexpr float MinPlayerDist = TileSize * 25.0f;
+	// Keep a fresh powerup from stacking on / hugging an existing one, so on tight
+	// maps with few candidates they spread out instead of repeating the same spot.
+	constexpr float MinPowerupDist = TileSize * 12.0f;
 
+	// Snapshot the positions of powerups already placed on this map.
+	std::vector<vec2> vPowerupPositions;
+	vPowerupPositions.reserve(GameServer()->m_vPowerups.size());
+	for(const CPowerUp *pPow : GameServer()->m_vPowerups)
+	{
+		if(pPow && pPow->MultiMapIdx() == DefaultMapIndex)
+			vPowerupPositions.push_back(pPow->m_Pos);
+	}
+
+	const auto NearestPowerupDist2 = [&](const vec2 &Pos) {
+		float Min2 = std::numeric_limits<float>::infinity();
+		for(const vec2 &Other : vPowerupPositions)
+			Min2 = std::min(Min2, Dist2(Other, Pos));
+		return Min2;
+	};
+
+	// Phase 1: try random candidates, accepting the first that is clear of both
+	// live players and existing powerups.
 	for(int Tries = 0; Tries < 16; ++Tries)
 	{
 		vec2 Pos;
 		if(!TryPickCachedCandidate(DefaultMapIndex, Pos))
 			return std::nullopt;
+
+		if(NearestPowerupDist2(Pos) < MinPowerupDist * MinPowerupDist)
+			continue;
 
 		CEntity *apEnts[64] = {0};
 		const int Num = GameServer()->m_World.FindEntities(Pos, MinPlayerDist, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
@@ -1084,15 +1108,19 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 		return Pos;
 	}
 
+	// Fallback: on tight/crowded maps nothing clears the spacing above, so pick the
+	// candidate sitting furthest from the nearest crowding thing -- any live player
+	// or existing powerup. This spreads powerups apart and avoids overlaps even when
+	// candidates are scarce.
 	float BestScore = -1.0f;
 	vec2 BestPos = vec2(0.0f, 0.0f);
-	for(int k = 0; k < 32; ++k)
+	for(int k = 0; k < 48; ++k)
 	{
 		vec2 Pos;
 		if(!TryPickCachedCandidate(DefaultMapIndex, Pos))
 			break;
 
-		float MinDist2 = std::numeric_limits<float>::infinity();
+		float MinDist2 = NearestPowerupDist2(Pos);
 		CEntity *apEnts[128] = {0};
 		const int Num = GameServer()->m_World.FindEntities(Pos, 1024.0f, apEnts, std::size(apEnts), CGameWorld::ENTTYPE_CHARACTER, DefaultMapIndex);
 		for(int i = 0; i < Num; ++i)
