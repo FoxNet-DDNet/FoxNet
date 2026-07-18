@@ -112,6 +112,8 @@ CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosme
 	m_StartTick = Server()->Tick();
 	m_State = EState::Falling;
 	m_StartTeam = GetCharacter()->Team();
+	if(m_IsCosmetic)
+		m_StartTeamMask = CosmeticMask(EItemType::Death);
 
 	const vec2 CharPos = GetCharacter()->GetPos();
 	if(!m_IsCosmetic)
