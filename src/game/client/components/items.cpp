@@ -767,8 +767,16 @@ void CItems::RenderCosmeticLaser(const CNetObj_CosmeticLaser *pPrev, const CNetO
 	const int Flags = pCurrent->m_Flags;
 	const bool Anchored = Flags & COSMETIC_FLAG_ANCHORED;
 	const int Owner = pCurrent->m_Owner;
+	if(Owner >= 0 && Anchored)
+	{
+		const CGameClient::CClientData &ClientData = GameClient()->m_aClients[Owner];
+		if(!ClientData.m_Active || !ClientData.m_RenderInfo.Valid())
+			return;
+		if(!GameClient()->m_Snap.m_aCharacters[Owner].m_Active)
+			return;
+	}
 
-	const float IntraTick = (Owner >= 0 && GameClient()->m_aClients[Owner].m_IsPredicted) ? Client()->PredIntraGameTick(g_Config.m_ClDummy) : Client()->IntraGameTick(g_Config.m_ClDummy);
+	const float IntraTick = Client()->IntraGameTick(g_Config.m_ClDummy);
 
 	vec2 PrevFrom = vec2(pPrev->m_FromX, pPrev->m_FromY);
 	vec2 PrevTo = vec2(pPrev->m_ToX, pPrev->m_ToY);
@@ -818,12 +826,11 @@ void CItems::RenderCosmeticLaser(const CNetObj_CosmeticLaser *pPrev, const CNetO
 		break;
 	}
 
-	bool IsOtherTeam = Owner >= 0 && GameClient()->IsOtherTeam(Owner);
+	bool IsOtherTeam = GameClient()->IsOtherTeam(Owner) || Owner < 0;
 
 	float Alpha = pCurrent->m_Alpha * 0.01f;
 	if(pCurrent->m_Alpha == -1)
 		Alpha = IsOtherTeam ? g_Config.m_ClShowOthersAlpha / 100.0f : 1.0f;
-
 	if(Alpha <= 0)
 		return; // Invisible
 
@@ -862,7 +869,7 @@ void CItems::RenderCosmeticLaser(const CNetObj_CosmeticLaser *pPrev, const CNetO
 	}
 
 	auto RenderHead = [&](vec2 Pos) {
-		if(Type == LASERTYPE_DOOR)
+		if(Type == LASERTYPE_DOOR) // EClient
 		{
 			Graphics()->TextureClear();
 			Graphics()->QuadsSetRotation(0);
@@ -905,7 +912,7 @@ void CItems::RenderCosmeticLaser(const CNetObj_CosmeticLaser *pPrev, const CNetO
 			Graphics()->SetColor(OuterColor);
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_FreezeHeadOffset, Pos.x, Pos.y, 6.f / 5.f * Pulsation, 6.f / 5.f * Pulsation);
 			Graphics()->TextureSet(GameClient()->m_ExtrasSkin.m_SpriteParticleSnowflake);
-			Graphics()->SetColor(ColorRGBA(1.f, 1.f, 1.f));
+			Graphics()->SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, Alpha));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_FreezeHeadOffset, Pos.x, Pos.y, Pulsation, Pulsation);
 		}
 		else
@@ -940,10 +947,18 @@ void CItems::RenderCosmeticPickup(const CNetObj_CosmeticPickup *pPrev, const CNe
 	const int Flags = pCurrent->m_Flags;
 	const bool Anchored = Flags & COSMETIC_FLAG_ANCHORED;
 	const int Owner = pCurrent->m_Owner;
+	if(Owner >= 0 && Anchored)
+	{
+		const CGameClient::CClientData &ClientData = GameClient()->m_aClients[Owner];
+		if(!ClientData.m_Active || !ClientData.m_RenderInfo.Valid())
+			return;
+		if(!GameClient()->m_Snap.m_aCharacters[Owner].m_Active)
+			return;
+	}
 
 	int CurWeapon = std::clamp(pCurrent->m_Subtype, 0, NUM_WEAPONS - 1);
 	int QuadOffset = 2;
-	float IntraTick = (Owner >= 0 && GameClient()->m_aClients[Owner].m_IsPredicted) ? Client()->PredIntraGameTick(g_Config.m_ClDummy) : Client()->IntraGameTick(g_Config.m_ClDummy);
+	const float IntraTick = Client()->IntraGameTick(g_Config.m_ClDummy);
 
 	vec2 PrevPos = vec2(pPrev->m_X, pPrev->m_Y);
 	vec2 CurPos = vec2(pCurrent->m_X, pCurrent->m_Y);
@@ -983,8 +998,8 @@ void CItems::RenderCosmeticPickup(const CNetObj_CosmeticPickup *pPrev, const CNe
 		Graphics()->TextureSet(GameClient()->m_GameSkin.m_aSpritePickupWeaponArmor[pCurrent->m_Type - POWERUP_ARMOR_SHOTGUN]);
 	}
 	Graphics()->QuadsSetRotation(0);
-	bool IsOtherTeam = (pCurrent->m_Owner >= 0 && GameClient()->IsOtherTeam(pCurrent->m_Owner));
-	
+
+	bool IsOtherTeam = GameClient()->IsOtherTeam(Owner) || Owner < 0;
 	float Alpha = pCurrent->m_Alpha * 0.01f;
 	if(pCurrent->m_Alpha == -1)
 		Alpha = IsOtherTeam ? g_Config.m_ClShowOthersAlpha / 100.0f : 1.0f;
@@ -1021,15 +1036,22 @@ void CItems::RenderCosmeticPickup(const CNetObj_CosmeticPickup *pPrev, const CNe
 	Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, QuadOffset, Pos.x, Pos.y, Scale.x, Scale.y);
 	Graphics()->QuadsSetRotation(0);
 }
-
 void CItems::RenderCosmeticProjectile(const CNetObj_CosmeticProjectile *pPrev, const CNetObj_CosmeticProjectile *pCurrent)
 {
 	const int Flags = pCurrent->m_Flags;
 	const bool Anchored = Flags & COSMETIC_FLAG_ANCHORED;
 	const int Owner = pCurrent->m_Owner;
+	if(Owner >= 0 && Anchored)
+	{
+		const CGameClient::CClientData &ClientData = GameClient()->m_aClients[Owner];
+		if(!ClientData.m_Active || !ClientData.m_RenderInfo.Valid())
+			return;
+		if(!GameClient()->m_Snap.m_aCharacters[Owner].m_Active)
+			return;
+	}
 
 	int CurWeapon = std::clamp(pCurrent->m_Type, 0, NUM_WEAPONS - 1);
-	float IntraTick = (Owner >= 0 && GameClient()->m_aClients[Owner].m_IsPredicted) ? Client()->PredIntraGameTick(g_Config.m_ClDummy) : Client()->IntraGameTick(g_Config.m_ClDummy);
+	const float IntraTick = Client()->IntraGameTick(g_Config.m_ClDummy);
 
 	vec2 PrevPos = vec2(pPrev->m_X, pPrev->m_Y);
 	vec2 CurPos = vec2(pCurrent->m_X, pCurrent->m_Y);
@@ -1044,14 +1066,13 @@ void CItems::RenderCosmeticProjectile(const CNetObj_CosmeticProjectile *pPrev, c
 	vec2 Pos = mix(PrevPos, CurPos, IntraTick);
 	vec2 Vel = CurPos - PrevPos;
 
-	bool IsOtherTeam = Owner >= 0 && GameClient()->IsOtherTeam(Owner);
+	bool IsOtherTeam = (Owner >= 0 && GameClient()->IsOtherTeam(Owner)) || Owner < 0;
 
 	float Alpha = pCurrent->m_Alpha * 0.01f;
 	if(pCurrent->m_Alpha == -1)
 		Alpha = IsOtherTeam ? g_Config.m_ClShowOthersAlpha / 100.0f : 1.0f;
-
-	if(Alpha <= 0.0f)
-		return;
+	if(Alpha <= 0)
+		return; // Invisible
 
 	if(CurWeapon == WEAPON_GRENADE)
 		GameClient()->m_Effects.SmokeTrail(Pos, Vel * -1, Alpha, 0.0f);

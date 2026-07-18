@@ -26,6 +26,7 @@ class CItems : public CComponent
 	void RenderCosmeticLaser(const CNetObj_CosmeticLaser *pPrev, const CNetObj_CosmeticLaser *pCurrent);
 	void RenderCosmeticPickup(const CNetObj_CosmeticPickup *pPrev, const CNetObj_CosmeticPickup *pCurrent);
 	void RenderCosmeticProjectile(const CNetObj_CosmeticProjectile *pPrev, const CNetObj_CosmeticProjectile *pCurrent);
+	// FoxNet>
 
 public:
 	int Sizeof() const override { return sizeof(*this); }
