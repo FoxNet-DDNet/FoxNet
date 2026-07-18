@@ -3759,7 +3759,10 @@ static bool BuildRandomMapVoteCommand(const char *pBaseCommand, const char *pRea
 	int MaxStars;
 	char aSize[9];
 	if(!ParseRandomMapReason(pReason, &MinStars, &MaxStars, aSize, sizeof(aSize)))
-		return false;
+	{
+		str_copy(pCommand, pBaseCommand, CommandSize);
+		return true;
+	}
 
 	if(MinStars != -1 || aSize[0] != '\0')
 		str_format(pCommand, CommandSize, "%s %s", pBaseCommand, pReason);
