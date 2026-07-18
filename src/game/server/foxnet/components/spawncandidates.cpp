@@ -62,12 +62,36 @@ namespace
 		}
 	}
 
+	// Returns true if a stopper tile with the given index/flags blocks downward
+	// movement onto it, i.e. it acts as a floor a falling player lands and rests
+	// on. Mirrors the CANTMOVE_DOWN cases of GetMoveRestrictionsRaw in collision.cpp.
+	bool StopperBlocksDown(int Tile, int Flags)
+	{
+		Flags = Flags & (TILEFLAG_XFLIP | TILEFLAG_YFLIP | TILEFLAG_ROTATE);
+		switch(Tile)
+		{
+		case TILE_STOP:
+			return Flags == ROTATION_0 ||
+			       Flags == (static_cast<int>(TILEFLAG_YFLIP) ^ static_cast<int>(ROTATION_180));
+		case TILE_STOPS:
+			return Flags == ROTATION_0 || Flags == ROTATION_180 ||
+			       Flags == (static_cast<int>(TILEFLAG_YFLIP) ^ static_cast<int>(ROTATION_0)) ||
+			       Flags == (static_cast<int>(TILEFLAG_YFLIP) ^ static_cast<int>(ROTATION_180));
+		case TILE_STOPA:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	struct SSpawnBuildData
 	{
 		int m_Width = 0;
 		int m_Height = 0;
 		std::vector<int> m_GameTiles;
 		std::vector<int> m_FrontTiles;
+		std::vector<int> m_GameFlags;
+		std::vector<int> m_FrontFlags;
 		std::vector<int> m_SwitchTiles;
 		std::vector<CTeleTile> m_TeleTiles;
 		std::vector<std::vector<vec2>> m_TeleOuts;
@@ -93,6 +117,8 @@ namespace
 		const int Size = Data.m_Width * Data.m_Height;
 		Data.m_GameTiles.resize(Size);
 		Data.m_FrontTiles.resize(Size);
+		Data.m_GameFlags.resize(Size);
+		Data.m_FrontFlags.resize(Size);
 		Data.m_SwitchTiles.resize(Size);
 
 		const CTeleTile *pTele = pCollision->TeleLayer();
@@ -103,6 +129,8 @@ namespace
 		{
 			Data.m_GameTiles[i] = pCollision->GetTileIndex(i);
 			Data.m_FrontTiles[i] = pCollision->GetFrontTileIndex(i);
+			Data.m_GameFlags[i] = pCollision->GetTileFlags(i);
+			Data.m_FrontFlags[i] = pCollision->GetFrontTileFlags(i);
 			Data.m_SwitchTiles[i] = pCollision->GetSwitchType(i);
 		}
 
@@ -451,6 +479,55 @@ namespace
 		const int DirX[4] = {1, -1, 0, 0};
 		const int DirY[4] = {0, 0, 1, -1};
 
+		const auto IsDeathAtIndex = [&](int Idx) -> bool {
+			return Data.m_GameTiles[Idx] == TILE_DEATH || Data.m_FrontTiles[Idx] == TILE_DEATH;
+		};
+
+		// A tile a falling player lands and rests on: solid ground, or a stopper
+		// oriented to block downward movement onto it.
+		const auto BlocksFallAtIndex = [&](int Idx) -> bool {
+			const int Game = Data.m_GameTiles[Idx];
+			if(Game == TILE_SOLID || Game == TILE_NOHOOK)
+				return true;
+			if(StopperBlocksDown(Game, Data.m_GameFlags[Idx]))
+				return true;
+			if(StopperBlocksDown(Data.m_FrontTiles[Idx], Data.m_FrontFlags[Idx]))
+				return true;
+			return false;
+		};
+
+		// After a momentum crossing of normal freeze, the player only actually
+		// arrives (and thaws) if they can come to rest off the freeze at the landing.
+		// Model it as a downward fall from the exit tile: reaching an unfreeze tile or
+		// landing on solid ground / a down-stopper means they settle and thaw; falling
+		// straight back into freeze (or off the map / into death) means they never do,
+		// so the far side isn't reachable alone. This is what drops areas that are
+		// fully ringed by freeze (a hollow pocket, reachable only with a second player)
+		// while keeping real floored areas behind a freeze wall.
+		constexpr int FallScanTiles = 40;
+		const auto CanSettleAfterCross = [&](int Ex, int Ey) -> bool {
+			const int ExitIdx = ToIndex(Ex, Ey);
+			if(IsUnfreezeLikeAtIndex(ExitIdx))
+				return true;
+			for(int Dy = 1; Dy <= FallScanTiles; ++Dy)
+			{
+				const int Ty = Ey + Dy;
+				if(!InBounds(Ex, Ty))
+					return false; // fell out of the map
+				const int Idx = ToIndex(Ex, Ty);
+				if(IsDeathAtIndex(Idx))
+					return false;
+				if(IsUnfreezeLikeAtIndex(Idx))
+					return true;
+				if(IsFreezeLikeAtIndex(Idx))
+					return false; // falls straight back into freeze -> never thaws
+				if(BlocksFallAtIndex(Idx))
+					return true; // lands on solid ground / a stopper and thaws
+				// open air: keep falling
+			}
+			return true; // long open drop -> a genuine open region, not a freeze pocket
+		};
+
 		// How far (in tiles) a player can realistically carry momentum through a
 		// contiguous normal-freeze region before landing. Bounds the over-
 		// approximation of the momentum crossing below.
@@ -505,8 +582,11 @@ namespace
 						continue;
 					}
 
-					// Non-freeze, non-blocked tile: the player thaws and lands here.
-					OutExits.push_back(NIdx);
+					// Non-freeze, non-blocked tile: a potential landing. Only count it
+					// if the player can actually settle and thaw here, rather than fall
+					// straight back into the freeze region (see CanSettleAfterCross).
+					if(CanSettleAfterCross(Nx, Ny))
+						OutExits.push_back(NIdx);
 				}
 			}
 		};
