@@ -301,12 +301,12 @@ void CMeteor::Snap(int SnappingClient)
 
 		if(i == 0)
 		{
-			vec2 Pos = m_CurrentPos + vec2(Dir.y, -Dir.x) * (LaserDistance + 2.0f);
+			vec2 Pos = m_CurrentPos + vec2(Dir.y, -Dir.x) * (LaserDistance + 4.0f);
 			SnapCosmeticProjectilePos(SnappingClient, Id, WEAPON_HAMMER, Pos);
 		}
 		else
 		{
-			vec2 Pos = m_CurrentPos + vec2(-Dir.y, Dir.x) * (LaserDistance + 2.0f);
+			vec2 Pos = m_CurrentPos + vec2(-Dir.y, Dir.x) * (LaserDistance + 4.0f);
 			SnapCosmeticProjectilePos(SnappingClient, Id, WEAPON_HAMMER, Pos);
 		}
 	}
