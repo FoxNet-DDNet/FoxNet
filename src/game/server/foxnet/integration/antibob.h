@@ -21,6 +21,11 @@ struct CAntibobTileData
 	unsigned char m_TeleNumber;
 };
 
+enum
+{
+	ANTIBOB_PLAYERFLAG_PRACTICE = 1 << 0,
+};
+
 class CAntibobContext
 {
 public:
@@ -39,6 +44,7 @@ ANTIBOBAPI int AntibobVersion();
 ANTIBOBAPI void AntibobRcon(const char *pLine);
 ANTIBOBAPI bool AntibobMapSize(int ClientId, int *pWidth, int *pHeight);
 ANTIBOBAPI bool AntibobTile(int ClientId, int TileX, int TileY, CAntibobTileData *pData);
+ANTIBOBAPI unsigned int AntibobPlayerFlags(int ClientId);
 }
 
 #endif

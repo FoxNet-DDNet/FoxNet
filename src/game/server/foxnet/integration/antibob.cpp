@@ -9,6 +9,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/teams.h>
 
 CAntibobContext g_AntibobContext;
 extern "C" {
@@ -95,5 +96,18 @@ bool AntibobTile(int ClientId, int TileX, int TileY, CAntibobTileData *pData)
 		pData->m_TeleNumber = pTele[Index].m_Number;
 	}
 	return true;
+}
+
+unsigned int AntibobPlayerFlags(int ClientId)
+{
+	if(!g_AntibobContext.m_pGameServer || ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return 0;
+	CCharacter *pCharacter = g_AntibobContext.m_pGameServer->GetPlayerChar(ClientId);
+	if(!pCharacter)
+		return 0;
+	unsigned int Flags = 0;
+	if(pCharacter->Teams()->IsPractice(pCharacter->Team()))
+		Flags |= ANTIBOB_PLAYERFLAG_PRACTICE;
+	return Flags;
 }
 }
