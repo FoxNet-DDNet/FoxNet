@@ -370,9 +370,20 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		{
 			NewRewardMail(CReward(1000, 5000, 1, {EItemRarity::Common}));
 		}
+		else if(Acc()->m_Level % 250 == 0)
+		{
+			NewRewardMail(CReward(125000, 250000, 6, {
+									EItemRarity::Common,
+									EItemRarity::Uncommon,
+									EItemRarity::Rare,
+									EItemRarity::Epic,
+									EItemRarity::Mythic,
+									EItemRarity::Legendary,
+								}));
+		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
-			NewRewardMail(CReward(50000, 125000, 4, {
+			NewRewardMail(CReward(75000, 150000, 4, {
 									EItemRarity::Common,
 									EItemRarity::Uncommon,
 									EItemRarity::Rare,
@@ -382,7 +393,7 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		}
 		else if(Acc()->m_Level % 50 == 0)
 		{
-			NewRewardMail(CReward(10000, 50000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
+			NewRewardMail(CReward(10000, 75000, 3, {EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}));
 		}
 		else if(Acc()->m_Level % 10 == 0)
 		{
