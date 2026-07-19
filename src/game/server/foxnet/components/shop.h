@@ -37,8 +37,8 @@ public:
 	const CItemConfig *FindItem(EItemId Id) const { return m_Registry.FindById(Id); }
 
 	bool BuyItem(CPlayer *pPlayer, const char *pName);
-	bool GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days = -1, const char *pFrom = "Server");
-	bool GiveItem(CPlayer *pPlayer, const char *pName, int Days = -1, const char *pFrom = "Server");
+	bool GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days = -1, const char *pFrom = "Server", bool AutoActivate = false);
+	bool GiveItem(CPlayer *pPlayer, const char *pName, int Days = -1, const char *pFrom = "Server", bool AutoActivate = false);
 
 	bool RemoveItem(CPlayer *pPlayer, const char *pName, const char *pBy = "Server");
 

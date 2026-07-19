@@ -162,7 +162,7 @@ class CVoteMenu : public CServerComponent
 	void SendVotes(int ClientId, const std::vector<std::string> &vDescriptions);
 
 	bool ExecMailCmd(int ClientId, const CMailBox::CMail &Mail);
-	void ClaimMailReward(int ClientId, int64_t MailId);
+	void ClaimMailReward(int ClientId, int64_t MailId, bool NotifyAlreadyClaimed = true);
 	const char *FormatItemVote(CPlayer *pPlayer, const CItemConfig &Item);
 
 	void AddVoteImpl(const char *pDesc);

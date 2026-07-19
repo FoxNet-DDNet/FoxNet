@@ -253,7 +253,7 @@ bool CShop::BuyItem(CPlayer *pPlayer, const char *pName)
 	}
 
 	pPlayer->TakeMoney(Price, true);
-	GiveItem(pPlayer, pCfg, pCfg->m_DefaultDays, "Shop");
+	GiveItem(pPlayer, pCfg, pCfg->m_DefaultDays, "Shop", true);
 
 	pPlayer->SendChatFmt("Successfully bought Item '%s'", pCfg->m_pName);
 
@@ -267,7 +267,7 @@ bool CShop::BuyItem(CPlayer *pPlayer, const char *pName)
 	return true;
 }
 
-bool CShop::GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days, const char *pFrom)
+bool CShop::GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days, const char *pFrom, bool AutoActivate)
 {
 	if(!g_Config.m_SvAccounts)
 	{
@@ -307,14 +307,14 @@ bool CShop::GiveItem(CPlayer *pPlayer, const CItemConfig *pItem, int Days, const
 		Entry.m_Quantity = 1;
 	}
 
-	if(!pPlayer->ReachedItemLimit(pItem) && (HasFlag(pItem->m_Flags, EItemFlag::Equippable)))
+	if(AutoActivate && !pPlayer->ReachedItemLimit(pItem) && (HasFlag(pItem->m_Flags, EItemFlag::Equippable)))
 		pPlayer->UseItem(pItem, -1, false);
 
 	GameServer()->m_AccountManager.SaveAccountsInfo(pPlayer->GetCid(), *pAcc);
 	return true;
 }
 
-bool CShop::GiveItem(CPlayer *pPlayer, const char *pName, int Days, const char *pFrom)
+bool CShop::GiveItem(CPlayer *pPlayer, const char *pName, int Days, const char *pFrom, bool AutoActivate)
 {
 	if(!g_Config.m_SvAccounts)
 	{
@@ -329,7 +329,7 @@ bool CShop::GiveItem(CPlayer *pPlayer, const char *pName, int Days, const char *
 		return false;
 	}
 
-	return GiveItem(pPlayer, pCfg, Days, pFrom);
+	return GiveItem(pPlayer, pCfg, Days, pFrom, AutoActivate);
 }
 
 bool CShop::RemoveItem(CPlayer *pPlayer, const char *pItemName, const char *pByName)

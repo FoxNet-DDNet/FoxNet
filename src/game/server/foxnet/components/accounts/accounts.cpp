@@ -687,7 +687,9 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res, const char *pSuccessMessa
 		}
 
 		Session.m_MailBox = MailBox;
-		Session.m_LastMailboxFetch = Now;
+		// The login query may use a lagging read replica. Force an authoritative
+		// mailbox refresh from the primary database on the next tick.
+		Session.m_LastMailboxFetch = 0;
 		Session.m_MailboxFetchPending = false;
 		pExpectedPlayer->m_LoginPending = false;
 		if(!SuccessMessage.empty())
@@ -1340,18 +1342,25 @@ void CAccounts::FetchMailBox()
 
 	time_t Now = time(0);
 
+	struct CSqlMailboxResult : CAccResult
+	{
+		bool m_PrimaryLoaded = false;
+	};
+
 	struct CSqlLoadMailbox : ISqlData
 	{
-		CSqlLoadMailbox(std::shared_ptr<CAccResult> pRes) :
+		CSqlLoadMailbox(std::shared_ptr<CSqlMailboxResult> pRes) :
 			ISqlData(std::move(pRes)) {}
 		char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
 	};
 
-	auto FnLoadMailbox = [](IDbConnection *pSql, const ISqlData *pData, char *pError, int ErrorSize) -> bool {
+	auto FnLoadMailbox = [](IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize) -> bool {
 		const auto *p = dynamic_cast<const CSqlLoadMailbox *>(pData);
-		auto *pRes = dynamic_cast<CAccResult *>(pData->m_pResult.get());
+		auto *pRes = dynamic_cast<CSqlMailboxResult *>(pData->m_pResult.get());
 		if(!p || !pRes)
 			return false;
+		if(w != Write::NORMAL)
+			return true;
 
 		pRes->m_MailBox.Clear();
 
@@ -1381,8 +1390,7 @@ void CAccounts::FetchMailBox()
 				return false;
 		}
 
-		pRes->m_Success = true;
-		pRes->m_Completed.store(true);
+		pRes->m_PrimaryLoaded = true;
 		return true;
 	};
 
@@ -1397,21 +1405,31 @@ void CAccounts::FetchMailBox()
 			continue;
 
 		Acc.m_MailboxFetchPending = true;
+		CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[i];
+		const std::string Username = Acc.m_aUsername;
 
-		auto pRes = std::make_shared<CAccResult>();
+		auto pRes = std::make_shared<CSqlMailboxResult>();
 		auto pReq = std::make_unique<CSqlLoadMailbox>(pRes);
-		str_copy(pReq->m_aUsername, Acc.m_aUsername, sizeof(pReq->m_aUsername));
+		str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
 
-		AddPending(pRes, [this, i, Now](CAccResult &Res) {
-			if(Server()->ClientSlotEmpty(i))
+		AddPending(pRes, [this, i, Now, pExpectedPlayer, Username](CAccResult &Res) {
+			if(!IsExpectedPlayerStillInSlot(GameServer(), i, pExpectedPlayer) ||
+				!GameServer()->m_aAccounts[i].m_LoggedIn ||
+				str_comp(GameServer()->m_aAccounts[i].m_aUsername, Username.c_str()) != 0)
 				return;
 			auto &AccRef = GameServer()->m_aAccounts[i];
+			auto *pMailboxRes = dynamic_cast<CSqlMailboxResult *>(&Res);
+			if(!Res.m_Success || !pMailboxRes || !pMailboxRes->m_PrimaryLoaded)
+			{
+				AccRef.m_MailboxFetchPending = false;
+				return;
+			}
 			AccRef.m_MailBox = Res.m_MailBox;
 			AccRef.m_LastMailboxFetch = Now;
 			AccRef.m_MailboxFetchPending = false;
 		});
 
-		DbPool()->Execute(FnLoadMailbox, std::move(pReq), "acc mailbox refresh");
+		DbPool()->ExecuteWrite(FnLoadMailbox, std::move(pReq), "acc mailbox refresh");
 	}
 }
 

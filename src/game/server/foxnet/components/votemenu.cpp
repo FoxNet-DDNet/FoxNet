@@ -370,7 +370,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 				{
 					const bool HasUnclaimedReward = !Mail.m_UsedCmd && !Mail.m_ClaimPending && Mail.m_aCmdName[0] && Mail.m_aCmd[0];
 					if(HasUnclaimedReward)
-						ClaimMailReward(ClientId, Mail.m_MailId);
+						ClaimMailReward(ClientId, Mail.m_MailId, false);
 				}
 				return true;
 			}
@@ -1896,7 +1896,7 @@ bool CVoteMenu::OwnsAnyOfType(int ClientId, EItemType ItemType) const
 	return false;
 }
 
-void CVoteMenu::ClaimMailReward(int ClientId, int64_t MailId)
+void CVoteMenu::ClaimMailReward(int ClientId, int64_t MailId, bool NotifyAlreadyClaimed)
 {
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS || Server()->ClientSlotEmpty(ClientId))
 		return;
@@ -1916,7 +1916,7 @@ void CVoteMenu::ClaimMailReward(int ClientId, int64_t MailId)
 	const CMailBox::CMail Mail = *It;
 	const std::string Username = Acc.m_aUsername;
 
-	GameServer()->m_AccountManager.ClaimMailReward(ClientId, MailId, [this, ClientId, MailId, Mail, Username](bool DbSuccess, bool Claimed) {
+	GameServer()->m_AccountManager.ClaimMailReward(ClientId, MailId, [this, ClientId, MailId, Mail, Username, NotifyAlreadyClaimed](bool DbSuccess, bool Claimed) {
 		CAccountSession &CurrentAcc = GameServer()->m_aAccounts[ClientId];
 		auto CurrentIt = std::find_if(CurrentAcc.m_MailBox.m_vMails.begin(), CurrentAcc.m_MailBox.m_vMails.end(), [MailId](const CMailBox::CMail &CurrentMail) {
 			return CurrentMail.m_MailId == MailId;
@@ -1935,7 +1935,8 @@ void CVoteMenu::ClaimMailReward(int ClientId, int64_t MailId)
 		{
 			if(CurrentIt != CurrentAcc.m_MailBox.m_vMails.end())
 				CurrentIt->m_UsedCmd = true;
-			GameServer()->SendChatTarget(ClientId, "This mail reward has already been claimed.");
+			if(NotifyAlreadyClaimed)
+				GameServer()->SendChatTarget(ClientId, "This mail reward has already been claimed.");
 			return;
 		}
 

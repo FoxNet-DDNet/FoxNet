@@ -322,7 +322,11 @@ bool CPlayer::CheckLevelUp(bool Silent)
 			{
 				const CItemConfig &pCfg = Item.second;
 				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), pCfg.m_Rarity) != Reward.m_AllowedRarities.end() && pCfg.m_Price > 0)
+				{
+					if(HasFlag(pCfg.m_Flags, EItemFlag::Upgrade))
+						continue;
 					Items.push_back(&pCfg);
+				}
 			}
 
 			if(!Items.empty())
