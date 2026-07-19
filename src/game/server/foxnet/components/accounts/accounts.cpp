@@ -1170,7 +1170,7 @@ void CAccounts::ClaimMailReward(int ClientId, int64_t MailId, std::function<void
 
 	AddPending(pRes, [this, ClientId, MailId, pExpectedPlayer, Username, Callback = std::move(Cb)](CAccResult &BaseRes) mutable {
 		auto *pClaimRes = dynamic_cast<CAccClaimMailResult *>(&BaseRes);
-		const bool DbSuccess = BaseRes.m_Success && pClaimRes;
+		const bool DbSuccess = BaseRes.m_Success && pClaimRes && pClaimRes->m_PrimarySucceeded;
 		const bool Claimed = DbSuccess && pClaimRes->m_Claimed;
 		const bool SessionStillActive = IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer) &&
 						GameServer()->m_aAccounts[ClientId].m_LoggedIn &&

@@ -1182,12 +1182,18 @@ bool CAccountsWorker::SetMailUsedCmd(IDbConnection *pSql, const ISqlData *pData,
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
 }
 
-bool CAccountsWorker::ClaimMailReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::ClaimMailReward(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccClaimMailReward *>(pData);
 	auto *pRes = dynamic_cast<CAccClaimMailResult *>(pData->m_pResult.get());
 	if(!pReq || !pRes)
 		return false;
+	if(w == Write::NORMAL_FAILED)
+	{
+		// A backup-only claim cannot guarantee exclusivity against servers that
+		// still use the primary database, so it must never grant a reward.
+		return true;
+	}
 
 	char aSql[256];
 	str_copy(aSql,
@@ -1205,7 +1211,13 @@ bool CAccountsWorker::ClaimMailReward(IDbConnection *pSql, const ISqlData *pData
 	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
 		return false;
 
-	pRes->m_Claimed = NumUpdated == 1;
+	// The worker is called again to mirror a successful primary write to the
+	// backup. Only the authoritative primary attempt may decide the claim.
+	if(w == Write::NORMAL)
+	{
+		pRes->m_PrimarySucceeded = true;
+		pRes->m_Claimed = NumUpdated == 1;
+	}
 	return true;
 }
 

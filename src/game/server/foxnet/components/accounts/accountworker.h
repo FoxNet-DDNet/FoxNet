@@ -245,6 +245,7 @@ struct CAccSetMailUsedCmd : ISqlData
 
 struct CAccClaimMailResult : CAccResult
 {
+	bool m_PrimarySucceeded = false;
 	bool m_Claimed = false;
 };
 
