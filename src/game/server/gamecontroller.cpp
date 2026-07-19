@@ -35,6 +35,7 @@ IGameController::IGameController(class CGameContext *pGameServer) :
 	m_pServer = m_pGameServer->Server();
 	m_pGameType = "FoxNetwork";
 	g_AntibobContext.m_pConsole = GameServer()->Console();
+	g_AntibobContext.m_pGameServer = GameServer();
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);

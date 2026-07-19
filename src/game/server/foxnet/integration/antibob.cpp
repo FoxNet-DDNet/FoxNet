@@ -4,13 +4,19 @@
 
 #include <engine/console.h>
 
+#include <game/collision.h>
+#include <game/mapitems.h>
+#include <game/server/entities/character.h>
+#include <game/server/gamecontext.h>
+#include <game/server/player.h>
+
 CAntibobContext g_AntibobContext;
 extern "C" {
 
 int AntibobVersion()
 {
-	// 11.00
-	return 1100;
+	// 12.00
+	return 1200;
 }
 
 void AntibobRcon(const char *pLine)
@@ -21,5 +27,73 @@ void AntibobRcon(const char *pLine)
 		return;
 	}
 	g_AntibobContext.m_pConsole->ExecuteLine(pLine, IConsole::CLIENT_ID_FOXNET);
+}
+
+static int AntibobMultiMapIndex(CGameContext *pGameServer, int ClientId)
+{
+	if(ClientId >= 0 && ClientId < MAX_CLIENTS && pGameServer->m_apPlayers[ClientId])
+		return pGameServer->m_apPlayers[ClientId]->MultiMapIdx();
+	return DefaultMapIndex;
+}
+
+static CCollision *AntibobCollision(CGameContext *pGameServer, int ClientId)
+{
+	CCharacter *pCharacter = ClientId >= 0 && ClientId < MAX_CLIENTS ? pGameServer->GetPlayerChar(ClientId) : nullptr;
+	return pCharacter ? pCharacter->Collision() : pGameServer->Collision(AntibobMultiMapIndex(pGameServer, ClientId));
+}
+
+bool AntibobMapSize(int ClientId, int *pWidth, int *pHeight)
+{
+	if(!g_AntibobContext.m_pGameServer || !pWidth || !pHeight)
+		return false;
+	CGameContext *pGameServer = g_AntibobContext.m_pGameServer;
+	const CCollision *pCollision = AntibobCollision(pGameServer, ClientId);
+	*pWidth = pCollision->GetWidth();
+	*pHeight = pCollision->GetHeight();
+	return true;
+}
+
+bool AntibobTile(int ClientId, int TileX, int TileY, CAntibobTileData *pData)
+{
+	if(!pData)
+		return false;
+	*pData = {};
+	if(!g_AntibobContext.m_pGameServer)
+		return false;
+	CGameContext *pGameServer = g_AntibobContext.m_pGameServer;
+	const int MultiMapIndex = AntibobMultiMapIndex(pGameServer, ClientId);
+	const int Team = ClientId >= 0 && ClientId < MAX_CLIENTS && pGameServer->m_apPlayers[ClientId] ? pGameServer->GetDDRaceTeam(ClientId) : 0;
+	const CCollision *pCollision = AntibobCollision(pGameServer, ClientId);
+	if(TileX < 0 || TileY < 0 || TileX >= pCollision->GetWidth() || TileY >= pCollision->GetHeight())
+		return false;
+
+	const int Index = pCollision->GetPureMapIndex(TileX * 32, TileY * 32);
+	const CTile *pFront = pCollision->FrontLayer();
+	const CSwitchTile *pSwitch = pCollision->SwitchLayer();
+	const CTeleTile *pTele = pCollision->TeleLayer();
+	pData->m_Game = pCollision->GetTileIndex(Index);
+	pData->m_GameFlags = pCollision->GetTileFlags(Index);
+	if(pFront)
+	{
+		pData->m_Front = pCollision->GetFrontTileIndex(Index);
+		pData->m_FrontFlags = pCollision->GetFrontTileFlags(Index);
+	}
+	if(pSwitch)
+	{
+		pData->m_Switch = pSwitch[Index].m_Type;
+		pData->m_SwitchFlags = pSwitch[Index].m_Flags;
+		pData->m_SwitchNumber = pSwitch[Index].m_Number;
+		pData->m_SwitchDelay = pSwitch[Index].m_Delay;
+		pData->m_SwitchActive = pSwitch[Index].m_Number == 0;
+		const auto &vMaps = pGameServer->Switchers();
+		if(MultiMapIndex >= 0 && MultiMapIndex < (int)vMaps.size() && pSwitch[Index].m_Number > 0 && pSwitch[Index].m_Number < vMaps[MultiMapIndex].size() && Team >= 0 && Team < MAX_CLIENTS)
+			pData->m_SwitchActive = vMaps[MultiMapIndex][pSwitch[Index].m_Number].m_aStatus[Team];
+	}
+	if(pTele)
+	{
+		pData->m_Tele = pTele[Index].m_Type;
+		pData->m_TeleNumber = pTele[Index].m_Number;
+	}
+	return true;
 }
 }
