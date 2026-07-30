@@ -231,10 +231,10 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 			}
 		}
 
-		GameServer()->SendChatTarget(ClientId, "FoxNetwork Mod " FOXNET_VERSION);
+		pPlayer->SendChatFmt("FoxNetwork Mod %s", GameServer()->VersionHash());
 
 		if(GameServer()->IsWeekend())
-			GameServer()->SendChatTarget(ClientId, "2x XP/Money weekend");
+			pPlayer->SendChat("2x XP/Money weekend");
 	}
 	GameServer()->SendMovingTilesInfo(ClientId);
 	// FoxNet>
