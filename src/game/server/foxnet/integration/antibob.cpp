@@ -108,6 +108,12 @@ unsigned int AntibobPlayerFlags(int ClientId)
 	unsigned int Flags = 0;
 	if(pCharacter->Teams()->IsPractice(pCharacter->Team()))
 		Flags |= ANTIBOB_PLAYERFLAG_PRACTICE;
+	if(pCharacter->Core()->m_DeepFrozen || pCharacter->m_FreezeTime > 0 || pCharacter->Core()->m_LiveFrozen)
+		Flags |= ANTIBOB_PLAYERFLAG_FROZEN;
+
+	// Other things that override movement in some way
+	if(pCharacter->m_Ufo.Active() || pCharacter->m_InSnake)
+		Flags |= ANTIBOB_PLAYERFLAG_FROZEN;
 	return Flags;
 }
 }

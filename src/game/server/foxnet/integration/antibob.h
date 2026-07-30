@@ -24,6 +24,7 @@ struct CAntibobTileData
 enum
 {
 	ANTIBOB_PLAYERFLAG_PRACTICE = 1 << 0,
+	ANTIBOB_PLAYERFLAG_FROZEN = 1 << 1,
 };
 
 class CAntibobContext
