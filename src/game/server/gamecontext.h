@@ -527,6 +527,7 @@ public:
 	CUuid GameUuid() const override;
 
 	const char *GameType() override;
+	char m_aVersionString[32];
 	const char *Version() const override;
 	const char *VersionHash() const override; // FoxNet
 

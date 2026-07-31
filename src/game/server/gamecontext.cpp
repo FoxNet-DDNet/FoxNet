@@ -145,6 +145,15 @@ CGameContext::CGameContext(bool Resetting) :
 	m_LatestLog = 0;
 	mem_zero(&m_aLogs, sizeof(m_aLogs));
 
+	str_copy(m_aVersionString, FOXNET_VERSION);
+	if(GIT_SHORTREV_HASH != nullptr)
+	{
+		char aHash[16] = "";
+		str_truncate(aHash, sizeof(aHash), GIT_SHORTREV_HASH, 8);
+
+		str_format(m_aVersionString, sizeof(m_aVersionString), "%s %s", FOXNET_VERSION, aHash);
+	}
+
 	if(!Resetting)
 	{
 		std::unique_ptr<CMultiMaps> pNewMap = std::make_unique<CMultiMaps>();
@@ -1629,6 +1638,8 @@ void CGameContext::PreInputClients(int ClientId, bool *pClients)
 	if(!pInputChr || m_apPlayers[ClientId]->GetTeam() == TEAM_SPECTATORS || m_apPlayers[ClientId]->IsAfk())
 		return;
 
+	const int Team = GetDDRaceTeam(ClientId);
+
 	for(int Id = 0; Id < MAX_CLIENTS; Id++)
 	{
 		if(ClientId == Id)
@@ -1638,10 +1649,10 @@ void CGameContext::PreInputClients(int ClientId, bool *pClients)
 		if(!pPlayer)
 			continue;
 
-		if(Server()->GetClientVersion(Id) < VERSION_DDNET_PREINPUT)
+		if(pPlayer->GetTeam() == TEAM_SPECTATORS || Team != GetDDRaceTeam(Id) || pPlayer->IsAfk())
 			continue;
 
-		if(pPlayer->GetTeam() == TEAM_SPECTATORS || GetDDRaceTeam(ClientId) != GetDDRaceTeam(Id) || pPlayer->IsAfk())
+		if(Server()->GetClientVersion(Id) < VERSION_DDNET_PREINPUT)
 			continue;
 
 		if(!pInputChr->CanSnapCharacter(Id) || pInputChr->NetworkClipped(Id))
@@ -5311,20 +5322,7 @@ const char *CGameContext::GameType()
 	};
 	return GameTypes[g_Config.m_SvFoxNetType];
 }
-const char *CGameContext::Version() const { return FOXNET_VERSION; }
-
-const char *CGameContext::VersionHash() const
-{
-	static char aVersion[32];
-	static char aHash[16] = "";
-	if(GIT_SHORTREV_HASH)
-		str_truncate(aHash, sizeof(aHash), GIT_SHORTREV_HASH, 8);
-
-	str_format(aVersion, sizeof(aVersion), "%s %s", FOXNET_VERSION, aHash);
-
-	return aVersion;
-}
-// FoxNet>
+const char *CGameContext::Version() const { return m_aVersionString; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 
 
