@@ -20,6 +20,7 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/snapshot.h>
 #include <engine/shared/uuid_manager.h>
+#include <engine/shared/jobs.h>
 
 #include <memory>
 #include <optional>

@@ -231,7 +231,7 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 			}
 		}
 
-		pPlayer->SendChatFmt("FoxNetwork Mod %s", GameServer()->VersionHash());
+		pPlayer->SendChatFmt("FoxNetwork Mod %s", GameServer()->Version());
 
 		if(GameServer()->IsWeekend())
 			pPlayer->SendChat("2x XP/Money weekend");

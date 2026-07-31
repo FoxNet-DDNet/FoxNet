@@ -388,7 +388,6 @@ public:
 	virtual CUuid GameUuid() const = 0;
 	virtual const char *GameType() = 0;
 	virtual const char *Version() const = 0;
-	virtual const char *VersionHash() const = 0; // FoxNet
 	virtual const char *NetVersion() const = 0;
 	// <FoxNet
 	virtual IMap *Map(size_t Idx = 0) = 0;

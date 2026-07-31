@@ -5322,11 +5322,9 @@ const char *CGameContext::GameType()
 	};
 	return GameTypes[g_Config.m_SvFoxNetType];
 }
+
 const char *CGameContext::Version() const { return m_aVersionString; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
-
-
-
 
 IGameServer *CreateGameServer() { return new CGameContext; }
 
