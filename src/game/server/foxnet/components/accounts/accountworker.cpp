@@ -1238,7 +1238,7 @@ bool CAccountsWorker::DeleteMail(IDbConnection *pSql, const ISqlData *pData, Wri
 	return pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize);
 }
 
-bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccNewMail *>(pData);
 	auto *pRes = dynamic_cast<CAccMailAcknowledge *>(pData->m_pResult.get());
@@ -1248,10 +1248,22 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 		return false;
 	}
 
+	// The request is executed on the backup database as well, both before and
+	// after the primary write. Only the primary may hand out the MailId: the
+	// session caches the mail with that id and every later operation on it
+	// (claiming its reward, marking it read, deleting it) looks the row up by
+	// id on the primary database.
+	const bool Primary = w == Write::NORMAL;
+
 	// Acquire next MailId for user
 	int64_t MailId = pReq->m_MailId;
+	if(MailId == 0 && !Primary)
+		MailId = pRes->m_MailId; // decided by the primary write this mirrors
 	if(MailId == 0)
 	{
+		if(!Primary)
+			return true; // the primary did not store the mail, nothing to mirror
+
 		char aSelect[128];
 		str_copy(aSelect, "SELECT COALESCE(MAX(MailId), 0) + 1 FROM foxnet_account_mailbox WHERE Username = ?", sizeof(aSelect));
 		if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
@@ -1285,7 +1297,13 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
 		return false;
 
+	if(!Primary)
+		return true;
+
 	pRes->m_Success = (NumInserted == 1);
+	if(!pRes->m_Success)
+		return false;
+
 	pRes->m_MailId = MailId;
 	str_copy(pRes->m_aUsername, pReq->m_aUsername, sizeof(pRes->m_aUsername));
 	pRes->m_MailBox.Clear();
@@ -1301,11 +1319,13 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write,
 		pRes->m_MailBox.m_vMails.push_back(M);
 	}
 
-	pRes->m_Completed.store(true);
-	return pRes->m_Success;
+	// The connection pool completes the result once every database has been
+	// visited. Completing it here would hand the session a mail that the
+	// primary database has not written yet.
+	return true;
 }
 
-bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize)
+bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccBulkNewMail *>(pData);
 	auto *pRes = dynamic_cast<CBulkMailResult *>(pData->m_pResult.get());
@@ -1354,9 +1374,14 @@ bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, 
 	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
 		return false;
 
+	// Only the primary write may announce the mails. The backup pass runs
+	// before the primary one, so acting on its result would tell the sessions
+	// to refresh their mailbox from a database that has no such mail yet.
+	if(w != Write::NORMAL)
+		return true;
+
 	pRes->m_Inserted = NumInserted;
 	pRes->m_Success = NumInserted > 0;
 	str_copy(pRes->m_aSubject, pReq->m_aSubject, sizeof(pRes->m_aSubject));
-	pRes->m_Completed.store(true);
 	return true;
 }
