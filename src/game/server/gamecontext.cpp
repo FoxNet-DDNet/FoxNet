@@ -1373,7 +1373,7 @@ void CGameContext::OnTick()
 											     GetPlayerChar(m_VoteCreator)->Team() != GetPlayerChar(i)->Team())))
 						continue;
 
-					if(m_apPlayers[i]->IsAfk())
+					if(m_apPlayers[i]->IsAfk() && i != m_VoteCreator)
 						continue;
 
 					// can't vote in kick and spec votes in the beginning after joining
