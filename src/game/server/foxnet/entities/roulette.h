@@ -11,6 +11,8 @@
 
 #include <cstdint>
 
+class CRouletteZone;
+
 constexpr int MAX_FIELDS = 37; // 0-36
 constexpr int MIN_SPIN_DURATION = 2 * SERVER_TICK_SPEED; // seconds
 constexpr int MAX_SPIN_DURATION = 3 * SERVER_TICK_SPEED; // seconds
@@ -99,6 +101,9 @@ class CRoulette : public CEntity
 
 public:
 	CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos);
+
+	// The zone that owns this wheel, players have to be inside it to bet
+	CRouletteZone *Zone();
 
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
 

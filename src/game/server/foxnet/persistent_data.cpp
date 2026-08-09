@@ -1,9 +1,9 @@
 #include "persistent_data.h"
 
+#include <base/log.h>
 #include <base/str.h>
 
 #include <game/server/player.h>
-#include <base/log.h>
 
 void CSavePlayerData::Save(CPlayer *pPlayer)
 {

@@ -15,6 +15,7 @@
 
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
+#include <game/server/foxnet/components/zones/roulette.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
@@ -34,6 +35,11 @@ CRoulette::CRoulette(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos) :
 	SetState(RStates::IDLE);
 	PrepareNextSpin();
 	GameWorld()->InsertEntity(this);
+}
+
+CRouletteZone *CRoulette::Zone()
+{
+	return GameServer()->m_ZoneManager.FindMinigame<CRouletteZone>(MultiMapIdx());
 }
 
 bool CRoulette::CanBet(int ClientId) const
@@ -94,7 +100,7 @@ bool CRoulette::AddClient(int ClientId, int64_t BetAmount, const char *pBetOptio
 	if(pPlayer->MultiMapIdx() != MultiMapIdx())
 		return false;
 
-	if(pPlayer->m_Area != EArea::Roulette)
+	if(!Zone() || pPlayer->m_pMinigame != Zone())
 		return false;
 
 	if(!g_Config.m_SvAccounts)
@@ -413,7 +419,7 @@ void CRoulette::SendBroadcast(int ClientId)
 	if(!pPlayer)
 		return;
 
-	if(pPlayer->m_Area != EArea::Roulette)
+	if(!Zone() || pPlayer->m_pMinigame != Zone())
 		return;
 
 	CCharacter *pChr = pPlayer->GetCharacter();

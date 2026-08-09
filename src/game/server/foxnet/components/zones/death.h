@@ -10,11 +10,11 @@
 #include <utility>
 #include <vector>
 
-class CDeathZone : public IZone
+class CDeathZone : public CQuadZone
 {
 public:
 	CDeathZone(CGameContext *pGameContext, size_t MapIndex) :
-		IZone(pGameContext, MapIndex) {}
+		CQuadZone(pGameContext, MapIndex) {}
 	void OnTick() override;
 };
 

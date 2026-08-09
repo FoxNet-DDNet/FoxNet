@@ -7,8 +7,6 @@
 #include "gameworld.h"
 #include "player.h"
 
-#include <game/server/gameworld.h>
-
 #include <base/math.h>
 #include <base/vmath.h>
 
@@ -16,6 +14,7 @@
 
 #include <game/collision.h>
 #include <game/gamecore.h>
+#include <game/server/gameworld.h>
 
 //////////////////////////////////////////////////
 // Entity

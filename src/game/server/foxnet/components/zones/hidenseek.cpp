@@ -262,74 +262,23 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	if(!pChr->IsAlive())
 		return;
 
+	// Nothing below here may touch players that arent inside the area, CZoneManager owns that decision
+	if(!IsInArea(ClientId))
+		return;
+
 	CClientData &Data = m_aClientData[ClientId];
 
-	bool InArea = false;
 	Data.m_InHiddenZone = false;
 	for(const CQuadData &QuadData : Quads())
 	{
-		if(QuadData.m_SubType == (uint8_t)ESubType::Area)
+		if(QuadData.m_SubType != (uint8_t)ESubType::Hidden)
+			continue;
+
+		if(InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 		{
-			if(InArea)
-				continue;
-
-			if(InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
-			{
-				// check ip
-				if(!g_Config.m_SvMinigamesSameIp)
-				{
-					for(int i = 0; i < MAX_CLIENTS; i++)
-					{
-						if(i == ClientId)
-							continue;
-						CPlayer *pOtherPlayer = GameServer()->m_apPlayers[i];
-						if(!pOtherPlayer || !pOtherPlayer->GetCharacter())
-							continue;
-						if(pOtherPlayer->MultiMapIdx() != (int)MultiMapIndex())
-							continue;
-
-						if(pOtherPlayer->m_Area != EArea::HideAndSeek)
-							continue;
-
-						// compare addresses
-						if(net_addr_comp_noport(Server()->ClientAddr(ClientId), Server()->ClientAddr(i)) == 0)
-						{
-							pPlayer->SendChat("A player with the same ip is already in that zone.");
-							pPlayer->KillCharacter();
-							return;
-						}
-					}
-				}
-				InArea = true;
-			}
+			Data.m_InHiddenZone = true;
+			break;
 		}
-		else if(QuadData.m_SubType == (uint8_t)ESubType::Hidden)
-		{
-			if(Data.m_InHiddenZone)
-				continue;
-
-			if(InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
-				Data.m_InHiddenZone = true;
-		}
-	}
-
-	if(!InArea)
-	{
-		// Nothing below here may touch players that arent inside the area
-		if(pPlayer->m_Area == EArea::HideAndSeek)
-			LeaveArea(ClientId);
-		else
-			SetForcedSolo(ClientId, false); // in case another area claimed the player while we had them solo
-		return;
-	}
-
-	if(pPlayer->m_Area != EArea::HideAndSeek)
-	{
-		// Walking in never carries state of an older round along, and never joins a running one
-		pPlayer->SetArea(EArea::HideAndSeek);
-		Data.Reset();
-		Data.m_LastMovement = Server()->Tick();
-		pChr->SetTuneOverride(-1);
 	}
 
 	// Only their own input counts as being active, getting pushed around must not clear the afk mark
@@ -425,13 +374,45 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	}
 }
 
-void CHideAndSeekZone::LeaveArea(int ClientId)
+bool CHideAndSeekZone::ContainsPlayer(const CPlayer *pPlayer) const
+{
+	const CCharacter *pChr = pPlayer->GetCharacter();
+	// Dying takes the player out of the area and the round, unlike the default which keeps them
+	if(!pChr || !pChr->IsAlive())
+		return false;
+
+	return IMinigame::ContainsPlayer(pPlayer);
+}
+
+void CHideAndSeekZone::OnPlayerEnter(int ClientId)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return;
 
-	pPlayer->SetArea(EArea::Game);
+	if(!g_Config.m_SvMinigamesSameIp && HasSameIpInArea(ClientId))
+	{
+		pPlayer->SendChat("A player with the same ip is already in that zone.");
+		// The dead character fails ContainsPlayer(), so the next membership pass hands them back
+		pPlayer->KillCharacter();
+		return;
+	}
+
+	// Walking in never carries state of an older round along, and never joins a running one
+	CClientData &Data = m_aClientData[ClientId];
+	Data.Reset();
+	Data.m_LastMovement = Server()->Tick();
+
+	if(CCharacter *pChr = pPlayer->GetCharacter())
+		pChr->SetTuneOverride(-1);
+}
+
+void CHideAndSeekZone::OnPlayerLeave(int ClientId)
+{
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
 	pPlayer->ClearBroadcast();
 
 	ReleaseHold(ClientId);
@@ -442,6 +423,45 @@ void CHideAndSeekZone::LeaveArea(int ClientId)
 
 	SetForcedSolo(ClientId, false);
 	m_aClientData[ClientId].Reset(); // has to happen after the solo release, Reset() drops the ownership flag
+}
+
+bool CHideAndSeekZone::HasSameIpInArea(int ClientId) const
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(i == ClientId)
+			continue;
+		CPlayer *pOtherPlayer = GameServer()->m_apPlayers[i];
+		if(!pOtherPlayer || !pOtherPlayer->GetCharacter())
+			continue;
+		if(pOtherPlayer->MultiMapIdx() != (int)MultiMapIndex())
+			continue;
+		if(!IsInArea(i))
+			continue;
+
+		// compare addresses
+		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), Server()->ClientAddr(i)) == 0)
+			return true;
+	}
+	return false;
+}
+
+const char *CHideAndSeekZone::Motd() const
+{
+	return "[Viewable in Server info tab]\n"
+	       "\n"
+	       "\n"
+	       "--  Hɪᴅᴇ ᴀɴᴅ Sᴇᴇᴋ  --\n"
+	       "\n"
+	       "Sᴇᴇᴋᴇʀ:\n"
+	       "Find all seekers and hammer them, shooting your gun will point to the closest hidden player.\n"
+	       "\n"
+	       "Hɪᴅᴇʀ:\n"
+	       "Dark Areas completely hide you from the seeker, hammering will put you in ghost mode for a short time which allows you to run away\n"
+	       "\n"
+	       "Depending on the map, entities will or will not work\n"
+	       "\n"
+	       "[Press Tab to hide]";
 }
 
 void CHideAndSeekZone::StartGame()
@@ -923,8 +943,9 @@ void CHideAndSeekZone::OnCharacterDie(int ClientId, int Killer, int Weapon, bool
 	if(!IsInArea(ClientId))
 		return;
 
-	// Dying takes the player out of the area and the round
-	LeaveArea(ClientId);
+	// Dying takes the player out of the round right away. The handover itself runs on the next
+	// membership pass, once ContainsPlayer() sees the dead character, and repeats this harmlessly.
+	OnPlayerLeave(ClientId);
 }
 
 bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
@@ -1307,20 +1328,6 @@ bool CHideAndSeekZone::IsAliveHider(int ClientId) const
 	return IsInArea(ClientId);
 }
 
-bool CHideAndSeekZone::IsInArea(int ClientId) const
-{
-	if(!CheckClientId(ClientId))
-		return false;
-
-	const CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return false;
-	if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
-		return false;
-
-	return pPlayer->m_Area == EArea::HideAndSeek;
-}
-
 vec2 CHideAndSeekZone::GetRandomSpawnPos()
 {
 	if(m_vSpawnQuads.empty())
@@ -1364,7 +1371,11 @@ void CHideAndSeekZone::Init(CMapItemLayerQuads *pQuadsLayer)
 		CQuadData QuadData;
 		QuadData.Init(&pQuads[NumQuads], GameServer()->Map(MultiMapIndex()));
 		QuadData.m_SubType = (uint8_t)SubType;
-		AddQuad(QuadData);
+
+		if(SubType == ESubType::Area)
+			AddAreaQuad(QuadData); // these decide who the zone owns, see IMinigame::ContainsPlayer
+		else
+			AddQuad(QuadData);
 
 		if(SubType == ESubType::Spawn)
 			m_vSpawnQuads.push_back(QuadData);

@@ -9,6 +9,7 @@
 
 class CQuad;
 
+// Passive quad zones only, minigames are not bucketed by type: see CZoneManager::FindMinigame
 enum class EZoneType
 {
 	Freeze,
@@ -18,8 +19,6 @@ enum class EZoneType
 	CFRM,
 	Hookable,
 	Unhookable,
-	Roulette,
-	HideNSeek,
 	Num,
 };
 

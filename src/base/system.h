@@ -12,9 +12,9 @@
 #include "types.h"
 #include "vmath.h"
 
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
 char str_lowercase(char c);
 void str_lower(char *pOut);

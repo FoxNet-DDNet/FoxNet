@@ -3,14 +3,12 @@
 
 #include "envelopes.h"
 
-#include <game/mapitems.h>
-#include <game/mapitems_ex.h>
-
 #include <base/math.h>
 
 #include <engine/map.h>
 
 #include <game/mapitems.h>
+#include <game/mapitems_ex.h>
 
 #include <algorithm>
 #include <cmath>

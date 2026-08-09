@@ -6,11 +6,11 @@
 #include <game/gamecore.h>
 #include <game/server/gamecontext.h>
 
-class CCheckpointFromZone : public IZone
+class CCheckpointFromZone : public CQuadZone
 {
 public:
 	CCheckpointFromZone(CGameContext *pGameContext, size_t MapIndex) :
-		IZone(pGameContext, MapIndex) {}
+		CQuadZone(pGameContext, MapIndex) {}
 
 	void OnTick() override;
 

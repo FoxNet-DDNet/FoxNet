@@ -40,44 +40,34 @@ void CRouletteZone::OnTick()
 			}
 		}
 	}
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-	{
-		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-		if(!pPlayer || !pPlayer->GetCharacter())
-			continue;
-		if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
-			continue;
-		CCharacter *pChr = pPlayer->GetCharacter();
-		if(!pChr->IsAlive())
-			continue;
+}
 
-		if(pChr->Core()->m_IsInFreeze)
-			continue;
+bool CRouletteZone::ContainsPlayer(const CPlayer *pPlayer) const
+{
+	const CCharacter *pChr = pPlayer->GetCharacter();
+	// Being frozen never moves a player in or out, they cant act on the table either way
+	if(pChr && pChr->IsAlive() && pChr->Core()->m_IsInFreeze)
+		return pPlayer->m_pMinigame == this;
 
-		bool InArea = false;
-		for(const CQuadData &QuadData : Quads())
-		{
-			if(QuadData.m_SubType != (uint8_t)ESubType::Area)
-				continue;
+	return IMinigame::ContainsPlayer(pPlayer);
+}
 
-			if(InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
-			{
-				InArea = true;
-				break;
-			}
-		}
-
-		if(InArea)
-		{
-			if(pPlayer->m_Area != EArea::Roulette)
-				pPlayer->SetArea(EArea::Roulette);
-		}
-		else
-		{
-			if(pPlayer->m_Area == EArea::Roulette)
-				pPlayer->SetArea(EArea::Game);
-		}
-	}
+const char *CRouletteZone::Motd() const
+{
+	return "\n"
+	       "[Viewable in Server info tab]\n"
+	       "\n"
+	       "\n"
+	       "--  Rᴏᴜʟᴇᴛᴛᴇ  --\n"
+	       "\n"
+	       "To start, write '/bet <amount>', after that you can select your bet type by hovering your mouse over any of the options below and hammering\n"
+	       "\n"
+	       "Pᴀʏᴏᴜᴛs:\n"
+	       "Black | Red: 2x\n"
+	       "3x dozens: 3x\n"
+	       "Green [Zero]: 14x\n"
+	       "\n"
+	       "[Press Tab to hide]";
 }
 
 void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
@@ -105,7 +95,11 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 		CQuadData QuadData;
 		QuadData.Init(&pQuads[NumQuads]);
 		QuadData.m_SubType = (uint8_t)SubType;
-		AddQuad(QuadData);
+
+		if(SubType == ESubType::Area)
+			AddAreaQuad(QuadData); // these decide who the zone owns, see IMinigame::ContainsPlayer
+		else
+			AddQuad(QuadData);
 
 		if(SubType == ESubType::BetOption)
 		{

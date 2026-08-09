@@ -487,7 +487,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	IGameController::CFinishTime PlayerTime = GameServer()->m_pController->SnapPlayerTime(SnappingClient, this);
 	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer &&
-		pSnapPlayer->m_Area == EArea::HideAndSeek && m_Area == EArea::HideAndSeek)
+		m_pMinigame != nullptr && pSnapPlayer->m_pMinigame == m_pMinigame && m_pMinigame->HidesFinishTime())
 	{
 		PlayerTime = IGameController::CFinishTime::Unset();
 	}

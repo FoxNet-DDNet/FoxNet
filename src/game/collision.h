@@ -187,7 +187,7 @@ public:
 	const std::vector<CColQuadData> &Quads() const { return m_vQuads; }
 
 	void AddQuad(CQuadData &QuadData, int TileIndex);
-  void UpdateQuads(bool UseMovingTiles, double Time);
+	void UpdateQuads(bool UseMovingTiles, double Time);
 	CColQuadData *GetQuadAt(vec2 Pos) const;
 	bool GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const;
 	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;

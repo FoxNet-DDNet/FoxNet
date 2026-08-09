@@ -3047,6 +3047,8 @@ if(SERVER)
     foxnet/components/zones/freeze.h
     foxnet/components/zones/hidenseek.cpp
     foxnet/components/zones/hidenseek.h
+    foxnet/components/zones/minigame.cpp
+    foxnet/components/zones/minigame.h
     foxnet/components/zones/roulette.cpp
     foxnet/components/zones/roulette.h
     foxnet/components/zones/unfreeze.cpp

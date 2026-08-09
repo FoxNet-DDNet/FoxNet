@@ -5,6 +5,7 @@
 #include "death.h"
 #include "freeze.h"
 #include "hidenseek.h"
+#include "minigame.h"
 #include "roulette.h"
 #include "unfreeze.h"
 #include "zone.h"
@@ -29,9 +30,9 @@
 #include <iterator>
 #include <vector>
 
-IZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
+CQuadZone *CZoneManager::FindZoneByMapIndex(EZoneType Type, size_t MultiMapIdx)
 {
-	auto It = std::find_if(m_avpZones[(int)Type].begin(), m_avpZones[(int)Type].end(), [MultiMapIdx](const IZone *pZone) {
+	auto It = std::find_if(m_avpZones[(int)Type].begin(), m_avpZones[(int)Type].end(), [MultiMapIdx](const CQuadZone *pZone) {
 		return pZone->MultiMapIndex() == MultiMapIdx;
 	});
 	return It != m_avpZones[(int)Type].end() ? *It : nullptr;
@@ -52,23 +53,23 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 		char aGroupName[30];
 		IntsToStr(pGroup->m_aName, std::size(pGroup->m_aName), aGroupName, std::size(aGroupName));
 
-		IZone *pGroupZone = nullptr;
+		IMinigame *pGroupZone = nullptr;
 		if(!str_comp(aGroupName, "#Roulette"))
 		{
-			pGroupZone = FindZoneByMapIndex(EZoneType::Roulette, MultiMapIdx);
+			pGroupZone = FindMinigame<CRouletteZone>(MultiMapIdx);
 			if(pGroupZone == nullptr)
 			{
 				pGroupZone = new CRouletteZone(GameServer(), MultiMapIdx);
-				m_avpZones[(int)EZoneType::Roulette].push_back(pGroupZone);
+				m_vpMinigames.push_back(pGroupZone);
 			}
 		}
 		else if(!str_comp(aGroupName, "#HideNSeek"))
 		{
-			pGroupZone = FindZoneByMapIndex(EZoneType::HideNSeek, MultiMapIdx);
+			pGroupZone = FindMinigame<CHideAndSeekZone>(MultiMapIdx);
 			if(pGroupZone == nullptr)
 			{
 				pGroupZone = new CHideAndSeekZone(GameServer(), MultiMapIdx);
-				m_avpZones[(int)EZoneType::HideNSeek].push_back(pGroupZone);
+				m_vpMinigames.push_back(pGroupZone);
 				log_info("hide-n-seek", "Hide and Seek created on map %" PRIzu ", tune zones %d-%d", MultiMapIdx, CHideAndSeekZone::TuneZoneBase(), CHideAndSeekZone::TuneZoneBase() + 3);
 			}
 		}
@@ -146,7 +147,7 @@ void CZoneManager::OnMapUnload(size_t MapIdx)
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
 		auto &vZones = m_avpZones[i];
-		vZones.erase(std::remove_if(vZones.begin(), vZones.end(), [MapIdx](IZone *pZone) {
+		vZones.erase(std::remove_if(vZones.begin(), vZones.end(), [MapIdx](CQuadZone *pZone) {
 			if(pZone->MultiMapIndex() == MapIdx)
 			{
 				delete pZone;
@@ -157,10 +158,71 @@ void CZoneManager::OnMapUnload(size_t MapIdx)
 			vZones.end());
 	}
 
+	// Every enter is paired with a leave, including this one: the players are still ours until the
+	// zone is gone, and ~IMinigame is too late to dispatch a virtual to the derived minigame
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(pMinigame->MultiMapIndex() != MapIdx)
+			continue;
+
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		{
+			if(!pMinigame->IsInArea(ClientId))
+				continue;
+
+			pMinigame->OnPlayerLeave(ClientId);
+			GameServer()->m_apPlayers[ClientId]->SetMinigame(nullptr);
+		}
+	}
+
+	// ~IMinigame drops any player that still points at it
+	m_vpMinigames.erase(std::remove_if(m_vpMinigames.begin(), m_vpMinigames.end(), [MapIdx](IMinigame *pMinigame) {
+		if(pMinigame->MultiMapIndex() == MapIdx)
+		{
+			delete pMinigame;
+			return true;
+		}
+		return false;
+	}),
+		m_vpMinigames.end());
+
 	if(m_DebugSnappingQuads)
 	{
 		FreeQuadIds();
 		SnapQuadIds();
+	}
+}
+
+void CZoneManager::UpdateMembership()
+{
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+
+		IMinigame *pWanted = nullptr;
+		for(IMinigame *pMinigame : m_vpMinigames)
+		{
+			if(pMinigame->MultiMapIndex() != (size_t)pPlayer->MultiMapIdx())
+				continue;
+			if(!pMinigame->ContainsPlayer(pPlayer))
+				continue;
+
+			pWanted = pMinigame;
+			break; // first match wins, overlapping areas are a map error and resolve the same way every tick
+		}
+
+		IMinigame *pCurrent = pPlayer->m_pMinigame;
+		if(pWanted == pCurrent)
+			continue;
+
+		// Leave before enter, so a minigame never sees its state torn down by the one taking over
+		if(pCurrent)
+			pCurrent->OnPlayerLeave(ClientId);
+		pPlayer->SetMinigame(pWanted);
+		if(pWanted)
+			pWanted->OnPlayerEnter(ClientId);
 	}
 }
 
@@ -169,12 +231,21 @@ void CZoneManager::OnTick()
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
 		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
+		for(CQuadZone *pZone : vZones)
 		{
 			pZone->UpdateCache();
 			pZone->OnTick();
 		}
 	}
+
+	// Membership is resolved against this tick's quad positions, before any minigame acts on it
+	for(IMinigame *pMinigame : m_vpMinigames)
+		pMinigame->UpdateCache();
+
+	UpdateMembership();
+
+	for(IMinigame *pMinigame : m_vpMinigames)
+		pMinigame->OnTick();
 }
 
 void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDemo)
@@ -185,32 +256,42 @@ void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDem
 	const int ClientVersion = Server()->GetClientVersion(SnappingClient);
 	const bool Sixup = Server()->IsSixup(SnappingClient);
 
-	size_t Idx = 0;
-	for(int i = 0; i < (int)EZoneType::Num; i++)
-	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			size_t SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
+	const size_t SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
 
-			if(pZone->MultiMapIndex() != SnappMultiMapIndex)
+	size_t Idx = 0;
+	auto SnapZoneQuads = [&](const CQuadZone *pZone) {
+		if(pZone->MultiMapIndex() != SnappMultiMapIndex)
+			return true;
+
+		for(const CQuadData &Quad : pZone->Quads())
+		{
+			if(Idx > m_vIds.size() - 1)
+				return false;
+
+			const int &Id = m_vIds[Idx];
+
+			vec2 Pos = Quad.m_aPoints[0];
+			if(NetworkClipped(GameServer(), SnappingClient, Pos))
 				continue;
 
-			for(const CQuadData &Quad : pZone->Quads())
-			{
-				if(Idx > m_vIds.size() - 1)
-					return;
-
-				const int &Id = m_vIds[Idx];
-
-				vec2 Pos = Quad.m_aPoints[0];
-				if(NetworkClipped(GameServer(), SnappingClient, Pos))
-					continue;
-
-				GameServer()->SnapLaserObject(CSnapContext(ClientVersion, Sixup, SnappingClient), Id, Pos, Pos, Server()->Tick(), -1, -1, -1, -1, LASERFLAG_NO_PREDICT);
-				Idx++;
-			}
+			GameServer()->SnapLaserObject(CSnapContext(ClientVersion, Sixup, SnappingClient), Id, Pos, Pos, Server()->Tick(), -1, -1, -1, -1, LASERFLAG_NO_PREDICT);
+			Idx++;
 		}
+		return true;
+	};
+
+	for(int i = 0; i < (int)EZoneType::Num; i++)
+	{
+		for(const CQuadZone *pZone : m_avpZones[i])
+		{
+			if(!SnapZoneQuads(pZone))
+				return;
+		}
+	}
+	for(const IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(!SnapZoneQuads(pMinigame))
+			return;
 	}
 
 	for(size_t MapIdx = 0; MapIdx < GameServer()->m_vMultiMaps.size(); MapIdx++)
@@ -233,19 +314,22 @@ void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDem
 
 void CZoneManager::SnapQuadIds()
 {
+	size_t NumQuads = 0;
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
-			{
-				std::optional<int> Id = Server()->SnapNewId();
-				if(Id.has_value())
-					m_vIds.emplace_back(Id.value());
-			}
-		}
+		for(const CQuadZone *pZone : m_avpZones[i])
+			NumQuads += pZone->Quads().size();
 	}
+	for(const IMinigame *pMinigame : m_vpMinigames)
+		NumQuads += pMinigame->Quads().size();
+
+	for(size_t Quad = 0; Quad < NumQuads; Quad++)
+	{
+		std::optional<int> Id = Server()->SnapNewId();
+		if(Id.has_value())
+			m_vIds.emplace_back(Id.value());
+	}
+
 	for(size_t Idx = 0; Idx < GameServer()->m_vMultiMaps.size(); Idx++)
 	{
 		for(size_t Quad = 0; Quad < Collision(Idx)->Quads().size(); Quad++)
@@ -259,68 +343,55 @@ void CZoneManager::SnapQuadIds()
 
 void CZoneManager::OnClientDrop(int ClientId, const char *pReason)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(pPlayer && pPlayer->m_pMinigame)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnClientDrop(ClientId, pReason);
-		}
+		pPlayer->m_pMinigame->OnPlayerLeave(ClientId);
+		pPlayer->SetMinigame(nullptr);
+	}
+
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		pMinigame->OnClientDrop(ClientId, pReason);
 	}
 }
 
 void CZoneManager::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnGameInfoSnap(ClientId, pGameInfoObj, pGameInfoEx);
-		}
+		pMinigame->OnGameInfoSnap(ClientId, pGameInfoObj, pGameInfoEx);
 	}
 }
 
 int CZoneManager::ShowOthers(CPlayer *pPlayer)
 {
 	int ShowOthers = -1;
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			int ZoneShowOthers = pZone->ShowOthers(pPlayer);
-			if(ZoneShowOthers != -1)
-				ShowOthers = ZoneShowOthers;
-		}
+		int ZoneShowOthers = pMinigame->ShowOthers(pPlayer);
+		if(ZoneShowOthers != -1)
+			ShowOthers = ZoneShowOthers;
 	}
 	return ShowOthers;
 }
 
 bool CZoneManager::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->CanUseCommand(pPlayer, pCommand))
-				return false;
-		}
+		if(!pMinigame->CanUseCommand(pPlayer, pCommand))
+			return false;
 	}
 	return true;
 }
 
 bool CZoneManager::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->CanSpectateId(pPlayer, pTarget))
-				return false;
-		}
+		if(!pMinigame->CanSpectateId(pPlayer, pTarget))
+			return false;
 	}
 	return true;
 }
@@ -328,102 +399,70 @@ bool CZoneManager::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 bool CZoneManager::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 {
 	bool Allowed = true;
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->CanSnapCharacter(pChr, SnappingClient))
-				Allowed = false;
-		}
+		if(!pMinigame->CanSnapCharacter(pChr, SnappingClient))
+			Allowed = false;
 	}
 	return Allowed;
 }
 bool CZoneManager::CanDropWeapon(CCharacter *pChr, int Weapon)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->CanDropWeapon(pChr, Weapon))
-				return false;
-		}
+		if(!pMinigame->CanDropWeapon(pChr, Weapon))
+			return false;
 	}
 	return true;
 }
 
 void CZoneManager::OnCharacterSpawn(int ClientId, vec2 Pos)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnCharacterSpawn(ClientId, Pos);
-		}
+		pMinigame->OnCharacterSpawn(ClientId, Pos);
 	}
 }
 void CZoneManager::OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnCharacterDie(ClientId, Killer, Weapon, SendKillMsg);
-		}
+		pMinigame->OnCharacterDie(ClientId, Killer, Weapon, SendKillMsg);
 	}
 }
 bool CZoneManager::OnCharacterFire(int ClientId, int Weapon)
 {
 	bool Allowed = true;
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->OnCharacterFire(ClientId, Weapon))
-				Allowed = false;
-		}
+		if(!pMinigame->OnCharacterFire(ClientId, Weapon))
+			Allowed = false;
 	}
 	return Allowed;
 }
 void CZoneManager::OnCharacterHammerHit(int ClientId, int Target)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnCharacterHammerHit(ClientId, Target);
-		}
+		pMinigame->OnCharacterHammerHit(ClientId, Target);
 	}
 }
 bool CZoneManager::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags)
 {
 	// Doesn't need bool Allowed, if SetMask returns false the ClientId wont be snapped
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(!pZone->SetMask(ClientId, MultiMapIdx, Team, ExceptId, Asker, VersionFlags, Flags))
-				return false;
-		}
+		if(!pMinigame->SetMask(ClientId, MultiMapIdx, Team, ExceptId, Asker, VersionFlags, Flags))
+			return false;
 	}
 	return true;
 }
 
 void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore)
 {
-	for(int i = 0; i < (int)EZoneType::Num; i++)
+	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		auto &vZones = m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			pZone->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore);
-		}
+		pMinigame->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore);
 	}
 }
 void CZoneManager::FreeQuadIds()
@@ -471,36 +510,30 @@ void CZoneManager::ConNumQuads(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	size_t Num = 0;
+	auto CountZone = [&](const CQuadZone *pZone) {
+		if(MultiMapIndex != -1 && pZone->MultiMapIndex() != (size_t)MultiMapIndex)
+			return;
+		Num += pZone->Quads().size();
+	};
+
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
-		auto &vZones = pSelf->m_avpZones[i];
-		for(IZone *pZone : vZones)
-		{
-			if(MultiMapIndex != -1 && (size_t)pZone->MultiMapIndex() != (size_t)MultiMapIndex)
-				continue;
-
-			for(size_t Quad = 0; Quad < pZone->Quads().size(); Quad++)
-			{
-				Num++;
-			}
-		}
+		for(const CQuadZone *pZone : pSelf->m_avpZones[i])
+			CountZone(pZone);
 	}
+	for(const IMinigame *pMinigame : pSelf->m_vpMinigames)
+		CountZone(pMinigame);
+
 	if(MultiMapIndex == -1)
 	{
 		for(size_t Idx = 0; Idx < pSelf->GameServer()->m_vMultiMaps.size(); Idx++)
 		{
-			for(size_t Quad = 0; Quad < pSelf->Collision(Idx)->Quads().size(); Quad++)
-			{
-				Num++;
-			}
+			Num += pSelf->Collision(Idx)->Quads().size();
 		}
 	}
 	else
 	{
-		for(size_t Quad = 0; Quad < pSelf->Collision(MultiMapIndex)->Quads().size(); Quad++)
-		{
-			Num++;
-		}
+		Num += pSelf->Collision(MultiMapIndex)->Quads().size();
 	}
 	log_info("zones", "%" PRIzu " total zones", Num);
 }

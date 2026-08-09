@@ -162,7 +162,7 @@ namespace
 
 		if(pZoneManager)
 		{
-			for(const IZone *pZone : pZoneManager->Zones(EZoneType::Unfreeze))
+			for(const CQuadZone *pZone : pZoneManager->Zones(EZoneType::Unfreeze))
 			{
 				for(const CQuadData &QuadData : pZone->Quads())
 				{

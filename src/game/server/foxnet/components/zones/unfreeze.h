@@ -10,11 +10,11 @@
 #include <utility>
 #include <vector>
 
-class CUnfreezeZone : public IZone
+class CUnfreezeZone : public CQuadZone
 {
 public:
 	CUnfreezeZone(CGameContext *pGameContext, size_t MapIndex) :
-		IZone(pGameContext, MapIndex) {}
+		CQuadZone(pGameContext, MapIndex) {}
 	void OnTick() override;
 };
 

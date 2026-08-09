@@ -5,9 +5,9 @@
 #include <engine/console.h>
 #include <engine/server.h>
 
+#include <game/collision.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-#include <game/collision.h>
 
 void CServerComponent::InitComponent(CGameContext *pGameServer)
 {

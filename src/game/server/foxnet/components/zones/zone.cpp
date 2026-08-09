@@ -20,7 +20,7 @@
 #include <vector>
 #include <random>
 
-void IZone::ReserveQuads(int AdditionalQuads)
+void CQuadZone::ReserveQuads(int AdditionalQuads)
 {
 	if(AdditionalQuads <= 0)
 		return;
@@ -29,14 +29,14 @@ void IZone::ReserveQuads(int AdditionalQuads)
 	m_vAnimatedQuadIndices.reserve(m_vAnimatedQuadIndices.size() + (size_t)AdditionalQuads);
 }
 
-void IZone::AddQuad(const CQuadData &QuadData)
+void CQuadZone::AddQuad(const CQuadData &QuadData)
 {
 	m_vQuads.push_back(QuadData);
 	if(QuadData.m_Animated)
 		m_vAnimatedQuadIndices.push_back((int)m_vQuads.size() - 1);
 }
 
-void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
+void CQuadZone::Init(CMapItemLayerQuads *pQuadsLayer)
 {
 	CQuad *pQuads = (CQuad *)GameServer()->Map(MultiMapIndex())->GetDataSwapped(pQuadsLayer->m_Data);
 	ReserveQuads(pQuadsLayer->m_NumQuads);
@@ -48,7 +48,7 @@ void IZone::Init(CMapItemLayerQuads *pQuadsLayer)
 	}
 }
 
-CCollision *IZone::Collision() const
+CCollision *CQuadZone::Collision() const
 {
 	if(MultiMapIndex() >= GameServer()->m_vMultiMaps.size())
 		return GameServer()->Collision();
@@ -56,12 +56,12 @@ CCollision *IZone::Collision() const
 	return GameServer()->Collision(MultiMapIndex());
 }
 
-IServer *IZone::Server() const
+IServer *CQuadZone::Server() const
 {
 	return GameServer()->Server();
 }
 
-bool IZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size) const
+bool CQuadZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size) const
 {
 	if(Size.x == 0 && Size.y == 0)
 	{
@@ -100,7 +100,7 @@ static vec2 RandomPointInTriangle(const vec2 &A, const vec2 &B, const vec2 &C)
 	return A * u + B * v + C * w;
 }
 
-vec2 IZone::RandomPointInQuad(const CQuadData &QuadData) const
+vec2 CQuadZone::RandomPointInQuad(const CQuadData &QuadData) const
 {
 	const vec2 &A = QuadData.m_aPoints[0];
 	const vec2 &B = QuadData.m_aPoints[1];
@@ -119,7 +119,7 @@ vec2 IZone::RandomPointInQuad(const CQuadData &QuadData) const
 	return RandomPointInTriangle(A, C, D);
 }
 
-void IZone::UpdateCache()
+void CQuadZone::UpdateCache()
 {
 	if(m_vAnimatedQuadIndices.empty())
 		return;

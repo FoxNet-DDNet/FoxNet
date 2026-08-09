@@ -47,7 +47,7 @@ void CHideAndSeekProjectile::Reset()
 
 CHideAndSeekZone *CHideAndSeekProjectile::Zone()
 {
-	return static_cast<CHideAndSeekZone *>(GameServer()->m_ZoneManager.FindZoneByMapIndex(EZoneType::HideNSeek, MultiMapIdx()));
+	return GameServer()->m_ZoneManager.FindMinigame<CHideAndSeekZone>(MultiMapIdx());
 }
 
 vec2 CHideAndSeekProjectile::FlightPos(float Time)

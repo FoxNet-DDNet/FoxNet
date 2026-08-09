@@ -1506,7 +1506,7 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(pPlayer->m_Area == EArea::Game)
+	if(pPlayer->m_pMinigame == nullptr)
 	{
 		pPlayer->SendChat("You need to be in an area where you can place a bet");
 		return;

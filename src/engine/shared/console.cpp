@@ -651,33 +651,33 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 								m_pfnTeeHistorianCommandCallback(ClientId, m_FlagMask, pCommand->m_pName, &Result, m_pTeeHistorianCommandUserdata);
 							}
 
-						if(Result.m_aSpecialVictim[0])
-						{
-							std::optional<std::vector<int>> Victims;
-							if(m_pfnGetVictimsCommandCallback)
+							if(Result.m_aSpecialVictim[0])
 							{
-								Victims = m_pfnGetVictimsCommandCallback(ClientId, Result.m_aSpecialVictim, m_pGetVictimsCommandUserData);
+								std::optional<std::vector<int>> Victims;
+								if(m_pfnGetVictimsCommandCallback)
+								{
+									Victims = m_pfnGetVictimsCommandCallback(ClientId, Result.m_aSpecialVictim, m_pGetVictimsCommandUserData);
+								}
+								else
+								{
+									Victims = std::nullopt;
+								}
+
+								if(!Victims.has_value())
+								{
+									log_error("console", "Invalid victim '%s'", Result.m_aSpecialVictim);
+									return;
+								}
+								for(const int VictimId : Victims.value())
+								{
+									Result.SetVictim(VictimId);
+									pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
+								}
 							}
 							else
 							{
-								Victims = std::nullopt;
-							}
-
-							if(!Victims.has_value())
-							{
-								log_error("console", "Invalid victim '%s'", Result.m_aSpecialVictim);
-								return;
-							}
-							for(const int VictimId : Victims.value())
-							{
-								Result.SetVictim(VictimId);
 								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 							}
-						}
-						else
-						{
-							pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
-						}
 
 							if(pCommand->m_Flags & CMDFLAG_TEST)
 								m_Cheated = true;
@@ -1262,7 +1262,7 @@ void CConsole::CResult::ResetVictim()
 	m_VictimId = std::nullopt;
 	m_aSpecialVictim[0] = '\0';
 
-		// <FoxNet
+	// <FoxNet
 	m_pVictimAddrStr = nullptr;
 	// FoxNet>
 }

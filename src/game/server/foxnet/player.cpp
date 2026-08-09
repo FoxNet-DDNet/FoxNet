@@ -212,9 +212,9 @@ void CPlayer::FoxNetReset()
 	m_SpiderHook = false;
 	m_Spazzing = false;
 
-	m_Area = EArea::Game;
-	m_LastArea = EArea::Game;
-	m_LastAreaMotd = 0;
+	m_pMinigame = nullptr;
+	m_pLastMinigame = nullptr;
+	m_LastMinigameMotd = 0;
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 
@@ -377,13 +377,13 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		else if(Acc()->m_Level % 250 == 0)
 		{
 			NewRewardMail(CReward(125000, 250000, 6, {
-									EItemRarity::Common,
-									EItemRarity::Uncommon,
-									EItemRarity::Rare,
-									EItemRarity::Epic,
-									EItemRarity::Mythic,
-									EItemRarity::Legendary,
-								}));
+									 EItemRarity::Common,
+									 EItemRarity::Uncommon,
+									 EItemRarity::Rare,
+									 EItemRarity::Epic,
+									 EItemRarity::Mythic,
+									 EItemRarity::Legendary,
+								 }));
 		}
 		else if(Acc()->m_Level % 100 == 0)
 		{
@@ -1203,9 +1203,9 @@ void CPlayer::SendChatFmt(const char *pFmt, ...)
 	SendChat(aBuf);
 }
 
-void CPlayer::SendAreaMotd(EArea Area)
+void CPlayer::SendMinigameMotd(IMinigame *pMinigame)
 {
-	if(m_LastArea == Area)
+	if(m_pLastMinigame == pMinigame)
 		return;
 
 	CCharacter *pChr = GetCharacter();
@@ -1214,68 +1214,31 @@ void CPlayer::SendAreaMotd(EArea Area)
 	if(pChr->Team() != TEAM_FLOCK)
 		return;
 
-	if(Area == EArea::Game)
+	if(!pMinigame)
 	{
 		ClearBroadcast();
 		return;
 	}
-	if(m_LastAreaMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastAreaMotd > 0)
+	if(m_LastMinigameMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastMinigameMotd > 0)
 		return;
-	m_LastAreaMotd = Server()->Tick();
+	m_LastMinigameMotd = Server()->Tick();
+
+	const char *pMotd = pMinigame->Motd();
+	if(pMotd[0] == '\0')
+		return;
 
 	CNetMsg_Sv_Motd Msg;
-	Msg.m_pMessage = "";
-	switch(Area)
-	{
-	case EArea::Roulette:
-		Msg.m_pMessage =
-			"\n"
-			"[Viewable in Server info tab]\n"
-			"\n"
-			"\n"
-			"--  Rᴏᴜʟᴇᴛᴛᴇ  --\n"
-			"\n"
-			"To start, write '/bet <amount>', after that you can select your bet type by hovering your mouse over any of the options below and hammering\n"
-			"\n"
-			"Pᴀʏᴏᴜᴛs:\n"
-			"Black | Red: 2x\n"
-			"3x dozens: 3x\n"
-			"Green [Zero]: 14x\n"
-			"\n"
-			"[Press Tab to hide]";
-		break;
-	case EArea::HideAndSeek:
-		Msg.m_pMessage =
-			"[Viewable in Server info tab]\n"
-			"\n"
-			"\n"
-			"--  Hɪᴅᴇ ᴀɴᴅ Sᴇᴇᴋ  --\n"
-			"\n"
-			"Sᴇᴇᴋᴇʀ:\n"
-			"Find all seekers and hammer them, shooting your gun will point to the closest hidden player.\n"
-			"\n"
-			"Hɪᴅᴇʀ:\n"
-			"Dark Areas completely hide you from the seeker, hammering will put you in ghost mode for a short time which allows you to run away\n"
-			"\n"
-			"Depending on the map, entities will or will not work\n"
-			"\n"
-			"[Press Tab to hide]";
-		break;
-	default:
-		break;
-	}
-	if(Msg.m_pMessage[0] == '\0')
-		return;
+	Msg.m_pMessage = pMotd;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, GetCid());
 	SendChat("How to view Area Info: Open Menu -> Server Info -> MOTD");
 }
 
-void CPlayer::SetArea(EArea Area)
+void CPlayer::SetMinigame(IMinigame *pMinigame)
 {
-	if(m_Area != EArea::Game)
-		m_LastArea = m_Area;
-	SendAreaMotd(Area);
-	m_Area = Area;
+	if(m_pMinigame)
+		m_pLastMinigame = m_pMinigame;
+	SendMinigameMotd(pMinigame);
+	m_pMinigame = pMinigame;
 }
 
 bool CPlayer::CanReport()
@@ -1498,7 +1461,6 @@ void CPlayer::HandleTelekinesis()
 	}
 }
 
-
 void CPlayer::DoTelekinesis()
 {
 	bool SpecPos = IsPaused() || GetTeam() == TEAM_SPECTATORS;
@@ -1545,7 +1507,6 @@ void CPlayer::DoTelekinesis()
 
 	m_VoteActionDelay = 125 * Server()->TickSpeed() / 1000;
 }
-
 
 void CPlayer::VoteAction(EVoteAction Action)
 {

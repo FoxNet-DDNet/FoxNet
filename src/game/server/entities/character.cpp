@@ -1271,12 +1271,13 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	}
 	case EDeathEffect::Meteor:
 	{
-		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death)); 
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death));
 		new CMeteor(GameWorld(), GetPlayer()->GetCid(), GetPos(), true);
 		break;
 	}
 	default:
-		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death)); break;
+		GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), CosmeticMask(EItemType::Death));
+		break;
 	}
 	// This only gets created if a player has cosmetics turned off
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCid(), OppositeCosmeticMask(EItemType::Death));
@@ -3129,8 +3130,6 @@ void CCharacter::OnDie(int Killer, int Weapon, bool SendKillMsg)
 	if(Acc()->m_LoggedIn)
 		Acc()->m_Deaths++;
 
-	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
-
 	if(g_Config.m_SvWeaponDrops && g_Config.m_SvWeaponDropsOnDeath)
 	{
 		for(int W = NUM_WEAPONS; W < NUM_EXTRA_WEAPONS; W++)
@@ -3223,7 +3222,6 @@ void CCharacter::FoxNetSpawn()
 	m_Snake.OnSpawn(this);
 	m_Ufo.OnSpawn(this);
 	m_PowerHookedId = -1;
-	GetPlayer()->SetArea(EArea::Game); // Reset area on spawn
 
 	bool ShouldSolo = true;
 	if(g_Config.m_SvSoloServer || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
@@ -3255,7 +3253,10 @@ void CCharacter::RouletteTileHandle()
 		return;
 	if(!IsAlive())
 		return;
-	if(GetPlayer()->m_Area != EArea::Roulette)
+
+	// Only the zone that owns the player right now, being on the same map is not enough
+	CRouletteZone *pRouletteZone = dynamic_cast<CRouletteZone *>(GetPlayer()->m_pMinigame);
+	if(!pRouletteZone)
 		return;
 
 	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
@@ -3266,10 +3267,6 @@ void CCharacter::RouletteTileHandle()
 	const int64_t Bet = GetPlayer()->m_BetAmount;
 
 	vec2 CursorPos = GetCursorPos();
-
-	CRouletteZone *pRouletteZone = static_cast<CRouletteZone *>(GameServer()->m_ZoneManager.FindZoneByMapIndex(EZoneType::Roulette, MultiMapIdx()));
-	if(!pRouletteZone)
-		return;
 
 	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
 	{
@@ -3493,7 +3490,7 @@ bool CCharacter::CanDropWeapon(int Type)
 	if(Type == WEAPON_NINJA)
 		return false;
 
-	if(GetPlayer()->m_Area != EArea::Game)
+	if(GetPlayer()->m_pMinigame != nullptr)
 		return false;
 
 	return true;

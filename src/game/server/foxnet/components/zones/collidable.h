@@ -16,7 +16,7 @@ enum CollidableZoneType
 	COLLZONE_UNHOOK,
 };
 
-class CCollidableZone : public IZone
+class CCollidableZone : public CQuadZone
 {
 	void CollidableImpl(CEntity *pEnt, const vec2 aPoints[4]);
 
@@ -29,7 +29,7 @@ public:
 	void Init(CMapItemLayerQuads *pQuadsLayer) override;
 
 	CCollidableZone(CGameContext *pGameContext, size_t MapIndex, uint8_t Type) :
-		IZone(pGameContext, MapIndex)
+		CQuadZone(pGameContext, MapIndex)
 	{
 		m_Type = Type;
 	}

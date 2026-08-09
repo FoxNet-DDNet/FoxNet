@@ -1,7 +1,7 @@
 #ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
 
-#include "zone.h"
+#include "minigame.h"
 
 #include <base/vmath.h>
 
@@ -20,7 +20,7 @@ public:
 	int m_BetOption = -1;
 };
 
-class CRouletteZone : public IZone
+class CRouletteZone : public IMinigame
 {
 	enum class ESubType : uint8_t
 	{
@@ -34,11 +34,14 @@ class CRouletteZone : public IZone
 
 public:
 	CRouletteZone(CGameContext *pGameContext, size_t MapIndex) :
-		IZone(pGameContext, MapIndex) {}
+		IMinigame(pGameContext, MapIndex) {}
 	const std::vector<CBetQuadData> &BetQuads() const { return m_vBetQuads; }
 
 	void Init(CMapItemLayerQuads *pQuadsLayer) override;
 	void OnTick() override;
+
+	[[nodiscard]] bool ContainsPlayer(const CPlayer *pPlayer) const override;
+	[[nodiscard]] const char *Motd() const override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H

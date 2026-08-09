@@ -667,7 +667,7 @@ void CServer::ReconnectClient(int ClientId)
 	log_info("server", "telling client to reconnect, cid=%d", ClientId);
 
 	CMsgPacker Msg(NETMSG_RECONNECT, true);
-    SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
 	if(GameServer()->PlayerExists(ClientId))
 	{
@@ -700,7 +700,7 @@ void CServer::RedirectClient(int ClientId, int Port)
 	Msg.AddInt(Port);
 	SendMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
 
-    if(GameServer()->PlayerExists(ClientId))
+	if(GameServer()->PlayerExists(ClientId))
 	{
 		GameServer()->OnClientDrop(ClientId, "redirect");
 	}

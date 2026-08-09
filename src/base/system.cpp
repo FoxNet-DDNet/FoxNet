@@ -38,10 +38,11 @@
 #endif
 #include "vmath.h"
 
+#include <engine/shared/config.h>
+
 #include <random>
 #include <string>
 #include <vector>
-#include <engine/shared/config.h>
 
 // <FoxNet
 char str_lowercase(char c)
@@ -522,4 +523,4 @@ const char *FormatServerInsntance(const char *pPrefix)
 		str_copy(aBuf, "", sizeof(aBuf));
 	return aBuf;
 }
-	// FoxNet>
+// FoxNet>

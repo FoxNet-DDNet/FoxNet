@@ -3,8 +3,6 @@
 
 #include <base/vmath.h>
 
-#include <generated/protocol.h>
-
 #include <game/collision.h>
 #include <game/layers.h>
 #include <game/quad_data.h>
@@ -16,14 +14,17 @@ class CGameContext;
 class IServer;
 class CQuad;
 class CMapItemLayerQuads;
-class CPlayer;
-class CCharacter;
 
-class IZone
+/*
+ * A passive, purely spatial zone: the quads of one map layer plus the queries that go with them.
+ * Zones of this kind only ever act from their own OnTick, they are never asked about players,
+ * snapping or commands, which keeps them out of every dispatch loop in CZoneManager.
+ * Anything that needs those hooks is a minigame, see minigame.h
+ */
+class CQuadZone
 {
 	CGameContext *m_pGameContext = nullptr;
 	size_t m_MultiMapIndex = 0;
-	// EZoneType m_QuadType = EZoneType::Num;
 	std::vector<int> m_vAnimatedQuadIndices;
 
 	class CAnimationTransformCache
@@ -53,30 +54,13 @@ public:
 	[[nodiscard]] vec2 RandomPointInQuad(const CQuadData &QuadData) const;
 	void UpdateCache();
 
-	IZone(CGameContext *pGameContext, size_t MapIndex, EZoneType QuadType = EZoneType::Num) :
-		m_pGameContext(pGameContext), m_MultiMapIndex(MapIndex) {} // , m_QuadType(QuadType) {}
+	CQuadZone(CGameContext *pGameContext, size_t MapIndex) :
+		m_pGameContext(pGameContext), m_MultiMapIndex(MapIndex) {}
 
 	virtual void Init(CMapItemLayerQuads *pQuadsLayer);
 	virtual void OnTick() {}
 
-	virtual void OnClientDrop(int ClientId, const char *pReason) {}
-
-	virtual void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) {}
-
-	virtual int ShowOthers(CPlayer *pPlayer) { return -1; }
-	virtual bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) { return true; }
-	virtual bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) { return true; }
-	virtual bool CanSnapCharacter(CCharacter *pChr, int SnappingClient) { return true; }
-	virtual bool CanDropWeapon(CCharacter *pChr, int Weapon) { return true; }
-	virtual void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) {}
-	virtual void OnCharacterSpawn(int ClientId, vec2 Pos) {}
-	virtual bool OnCharacterFire(int ClientId, int Weapon) { return true; }
-	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
-	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
-
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) {}
-
-	virtual ~IZone() = default;
+	virtual ~CQuadZone() = default;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONE_H

@@ -1,7 +1,7 @@
 #ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_HIDENSEEK_H
 #define GAME_SERVER_FOXNET_COMPONENTS_ZONES_HIDENSEEK_H
 
-#include "zone.h"
+#include "minigame.h"
 
 #include <base/vmath.h>
 
@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-class CHideAndSeekZone : public IZone
+class CHideAndSeekZone : public IMinigame
 {
 	enum class ESubType : uint8_t
 	{
@@ -128,9 +128,8 @@ class CHideAndSeekZone : public IZone
 	std::vector<int> m_vCandidateIds;
 	int UpdateCandidates();
 	bool IsCandidate(int ClientId) const;
-	// Everything this zone does is limited to players standing inside one of its area quads
-	bool IsInArea(int ClientId) const;
-	void LeaveArea(int ClientId);
+	// True when another client on this map shares the entering player's ip
+	bool HasSameIpInArea(int ClientId) const;
 	void SendChatCandidates(const char *pMessage);
 	vec2 GetRandomSpawnPos();
 	int GetClosestHiderId(int SeekerId);
@@ -141,10 +140,16 @@ class CHideAndSeekZone : public IZone
 
 public:
 	CHideAndSeekZone(CGameContext *pGameContext, size_t MapIndex) :
-		IZone(pGameContext, MapIndex) {}
+		IMinigame(pGameContext, MapIndex) {}
 
 	void Init(CMapItemLayerQuads *pQuadsLayer) override;
 	void OnTick() override;
+
+	[[nodiscard]] bool ContainsPlayer(const CPlayer *pPlayer) const override;
+	void OnPlayerEnter(int ClientId) override;
+	void OnPlayerLeave(int ClientId) override;
+	[[nodiscard]] const char *Motd() const override;
+	[[nodiscard]] bool HidesFinishTime() const override { return true; }
 
 	void OnClientDrop(int ClientId, const char *pReason) override;
 

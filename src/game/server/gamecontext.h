@@ -825,8 +825,8 @@ public:
 
 	std::deque<std::unique_ptr<CMultiMaps>> m_vMultiMaps; // index 0 is default map
 	std::vector<class CServerComponent *> m_vpComponents;
-private:
 
+private:
 	class CDamageIndEffects
 	{
 	public:

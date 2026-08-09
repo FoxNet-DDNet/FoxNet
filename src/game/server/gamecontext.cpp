@@ -3,6 +3,8 @@
 #include "gamecontext.h"
 
 #include "entities/character.h"
+#include "foxnet/components/zones/hidenseek.h"
+#include "foxnet/item_registry.h"
 #include "gamemodes/ddnet.h"
 #include "gamemodes/mod.h"
 #include "gameworld.h"
@@ -17,8 +19,8 @@
 #include <base/aio.h>
 #include <base/dbg.h>
 #include <base/fs.h>
-#include <base/io.h>
 #include <base/hash.h>
+#include <base/io.h>
 #include <base/log.h>
 #include <base/logger.h>
 #include <base/math.h>
@@ -67,8 +69,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "foxnet/components/zones/hidenseek.h"
-#include "foxnet/item_registry.h"
 
 static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize);
 static bool BuildRandomMapVoteCommand(const char *pBaseCommand, const char *pReason, char *pCommand, int CommandSize);
@@ -1171,8 +1171,8 @@ bool CGameContext::IsVetoEligible(int ClientId) const
 
 	const CCharacter *pCharacter = pPlayer->GetCharacter();
 	return (Server()->Tick() - pPlayer->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
-		(pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
-			(Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime);
+	       (pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
+		       (Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime);
 }
 
 void CGameContext::SendTuningParams(int ClientId, int Zone)

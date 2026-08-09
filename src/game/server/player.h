@@ -24,6 +24,7 @@
 class CAccountSession;
 
 class CHeadItem;
+class IMinigame;
 // FoxNet>
 
 class CCharacter;
@@ -41,14 +42,6 @@ enum class EVoteAction
 	No = -1,
 	None = 0,
 	Yes = 1,
-};
-
-enum class EArea
-{
-	Game,
-	Roulette,
-	HideAndSeek,
-	Num
 };
 
 enum HookTypes
@@ -480,11 +473,13 @@ private:
 public:
 	bool OpeningLootBox() const { return m_LootBoxData.m_Opening; }
 
-	EArea m_Area = EArea::Game;
-	EArea m_LastArea = EArea::Game;
-	int64_t m_LastAreaMotd = 0;
-	void SetArea(EArea Area);
-	void SendAreaMotd(EArea Area);
+	// The minigame that owns this player, nullptr while in the normal game. Set by CZoneManager only,
+	// which also clears it when the zone goes away, so it never dangles across a map reload.
+	IMinigame *m_pMinigame = nullptr;
+	IMinigame *m_pLastMinigame = nullptr;
+	int64_t m_LastMinigameMotd = 0;
+	void SetMinigame(IMinigame *pMinigame);
+	void SendMinigameMotd(IMinigame *pMinigame);
 
 	int64_t m_LastReport = 0;
 
