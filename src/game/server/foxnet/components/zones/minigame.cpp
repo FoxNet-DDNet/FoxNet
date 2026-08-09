@@ -14,21 +14,43 @@
 
 IMinigame::~IMinigame()
 {
-	// Players outlive the zones they stand in, a map reload must never leave one pointing at us
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-	{
-		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-		if(!pPlayer)
-			continue;
-
-		if(pPlayer->m_pMinigame == this)
-			pPlayer->m_pMinigame = nullptr;
-		if(pPlayer->m_pLastMinigame == this)
-			pPlayer->m_pLastMinigame = nullptr;
-	}
-
 	for(int Id : m_vSnapIds)
 		Server()->SnapFreeId(Id);
+}
+
+void IMinigame::SendMotd(int ClientId)
+{
+	if(!CheckClientId(ClientId))
+		return;
+	if(m_aSeenMotd[ClientId])
+		return;
+
+	const char *pMotd = Motd();
+	if(pMotd[0] == '\0')
+		return;
+
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	CCharacter *pChr = pPlayer->GetCharacter();
+	// A dead character here means OnPlayerEnter turned them away, they never really got in
+	if(!pChr || !pChr->IsAlive())
+		return;
+	if(pChr->Team() != TEAM_FLOCK)
+		return;
+
+	// One motd per player every 30 seconds, no matter how many zones they walk through
+	if(pPlayer->m_LastMotd + Server()->TickSpeed() * 30 > Server()->Tick() && pPlayer->m_LastMotd > 0)
+		return;
+
+	m_aSeenMotd[ClientId] = true;
+	pPlayer->m_LastMotd = Server()->Tick();
+
+	CNetMsg_Sv_Motd Msg;
+	Msg.m_pMessage = pMotd;
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientId);
+	pPlayer->SendChat("How to view Area Info: Open Menu -> Server Info -> MOTD");
 }
 
 int IMinigame::AllocSnapId()
@@ -48,20 +70,11 @@ void IMinigame::AddAreaQuad(const CQuadData &QuadData)
 	m_vAreaQuadIndices.push_back(m_vQuads.size() - 1);
 }
 
-bool IMinigame::IsInArea(int ClientId) const
-{
-	if(!CheckClientId(ClientId))
-		return false;
-
-	const CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	return pPlayer != nullptr && pPlayer->m_pMinigame == this;
-}
-
 bool IMinigame::ContainsPlayer(const CPlayer *pPlayer) const
 {
 	const CCharacter *pChr = pPlayer->GetCharacter();
 	if(!pChr || !pChr->IsAlive())
-		return pPlayer->m_pMinigame == this; // nothing to test against, leave ownership as it is
+		return IsInArea(pPlayer->GetCid()); // nothing to test against, leave ownership as it is
 
 	for(size_t Index : m_vAreaQuadIndices)
 	{

@@ -3253,13 +3253,12 @@ void CCharacter::RouletteTileHandle()
 	if(!IsAlive())
 		return;
 
-	// Only the zone that owns the player right now, being on the same map is not enough
-	CRouletteZone *pRouletteZone = dynamic_cast<CRouletteZone *>(GetPlayer()->m_pMinigame);
-	if(!pRouletteZone)
+	// Has to be the zone holding the player right now, being on the same map is not enough
+	CRouletteZone *pRouletteZone = GameServer()->m_ZoneManager.FindMinigame<CRouletteZone>(MultiMapIdx());
+	if(!pRouletteZone || !pRouletteZone->IsInArea(GetPlayer()->GetCid()))
 		return;
 
 	const int ClientId = GetPlayer()->GetCid();
-	const int64_t Bet = GetPlayer()->m_BetAmount;
 
 	vec2 CursorPos = GetCursorPos();
 
@@ -3269,7 +3268,7 @@ void CCharacter::RouletteTileHandle()
 		if(!InsideQuadrilateral(CursorPos, aPoints))
 			continue;
 
-		if(pRouletteZone->AddClient(ClientId, Bet, RouletteOptions[QuadData.m_BetOption]))
+		if(pRouletteZone->AddClient(ClientId, RouletteOptions[QuadData.m_BetOption]))
 		{
 			GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
 			return;
@@ -3485,7 +3484,7 @@ bool CCharacter::CanDropWeapon(int Type)
 	if(Type == WEAPON_NINJA)
 		return false;
 
-	if(GetPlayer()->m_pMinigame != nullptr)
+	if(GameServer()->m_ZoneManager.InMinigame(GetPlayer()->GetCid()))
 		return false;
 
 	return true;

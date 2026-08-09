@@ -124,7 +124,7 @@ bool CRouletteZone::ContainsPlayer(const CPlayer *pPlayer) const
 	const CCharacter *pChr = pPlayer->GetCharacter();
 	// Being frozen never moves a player in or out, they cant act on the table either way
 	if(pChr && pChr->IsAlive() && pChr->Core()->m_IsInFreeze)
-		return pPlayer->m_pMinigame == this;
+		return IsInArea(pPlayer->GetCid());
 
 	return IMinigame::ContainsPlayer(pPlayer);
 }
@@ -192,11 +192,13 @@ int CRouletteZone::AmountOfCloseClients() const
 	return Count;
 }
 
-bool CRouletteZone::AddClient(int ClientId, int64_t BetAmount, const char *pBetOption)
+bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
 {
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer)
 		return false;
+
+	const int64_t BetAmount = pPlayer->m_Wager;
 
 	if(!m_HasWheel)
 		return false;
@@ -252,7 +254,7 @@ bool CRouletteZone::AddClient(int ClientId, int64_t BetAmount, const char *pBetO
 	SetState(EState::Preparing);
 	pPlayer->TakeMoney(BetAmount, true);
 
-	m_aClients[ClientId].m_BetAmount = BetAmount;
+	m_aClients[ClientId].m_UsedWager = BetAmount;
 	str_copy(m_aClients[ClientId].m_aBetOption, pBetOption);
 	m_aClients[ClientId].m_Active = true;
 
@@ -392,10 +394,10 @@ void CRouletteZone::ClearClientBet(int ClientId, bool Refund)
 		{
 			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 			if(pPlayer && pPlayer->Acc()->m_LoggedIn)
-				pPlayer->GiveMoney(m_aClients[ClientId].m_BetAmount, false, true);
+				pPlayer->GiveMoney(m_aClients[ClientId].m_UsedWager, false, true);
 		}
 
-		m_TotalWager -= m_aClients[ClientId].m_BetAmount;
+		m_TotalWager -= m_aClients[ClientId].m_UsedWager;
 		if(m_TotalWager < 0)
 			m_TotalWager = 0;
 
@@ -403,7 +405,7 @@ void CRouletteZone::ClearClientBet(int ClientId, bool Refund)
 			m_Betters--;
 	}
 
-	m_aClients[ClientId].m_BetAmount = -1;
+	m_aClients[ClientId].m_UsedWager = -1;
 	m_aClients[ClientId].m_aBetOption[0] = '\0';
 	m_aClients[ClientId].m_Active = false;
 }
@@ -420,7 +422,7 @@ void CRouletteZone::EvaluateBet(int ClientId, bool Silent)
 	const int WinningField = m_EndingField;
 	const int Color = s_aFields[WinningField].m_Color;
 	const int Number = s_aFields[WinningField].m_Number;
-	const int64_t Amount = m_aClients[ClientId].m_BetAmount;
+	const int64_t Amount = m_aClients[ClientId].m_UsedWager;
 
 	float PayoutMultiplier = 0;
 	if(str_comp(m_aClients[ClientId].m_aBetOption, "Black") == 0 && Color == COLOR_BLACK)
@@ -526,10 +528,10 @@ void CRouletteZone::SendBroadcast(int ClientId)
 
 		if(m_State == EState::Idle)
 		{
-			if(pPlayer->m_BetAmount <= 0)
+			if(pPlayer->m_Wager <= 0)
 				str_copy(aBuf, "Wager: Nothing");
 			else
-				str_format(aBuf, sizeof(aBuf), "Wager: %" PRId64, pPlayer->m_BetAmount);
+				str_format(aBuf, sizeof(aBuf), "Wager: %" PRId64, pPlayer->m_Wager);
 			Messages.push_back(aBuf);
 		}
 	}

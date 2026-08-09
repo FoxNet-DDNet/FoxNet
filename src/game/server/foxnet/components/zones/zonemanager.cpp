@@ -158,8 +158,8 @@ void CZoneManager::OnMapUnload(size_t MapIdx)
 			vZones.end());
 	}
 
-	// Every enter is paired with a leave, including this one: the players are still ours until the
-	// zone is gone, and ~IMinigame is too late to dispatch a virtual to the derived minigame
+	// The membership itself dies with the zone, but its side effects do not: released solos, tune
+	// overrides and broadcasts all have to be undone while the minigame is still there to do it
 	for(IMinigame *pMinigame : m_vpMinigames)
 	{
 		if(pMinigame->MultiMapIndex() != MapIdx)
@@ -170,12 +170,10 @@ void CZoneManager::OnMapUnload(size_t MapIdx)
 			if(!pMinigame->IsInArea(ClientId))
 				continue;
 
-			pMinigame->OnPlayerLeave(ClientId);
-			GameServer()->m_apPlayers[ClientId]->SetMinigame(nullptr);
+			DropPlayer(pMinigame, ClientId);
 		}
 	}
 
-	// ~IMinigame drops any player that still points at it
 	m_vpMinigames.erase(std::remove_if(m_vpMinigames.begin(), m_vpMinigames.end(), [MapIdx](IMinigame *pMinigame) {
 		if(pMinigame->MultiMapIndex() == MapIdx)
 		{
@@ -213,17 +211,31 @@ void CZoneManager::UpdateMembership()
 			break; // first match wins, overlapping areas are a map error and resolve the same way every tick
 		}
 
-		IMinigame *pCurrent = pPlayer->m_pMinigame;
+		IMinigame *pCurrent = MinigameOf(ClientId);
 		if(pWanted == pCurrent)
 			continue;
 
 		// Leave before enter, so a minigame never sees its state torn down by the one taking over
 		if(pCurrent)
-			pCurrent->OnPlayerLeave(ClientId);
-		pPlayer->SetMinigame(pWanted);
+			DropPlayer(pCurrent, ClientId);
+
 		if(pWanted)
+		{
+			pWanted->SetInArea(ClientId, true);
 			pWanted->OnPlayerEnter(ClientId);
+			pWanted->SendMotd(ClientId);
+		}
 	}
+}
+
+void CZoneManager::DropPlayer(IMinigame *pMinigame, int ClientId)
+{
+	pMinigame->SetInArea(ClientId, false);
+	pMinigame->OnPlayerLeave(ClientId);
+
+	// A minigame owns the broadcast while it holds a player, it does not get to keep it afterwards
+	if(CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId])
+		pPlayer->ClearBroadcast();
 }
 
 void CZoneManager::OnTick()
@@ -351,17 +363,37 @@ void CZoneManager::SnapQuadIds()
 
 void CZoneManager::OnClientDrop(int ClientId, const char *pReason)
 {
-	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	if(pPlayer && pPlayer->m_pMinigame)
-	{
-		pPlayer->m_pMinigame->OnPlayerLeave(ClientId);
-		pPlayer->SetMinigame(nullptr);
-	}
+	if(IMinigame *pCurrent = MinigameOf(ClientId))
+		DropPlayer(pCurrent, ClientId);
 
 	for(IMinigame *pMinigame : m_vpMinigames)
 	{
+		// The slot is about to be handed to somebody else, who has seen none of this
+		pMinigame->ResetClientMotd(ClientId);
 		pMinigame->OnClientDrop(ClientId, pReason);
 	}
+}
+
+IMinigame *CZoneManager::MinigameOf(int ClientId) const
+{
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(pMinigame->IsInArea(ClientId))
+			return pMinigame;
+	}
+	return nullptr;
+}
+
+bool CZoneManager::HidesFinishTime(int ClientId, int SnappingClient) const
+{
+	for(const IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(!pMinigame->HidesFinishTime())
+			continue;
+		if(pMinigame->IsInArea(ClientId) && pMinigame->IsInArea(SnappingClient))
+			return true;
+	}
+	return false;
 }
 
 void CZoneManager::OnClientReset(int ClientId, size_t MultiMapIdx)

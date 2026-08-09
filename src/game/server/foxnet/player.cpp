@@ -78,8 +78,8 @@ void CPlayer::FoxNetTick()
 	if(Server()->Tick() % (Server()->TickSpeed() * 5) == 0)
 		ExpireItems();
 
-	if(m_BetAmount > Acc()->m_Money)
-		m_BetAmount = -1; // Invalid bet, reset it
+	if(m_Wager > Acc()->m_Money)
+		m_Wager = -1; // Invalid bet, reset it
 
 	if(Acc()->m_LoggedIn)
 	{
@@ -211,9 +211,7 @@ void CPlayer::FoxNetReset()
 	m_SpiderHook = false;
 	m_Spazzing = false;
 
-	m_pMinigame = nullptr;
-	m_pLastMinigame = nullptr;
-	m_LastMinigameMotd = 0;
+	m_LastMotd = 0;
 
 	Repredict(10); // Default PredMargin set by DDNet Client
 
@@ -1196,44 +1194,6 @@ void CPlayer::SendChatFmt(const char *pFmt, ...)
 	str_format_v(aBuf, sizeof(aBuf), pFmt, args);
 	va_end(args);
 	SendChat(aBuf);
-}
-
-void CPlayer::SendMinigameMotd(IMinigame *pMinigame)
-{
-	if(m_pLastMinigame == pMinigame)
-		return;
-
-	CCharacter *pChr = GetCharacter();
-	if(!pChr)
-		return;
-	if(pChr->Team() != TEAM_FLOCK)
-		return;
-
-	if(!pMinigame)
-	{
-		ClearBroadcast();
-		return;
-	}
-	if(m_LastMinigameMotd + Server()->TickSpeed() * 30 > Server()->Tick() && m_LastMinigameMotd > 0)
-		return;
-	m_LastMinigameMotd = Server()->Tick();
-
-	const char *pMotd = pMinigame->Motd();
-	if(pMotd[0] == '\0')
-		return;
-
-	CNetMsg_Sv_Motd Msg;
-	Msg.m_pMessage = pMotd;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, GetCid());
-	SendChat("How to view Area Info: Open Menu -> Server Info -> MOTD");
-}
-
-void CPlayer::SetMinigame(IMinigame *pMinigame)
-{
-	if(m_pMinigame)
-		m_pLastMinigame = m_pMinigame;
-	SendMinigameMotd(pMinigame);
-	m_pMinigame = pMinigame;
 }
 
 bool CPlayer::CanReport()

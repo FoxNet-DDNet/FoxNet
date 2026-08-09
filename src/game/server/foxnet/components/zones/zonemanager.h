@@ -40,6 +40,10 @@ class CZoneManager : public CServerComponent
 	 * Decides which minigame owns each player this tick and runs the enter/leave handover
 	 */
 	void UpdateMembership();
+	/*
+	 * Takes a player out of a minigame and undoes what holding them did
+	 */
+	void DropPlayer(IMinigame *pMinigame, int ClientId);
 
 	bool m_DebugSnappingQuads = false;
 	static void ConDebugSnapQuads(IConsole::IResult *pResult, void *pUserData);
@@ -83,6 +87,17 @@ public:
 	 */
 	void OnClientReset(int ClientId, size_t MultiMapIdx);
 	bool CanUseMoney(CPlayer *pPlayer);
+
+	/*
+	 * The minigame that owns the client right now, nullptr while in the normal game
+	 */
+	[[nodiscard]] IMinigame *MinigameOf(int ClientId) const;
+	[[nodiscard]] bool InMinigame(int ClientId) const { return MinigameOf(ClientId) != nullptr; }
+
+	/*
+	 * True when both clients are in the same minigame and it blanks race times, see CPlayer::Snap
+	 */
+	[[nodiscard]] bool HidesFinishTime(int ClientId, int SnappingClient) const;
 
 	int ShowOthers(CPlayer *pPlayer) override;
 	bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) override;

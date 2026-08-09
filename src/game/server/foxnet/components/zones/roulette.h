@@ -69,7 +69,7 @@ class CRouletteZone : public IMinigame
 	class CClientData
 	{
 	public:
-		int64_t m_BetAmount = 0;
+		int64_t m_UsedWager = 0;
 		char m_aBetOption[24] = "";
 		bool m_Active = false;
 	};
@@ -128,8 +128,12 @@ public:
 	void OnClientReset(int ClientId) override;
 	bool CanUseMoney(CPlayer *pPlayer) override;
 
+	// A table with no wheel takes nothing, that map is broken
+	[[nodiscard]] bool TakesWager() const override { return m_HasWheel; }
+
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
-	bool AddClient(int ClientId, int64_t BetAmount, const char *pBetOption);
+	// Bets whatever /bet set aside
+	bool AddClient(int ClientId, const char *pBetOption);
 
 	int EndingField() const { return m_EndingField; }
 	int FieldNumber(int Field) const { return (Field >= 0 && Field < MAX_FIELDS) ? s_aFields[Field].m_Number : -1; }

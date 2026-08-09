@@ -24,7 +24,6 @@
 class CAccountSession;
 
 class CHeadItem;
-class IMinigame;
 // FoxNet>
 
 class CCharacter;
@@ -473,20 +472,14 @@ private:
 public:
 	bool OpeningLootBox() const { return m_LootBoxData.m_Opening; }
 
-	// The minigame that owns this player, nullptr while in the normal game. Set by CZoneManager only,
-	// which also clears it when the zone goes away, so it never dangles across a map reload.
-	IMinigame *m_pMinigame = nullptr;
-	IMinigame *m_pLastMinigame = nullptr;
-	int64_t m_LastMinigameMotd = 0;
-	void SetMinigame(IMinigame *pMinigame);
-	void SendMinigameMotd(IMinigame *pMinigame);
+	// Rate limits motds so walking through several areas cannot spam one player
+	int64_t m_LastMotd = 0;
 
 	int64_t m_LastReport = 0;
 
 	bool CanReport();
 
-	int64_t m_BetAmount = -1;
-	int64_t m_LastBet = 0;
+	int64_t m_Wager = -1;
 
 	bool m_WeaponIndicator = true;
 

@@ -930,7 +930,8 @@ void CGameContext::OnLogout(int ClientId)
 	if(!pPlayer)
 		return;
 
-	m_ZoneManager.OnClientReset(ClientId, pPlayer->MultiMapIdx());
+	// Stakes are settled in CAccounts::Logout, before the account is written out. Doing it here would
+	// be too late: by this point m_Money has already been copied into the save.
 
 	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		pPlayer->SetTeam(TEAM_SPECTATORS, false);
@@ -1298,6 +1299,11 @@ void CGameContext::OnPreReload()
 		CPlayer *pPlayer = m_apPlayers[i];
 		if(!pPlayer)
 			continue;
+
+		// A reload never reaches CAccounts::Logout, the account is carried across in memory by
+		// OnClientDataPersist instead. That copy happens right after this, and the zones are not torn
+		// down until later still, so anything staked has to be settled here or it is copied away.
+		m_ZoneManager.OnClientReset(i, pPlayer->MultiMapIdx());
 
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);

@@ -5,6 +5,8 @@
 
 #include <base/vmath.h>
 
+#include <engine/shared/protocol.h>
+
 #include <generated/protocol.h>
 
 #include <game/quad_data.h>
@@ -28,8 +30,23 @@ class CCharacter;
  */
 class IMinigame : public CQuadZone
 {
+	friend class CZoneManager;
+
 	std::vector<size_t> m_vAreaQuadIndices;
 	std::vector<int> m_vSnapIds;
+
+	/*
+	 * Who this minigame currently owns. Kept here rather than as a pointer on CPlayer so it cannot
+	 * outlive the zone: when the map unloads the membership goes with it, nothing to clean up.
+	 * Only CZoneManager writes these, it owns the decision.
+	 */
+	bool m_aInArea[MAX_CLIENTS] = {false};
+	bool m_aSeenMotd[MAX_CLIENTS] = {false};
+
+	void SetInArea(int ClientId, bool InArea) { m_aInArea[ClientId] = InArea; }
+	void SendMotd(int ClientId);
+	// Client ids get reused, a reconnecting player has not seen anything
+	void ResetClientMotd(int ClientId) { m_aSeenMotd[ClientId] = false; }
 
 protected:
 	/*
@@ -54,7 +71,8 @@ public:
 	/*
 	 * True while this minigame owns the player. This is the membership test every hook should use.
 	 */
-	[[nodiscard]] bool IsInArea(int ClientId) const;
+	// Not CheckClientId: gamecontext.h includes us back through the zone manager
+	[[nodiscard]] bool IsInArea(int ClientId) const { return ClientId >= 0 && ClientId < MAX_CLIENTS && m_aInArea[ClientId]; }
 
 	/*
 	 * Decides whether the player belongs to this minigame this tick. The default is "standing inside one
@@ -100,6 +118,12 @@ public:
 	 * Return false to stop the player from spending money elsewhere, e.g. while it is on the table
 	 */
 	virtual bool CanUseMoney(CPlayer *pPlayer) { return true; }
+
+	/*
+	 * Whether /bet means anything here. Standing in some area is not enough, the area has to be one
+	 * that actually takes a wager.
+	 */
+	[[nodiscard]] virtual bool TakesWager() const { return false; }
 
 	virtual void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) {}
 

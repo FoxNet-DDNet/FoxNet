@@ -719,6 +719,11 @@ bool CAccounts::Logout(int ClientId, bool WaitForCompletion)
 {
 	if(GameServer()->m_aAccounts[ClientId].m_LoggedIn)
 	{
+		// Settle first. OnLogout() copies m_Money straight into the write request, so a refund or
+		// payout made after it lands in an account that is never saved and is wiped two lines down.
+		if(CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId])
+			GameServer()->m_ZoneManager.OnClientReset(ClientId, pPlayer->MultiMapIdx());
+
 		OnLogout(ClientId, GameServer()->m_aAccounts[ClientId], WaitForCompletion);
 		GameServer()->OnLogout(ClientId);
 		GameServer()->m_aAccounts[ClientId] = CAccountSession();

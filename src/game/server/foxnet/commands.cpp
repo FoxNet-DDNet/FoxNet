@@ -1506,7 +1506,8 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if(pPlayer->m_pMinigame == nullptr)
+	IMinigame *pMinigame = pSelf->m_ZoneManager.MinigameOf(pPlayer->GetCid());
+	if(!pMinigame || !pMinigame->TakesWager())
 	{
 		pPlayer->SendChat("You need to be in an area where you can place a bet");
 		return;
@@ -1522,16 +1523,15 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 
 	if(Amount <= 0)
 		return;
-	if(pPlayer->m_BetAmount == Amount)
+	if(pPlayer->m_Wager == Amount)
 		return;
 
-	if(pPlayer->m_BetAmount <= 0)
+	if(pPlayer->m_Wager <= 0)
 		pPlayer->SendChatFmt("You wagered %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 	else
 		pPlayer->SendChatFmt("You changed your wager to %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
 
-	pPlayer->m_BetAmount = Amount;
-	pPlayer->m_LastBet = pSelf->Server()->Tick();
+	pPlayer->m_Wager = Amount;
 }
 
 void CGameContext::ConNextRouletteTile(IConsole::IResult *pResult, void *pUserData)
