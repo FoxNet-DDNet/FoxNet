@@ -69,6 +69,7 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			{
 				pGroupZone = new CHideAndSeekZone(GameServer(), MultiMapIdx);
 				m_avpZones[(int)EZoneType::HideNSeek].push_back(pGroupZone);
+				log_info("hide-n-seek", "Hide and Seek created on map %" PRIzu ", tune zones %d-%d", MultiMapIdx, CHideAndSeekZone::TuneZoneBase(), CHideAndSeekZone::TuneZoneBase() + 3);
 			}
 		}
 

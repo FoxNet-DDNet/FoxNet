@@ -95,6 +95,10 @@ public:
 	bool m_CreatedEntities = false;
 	bool m_LoadedSwitchers = false;
 
+	// Set when the map had to be rewritten with generated settings, this is the file the clients
+	// have to be sent. Empty means the map on disk can be sent as it is.
+	char m_aRewrittenPath[IO_MAX_PATH_LENGTH] = "";
+
 	// Needs GameContext and MultiMapIndex of this map to be initialized
 	void InitTuning(CGameContext *pGameContext, size_t MultiMapIndex);
 
@@ -405,6 +409,12 @@ public:
 	char m_aDeleteTempfile[128];
 	void DeleteTempfile();
 
+	// Rewrites the map at pMapPath into a temp file whose settings are pReplacement (or the ones the
+	// map was saved with) plus the settings we generate for it, and points pMapPath at that file.
+	// Leaves pTempPath empty when the map already is what it should be.
+	bool RewriteMapSettings(const char *pMapName, char *pMapPath, int MapPathSize, const std::vector<std::string> *pReplacement, char *pTempPath, int TempPathSize);
+	void DeleteRewrittenMap(CMultiMaps *pMultiMap);
+
 	enum
 	{
 		VOTE_ENFORCE_UNKNOWN = 0,
@@ -469,6 +479,7 @@ public:
 	void RegisterDDRaceCommands();
 	void RegisterChatCommands();
 	[[nodiscard]] bool OnMapChange(char *pNewMapName, int MapNameSize) override;
+	void MapPath(const char *pMapName, char *pPath, int PathSize) override;
 	void OnShutdown(void *pPersistentData) override;
 
 	void OnTick() override;

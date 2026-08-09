@@ -64,8 +64,10 @@
 #include <algorithm>
 #include <iterator>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
+#include "foxnet/components/zones/hidenseek.h"
 #include "foxnet/item_registry.h"
 
 static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxStars, char *pSize, int SizeBufferSize);
@@ -4931,39 +4933,123 @@ void CGameContext::DeleteTempfile()
 	}
 }
 
-bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
+// Reads the settings a map was saved with, one console line per entry
+static void ReadMapSettings(CDataFileReader &Reader, std::vector<std::string> &vSettings)
 {
-	char aConfig[IO_MAX_PATH_LENGTH];
-	str_format(aConfig, sizeof(aConfig), "maps/%s.cfg", g_Config.m_SvMap);
-
-	CLineReader LineReader;
-	if(!LineReader.OpenFile(Storage()->OpenFile(aConfig, IOFLAG_READ, IStorage::TYPE_ALL)))
+	int Start, Num;
+	Reader.GetType(MAPITEMTYPE_INFO, &Start, &Num);
+	for(int i = Start; i < Start + Num; i++)
 	{
-		// No map-specific config, just return.
-		return true;
+		int ItemId;
+		const int ItemSize = Reader.GetItemSize(i);
+		const CMapItemInfoSettings *pItem = (const CMapItemInfoSettings *)Reader.GetItem(i, nullptr, &ItemId);
+		if(!pItem || ItemId != 0)
+			continue;
+		if(ItemSize < (int)sizeof(CMapItemInfoSettings) || pItem->m_Settings <= -1)
+			break;
+
+		const int Size = Reader.GetDataSize(pItem->m_Settings);
+		const char *pSettings = (const char *)Reader.GetData(pItem->m_Settings);
+		if(!pSettings)
+			break;
+
+		const char *pNext = pSettings;
+		while(pNext < pSettings + Size)
+		{
+			vSettings.emplace_back(pNext);
+			pNext += str_length(pNext) + 1;
+		}
+		Reader.UnloadData(pItem->m_Settings);
+		break;
+	}
+}
+
+// Starts the block of settings the server writes into a map. Everything from this line to the end
+// belongs to us and gets replaced whenever the map is written again.
+constexpr static const char *GeneratedSettingsMarker = "# custom config added by server:";
+
+// Some things the server does at runtime need tune zones, and a client can only predict a tune zone
+// that the map it loaded declares. Maps hosting one of those get the matching settings generated
+// into them before they are sent, so nobody has to keep them in the map by hand.
+static bool BuildGeneratedMapSettings(CDataFileReader &Reader, std::vector<std::string> &vSettings)
+{
+	bool HasHideAndSeek = false;
+
+	int Start, Num;
+	Reader.GetType(MAPITEMTYPE_GROUP, &Start, &Num);
+	for(int i = Start; i < Start + Num; i++)
+	{
+		const CMapItemGroup *pGroup = (const CMapItemGroup *)Reader.GetItem(i);
+		if(!pGroup || Reader.GetItemSize(i) < (int)sizeof(CMapItemGroup))
+			continue; // too old to have a name
+
+		char aGroupName[16];
+		IntsToStr(pGroup->m_aName, std::size(pGroup->m_aName), aGroupName, std::size(aGroupName));
+		if(!str_comp(aGroupName, "#HideNSeek"))
+			HasHideAndSeek = true;
 	}
 
+	if(!HasHideAndSeek)
+		return false;
+
+	vSettings.emplace_back(GeneratedSettingsMarker);
+	if(HasHideAndSeek)
+		CHideAndSeekZone::BuildTuneZoneSettings(vSettings);
+
+	return true;
+}
+
+bool CGameContext::RewriteMapSettings(const char *pMapName, char *pMapPath, int MapPathSize, const std::vector<std::string> *pReplacement, char *pTempPath, int TempPathSize)
+{
+	pTempPath[0] = 0;
+
 	CDataFileReader Reader;
-	if(!Reader.Open(g_Config.m_SvMap, Storage(), pNewMapName, IStorage::TYPE_ALL))
+	if(!Reader.Open(pMapName, Storage(), pMapPath, IStorage::TYPE_ALL))
 	{
-		log_error("mapchange", "Failed to import settings from '%s': failed to open map '%s' for reading", aConfig, pNewMapName);
+		log_error("mapchange", "Failed to open map '%s' for reading", pMapPath);
 		return false;
 	}
 
-	std::vector<const char *> vpLines;
-	int TotalLength = 0;
-	while(const char *pLine = LineReader.Get())
+	std::vector<std::string> vOldSettings;
+	ReadMapSettings(Reader, vOldSettings);
+
+	// A map config replaces the settings the map was saved with, generated ones are appended on top
+	std::vector<std::string> vSettings = pReplacement ? *pReplacement : vOldSettings;
+
+	// Drop what an earlier run appended, it gets written again right below
+	const auto MarkerIt = std::find(vSettings.begin(), vSettings.end(), GeneratedSettingsMarker);
+	if(MarkerIt != vSettings.end())
 	{
-		vpLines.push_back(pLine);
-		TotalLength += str_length(pLine) + 1;
+		vSettings.erase(MarkerIt, vSettings.end());
+		while(!vSettings.empty() && vSettings.back().empty())
+			vSettings.pop_back(); // the blank line in front of the block was ours as well
 	}
+
+	std::vector<std::string> vGenerated;
+	if(BuildGeneratedMapSettings(Reader, vGenerated))
+	{
+		if(!vSettings.empty())
+			vSettings.emplace_back(""); // keep the generated block apart from the maps own settings
+		vSettings.insert(vSettings.end(), vGenerated.begin(), vGenerated.end());
+	}
+
+	if(vSettings == vOldSettings)
+	{
+		// Nothing to change, the map can be used as it is
+		Reader.Close();
+		return true;
+	}
+
+	int TotalLength = 0;
+	for(const std::string &Line : vSettings)
+		TotalLength += (int)Line.length() + 1;
 
 	char *pSettings = (char *)malloc(std::max(1, TotalLength));
 	int Offset = 0;
-	for(const char *pLine : vpLines)
+	for(const std::string &Line : vSettings)
 	{
-		int Length = str_length(pLine) + 1;
-		mem_copy(pSettings + Offset, pLine, Length);
+		const int Length = (int)Line.length() + 1;
+		mem_copy(pSettings + Offset, Line.c_str(), Length);
 		Offset += Length;
 	}
 
@@ -4987,14 +5073,6 @@ bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 				if(pInfo->m_Settings > -1)
 				{
 					SettingsIndex = pInfo->m_Settings;
-					char *pMapSettings = (char *)Reader.GetData(SettingsIndex);
-					int DataSize = Reader.GetDataSize(SettingsIndex);
-					if(DataSize == TotalLength && mem_comp(pSettings, pMapSettings, DataSize) == 0)
-					{
-						// Configs coincide, no need to update map.
-						free(pSettings);
-						return true;
-					}
 					Reader.UnloadData(pInfo->m_Settings);
 				}
 				else
@@ -5045,15 +5123,67 @@ bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
 	Reader.Close();
 
 	char aTemp[IO_MAX_PATH_LENGTH];
-	if(!Writer.Open(Storage(), IStorage::FormatTmpPath(aTemp, sizeof(aTemp), pNewMapName)))
+	if(!Writer.Open(Storage(), IStorage::FormatTmpPath(aTemp, sizeof(aTemp), pMapPath)))
 	{
-		log_error("mapchange", "Failed to import settings from '%s': failed to open map '%s' for writing", aConfig, aTemp);
+		log_error("mapchange", "Failed to open map '%s' for writing", aTemp);
 		return false;
 	}
 	Writer.Finish();
-	log_info("mapchange", "Imported settings from '%s' into '%s'", aConfig, aTemp);
+	log_info("mapchange", "Wrote settings of '%s' into '%s'", pMapName, aTemp);
 
-	str_copy(pNewMapName, aTemp, MapNameSize);
+	str_copy(pMapPath, aTemp, MapPathSize);
+	str_copy(pTempPath, aTemp, TempPathSize);
+	return true;
+}
+
+void CGameContext::DeleteRewrittenMap(CMultiMaps *pMultiMap)
+{
+	if(!pMultiMap || !pMultiMap->m_aRewrittenPath[0])
+		return;
+
+	Storage()->RemoveFile(pMultiMap->m_aRewrittenPath, IStorage::TYPE_SAVE);
+	pMultiMap->m_aRewrittenPath[0] = 0;
+}
+
+void CGameContext::MapPath(const char *pMapName, char *pPath, int PathSize)
+{
+	for(const auto &pMultiMap : m_vMultiMaps)
+	{
+		if(!pMultiMap || !pMultiMap->m_pMap)
+			continue;
+		if(str_comp(pMultiMap->m_pMap->BaseName(), pMapName) != 0)
+			continue;
+		if(!pMultiMap->m_aRewrittenPath[0])
+			break;
+
+		str_copy(pPath, pMultiMap->m_aRewrittenPath, PathSize);
+		return;
+	}
+
+	str_format(pPath, PathSize, "maps/%s.map", pMapName);
+}
+
+bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
+{
+	char aConfig[IO_MAX_PATH_LENGTH];
+	str_format(aConfig, sizeof(aConfig), "maps/%s.cfg", g_Config.m_SvMap);
+
+	std::vector<std::string> vConfigLines;
+	bool HasConfig = false;
+
+	CLineReader LineReader;
+	if(LineReader.OpenFile(Storage()->OpenFile(aConfig, IOFLAG_READ, IStorage::TYPE_ALL)))
+	{
+		HasConfig = true;
+		while(const char *pLine = LineReader.Get())
+			vConfigLines.emplace_back(pLine);
+	}
+
+	char aTemp[IO_MAX_PATH_LENGTH];
+	if(!RewriteMapSettings(g_Config.m_SvMap, pNewMapName, MapNameSize, HasConfig ? &vConfigLines : nullptr, aTemp, sizeof(aTemp)))
+		return false;
+
+	// The rewritten map is what the clients get sent, so it has to stay around while it is loaded
 	str_copy(m_aDeleteTempfile, aTemp);
 	return true;
 }
@@ -5077,6 +5207,7 @@ void CGameContext::OnShutdown(void *pPersistentData)
 		for(size_t i = 1; i < m_vMultiMaps.size(); i++)
 		{
 			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i]->m_pMap->BaseName());
+			DeleteRewrittenMap(m_vMultiMaps[i].get());
 			m_vMultiMaps[i]->Unload();
 			m_vMultiMaps[i]->m_pMap = nullptr;
 		}

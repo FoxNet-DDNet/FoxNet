@@ -18,7 +18,7 @@
 #include <game/mapitems.h>
 #include <game/quad_data.h>
 #include <game/server/entities/character.h>
-#include <game/server/entities/projectile.h>
+#include <game/server/foxnet/entities/hidenseek_projectile.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 #include <game/teamscore.h>
@@ -48,6 +48,14 @@
 // ~~if seeker doesnt move for too long, choose new one (or end game if its a 1v1)~~
 
 constexpr static float MaxAfkSeconds = 30.0f; // seconds
+constexpr static int FinishedDelaySeconds = 5; // how long the result screen holds everyone in place
+
+// The minigame uses this many consecutive tune zones, starting at sv_hide_seek_tune_zone
+constexpr static int ZoneOffsetSeeker = 0;
+constexpr static int ZoneOffsetHider = 1;
+constexpr static int ZoneOffsetGhost = 2;
+constexpr static int ZoneOffsetFrozen = 3;
+constexpr static int NumTuneZones = 4;
 
 static int TimeToTicks(int TenthsOfSeconds, int TickSpeed)
 {
@@ -74,28 +82,36 @@ static std::string MakeHudBar(const char *pLabel, int Current, int Maximum, int 
 
 void CHideAndSeekZone::OnTick()
 {
+	UpdateCandidates();
+
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 		ClientTick(ClientId);
 
-	int NumPlayers = GetNumCandidates();
+	// ClientTick lets players enter and leave the area, refresh the list before running the game
+	int NumPlayers = UpdateCandidates();
 
 	if(m_State == EState::BadMap)
 	{
-		for(CCharacter *pChr : m_vCandidates)
-			pChr->GetPlayer()->SendBroadcast("Hide and Seek cannot be started on this map.");
+		for(int ClientId : m_vCandidateIds)
+		{
+			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+			if(pPlayer)
+				pPlayer->SendBroadcast("Hide and Seek cannot be started on this map.");
+		}
 		return;
 	}
 
 	int NumSeekers = 0;
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
-		if(m_aClientData[pChr->GetPlayer()->GetCid()].m_IsSeeker)
+		if(m_aClientData[ClientId].m_IsSeeker)
 			NumSeekers++;
 	}
 
 	if(NumPlayers < 2 && m_State != EState::WaitingForPlayers)
 	{
 		EndGame(EWinState::None);
+		ReleasePlayers();
 		m_State = EState::WaitingForPlayers;
 	}
 
@@ -103,8 +119,12 @@ void CHideAndSeekZone::OnTick()
 	{
 		if(NumPlayers < 2)
 		{
-			for(CCharacter *pChr : m_vCandidates)
-				pChr->GetPlayer()->SendBroadcast("Not enough players to start hide and seek.");
+			for(int ClientId : m_vCandidateIds)
+			{
+				CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+				if(pPlayer)
+					pPlayer->SendBroadcast("Not enough players to start hide and seek.");
+			}
 			return;
 		}
 		else
@@ -121,11 +141,15 @@ void CHideAndSeekZone::OnTick()
 	{
 		if(Server()->Tick() < m_WarmUpTime)
 		{
-			for(CCharacter *pChr : m_vCandidates)
+			for(int ClientId : m_vCandidateIds)
 			{
+				CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+				if(!pPlayer)
+					continue;
+
 				char aBuf[64];
 				str_format(aBuf, sizeof(aBuf), "Hide and Seek starts in %d seconds", (int)((m_WarmUpTime - Server()->Tick()) / Server()->TickSpeed()));
-				pChr->GetPlayer()->SendBroadcast(aBuf);
+				pPlayer->SendBroadcast(aBuf);
 			}
 		}
 		else
@@ -139,6 +163,7 @@ void CHideAndSeekZone::OnTick()
 		if(NumSeekers == 0)
 		{
 			EndGame(EWinState::None);
+			ReleasePlayers();
 			m_State = EState::WaitingForPlayers;
 			return;
 		}
@@ -151,31 +176,35 @@ void CHideAndSeekZone::OnTick()
 		{
 			EndGame(EWinState::Hiders); // Seek time is over, end the game
 			m_State = EState::Finished;
-			m_FinishedDelay = Server()->Tick() + Server()->TickSpeed() * 5;
+			m_FinishedDelay = Server()->Tick() + Server()->TickSpeed() * FinishedDelaySeconds;
+			HoldPlayers();
 			return; // Don't check for win conditions anymore
 		}
 
 		int NumHiders = 0;
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		for(int ClientId : m_vCandidateIds)
 		{
-			if(IsCandidate(ClientId) && !m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive)
+			if(!m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive)
 				NumHiders++;
 		}
 		if(NumHiders == 0)
 		{
 			EndGame(EWinState::Seeker);
 			m_State = EState::Finished;
-			m_FinishedDelay = Server()->Tick() + Server()->TickSpeed() * 5;
+			m_FinishedDelay = Server()->Tick() + Server()->TickSpeed() * FinishedDelaySeconds;
+			HoldPlayers();
 		}
 	}
 	else if(m_State == EState::Finished)
 	{
 		if(Server()->Tick() > m_FinishedDelay)
 		{
+			ReleasePlayers();
 			m_State = EState::WaitingForPlayers;
-			for(CCharacter *pChr : m_vCandidates)
+			for(int ClientId : m_vCandidateIds)
 			{
-				if(pChr->GetPlayer()->m_Area != EArea::HideAndSeek)
+				CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+				if(!pChr)
 					continue;
 
 				vec2 SpawnPos = GetRandomSpawnPos();
@@ -191,15 +220,14 @@ void CHideAndSeekZone::OnClientDrop(int ClientId, const char *pReason)
 	Data.Reset();
 	Data.m_MarkedAfk = false;
 	Data.m_NumWins = 0; // Reset wins, wins should get saved in foxnet_accounts_stats when implemented
+
+	// The player is gone, don't keep them around until the list gets rebuilt
+	m_vCandidateIds.erase(std::remove(m_vCandidateIds.begin(), m_vCandidateIds.end(), ClientId), m_vCandidateIds.end());
 }
 
 void CHideAndSeekZone::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx)
 {
-	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	if(pPlayer->m_Area != EArea::HideAndSeek)
+	if(!IsInArea(ClientId))
 		return;
 
 	pGameInfoEx->m_Flags &= ~GAMEINFOFLAG_TIMESCORE;
@@ -285,54 +313,53 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 		}
 	}
 
-	if(InArea)
+	if(!InArea)
 	{
-		if(pPlayer->m_Area != EArea::HideAndSeek)
-		{
-			pPlayer->SetArea(EArea::HideAndSeek);
-			Data.m_JoinedAt = Server()->Tick();
-			Data.m_LastMovement = Server()->Tick();
-			pChr->SetTuneOverride(-1);
-			pChr->SetSolo(false);
-		}
-	}
-	else
-	{
+		// Nothing below here may touch players that arent inside the area
 		if(pPlayer->m_Area == EArea::HideAndSeek)
-		{
-			pPlayer->SetArea(EArea::Game);
-			pChr->SetTuneOverride(-1);
-			pChr->SetSolo(false);
-		}
+			LeaveArea(ClientId);
+		else
+			SetForcedSolo(ClientId, false); // in case another area claimed the player while we had them solo
+		return;
 	}
 
-	if(pChr->m_Pos != pChr->m_PrevPos)
+	if(pPlayer->m_Area != EArea::HideAndSeek)
+	{
+		// Walking in never carries state of an older round along, and never joins a running one
+		pPlayer->SetArea(EArea::HideAndSeek);
+		Data.Reset();
+		Data.m_LastMovement = Server()->Tick();
+		pChr->SetTuneOverride(-1);
+	}
+
+	// Only their own input counts as being active, getting pushed around must not clear the afk mark
+	if(!pPlayer->IsAfk() && pChr->m_Pos != pChr->m_PrevPos)
 	{
 		Data.m_LastMovement = Server()->Tick();
 		Data.m_MarkedAfk = false;
-		if(m_State != EState::Playing && InArea)
-			pChr->SetSolo(false);
 	}
+
+	// Afk players and players that arent part of the running round are put into solo, otherwise
+	// anyone could drag them around, which would also count as them being active again
+	const bool KeepOutOfTheWay = pPlayer->IsAfk() || Data.m_MarkedAfk || (m_State == EState::Playing && !Data.m_Alive);
+	SetForcedSolo(ClientId, KeepOutOfTheWay);
 
 	if(m_State == EState::Playing)
 	{
-		if(Data.m_JoinedAt == Server()->Tick())
-			SetDead(ClientId, false);
-		if(pPlayer->IsAfk())
-			SetDead(ClientId, false);
-
-		if(!Data.m_Alive)
-		{
-			if(!pChr->Core()->m_Solo)
-				pChr->SetSolo(true);
-			return;
-		}
-
-		if(Data.m_IsSeeker && Server()->Tick() - Data.m_LastMovement > MaxAfkSeconds * Server()->TickSpeed())
+		// Afk players are out, a seeker gets replaced instead so the round doesnt just end
+		const bool NoMovement = Server()->Tick() - Data.m_LastMovement > MaxAfkSeconds * Server()->TickSpeed();
+		if(Data.m_Alive && Data.m_IsSeeker && (pPlayer->IsAfk() || NoMovement))
 		{
 			TryReplaceAfkSeeker(ClientId);
 			return;
 		}
+
+		// Players that go afk mid round are out, players that walked in late never were part of it
+		if(Data.m_Alive && pPlayer->IsAfk())
+			SetDead(ClientId);
+
+		if(!Data.m_Alive)
+			return;
 
 		std::vector<std::string> Messages;
 		std::string Msg = "";
@@ -343,7 +370,9 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 			if(Data.m_GhostCooldown > 0 && Data.m_GhostDuration <= 0)
 				Data.m_GhostCooldown--;
 
-			Data.m_NumHiddenTicks++;
+			// Only counts while the hider actually is hidden from the seekers, this is what the xp reward is based on
+			if(Data.m_InHiddenZone || Data.m_GhostDuration > 0)
+				Data.m_NumHiddenTicks++;
 
 			if(Data.m_GhostDuration > 0)
 			{
@@ -394,46 +423,56 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 		if(!Messages.empty())
 			pPlayer->SendBroadcastHud(Messages, 0);
 	}
-	else if(m_State == EState::Finished && IsCandidate(ClientId))
-	{
-		// Only freeze players who were actually part of the game (joined before the game ended)
-		if(!Data.m_Alive)
-		{
-			pChr->SetVelocity(vec2(0, 0));
-			pChr->ResetHook();
-			pChr->ForceSetPos(pChr->m_PrevPos);
-		}
-	}
+}
+
+void CHideAndSeekZone::LeaveArea(int ClientId)
+{
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return;
+
+	pPlayer->SetArea(EArea::Game);
+	pPlayer->ClearBroadcast();
+
+	ReleaseHold(ClientId);
+
+	CCharacter *pChr = pPlayer->GetCharacter();
+	if(pChr)
+		pChr->SetTuneOverride(-1);
+
+	SetForcedSolo(ClientId, false);
+	m_aClientData[ClientId].Reset(); // has to happen after the solo release, Reset() drops the ownership flag
 }
 
 void CHideAndSeekZone::StartGame()
 {
-	if(!InitTuning())
+	if(m_vSpawnQuads.empty() || !InitTuning())
 	{
 		m_State = EState::BadMap;
 		return;
 	}
 
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
-		int ClientId = pChr->GetPlayer()->GetCid();
+		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+		if(!pChr)
+			continue;
+
 		m_aClientData[ClientId].m_Alive = true;
 		m_aClientData[ClientId].m_IsSeeker = false;
 		m_aClientData[ClientId].m_LastMovement = Server()->Tick();
 		pChr->GetPlayer()->ClearBroadcast();
 		pChr->GetPlayer()->Pause(CPlayer::PAUSE_NONE, true);
-		pChr->SetSolo(false);
+		SetForcedSolo(ClientId, false);
+		pChr->SetSolo(false); // taking part means being able to interact, this also drops a solo they set themselves
 		pChr->GiveWeapon(WEAPON_GUN);
 		pChr->GiveWeapon(WEAPON_HAMMER);
 	}
 
-	const int NumCandidates = (int)m_vCandidates.size();
+	const int NumCandidates = (int)m_vCandidateIds.size();
 	const int DesiredSeekers = std::min(NumCandidates, std::max(1, (NumCandidates + 3) / 4));
 
-	std::vector<int> vCandidateIds;
-	vCandidateIds.reserve(m_vCandidates.size());
-	for(CCharacter *pChr : m_vCandidates)
-		vCandidateIds.push_back(pChr->GetPlayer()->GetCid());
+	std::vector<int> vCandidateIds = m_vCandidateIds;
 
 	std::shuffle(vCandidateIds.begin(), vCandidateIds.end(), Rng());
 
@@ -444,11 +483,14 @@ void CHideAndSeekZone::StartGame()
 	const int NumHiders = NumCandidates - NumSeekers;
 
 	// move players to spawn points
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
+		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+		if(!pChr)
+			continue;
+
 		CPlayer *pPlayer = pChr->GetPlayer();
 
-		int ClientId = pPlayer->GetCid();
 		vec2 SpawnPos = GetRandomSpawnPos();
 		pChr->ForceSetPos(SpawnPos);
 		pChr->SetVelocity(vec2(0, 0));
@@ -474,10 +516,20 @@ void CHideAndSeekZone::StartGame()
 	m_SeekTimeTotal = Ticks;
 	m_SeekTimeRemaining = Ticks;
 
-	const int SeekTimeSeconds = std::max(0, m_SeekTimeTotal / Server()->TickSpeed());
-	m_GameInfoTimeLimit = std::max(1, (SeekTimeSeconds + 59) / 60);
+	UpdateGameInfoTimer();
+}
 
-	const int ElapsedSeconds = m_GameInfoTimeLimit * 60 - SeekTimeSeconds;
+void CHideAndSeekZone::UpdateGameInfoTimer()
+{
+	// The client counts down from m_TimeLimit (in minutes) since m_RoundStartTick, so the start tick
+	// gets backdated to the point where that countdown lines up with the seek time that is left.
+	// Only called when the seek time jumps, ticking it down on its own keeps both in sync.
+	const int TotalSeconds = std::max(0, m_SeekTimeTotal / Server()->TickSpeed());
+	const int RemainingSeconds = std::max(0, m_SeekTimeRemaining / Server()->TickSpeed());
+
+	m_GameInfoTimeLimit = std::max(1, (std::max(TotalSeconds, RemainingSeconds) + 59) / 60);
+
+	const int ElapsedSeconds = m_GameInfoTimeLimit * 60 - RemainingSeconds;
 	m_GameInfoRoundStartTick = Server()->Tick() - ElapsedSeconds * Server()->TickSpeed();
 }
 
@@ -487,26 +539,28 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 	int NumHiders = 0;
 	char aHiderName[MAX_NAME_LENGTH] = "";
 	char aSeekerName[MAX_NAME_LENGTH] = "";
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
-		int Id = pChr->GetPlayer()->GetCid();
-		if(m_aClientData[Id].m_IsSeeker)
+		if(m_aClientData[ClientId].m_IsSeeker)
 		{
 			NumSeekers++;
-			str_copy(aSeekerName, Server()->ClientName(Id));
+			str_copy(aSeekerName, Server()->ClientName(ClientId));
 		}
 		else
 		{
 			NumHiders++;
-			str_copy(aHiderName, Server()->ClientName(Id));
+			str_copy(aHiderName, Server()->ClientName(ClientId));
 		}
 	}
 
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
-		CClientData &Data = m_aClientData[pChr->GetPlayer()->GetCid()];
+		CClientData &Data = m_aClientData[ClientId];
 
-		CPlayer *pPlayer = pChr->GetPlayer();
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer)
+			continue;
+
 		if(WinState == EWinState::None)
 		{
 			pPlayer->SendChat("Game ended prematurely");
@@ -551,10 +605,14 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 			}
 		}
 
-		pChr->SetTuneOverride(-1);
-		pChr->SetSolo(false);
-		if(Data.m_IsSeeker)
-			pChr->Unfreeze();
+		CCharacter *pChr = pPlayer->GetCharacter();
+		if(pChr)
+		{
+			pChr->SetTuneOverride(-1);
+			if(Data.m_IsSeeker)
+				pChr->Unfreeze();
+		}
+		SetForcedSolo(ClientId, false);
 		pPlayer->ClearBroadcast();
 		Data.Reset();
 	}
@@ -562,61 +620,158 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 	m_GameInfoTimeLimit = 0;
 	m_GameInfoRoundStartTick = 0;
 
-	if(m_SeekerTuneZone > 0)
+	// The tune zones stay reserved, the end of round hold still needs the frozen one
+}
+
+// The one place the tune zones are described. It feeds both the servers tuning list and the
+// settings that get written into the map, so the two can never drift apart.
+struct STuneZoneSetting
+{
+	int m_ZoneOffset;
+	const char *m_pParam;
+	float m_Value;
+};
+
+static void BuildTuneZoneTable(std::vector<STuneZoneSetting> &vSettings)
+{
+	// Seekers hammer slower than normal
+	vSettings.push_back({ZoneOffsetSeeker, "hammer_fire_delay", (float)g_Config.m_SvHideSeekSeekersHammerDelay});
+	vSettings.push_back({ZoneOffsetSeeker, "hammer_hit_fire_delay", (float)(g_Config.m_SvHideSeekSeekersHammerDelay + 150)});
+
+	// Hiders cant grab or hammer each other
+	vSettings.push_back({ZoneOffsetHider, "player_hooking", 0.0f});
+	vSettings.push_back({ZoneOffsetHider, "player_hammering", 0.0f});
+
+	// A ghost passes through everyone
+	vSettings.push_back({ZoneOffsetGhost, "player_hooking", 0.0f});
+	vSettings.push_back({ZoneOffsetGhost, "player_hammering", 0.0f});
+	vSettings.push_back({ZoneOffsetGhost, "player_collision", 0.0f});
+
+	// Nothing may move a player of a finished round, not even gravity
+	vSettings.push_back({ZoneOffsetFrozen, "gravity", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "ground_control_speed", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "ground_control_accel", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "air_control_speed", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "air_control_accel", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "ground_jump_impulse", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "air_jump_impulse", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "hook_length", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "player_collision", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "player_hooking", 0.0f});
+	vSettings.push_back({ZoneOffsetFrozen, "player_hammering", 0.0f});
+}
+
+int CHideAndSeekZone::TuneZoneBase()
+{
+	// Zone 0 is the global tuning slot, and the last zone has to still fit
+	return std::clamp(g_Config.m_SvHideSeekTuneZone, 1, TuneZone::NUM - NumTuneZones);
+}
+
+static const char *TuneZoneName(int ZoneOffset)
+{
+	switch(ZoneOffset)
 	{
-		GameServer()->TuningList(MultiMapIndex())[m_SeekerTuneZone] = CTuningParams::DEFAULT;
-		m_SeekerTuneZone = -1;
+	case ZoneOffsetSeeker: return "seeker";
+	case ZoneOffsetHider: return "hider";
+	case ZoneOffsetGhost: return "ghost";
+	case ZoneOffsetFrozen: return "frozen";
 	}
-	if(m_HiderTuneZone > 0)
+	return "unknown";
+}
+
+void CHideAndSeekZone::BuildTuneZoneSettings(std::vector<std::string> &vLines)
+{
+	std::vector<STuneZoneSetting> vSettings;
+	BuildTuneZoneTable(vSettings);
+
+	const int Base = TuneZoneBase();
+	char aBuf[128];
+	for(int ZoneOffset = 0; ZoneOffset < NumTuneZones; ZoneOffset++)
 	{
-		GameServer()->TuningList(MultiMapIndex())[m_HiderTuneZone] = CTuningParams::DEFAULT;
-		m_HiderTuneZone = -1;
-	}
-	if(m_GhostTuneZone > 0)
-	{
-		GameServer()->TuningList(MultiMapIndex())[m_GhostTuneZone] = CTuningParams::DEFAULT;
-		m_GhostTuneZone = -1;
+		if(ZoneOffset != ZoneOffsetSeeker)
+			vLines.emplace_back(""); // one blank line between the zones
+
+		str_format(aBuf, sizeof(aBuf), "# %s tune zone", TuneZoneName(ZoneOffset));
+		vLines.emplace_back(aBuf);
+
+		for(const STuneZoneSetting &Setting : vSettings)
+		{
+			if(Setting.m_ZoneOffset != ZoneOffset)
+				continue;
+
+			str_format(aBuf, sizeof(aBuf), "tune_zone %d %s %.2f", Base + ZoneOffset, Setting.m_pParam, Setting.m_Value);
+			vLines.emplace_back(aBuf);
+		}
 	}
 }
 
 bool CHideAndSeekZone::InitTuning()
 {
-	const CTuningParams &BaseTuning = GameServer()->DDNetDefaultTuning();
+	const int Base = TuneZoneBase();
+	m_SeekerTuneZone = Base + ZoneOffsetSeeker;
+	m_HiderTuneZone = Base + ZoneOffsetHider;
+	m_GhostTuneZone = Base + ZoneOffsetGhost;
+	m_FrozenTuneZone = Base + ZoneOffsetFrozen;
 
-	// Find 3 free tuning zones. Zone 0 is the global tuning slot.
-	for(int i = 1; i < TuneZone::NUM; i++)
-	{
-		if(mem_comp(&BaseTuning, &GameServer()->TuningList(MultiMapIndex())[i], sizeof(CTuningParams)) == 0)
-		{
-			if(m_SeekerTuneZone == -1)
-				m_SeekerTuneZone = i;
-			else if(m_HiderTuneZone == -1)
-				m_HiderTuneZone = i;
-			else if(m_GhostTuneZone == -1)
-				m_GhostTuneZone = i;
-			else
-				break;
-		}
-	}
-	if(m_SeekerTuneZone == -1 || m_HiderTuneZone == -1 || m_GhostTuneZone == -1)
-	{
-		log_error("hide-n-seek", "Failed to find 3 free tune zonse for hide and seek, aborting game");
-		return false;
-	}
+	// The map carries these settings as well (that is how the clients get to know them), the server
+	// applies them again here so the game still works on a map that wasnt written with them.
+	std::vector<STuneZoneSetting> vSettings;
+	BuildTuneZoneTable(vSettings);
 
 	CTuningParams *pTune = GameServer()->TuningList(MultiMapIndex());
-
-	pTune[m_HiderTuneZone].m_PlayerHooking = 0;
-	pTune[m_HiderTuneZone].m_PlayerHammering = 0;
-
-	pTune[m_SeekerTuneZone].m_HammerFireDelay = g_Config.m_SvHideSeekSeekersHammerDelay;
-	pTune[m_SeekerTuneZone].m_HammerHitFireDelay = pTune[m_SeekerTuneZone].m_HammerFireDelay + 150;
-
-	pTune[m_GhostTuneZone].m_PlayerHooking = 0;
-	pTune[m_GhostTuneZone].m_PlayerHammering = 0;
-	pTune[m_GhostTuneZone].m_PlayerCollision = 0;
+	for(const STuneZoneSetting &Setting : vSettings)
+	{
+		if(!pTune[Base + Setting.m_ZoneOffset].Set(Setting.m_pParam, Setting.m_Value))
+		{
+			log_error("hide-n-seek", "Unknown tuning '%s', aborting game", Setting.m_pParam);
+			return false;
+		}
+	}
 
 	return true;
+}
+
+void CHideAndSeekZone::HoldPlayers()
+{
+	for(int ClientId : m_vCandidateIds)
+	{
+		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+		if(!pChr)
+			continue;
+
+		m_aClientData[ClientId].m_Held = true;
+
+		// Freeze zeroes direction, jump and hook on the client too, the tune zone takes care of the
+		// rest. Velocity is only cleared once, it is part of the snapshot the client predicts from.
+		pChr->ResetHook();
+		pChr->SetVelocity(vec2(0, 0));
+		pChr->SetTuneOverride(m_FrozenTuneZone);
+		// One second longer than the hold, ReleaseHold() ends it. Without the extra second the freeze
+		// would run out a tick early, and if the release is ever missed they still get out on their own
+		pChr->FreezeForce((FinishedDelaySeconds + 1) * Server()->TickSpeed());
+	}
+}
+
+void CHideAndSeekZone::ReleaseHold(int ClientId)
+{
+	CClientData &Data = m_aClientData[ClientId];
+	if(!Data.m_Held)
+		return;
+
+	Data.m_Held = false;
+
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+		return;
+
+	pChr->Unfreeze();
+	pChr->SetTuneOverride(-1);
+}
+
+void CHideAndSeekZone::ReleasePlayers()
+{
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		ReleaseHold(ClientId);
 }
 
 void CHideAndSeekZone::SetGhost(int ClientId, int Duration)
@@ -642,20 +797,23 @@ void CHideAndSeekZone::SetGhost(int ClientId, int Duration)
 
 int CHideAndSeekZone::ShowOthers(CPlayer *pPlayer)
 {
-	if(!IsCandidate(pPlayer->GetCid()))
-		return -1;
 	if(m_State != EState::Playing)
 		return -1;
-	return SHOW_OTHERS_ONLY_TEAM;
+	if(!IsInArea(pPlayer->GetCid()))
+		return -1;
 
-	return -1;
+	// Players that arent part of the running round are solo, they would see nothing at all with only team
+	if(!m_aClientData[pPlayer->GetCid()].m_Alive)
+		return SHOW_OTHERS_ON;
+
+	return SHOW_OTHERS_ONLY_TEAM;
 }
 
 bool CHideAndSeekZone::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 {
-	if(!IsCandidate(pPlayer->GetCid()))
-		return true;
 	if(m_State != EState::Playing)
+		return true;
+	if(!IsInArea(pPlayer->GetCid()))
 		return true;
 
 	if(str_startswith_nocase(pCommand, "team") || str_startswith_nocase(pCommand, "spec"))
@@ -665,7 +823,6 @@ bool CHideAndSeekZone::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 		return true;
 
 	if(str_startswith_nocase(pCommand, "pause") ||
-		str_startswith_nocase(pCommand, "team") ||
 		str_startswith_nocase(pCommand, "swap"))
 	{
 		pPlayer->SendChat("You cannot use that command right now.");
@@ -677,7 +834,15 @@ bool CHideAndSeekZone::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 
 bool CHideAndSeekZone::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 {
-	const bool PlayerIsAliveSeeker = m_aClientData[pPlayer->GetCid()].m_IsSeeker && m_aClientData[pPlayer->GetCid()].m_Alive;
+	if(m_State != EState::Playing)
+		return true;
+	if(!pPlayer || !pTarget)
+		return true;
+	if(!IsInArea(pPlayer->GetCid()))
+		return true;
+
+	const CClientData &Data = m_aClientData[pPlayer->GetCid()];
+	const bool PlayerIsAliveSeeker = Data.m_IsSeeker && Data.m_Alive;
 	if(PlayerIsAliveSeeker && !m_aClientData[pTarget->GetCid()].m_IsSeeker)
 	{
 		pPlayer->SendChat("You can't spectate hiders!");
@@ -689,7 +854,7 @@ bool CHideAndSeekZone::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 
 bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 {
-	if(!pChr)
+	if(!pChr || !pChr->GetPlayer())
 		return true; // ?
 
 	if(SnappingClient == SERVER_DEMO_CLIENT)
@@ -698,66 +863,68 @@ bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 	if(m_State != EState::Playing)
 		return true;
 
-	CPlayer *pPlayer = pChr->GetPlayer();
-	int ClientId = pPlayer->GetCid();
+	const int ClientId = pChr->GetPlayer()->GetCid();
 
 	if(SnappingClient == ClientId)
 		return true;
 
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	bool IsSnapClientCandidate = IsCandidate(SnappingClient);
-
 	if(!pSnapPlayer)
+		return true;
+
+	// Players outside of the area see the game like any other part of the map,
+	// players inside of it only get to see the players that share the area with them
+	if(!IsInArea(SnappingClient))
+		return true;
+	if(!IsInArea(ClientId))
 		return false;
+
+	const CClientData &Data = m_aClientData[ClientId];
+	const CClientData &SnapData = m_aClientData[SnappingClient];
+
+	// Players that arent part of the round watch it, but are only visible to each other
+	if(!Data.m_Alive)
+		return !SnapData.m_Alive;
+	if(!SnapData.m_Alive)
+		return true;
+
+	if(Data.m_IsSeeker || !SnapData.m_IsSeeker)
+		return true; // Seekers are always visible and hiders can always see eachother
+
 	CCharacter *pSnapChr = pSnapPlayer->GetCharacter();
-
-	if(!m_aClientData[ClientId].m_Alive && !m_aClientData[SnappingClient].m_Alive)
-		return true;
-
-	if(!m_aClientData[ClientId].m_Alive && IsSnapClientCandidate)
-		return false;
-
-	const bool ClientIsAliveSeeker = m_aClientData[ClientId].m_IsSeeker && m_aClientData[ClientId].m_Alive;
-	const bool SnapClientIsAliveSeeker = m_aClientData[SnappingClient].m_IsSeeker && m_aClientData[SnappingClient].m_Alive;
-
-	if(ClientIsAliveSeeker && IsSnapClientCandidate)
-		return true;
-
-	if(SnapClientIsAliveSeeker)
+	if(pSnapChr)
 	{
-		if(pSnapChr)
-		{
-			if(pSnapChr->Core()->HookedPlayer() == ClientId)
-				return true; // Forcefully show the hider
-			if(pSnapChr->m_FreezeTime > 0)
-				return false; // warmup for hiders so they can run
-		}
-
-		if(m_aClientData[ClientId].m_GhostDuration > 0)
-			return false; // if the hider is currently a ghost, they are invisible to seekers
-
-		if(m_aClientData[ClientId].m_InHiddenZone)
-			return false; // if the hider is in a hidden zone, they are invisible to seekers
+		if(pSnapChr->Core()->HookedPlayer() == ClientId)
+			return true; // Forcefully show the hider
+		if(pSnapChr->m_FreezeTime > 0)
+			return false; // warmup for hiders so they can run
 	}
+
+	if(Data.m_GhostDuration > 0)
+		return false; // if the hider is currently a ghost, they are invisible to seekers
+
+	if(Data.m_InHiddenZone)
+		return false; // if the hider is in a hidden zone, they are invisible to seekers
 
 	return true;
 }
 
 bool CHideAndSeekZone::CanDropWeapon(CCharacter *pChr, int Weapon)
 {
-	if(pChr->GetPlayer()->m_Area == EArea::HideAndSeek)
+	if(!pChr || !pChr->GetPlayer())
+		return true;
+	if(IsInArea(pChr->GetPlayer()->GetCid()))
 		return false;
 	return true;
 }
 
 void CHideAndSeekZone::OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg)
 {
-	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!IsInArea(ClientId))
+		return;
 
-	if(pPlayer->m_Area == EArea::HideAndSeek)
-		pPlayer->SetArea(EArea::Game);
-	m_aClientData[ClientId].Reset();
+	// Dying takes the player out of the area and the round
+	LeaveArea(ClientId);
 }
 
 bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
@@ -772,6 +939,8 @@ bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
 		return false;
 
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+		return true;
 
 	if(m_aClientData[ClientId].m_IsSeeker)
 	{
@@ -786,18 +955,13 @@ bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
 
 				int Lifetime = (int)(Server()->TickSpeed() * pChr->GetCurrentTuning()->m_GunLifetime);
 
-				new CProjectile(
+				new CHideAndSeekProjectile(
 					&GameServer()->m_World,
-					MultiMapIndex(),
-					WEAPON_GUN, // Type
-					-1, // Owner
+					ClientId, // Owner (the seeker that shot)
 					ProjStartPos, // Pos
 					Dir, // Dir
 					Lifetime, // Span
-					g_Config.m_SvHideSeekSeekersGunFreeze, // Freeze
-					false, // Explosive
-					-1, // SoundImpact
-					vec2(0, 0) // InitDir
+					g_Config.m_SvHideSeekSeekersGunFreeze // Freeze in ticks
 				);
 				GameServer()->CreateSound(pChr->GetPos(), SOUND_GUN_FIRE, pChr->TeamMask());
 
@@ -822,28 +986,25 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	if(!pSnapPlayer)
 		return;
 
+	// Only players inside the area get the hide and seek scoreboard, everyone else keeps the normal one
+	if(!IsInArea(SnappingClient))
+		return;
+
 	int ClientId = pPlayer->GetCid();
 
 	CClientData &Data = m_aClientData[ClientId];
 	CClientData &SnapData = m_aClientData[SnappingClient];
 
-	bool Candidate = IsCandidate(ClientId);
-	bool SnapCandidate = IsCandidate(SnappingClient);
-
-	if(SnapCandidate || SnapData.m_MarkedAfk)
-		*pScore = m_aClientData[ClientId].m_NumWins;
+	*pScore = Data.m_NumWins;
 
 	if(m_State != EState::Playing && m_State != EState::Finished)
 		return;
 
-	if(!Candidate && ClientId != SnappingClient)
+	if(!IsInArea(ClientId) && ClientId != SnappingClient)
 	{
 		*pTeam = (int)TEAM_SPECTATORS;
 		return;
 	}
-
-	if(!Candidate)
-		return;
 
 	if(!Data.m_Alive)
 	{
@@ -890,12 +1051,12 @@ void CHideAndSeekZone::OnCharacterHammerHit(int ClientId, int Target)
 		if(m_aClientData[ClientId].m_IsSeeker && !m_aClientData[Target].m_IsSeeker)
 		{
 			// m_aClientData[Target].m_IsSeeker = true;
-			CCharacter *pTargetChr = GameServer()->m_apPlayers[Target]->GetCharacter();
+			CCharacter *pTargetChr = GameServer()->GetPlayerChar(Target);
 
 			if(pTargetChr)
 			{
 				m_aClientData[ClientId].m_NumKills++;
-				SetDead(Target, true);
+				SetDead(Target, ClientId);
 			}
 		}
 	}
@@ -921,21 +1082,26 @@ bool CHideAndSeekZone::SetMask(int ClientId, int MultiMapIdx, int Team, int Exce
 
 int CHideAndSeekZone::GetClosestHiderId(int SeekerId)
 {
+	CCharacter *pSeekerChr = GameServer()->GetPlayerChar(SeekerId);
+	if(!pSeekerChr)
+		return -1;
+
 	float Dist = std::numeric_limits<float>::max();
 	int ClosestId = -1;
-	for(CCharacter *pChr : m_vCandidates)
+	for(int ClientId : m_vCandidateIds)
 	{
-		int ClientId = pChr->GetPlayer()->GetCid();
 		if(ClientId == SeekerId)
 			continue;
 		if(m_aClientData[ClientId].m_IsSeeker)
 			continue;
 		if(!m_aClientData[ClientId].m_Alive)
 			continue;
-		if(!pChr->IsAlive())
+
+		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+		if(!pChr)
 			continue;
 
-		float NewDist = distance(pChr->GetPos(), GameServer()->m_apPlayers[SeekerId]->GetCharacter()->GetPos());
+		float NewDist = distance(pChr->GetPos(), pSeekerChr->GetPos());
 		if(NewDist < Dist)
 		{
 			Dist = NewDist;
@@ -951,9 +1117,8 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 		return false;
 
 	int AliveSeekers = 0;
-	for(CCharacter *pCandChar : m_vCandidates)
+	for(int CandidateId : m_vCandidateIds)
 	{
-		const int CandidateId = pCandChar->GetPlayer()->GetCid();
 		if(!m_aClientData[CandidateId].m_Alive)
 			continue;
 		if(m_aClientData[CandidateId].m_IsSeeker)
@@ -969,17 +1134,15 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 
 	m_aClientData[ClientId].m_IsSeeker = false;
 	m_aClientData[ClientId].m_MarkedAfk = true;
-	SetDead(ClientId, false);
+	SetDead(ClientId);
 
-	for(CCharacter *pCandChar : m_vCandidates)
-		pCandChar->GetPlayer()->SendChat("A seeker went AFK and was eliminated.");
+	SendChatCandidates("A seeker went AFK and was eliminated.");
 
 	std::vector<int> vAliveHiders;
-	vAliveHiders.reserve(m_vCandidates.size());
+	vAliveHiders.reserve(m_vCandidateIds.size());
 	int AlivePlayers = 0;
-	for(CCharacter *pCandChar : m_vCandidates)
+	for(int CandidateId : m_vCandidateIds)
 	{
-		const int CandidateId = pCandChar->GetPlayer()->GetCid();
 		if(!m_aClientData[CandidateId].m_Alive)
 			continue;
 
@@ -999,30 +1162,60 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 
 	CCharacter *pNewSeekerChr = GameServer()->GetPlayerChar(NewSeekerId);
 	if(pNewSeekerChr)
-		pNewSeekerChr->SetTuneOverride(m_SeekerTuneZone);
-
-	CPlayer *pNewSeeker = GameServer()->m_apPlayers[NewSeekerId];
-	if(pNewSeeker)
-		pNewSeeker->SendChat("You are the new seeker!");
-
-	for(CCharacter *pCandChar : m_vCandidates)
 	{
-		if(pCandChar->GetPlayer()->GetCid() != NewSeekerId)
-		{
-			pCandChar->GetPlayer()->SendChatFmt("'%s' is the new seeker!", Server()->ClientName(NewSeekerId));
-		}
+		pNewSeekerChr->SetTuneOverride(m_SeekerTuneZone);
+		pNewSeekerChr->FreezeForce(g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed());
+		pNewSeekerChr->ForceSetPos(GetRandomSpawnPos());
+	}
+	m_SeekTimeRemaining += MaxAfkSeconds * Server()->TickSpeed();
+	UpdateGameInfoTimer();
+
+	for(int CandidateId : m_vCandidateIds)
+	{
+		CPlayer *pCandidate = GameServer()->m_apPlayers[CandidateId];
+		if(!pCandidate)
+			continue;
+
+		if(CandidateId == NewSeekerId)
+			pCandidate->SendChat("You are the new seeker!");
 		else
-		{
-			pCandChar->FreezeForce(g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed());
-			pCandChar->ForceSetPos(GetRandomSpawnPos());
-			m_SeekTimeRemaining += MaxAfkSeconds * Server()->TickSpeed();
-		}
+			pCandidate->SendChatFmt("'%s' is the new seeker!", Server()->ClientName(NewSeekerId));
 	}
 
 	return true;
 }
 
-void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
+void CHideAndSeekZone::SetForcedSolo(int ClientId, bool Solo)
+{
+	CClientData &Data = m_aClientData[ClientId];
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+	{
+		// Solo doesn't survive a death, so there is nothing left to release
+		Data.m_ForcedSolo = false;
+		return;
+	}
+
+	if(Solo)
+	{
+		if(pChr->Core()->m_Solo)
+			return; // never claim a solo the player got from somewhere else
+
+		pChr->UnSpawnSolo(false);
+		pChr->SetSolo(true);
+		Data.m_ForcedSolo = true;
+	}
+	else
+	{
+		if(!Data.m_ForcedSolo)
+			return;
+
+		pChr->SetSolo(false);
+		Data.m_ForcedSolo = false;
+	}
+}
+
+void CHideAndSeekZone::SetDead(int ClientId, std::optional<int> Killer)
 {
 	m_aClientData[ClientId].m_Alive = false;
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
@@ -1031,30 +1224,48 @@ void CHideAndSeekZone::SetDead(int ClientId, bool SendKillMsg)
 		pChr->ResetHook();
 		pChr->Unfreeze();
 		pChr->SetTuneOverride(-1);
-		pChr->UnSpawnSolo(false);
-		pChr->SetSolo(true);
 	}
-	if(SendKillMsg)
+	SetForcedSolo(ClientId, true);
+
+	if(Killer.has_value())
 	{
-		for(CCharacter *pCandChar : m_vCandidates)
+		for(int CandidateId : m_vCandidateIds)
 		{
-			if(pCandChar->GetPlayer()->GetCid() == ClientId)
-			{
-				pCandChar->GetPlayer()->SendChat("You got found!");
-			}
+			CPlayer *pCandidate = GameServer()->m_apPlayers[CandidateId];
+			if(!pCandidate)
+				continue;
+
+			if(CandidateId == ClientId)
+				pCandidate->SendChat("You got found!");
 			else
-			{
-				pCandChar->GetPlayer()->SendChatFmt("'%s' got found!", Server()->ClientName(ClientId));
-			}
+				pCandidate->SendChatFmt("'%s' got found!", Server()->ClientName(ClientId));
 		}
+
+		CNetMsg_Sv_KillMsg Msg;
+		Msg.m_Killer = Killer.value();
+		Msg.m_Victim = ClientId;
+		Msg.m_Weapon = WEAPON_HAMMER;
+		Msg.m_ModeSpecial = 0;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 	}
 }
 
-int CHideAndSeekZone::GetNumCandidates()
+void CHideAndSeekZone::SendChatCandidates(const char *pMessage)
 {
-	m_vCandidates.clear();
-	for(CPlayer *pPlayer : GameServer()->m_apPlayers)
+	for(int ClientId : m_vCandidateIds)
 	{
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(pPlayer)
+			pPlayer->SendChat(pMessage);
+	}
+}
+
+int CHideAndSeekZone::UpdateCandidates()
+{
+	m_vCandidateIds.clear();
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer)
 			continue;
 		CCharacter *pChr = pPlayer->GetCharacter();
@@ -1063,33 +1274,51 @@ int CHideAndSeekZone::GetNumCandidates()
 		if(!pChr->IsAlive())
 			continue;
 		if(pChr->Team() != TEAM_FLOCK)
-			return false;
+			continue;
 		if(pPlayer->IsAfk())
 			continue;
-		if(m_aClientData[pPlayer->GetCid()].m_MarkedAfk)
+		if(m_aClientData[ClientId].m_MarkedAfk)
 			continue;
-		if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+		if(!IsInArea(ClientId))
 			continue;
 
-		if(pPlayer->m_Area == EArea::HideAndSeek)
-			m_vCandidates.push_back(pPlayer->GetCharacter());
+		m_vCandidateIds.push_back(ClientId);
 	}
 
-	return m_vCandidates.size();
+	return (int)m_vCandidateIds.size();
 }
 
 bool CHideAndSeekZone::IsCandidate(int ClientId) const
 {
-	for(CCharacter *pCharacter : m_vCandidates)
-	{
-		if(!pCharacter || !pCharacter->GetPlayer())
-			continue; // instead of return false
+	return std::find(m_vCandidateIds.begin(), m_vCandidateIds.end(), ClientId) != m_vCandidateIds.end();
+}
 
-		if(pCharacter->GetPlayer()->GetCid() == ClientId)
-			return true;
-	}
+bool CHideAndSeekZone::IsAliveHider(int ClientId) const
+{
+	if(m_State != EState::Playing)
+		return false;
+	if(!CheckClientId(ClientId))
+		return false;
 
-	return false;
+	const CClientData &Data = m_aClientData[ClientId];
+	if(!Data.m_Alive || Data.m_IsSeeker)
+		return false;
+
+	return IsInArea(ClientId);
+}
+
+bool CHideAndSeekZone::IsInArea(int ClientId) const
+{
+	if(!CheckClientId(ClientId))
+		return false;
+
+	const CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
+		return false;
+	if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+		return false;
+
+	return pPlayer->m_Area == EArea::HideAndSeek;
 }
 
 vec2 CHideAndSeekZone::GetRandomSpawnPos()
@@ -1097,15 +1326,19 @@ vec2 CHideAndSeekZone::GetRandomSpawnPos()
 	if(m_vSpawnQuads.empty())
 		return vec2(0, 0);
 
-	std::uniform_int_distribution<int> Rand(0, m_vSpawnQuads.size() - 1);
-	CQuadData Quad = m_vSpawnQuads[Rand(Rng())];
-	vec2 Pos;
+	std::uniform_int_distribution<int> Rand(0, (int)m_vSpawnQuads.size() - 1);
 
-	do
+	// Spawn quads can be (partly) covered by solid tiles, don't get stuck here if none of them is free
+	constexpr int MaxTries = 100;
+	vec2 Pos = vec2(0, 0);
+	for(int Try = 0; Try < MaxTries; Try++)
 	{
-		Pos = RandomPointInQuad(Quad);
-	} while(Collision()->CheckPoint(Pos));
+		Pos = RandomPointInQuad(m_vSpawnQuads[Rand(Rng())]);
+		if(!Collision()->CheckPoint(Pos))
+			return Pos;
+	}
 
+	log_error("hide-n-seek", "Failed to find a free spawn position, the spawn quads seem to be inside solid");
 	return Pos;
 }
 

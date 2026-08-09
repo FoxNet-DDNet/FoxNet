@@ -19,7 +19,7 @@ class CProjectile : public CEntity
 {
 public:
 	CProjectile(CGameWorld *pGameWorld, int MultiMapIdx, int Type, int Owner, vec2 Pos, vec2 Dir,
-		int Span, int FreezeTicks, bool Explosive, int SoundImpact, vec2 InitDir, int Layer = 0, int Number = 0);
+		int Span, bool Freeze, bool Explosive, int SoundImpact, vec2 InitDir, int Layer = 0, int Number = 0);
 
 	vec2 GetPos(float Time);
 
@@ -46,7 +46,7 @@ private:
 	// DDRace
 
 	int m_Bouncing;
-	int m_FreezeTicks;
+	bool m_Freeze;
 	int m_TuneZone;
 	bool m_BelongsToPracticeTeam;
 	int m_DDRaceTeam;

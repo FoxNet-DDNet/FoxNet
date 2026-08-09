@@ -5326,27 +5326,50 @@ bool CServer::SendMapByName(int ClientId, const char *pMapName)
 		return false;
 	}
 
-	void *pDataVoid = nullptr;
+	SHA256_DIGEST Sha;
+	unsigned Crc;
 	unsigned int Size = 0;
-	if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
+
+	// The map the server itself runs on is already in memory, including the settings that were
+	// written into it while loading. Its file might not even exist anymore, so never read it again.
+	const bool IsCurrentMap = !Sixup && m_apCurrentMapData[MAP_TYPE_SIX] != nullptr &&
+				  str_comp(pMapName, GameServer()->Map()->BaseName()) == 0;
+	if(IsCurrentMap)
 	{
-		log_info("server", "SendMapByName: couldn't load '%s'", aPath);
-		return false;
+		Size = m_aCurrentMapSize[MAP_TYPE_SIX];
+		Sha = m_aCurrentMapSha256[MAP_TYPE_SIX];
+		Crc = m_aCurrentMapCrc[MAP_TYPE_SIX];
+
+		// No override, SendMapData falls back to the current map
+		FreeClientOverrideMap(m_aClients[ClientId]);
 	}
-	unsigned char *pData = (unsigned char *)pDataVoid;
+	else
+	{
+		// Other maps can have been rewritten on load as well, that file is the one to send
+		if(!Sixup)
+			GameServer()->MapPath(pMapName, aPath, sizeof(aPath));
 
-	SHA256_DIGEST Sha = sha256(pData, Size);
-	unsigned Crc = crc32(0, pData, Size);
+		void *pDataVoid = nullptr;
+		if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
+		{
+			log_info("server", "SendMapByName: couldn't load '%s'", aPath);
+			return false;
+		}
+		unsigned char *pData = (unsigned char *)pDataVoid;
 
-	// Replace any previous override
-	FreeClientOverrideMap(m_aClients[ClientId]);
+		Sha = sha256(pData, Size);
+		Crc = crc32(0, pData, Size);
 
-	m_aClients[ClientId].m_pOverrideMapData = pData;
-	m_aClients[ClientId].m_OverrideMapSize = Size;
-	m_aClients[ClientId].m_OverrideMapSha256 = Sha;
-	m_aClients[ClientId].m_OverrideMapCrc = Crc;
-	m_aClients[ClientId].m_OverrideMapActive = true;
-	str_copy(m_aClients[ClientId].m_aOverrideMapName, pMapName, sizeof(m_aClients[ClientId].m_aOverrideMapName));
+		// Replace any previous override
+		FreeClientOverrideMap(m_aClients[ClientId]);
+
+		m_aClients[ClientId].m_pOverrideMapData = pData;
+		m_aClients[ClientId].m_OverrideMapSize = Size;
+		m_aClients[ClientId].m_OverrideMapSha256 = Sha;
+		m_aClients[ClientId].m_OverrideMapCrc = Crc;
+		m_aClients[ClientId].m_OverrideMapActive = true;
+		str_copy(m_aClients[ClientId].m_aOverrideMapName, pMapName, sizeof(m_aClients[ClientId].m_aOverrideMapName));
+	}
 
 	// Send MAP_DETAILS
 	{

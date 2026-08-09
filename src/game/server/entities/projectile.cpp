@@ -30,7 +30,7 @@ CProjectile::CProjectile(
 	vec2 Pos,
 	vec2 Dir,
 	int Span,
-	int FreezeTicks,
+	bool Freeze,
 	bool Explosive,
 	int SoundImpact,
 	vec2 InitDir,
@@ -50,7 +50,7 @@ CProjectile::CProjectile(
 	m_Layer = Layer;
 	m_Number = Number;
 	m_Bouncing = 0;
-	m_FreezeTicks = FreezeTicks;
+	m_Freeze = Freeze;
 
 	m_InitDir = InitDir;
 	// m_TuneZone = Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
@@ -117,7 +117,7 @@ void CProjectile::Tick()
 	CCharacter *pTargetChr = nullptr;
 
 	if(pOwnerChar ? !pOwnerChar->GrenadeHitDisabled() : g_Config.m_SvHit)
-		pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, m_FreezeTicks ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
+		pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, ColPos, m_Freeze ? 1.0f : 6.0f, ColPos, pOwnerChar, m_Owner);
 
 	// <FoxNet
 	if((pTargetChr && pTargetChr->Core()->m_Passive) || (pOwnerChar && pOwnerChar->Core()->m_Passive))
@@ -159,7 +159,7 @@ void CProjectile::Tick()
 
 	if(((pTargetChr && (pOwnerChar ? !pOwnerChar->GrenadeHitDisabled() : g_Config.m_SvHit || m_Owner == -1 || pTargetChr == pOwnerChar)) || Collide || GLClipped) && !IsWeaponCollide)
 	{
-		if(m_Explosive /*??*/ && (!pTargetChr || (pTargetChr && (m_FreezeTicks <= 0 || (m_Type == WEAPON_SHOTGUN && Collide)))))
+		if(m_Explosive /*??*/ && (!pTargetChr || (pTargetChr && (!m_Freeze || (m_Type == WEAPON_SHOTGUN && Collide)))))
 		{
 			int Number = 1;
 			if(GameServer()->EmulateBug(BUG_GRENADE_DOUBLEEXPLOSION) && m_LifeSpan == -1)
@@ -174,7 +174,7 @@ void CProjectile::Tick()
 					(m_Owner != -1) ? TeamMask : CClientMask().set());
 			}
 		}
-		else if(m_FreezeTicks > 0)
+		else if(m_Freeze)
 		{
 			CEntity *apEnts[MAX_CLIENTS];
 			int Num = GameWorld()->FindEntities(CurPos, 1.0f, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
@@ -182,7 +182,7 @@ void CProjectile::Tick()
 			{
 				auto *pChr = static_cast<CCharacter *>(apEnts[i]);
 				if(pChr && (m_Layer != LAYER_SWITCH || (m_Layer == LAYER_SWITCH && m_Number > 0 && Switchers()[m_Number].m_aStatus[pChr->Team()])))
-					pChr->FreezeTicks(m_FreezeTicks);
+					pChr->Freeze();
 			}
 		}
 		else if(pTargetChr)
@@ -250,7 +250,7 @@ void CProjectile::Tick()
 		}
 		else
 		{
-			if(m_FreezeTicks <= 0)
+			if(!m_Freeze)
 			{
 				m_MarkedForDestroy = true;
 				return;
@@ -338,7 +338,7 @@ CNetObj_DDRaceProjectile CProjectile::NetInfoLegacy() const
 	Data |= (m_Bouncing & 3) << 10;
 	if(m_Explosive)
 		Data |= LEGACYPROJECTILEFLAG_EXPLOSIVE;
-	if(m_FreezeTicks > 0)
+	if(m_Freeze)
 		Data |= LEGACYPROJECTILEFLAG_FREEZE;
 
 	CNetObj_DDRaceProjectile Result = {};
@@ -368,7 +368,7 @@ CNetObj_DDNetProjectile CProjectile::NetInfo() const
 	{
 		Flags |= PROJECTILEFLAG_EXPLOSIVE;
 	}
-	if(m_FreezeTicks > 0)
+	if(m_Freeze)
 	{
 		Flags |= PROJECTILEFLAG_FREEZE;
 	}

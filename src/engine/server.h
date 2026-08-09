@@ -328,6 +328,12 @@ public:
 	virtual void OnConsoleInit() = 0;
 	// Returns `true` if map change accepted.
 	[[nodiscard]] virtual bool OnMapChange(char *pNewMapName, int MapNameSize) = 0;
+	// <FoxNet
+	// The file a client has to be sent for this map. Maps can get rewritten on load (settings that
+	// the server generates into them), in which case that rewritten file is the one to send.
+	virtual void MapPath(const char *pMapName, char *pPath, int PathSize) = 0;
+	// FoxNet>
+
 	// `pPersistentData` may be null if this is the last time `IGameServer`
 	// is destroyed.
 	virtual void OnShutdown(void *pPersistentData) = 0;

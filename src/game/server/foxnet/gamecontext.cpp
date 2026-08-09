@@ -270,11 +270,19 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
 		return;
 	}
+	// Write the settings we generate for this map into it before it gets loaded, the clients are
+	// sent this exact file so they end up with the same tune zones as the server
+	char aRewritten[IO_MAX_PATH_LENGTH] = "";
+	RewriteMapSettings(pMapName, aBuf, sizeof(aBuf), nullptr, aRewritten, sizeof(aRewritten));
+
 	if(!pNewMap->m_pMap->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
 	{
 		log_error("multimap", "Failed to load map '%s'", aBuf);
+		if(aRewritten[0])
+			Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
 		return;
 	}
+	str_copy(pNewMap->m_aRewrittenPath, aRewritten);
 	log_info("multimap", "Map loaded: %s", aBuf);
 	pNewMap->Init();
 	pNewMap->m_MapType = Type;
@@ -320,6 +328,7 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 			pComponent->OnMapUnload(Idx);
 
 		log_info("multimap", "Map unloaded of type %d: %s", (int)(*It)->m_MapType, pMapName);
+		DeleteRewrittenMap(It->get());
 		(*It)->Unload();
 		m_vMultiMaps.erase(It);
 	}
@@ -358,11 +367,17 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 		log_error("multimap", "The name '%s' cannot be used for maps because not all platforms support it", aBuf);
 		return;
 	}
+	char aRewritten[IO_MAX_PATH_LENGTH] = "";
+	RewriteMapSettings(pMapName, aBuf, sizeof(aBuf), nullptr, aRewritten, sizeof(aRewritten));
+
 	if(!pReloadedMap->m_pMap->Load(pMapName, Storage(), aBuf, IStorage::TYPE_ALL))
 	{
 		log_error("multimap", "Failed to reload map '%s'", aBuf);
+		if(aRewritten[0])
+			Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
 		return;
 	}
+	str_copy(pReloadedMap->m_aRewrittenPath, aRewritten);
 
 	bool aWasOnMap[MAX_CLIENTS] = {false};
 
@@ -387,6 +402,7 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapUnload(Idx);
 
+	DeleteRewrittenMap(It->get());
 	(*It)->Unload();
 
 	pReloadedMap->Init();
@@ -422,6 +438,7 @@ void CGameContext::UnloadMapsAll()
 	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)
 	{
 		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMultiMaps[Idx]->m_MapType, m_vMultiMaps[Idx]->m_pMap->BaseName());
+		DeleteRewrittenMap(m_vMultiMaps[Idx].get());
 		m_vMultiMaps[Idx]->Unload();
 		m_pController->ClearSpawnPoints(Idx);
 		m_World.DestroyEntitiesOfMap(Idx);

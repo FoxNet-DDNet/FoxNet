@@ -156,6 +156,7 @@ MACRO_CONFIG_INT(SvNoVel, sv_no_vel, 0, 0, 1, CFGFLAG_SERVER, "Set everyones sna
 MACRO_CONFIG_INT(SvMinigamesSameIp, sv_minigames_same_ip, 0, 0, 1, CFGFLAG_SERVER, "Whether to allow the same ip in minigames")
 
 MACRO_CONFIG_INT(SvHideSeekGiveXp, sv_hide_seek_give_xp, 1, 0, 1, CFGFLAG_SERVER, "Whether the minigame should give xp on game finish")
+MACRO_CONFIG_INT(SvHideSeekTuneZone, sv_hide_seek_tune_zone, 252, 1, 252, CFGFLAG_SERVER, "First of the 4 tune zones hide and seek uses, they get written into the map so clients can predict them")
 MACRO_CONFIG_INT(SvHideSeekWarmupTime, sv_hide_seek_warmup_time, 10, 1, 60, CFGFLAG_SERVER, "Delay in seconds before the game starts")
 MACRO_CONFIG_INT(SvHideSeekFreezeDuration, sv_hide_seek_freeze_duration, 10, 1, 30, CFGFLAG_SERVER, "How long seekers are frozen on game start")
 MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 80, 1, 500, CFGFLAG_SERVER, "How much time seekers have to find all hiders")

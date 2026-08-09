@@ -10,13 +10,15 @@
 #include <generated/protocol.h>
 
 #include <game/mapitems.h>
+#include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <vector>
-#include <game/quad_data.h>
-#include <game/server/player.h>
 
 class CHideAndSeekZone : public IZone
 {
@@ -57,12 +59,13 @@ class CHideAndSeekZone : public IZone
 	class CClientData
 	{
 	public:
-		int64_t m_JoinedAt = 0;
 		int64_t m_LastMovement = 0; // to prevent afks
 
 		bool m_MarkedAfk = false;
 
 		bool m_Alive = false;
+		bool m_ForcedSolo = false; // set when we put the player into solo, so we never unset a solo we dont own
+		bool m_Held = false; // frozen in place for the end of round screen
 
 		vec2 m_LastKnownPos = vec2(0, 0); // only gets set if Ghost Mode is off
 		int m_GhostCooldown = 0; // In Ticks
@@ -80,9 +83,10 @@ class CHideAndSeekZone : public IZone
 
 		void Reset()
 		{
-			m_JoinedAt = 0;
 			m_LastMovement = 0;
 			m_Alive = false;
+			m_ForcedSolo = false;
+			m_Held = false;
 			m_LastKnownPos = vec2(0, 0);
 			m_GhostCooldown = 0;
 			m_GhostDuration = 0;
@@ -97,6 +101,9 @@ class CHideAndSeekZone : public IZone
 
 	void ClientTick(int ClientId);
 
+	// keeps the clients seek countdown in sync with m_SeekTimeRemaining
+	void UpdateGameInfoTimer();
+
 	// when m_State gets set to Playing, this function is called to move players and set them up for the game
 	void StartGame();
 	void EndGame(EWinState WinState);
@@ -106,18 +113,31 @@ class CHideAndSeekZone : public IZone
 	int m_SeekerTuneZone = -1;
 	int m_HiderTuneZone = -1;
 	int m_GhostTuneZone = -1;
+	int m_FrozenTuneZone = -1;
 	bool InitTuning();
+
+	// Freezes everyone where the round ended, without a single server side position correction:
+	// the client gets the freeze and the tune zone in the snapshot and predicts the standstill itself
+	void HoldPlayers();
+	void ReleaseHold(int ClientId);
+	void ReleasePlayers();
 
 	void SetGhost(int ClientId, int Duration);
 
-	std::vector<CCharacter *> m_vCandidates;
-	int GetNumCandidates();
+	// Client ids, not characters: characters get deleted mid tick, the list would be left with dangling pointers
+	std::vector<int> m_vCandidateIds;
+	int UpdateCandidates();
 	bool IsCandidate(int ClientId) const;
+	// Everything this zone does is limited to players standing inside one of its area quads
+	bool IsInArea(int ClientId) const;
+	void LeaveArea(int ClientId);
+	void SendChatCandidates(const char *pMessage);
 	vec2 GetRandomSpawnPos();
 	int GetClosestHiderId(int SeekerId);
 	bool TryReplaceAfkSeeker(int ClientId);
 
-	void SetDead(int ClientId, bool SendKillMsg = true);
+	void SetForcedSolo(int ClientId, bool Solo);
+	void SetDead(int ClientId, std::optional<int> Killer = std::nullopt);
 
 public:
 	CHideAndSeekZone(CGameContext *pGameContext, size_t MapIndex) :
@@ -141,6 +161,17 @@ public:
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
 	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) override;
+
+	bool IsRoundRunning() const { return m_State == EState::Playing; }
+	// The only players a seekers bullet may ever touch
+	bool IsAliveHider(int ClientId) const;
+
+	// A tune zone is only predicted by a client that knows its values, and the only zones a client
+	// knows are the ones the map itself declares. These build the settings lines that get appended
+	// to the map before it is sent, so every client can predict every player in one of our zones.
+	// Static because they are needed before any map (and with it any zone) is loaded.
+	static int TuneZoneBase();
+	static void BuildTuneZoneSettings(std::vector<std::string> &vLines);
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_HIDENSEEK_H

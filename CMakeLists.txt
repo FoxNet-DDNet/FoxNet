@@ -3087,6 +3087,8 @@ if(SERVER)
     foxnet/entities/foxnet_entity.h
     foxnet/entities/gun_projectile.cpp
     foxnet/entities/gun_projectile.h
+    foxnet/entities/hidenseek_projectile.cpp
+    foxnet/entities/hidenseek_projectile.h
     foxnet/entities/light_saber.cpp
     foxnet/entities/light_saber.h
     foxnet/entities/meteor.cpp

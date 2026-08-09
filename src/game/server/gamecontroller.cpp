@@ -261,7 +261,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 			Pos, // Pos
 			vec2(std::sin(Deg), std::cos(Deg)), // Dir
 			-2, // Span
-			g_Config.m_SvFreezeDelay * SERVER_TICK_SPEED, // Freeze
+			true, // Freeze
 			true, // Explosive
 			(g_Config.m_SvShotgunBulletSound) ? SOUND_GRENADE_EXPLODE : -1, // SoundImpact
 			vec2(std::sin(Deg), std::cos(Deg)), // InitDir
@@ -289,7 +289,7 @@ bool IGameController::OnEntity(int Index, int x, int y, int Layer, int Flags, bo
 			Pos, // Pos
 			vec2(std::sin(Deg), std::cos(Deg)), // Dir
 			-2, // Span
-			g_Config.m_SvFreezeDelay * SERVER_TICK_SPEED, // Freeze
+			true, // Freeze
 			false, // Explosive
 			SOUND_GRENADE_EXPLODE,
 			vec2(std::sin(Deg), std::cos(Deg)), // InitDir
@@ -676,7 +676,6 @@ void IGameController::Snap(int SnappingClient)
 			GameInfo.m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 		}
 	}
-	Server()->SnapNewItem(0, GameInfo);
 
 	CNetObj_GameInfoEx GameInfoEx = {};
 	GameInfoEx.m_Flags =
@@ -721,6 +720,8 @@ void IGameController::Snap(int SnappingClient)
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
 		pComponent->OnGameInfoSnap(SnappingClient, &GameInfo, &GameInfoEx);
 
+	// Both objects are snapped down here, components have to be able to change them first
+	Server()->SnapNewItem(0, GameInfo);
 	Server()->SnapNewItem(0, GameInfoEx);
 
 	// FoxNet>
