@@ -18,7 +18,7 @@
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/votemenu.h>
-#include <game/server/foxnet/entities/roulette.h>
+#include <game/server/foxnet/components/zones/roulette.h>
 #include <game/server/foxnet/entities/text/text.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
@@ -1560,7 +1560,7 @@ void CGameContext::ConNextRouletteTile(IConsole::IResult *pResult, void *pUserDa
 		MapIdx = pSelf->m_apPlayers[ClientId]->MultiMapIdx();
 	}
 
-	CRoulette *pRoulette = static_cast<CRoulette *>(pSelf->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MapIdx));
+	CRouletteZone *pRoulette = pSelf->m_ZoneManager.FindMinigame<CRouletteZone>(MapIdx);
 	if(!pRoulette)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "roulette", "No roulette on that map");

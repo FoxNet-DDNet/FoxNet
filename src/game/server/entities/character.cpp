@@ -44,7 +44,6 @@
 #include <game/server/foxnet/entities/meteor.h>
 #include <game/server/foxnet/entities/pickupdrop.h>
 #include <game/server/foxnet/entities/portal.h>
-#include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/item_registry.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
@@ -3259,10 +3258,6 @@ void CCharacter::RouletteTileHandle()
 	if(!pRouletteZone)
 		return;
 
-	CRoulette *pRoulette = static_cast<CRoulette *>(GameWorld()->FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
-	if(!pRoulette)
-		return;
-
 	const int ClientId = GetPlayer()->GetCid();
 	const int64_t Bet = GetPlayer()->m_BetAmount;
 
@@ -3274,7 +3269,7 @@ void CCharacter::RouletteTileHandle()
 		if(!InsideQuadrilateral(CursorPos, aPoints))
 			continue;
 
-		if(pRoulette->AddClient(ClientId, Bet, RouletteOptions[QuadData.m_BetOption]))
+		if(pRouletteZone->AddClient(ClientId, Bet, RouletteOptions[QuadData.m_BetOption]))
 		{
 			GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
 			return;

@@ -24,7 +24,6 @@
 // <FoxNet
 #include <base/log.h>
 
-#include <game/server/foxnet/entities/roulette.h>
 #include <game/server/foxnet/integration/antibob.h>
 
 IGameController::IGameController(class CGameContext *pGameServer) :

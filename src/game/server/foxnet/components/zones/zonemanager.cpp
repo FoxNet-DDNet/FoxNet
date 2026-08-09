@@ -250,13 +250,21 @@ void CZoneManager::OnTick()
 
 void CZoneManager::OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDemo)
 {
+	const size_t SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
+
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(pMinigame->MultiMapIndex() != SnappMultiMapIndex)
+			continue;
+
+		pMinigame->OnSnap(SnappingClient);
+	}
+
 	if(!m_DebugSnappingQuads)
 		return;
 
 	const int ClientVersion = Server()->GetClientVersion(SnappingClient);
 	const bool Sixup = Server()->IsSixup(SnappingClient);
-
-	const size_t SnappMultiMapIndex = GameServer()->GetMultiMapIdx(SnappingClient);
 
 	size_t Idx = 0;
 	auto SnapZoneQuads = [&](const CQuadZone *pZone) {
@@ -354,6 +362,29 @@ void CZoneManager::OnClientDrop(int ClientId, const char *pReason)
 	{
 		pMinigame->OnClientDrop(ClientId, pReason);
 	}
+}
+
+void CZoneManager::OnClientReset(int ClientId, size_t MultiMapIdx)
+{
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(pMinigame->MultiMapIndex() != MultiMapIdx)
+			continue;
+
+		pMinigame->OnClientReset(ClientId);
+	}
+}
+
+bool CZoneManager::CanUseMoney(CPlayer *pPlayer)
+{
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		if(pMinigame->MultiMapIndex() != (size_t)pPlayer->MultiMapIdx())
+			continue;
+		if(!pMinigame->CanUseMoney(pPlayer))
+			return false;
+	}
+	return true;
 }
 
 void CZoneManager::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx)

@@ -3101,8 +3101,6 @@ if(SERVER)
     foxnet/entities/portal.h
     foxnet/entities/powerup.cpp
     foxnet/entities/powerup.h
-    foxnet/entities/roulette.cpp
-    foxnet/entities/roulette.h
     foxnet/entities/text/laser.cpp
     foxnet/entities/text/projectile.cpp
     foxnet/entities/text/text.h

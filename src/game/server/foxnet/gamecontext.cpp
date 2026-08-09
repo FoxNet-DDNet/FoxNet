@@ -1,7 +1,6 @@
 
 #include "entities/pickupdrop.h"
 #include "entities/powerup.h"
-#include "entities/roulette.h"
 #include "fontconvert.h"
 #include "persistent_data.h"
 
@@ -931,11 +930,7 @@ void CGameContext::OnLogout(int ClientId)
 	if(!pPlayer)
 		return;
 
-	CRoulette *pRoulette = static_cast<CRoulette *>(m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, pPlayer->MultiMapIdx()));
-	if(pRoulette)
-	{
-		pRoulette->OnClientReset(ClientId);
-	}
+	m_ZoneManager.OnClientReset(ClientId, pPlayer->MultiMapIdx());
 
 	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		pPlayer->SetTeam(TEAM_SPECTATORS, false);

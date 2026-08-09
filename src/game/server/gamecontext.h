@@ -11,7 +11,6 @@
 #include "foxnet/components/votemenu.h"
 #include "foxnet/components/zones/zonemanager.h"
 #include "foxnet/entities/powerup.h"
-#include "foxnet/entities/roulette.h"
 #include "foxnet/persistent_data.h"
 #include "gameworld.h"
 #include "teehistorian.h"

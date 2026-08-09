@@ -10,6 +10,7 @@
 #include <game/server/player.h>
 
 #include <cstddef>
+#include <optional>
 
 IMinigame::~IMinigame()
 {
@@ -25,6 +26,19 @@ IMinigame::~IMinigame()
 		if(pPlayer->m_pLastMinigame == this)
 			pPlayer->m_pLastMinigame = nullptr;
 	}
+
+	for(int Id : m_vSnapIds)
+		Server()->SnapFreeId(Id);
+}
+
+int IMinigame::AllocSnapId()
+{
+	std::optional<int> Id = Server()->SnapNewId();
+	if(!Id.has_value())
+		return -1;
+
+	m_vSnapIds.push_back(Id.value());
+	return Id.value();
 }
 
 void IMinigame::AddAreaQuad(const CQuadData &QuadData)

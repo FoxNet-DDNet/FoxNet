@@ -29,6 +29,7 @@ class CCharacter;
 class IMinigame : public CQuadZone
 {
 	std::vector<size_t> m_vAreaQuadIndices;
+	std::vector<int> m_vSnapIds;
 
 protected:
 	/*
@@ -36,6 +37,14 @@ protected:
 	 * that defines where the minigame begins, ContainsPlayer() tests against exactly these quads.
 	 */
 	void AddAreaQuad(const CQuadData &QuadData);
+
+	/*
+	 * Reserves a snap id for OnSnap(), freed again when the zone goes away. This is what lets a minigame
+	 * draw its own props without an entity: an entity is only worth it for something that has to live in
+	 * the world, move, collide or be predicted.
+	 * Returns -1 when the server is out of ids, check before snapping.
+	 */
+	int AllocSnapId();
 
 public:
 	IMinigame(CGameContext *pGameContext, size_t MapIndex) :
@@ -72,7 +81,25 @@ public:
 	 */
 	[[nodiscard]] virtual bool HidesFinishTime() const { return false; }
 
+	/*
+	 * Snaps whatever the minigame draws itself, called once per snapping client on this map
+	 */
+	virtual void OnSnap(int SnappingClient) {}
+
 	virtual void OnClientDrop(int ClientId, const char *pReason) {}
+
+	/*
+	 * The client is leaving for good, or at least leaving this map: log out, map change, disconnect.
+	 * Settle anything they have staked here, they are not coming back to collect it.
+	 * Unlike the hooks above this reaches every minigame on the map, not just the one that owns them,
+	 * because a stake outlives standing in the area.
+	 */
+	virtual void OnClientReset(int ClientId) {}
+
+	/*
+	 * Return false to stop the player from spending money elsewhere, e.g. while it is on the table
+	 */
+	virtual bool CanUseMoney(CPlayer *pPlayer) { return true; }
 
 	virtual void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) {}
 

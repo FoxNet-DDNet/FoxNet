@@ -9,7 +9,6 @@
 #include "cosmetics/pickup_pet.h"
 #include "cosmetics/rotating_ball.h"
 #include "cosmetics/staff_ind.h"
-#include "entities/roulette.h"
 #include "entities/text/text.h"
 #include "item_registry.h"
 
@@ -515,11 +514,7 @@ bool CPlayer::CanUseMoney()
 {
 	if(!Acc()->m_LoggedIn)
 		return false;
-	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, MultiMapIdx()));
-	if(pRoulette && pRoulette->ClientBetting(GetCid()))
-		return false;
-
-	return true;
+	return GameServer()->m_ZoneManager.CanUseMoney(this);
 }
 
 bool CPlayer::OwnsItem(const char *pItemName)
@@ -1365,11 +1360,7 @@ bool CPlayer::SendToMap(int Idx)
 		m_MultiMapIndex = DefaultMapIndex;
 	}
 
-	CRoulette *pRoulette = static_cast<CRoulette *>(GameServer()->m_World.FindEntityOnMap(CGameWorld::ENTTYPE_ROULETTE, CurMapIndex));
-	if(pRoulette)
-	{
-		pRoulette->OnClientReset(GetCid());
-	}
+	GameServer()->m_ZoneManager.OnClientReset(GetCid(), CurMapIndex);
 
 	SetSpectatorId(-1);
 	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)

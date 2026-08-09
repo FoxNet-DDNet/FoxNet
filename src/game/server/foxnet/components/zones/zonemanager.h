@@ -78,6 +78,12 @@ public:
 	void OnClientDrop(int ClientId, const char *pReason) override;
 	void OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx) override;
 
+	/*
+	 * Settles whatever the client has staked in the minigames of one map, for logout and map changes
+	 */
+	void OnClientReset(int ClientId, size_t MultiMapIdx);
+	bool CanUseMoney(CPlayer *pPlayer);
+
 	int ShowOthers(CPlayer *pPlayer) override;
 	bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) override;
 	bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) override;
