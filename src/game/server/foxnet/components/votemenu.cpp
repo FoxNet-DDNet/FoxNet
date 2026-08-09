@@ -113,6 +113,59 @@ constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribute:";
 constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
 constexpr const char *SERVER_INFO_LEVELING = "Leveling";
 
+template<size_t N, size_t M>
+constexpr auto concat(
+	const std::array<std::string_view, N> &a,
+	const std::array<std::string_view, M> &b)
+{
+	std::array<std::string_view, N + M> result{};
+
+	for(size_t i = 0; i < N; ++i)
+		result[i] = a[i];
+
+	for(size_t i = 0; i < M; ++i)
+		result[N + i] = b[i];
+
+	return result;
+}
+
+constexpr std::array<std::string_view, 11> VotePrefixes = {"•", "─", "➤", ">", "›", "⇨", "‣", "⁃", "◆", "◇", "│"};
+
+constexpr std::array<std::string_view, 3> ExtraPrefixes = {
+	"☒", "☐", "╭"};
+
+constexpr auto VotePrefixesToClean = concat(VotePrefixes, ExtraPrefixes);
+
+static const char *str_skip_voting_menu_prefixes(const char *pVote)
+{
+	if(!pVote || !pVote[0])
+		return 0;
+
+	const char *pTemp = pVote;
+	while(true)
+	{
+		bool Break = true;
+		for(size_t p = 0; p < VotePrefixesToClean.size(); p++)
+		{
+			const char *pPrefix = str_utf8_find_nocase(pTemp, VotePrefixesToClean[p].data());
+			if(pPrefix)
+			{
+				int NewCursor = str_utf8_forward(pPrefix, 0);
+				if(NewCursor != 0)
+				{
+					pTemp = pPrefix + NewCursor;
+					Break = false;
+					break;
+				}
+			}
+		}
+		if(Break)
+			break;
+	}
+
+	return str_skip_whitespaces_const(pTemp);
+}
+
 void CVoteMenu::OnConsoleInit()
 {
 	str_copy(m_aPages[PAGE_MAIN], ConvertToSmallCaps("Main Menu")); // Not shown
@@ -964,9 +1017,9 @@ void CVoteMenu::SetSubPage(int ClientId, int SubPage, bool SendVotes)
 		GameServer()->ClearVotes(ClientId);
 }
 
-static void FormatMultiplier(char *pBuffer, size_t BufferSize,CPlayer *pPlayer, bool ArrowHead)
+static void FormatMultiplier(char *pBuffer, size_t BufferSize, CPlayer *pPlayer, bool ArrowHead)
 {
-	str_format(pBuffer, BufferSize, "%s%.1fx %s", ArrowHead ? "➤ " : "", pPlayer->StatMultiplier(), MULTIPLIER_LABEL);
+	str_format(pBuffer, BufferSize, "%s%.1fx %s", ArrowHead ? "› " : "", pPlayer->StatMultiplier(), MULTIPLIER_LABEL);
 }
 
 void CVoteMenu::PrepareMainMenu(int ClientId)
@@ -1056,7 +1109,7 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 				PageName += " [" + std::to_string(UnreadMails) + "]";
 		}
 
-		AddVoteText(PageName.c_str(), EPrefix::ARROWHEAD);
+		AddVoteText(PageName.c_str(), EPrefix::SMALL_GREATER_THAN);
 	}
 }
 
@@ -1456,7 +1509,7 @@ void CVoteMenu::PrepareShop(int ClientId)
 			else
 				str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
 
-			AddVoteText(aName, EPrefix::ARROWHEAD);
+			AddVoteText(aName, EPrefix::SMALL_GREATER_THAN);
 		}
 		if(AmountShown == 0)
 		{
@@ -1504,7 +1557,6 @@ void CVoteMenu::PrepareShop(int ClientId)
 				else
 				{
 					AddVoteText("You already own the this Item!");
-
 				}
 				return;
 			}
@@ -1770,8 +1822,8 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		if(g_Config.m_SvAccounts)
 		{
 			AddVoteSeparator();
-			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::ARROWHEAD);
-			AddVoteText(SERVER_INFO_LEVELING, EPrefix::ARROWHEAD);
+			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::SMALL_GREATER_THAN);
+			AddVoteText(SERVER_INFO_LEVELING, EPrefix::SMALL_GREATER_THAN);
 		}
 	}
 	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
@@ -2049,15 +2101,13 @@ void CVoteMenu::AddVoteImpl(const char *pDesc)
 
 void CVoteMenu::AddVoteText(const char *pDesc, EPrefix Prefix)
 {
-	const char *pPrefixes[] = {"", "•", "─", "➤", ">", "⇨", "‣", "⁃", "◆", "◇", "│"};
-
 	if((int)Prefix <= (int)EPrefix::NONE || (int)Prefix >= (int)EPrefix::NUM)
 	{
 		AddVoteImpl(pDesc);
 		return;
 	}
 	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "%s %s", pPrefixes[(int)Prefix], pDesc);
+	str_format(aBuf, sizeof(aBuf), "%s %s", VotePrefixes[(int)Prefix].data(), pDesc);
 	AddVoteImpl(aBuf);
 }
 

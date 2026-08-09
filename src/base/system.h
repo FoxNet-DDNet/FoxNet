@@ -19,8 +19,6 @@
 char str_lowercase(char c);
 void str_lower(char *pOut);
 
-const char *str_skip_voting_menu_prefixes(const char *pVote);
-
 void SetFlag(uint32_t &Flags, int n, bool Value);
 bool IsFlagSet(uint32_t Flags, int n);
 std::string RandomUnicode(int length);

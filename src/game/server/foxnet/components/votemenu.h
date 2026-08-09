@@ -58,27 +58,18 @@ enum ServerInfoSubPages
 
 enum class EPrefix
 {
-	NONE = 0,
-	// •
-	POINT,
-	// ─
-	DASH,
-	// ➤
-	ARROWHEAD,
-	// >
-	GREATER_THAN,
-	// ⇨
-	ARROW,
-	// ‣
-	TRIANGLE,
-	// ⁃
-	HYPHEN,
-	// ◆
-	BLACK_DIAMOND,
-	// ◇
-	WHITE_DIAMOND,
-	// │
-	LONG_LINE,
+	NONE = -1,
+	POINT, // •
+	DASH, // ─
+	ARROWHEAD, // ➤
+	GREATER_THAN, // >
+	SMALL_GREATER_THAN, // ›
+	ARROW, // ⇨
+	TRIANGLE, // ‣
+	HYPHEN, // ⁃
+	BLACK_DIAMOND, // ◆
+	WHITE_DIAMOND, // ◇
+	LONG_LINE, // │
 	NUM
 };
 
