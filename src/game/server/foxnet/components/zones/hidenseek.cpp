@@ -412,6 +412,7 @@ void CHideAndSeekZone::OnPlayerEnter(int ClientId)
 	CClientData &Data = m_aClientData[ClientId];
 	Data.Reset();
 	Data.m_LastMovement = Server()->Tick();
+	Data.m_ActiveInRound = false; // Just entered, m_ActiveInRound = true when StartGame()
 
 	CCharacter *pChr = pPlayer->GetCharacter();
 
@@ -491,12 +492,18 @@ void CHideAndSeekZone::StartGame()
 		return;
 	}
 
+	// Nobody carries the flag in from an earlier round: a player who stopped being a candidate before
+	// the last EndGame never reached its Data.Reset(), so only the players set up below are in this one
+	for(CClientData &ClientData : m_aClientData)
+		ClientData.m_ActiveInRound = false;
+
 	for(int ClientId : m_vCandidateIds)
 	{
 		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
 		if(!pChr)
 			continue;
 
+		m_aClientData[ClientId].m_ActiveInRound = true;
 		m_aClientData[ClientId].m_Alive = true;
 		m_aClientData[ClientId].m_IsSeeker = false;
 		m_aClientData[ClientId].m_LastMovement = Server()->Tick();
@@ -580,6 +587,9 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 	char aSeekerName[MAX_NAME_LENGTH] = "";
 	for(int ClientId : m_vCandidateIds)
 	{
+		if(!m_aClientData[ClientId].m_ActiveInRound)
+			continue;
+
 		if(m_aClientData[ClientId].m_IsSeeker)
 		{
 			NumSeekers++;
@@ -611,8 +621,9 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 			else
 				pPlayer->SendChatFmt("'%s' won the game!", aHiderName);
 
-			// Xp for hiders gets given based on how long they werent hidden for
-			if(!Data.m_IsSeeker)
+			// Xp for hiders gets given based on how long they werent hidden for, and only for the
+			// ones that were part of this round. Walking in mid round still gets the cleanup below.
+			if(Data.m_ActiveInRound && !Data.m_IsSeeker)
 			{
 				if(g_Config.m_SvHideSeekGiveXp)
 				{
@@ -633,7 +644,8 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 				pPlayer->SendChat("The Seeker won the game!");
 			else
 				pPlayer->SendChatFmt("'%s' won the game!", aSeekerName);
-			if(Data.m_IsSeeker)
+
+			if(Data.m_ActiveInRound && Data.m_IsSeeker)
 			{
 				if(g_Config.m_SvHideSeekGiveXp)
 				{
@@ -648,8 +660,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 		if(pChr)
 		{
 			pChr->SetTuneOverride(-1);
-			if(Data.m_IsSeeker)
-				pChr->Unfreeze();
+			pChr->Unfreeze();
 		}
 		SetForcedSolo(ClientId, false);
 		pPlayer->ClearBroadcast();

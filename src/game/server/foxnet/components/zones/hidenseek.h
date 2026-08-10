@@ -63,6 +63,8 @@ class CHideAndSeekZone : public IMinigame
 
 		bool m_MarkedAfk = false;
 
+		bool m_ActiveInRound = false;
+
 		bool m_Alive = false;
 		bool m_ForcedSolo = false; // set when we put the player into solo, so we never unset a solo we dont own
 		bool m_Held = false; // frozen in place for the end of round screen
@@ -83,6 +85,7 @@ class CHideAndSeekZone : public IMinigame
 
 		void Reset()
 		{
+			m_ActiveInRound = false;
 			m_LastMovement = 0;
 			m_Alive = false;
 			m_ForcedSolo = false;
