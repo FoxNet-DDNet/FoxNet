@@ -265,6 +265,11 @@ std::optional<int> CNetBase::UnpackPacketFlags(unsigned char *pBuffer, int Size)
 // TODO: rename this function
 int CNetBase::UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct *pPacket, bool &Sixup, SECURITY_TOKEN *pSecurityToken, SECURITY_TOKEN *pResponseToken)
 {
+	if(pResponseToken != nullptr)
+	{
+		*pResponseToken = NET_SECURITY_TOKEN_UNKNOWN;
+	}
+
 	std::optional<int> Flags = UnpackPacketFlags(pBuffer, Size);
 	if(!Flags)
 	{
@@ -346,6 +351,10 @@ int CNetBase::UnpackPacket(unsigned char *pBuffer, int Size, CNetPacketConstruct
 		}
 		else
 		{
+			if(pPacket->m_DataSize > (int)sizeof(pPacket->m_aChunkData))
+			{
+				return -1;
+			}
 			mem_copy(pPacket->m_aChunkData, &pBuffer[DataStart], pPacket->m_DataSize);
 		}
 	}

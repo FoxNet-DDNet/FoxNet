@@ -3414,8 +3414,13 @@ int CServer::Run()
 
 	if(Config()->m_SvSqliteFile[0] != '\0')
 	{
+		if(!fs_is_relative_path(Config()->m_SvSqliteFile))
+		{
+			log_error("server", "sv_sqlite_file must be a relative path. path='%s'", Config()->m_SvSqliteFile);
+			return -1;
+		}
 		char aFullPath[IO_MAX_PATH_LENGTH];
-		Storage()->GetCompletePath(IStorage::TYPE_SAVE_OR_ABSOLUTE, Config()->m_SvSqliteFile, aFullPath, sizeof(aFullPath));
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, Config()->m_SvSqliteFile, aFullPath, sizeof(aFullPath));
 
 		if(Config()->m_SvUseSql)
 		{
@@ -3439,7 +3444,7 @@ int CServer::Run()
 		log_error("server", "The configured bindaddr '%s' cannot be resolved", g_Config.m_Bindaddr);
 		return -1;
 	}
-	BindAddr.type = Config()->m_SvIpv4Only ? NETTYPE_IPV4 : NETTYPE_ALL;
+	BindAddr.type = Config()->m_SvIpv4Only ? (NETTYPE_IPV4 | NETTYPE_WEBSOCKET_IPV4) : NETTYPE_ALL;
 
 	int Port = Config()->m_SvPort;
 	for(BindAddr.port = Port != 0 ? Port : 8303; !m_NetServer.Open(BindAddr, &m_ServerBan, Config()->m_SvMaxClients, Config()->m_SvMaxClientsPerIp); BindAddr.port++)
@@ -4407,9 +4412,9 @@ void CServer::ConAddSqlServer(IConsole::IResult *pResult, void *pUserData)
 	if(!pSelf->Config()->m_SvUseSql)
 		return;
 
-	if(pResult->NumArguments() != 7 && pResult->NumArguments() != 8)
+	if(pResult->NumArguments() < 7 || pResult->NumArguments() > 9)
 	{
-		log_error("server", "7 or 8 arguments are required");
+		log_error("server", "7 to 9 arguments are required");
 		return;
 	}
 
@@ -4436,7 +4441,11 @@ void CServer::ConAddSqlServer(IConsole::IResult *pResult, void *pUserData)
 	str_copy(Config.m_aIp, pResult->GetString(5));
 	Config.m_aBindaddr[0] = '\0';
 	Config.m_Port = pResult->GetInteger(6);
-	Config.m_Setup = pResult->NumArguments() == 8 ? pResult->GetInteger(7) : true;
+	Config.m_Setup = pResult->NumArguments() >= 8 ? pResult->GetInteger(7) : true;
+	Config.m_UseSsl = pResult->NumArguments() >= 9 ? pResult->GetInteger(8) != 0 : false;
+	str_copy(Config.m_aSslCa, g_Config.m_SvSqlSslCa);
+	str_copy(Config.m_aSslCert, g_Config.m_SvSqlSslCert);
+	str_copy(Config.m_aSslKey, g_Config.m_SvSqlSslKey);
 
 	log_info("server",
 		"Adding new Sql%sServer: DB: '%s' Prefix: '%s' User: '%s' IP: <{%s}> Port: %d",
@@ -4762,7 +4771,7 @@ void CServer::RegisterCommands()
 
 	Console()->Register("reload", "", CFGFLAG_SERVER, ConMapReload, this, "Reload the map");
 
-	Console()->Register("add_sqlserver", "s['r'|'w'] s[Database] s[Prefix] s[User] s[Password] s[IP] i[Port] ?i[SetUpDatabase ?]", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, ConAddSqlServer, this, "add a sqlserver");
+	Console()->Register("add_sqlserver", "s['r'|'w'] s[Database] s[Prefix] s[User] s[Password] s[IP] i[Port] ?i[SetUpDatabase ?] ?i[SSL ?]", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, ConAddSqlServer, this, "add a sqlserver");
 	Console()->Register("dump_sqlservers", "s['r'|'w']", CFGFLAG_SERVER, ConDumpSqlServers, this, "dumps all sqlservers readservers = r, writeservers = w");
 
 	Console()->Register("auth_add", "s[ident] s[level] r[pw]", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, ConAuthAdd, this, "Add a rcon key");

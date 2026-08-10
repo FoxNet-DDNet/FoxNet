@@ -670,7 +670,7 @@ public:
 	void SendInfo(bool Start);
 	void SendDummyInfo(bool Start) override;
 	void SendKill() const;
-	void SendReadyChange7();
+	void SendReadyChange7(); // NOLINT(readability-make-member-function-const)
 
 	void ApplyPreInputs(int Tick, bool Direct, CGameWorld &GameWorld);
 
@@ -698,7 +698,7 @@ public:
 	bool IsDemoPlaybackPaused() const;
 	float GetAnimationPlaybackSpeed() const;
 
-	bool AntiPingPlayers() const;
+	int AntiPingPlayers() const;
 	bool AntiPingGrenade() const;
 	bool AntiPingWeapons() const;
 	bool AntiPingGunfire() const;

@@ -211,6 +211,8 @@ public:
 	std::vector<std::vector<SSwitchers>> m_vvSwitchers;
 };
 
+typedef std::function<void(int ClientId, bool DisallowReset)> FAntiPingInterfereCallback;
+
 class CCharacterCore
 {
 	CWorldCore *m_pWorld = nullptr;
@@ -325,11 +327,16 @@ public:
 	bool m_Hookable;
 	// FoxNet>
 
+	// clientside only: antiping
+	void SetAntiPingInterfereCallback(FAntiPingInterfereCallback Callback);
+
 private:
 	CTeamsCore *m_pTeams;
 	int m_MoveRestrictions;
 	int m_HookedPlayer;
 	static bool IsSwitchActiveCb(unsigned char Number, void *pUser);
+
+	FAntiPingInterfereCallback m_AntiPingInterfereCallback = [](int ClientId, bool DisallowReset) {};
 };
 
 // input count
