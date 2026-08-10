@@ -171,8 +171,8 @@ void CMoneyWheelZone::Init(CMapItemLayerQuads *pQuadsLayer)
 			Config.m_NumFields = (int)m_vFields.size();
 
 			Config.m_Acceleration = 0.007f;
-			Config.m_MinSpinTicks = 1.5 * SERVER_TICK_SPEED;
-			Config.m_MaxSpinTicks = 2.5 * SERVER_TICK_SPEED;
+			Config.m_MinSpinTicks = 1.5 * (int)SERVER_TICK_SPEED;
+			Config.m_MaxSpinTicks = 2.5 * (int)SERVER_TICK_SPEED;
 
 			m_Spin.Init(Config);
 

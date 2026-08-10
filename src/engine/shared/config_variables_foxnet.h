@@ -129,6 +129,7 @@ MACRO_CONFIG_INT(SvLissajousB, sv_lissajous_b, 3, 0, 15, CFGFLAG_SERVER, "Lissaj
 // Social
 MACRO_CONFIG_STR(SvGithubRepo, sv_github_repo, 128, "github.com/FoxNet-DDNet/FoxNet", CFGFLAG_SERVER, "GitHub repository URL")
 MACRO_CONFIG_STR(SvDiscordLink, sv_discord_link, 128, "", CFGFLAG_SERVER, "Discord Server Link")
+
 // Force
 MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER, "Force skin for all players (Leave empty to disable)")
 
