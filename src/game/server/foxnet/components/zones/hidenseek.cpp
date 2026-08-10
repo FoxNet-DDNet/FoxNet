@@ -293,6 +293,16 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	const bool KeepOutOfTheWay = pPlayer->IsAfk() || Data.m_MarkedAfk || (m_State == EState::Playing && !Data.m_Alive);
 	SetForcedSolo(ClientId, KeepOutOfTheWay);
 
+	if(!Data.m_Alive && (m_State == EState::Playing || m_State == EState::Finished))
+	{
+		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_HAMMER))
+		{
+			pChr->GiveWeapon(WEAPON_HAMMER, true);
+			pChr->GiveWeapon(WEAPON_GUN, true);
+			pChr->SetActiveWeapon(WEAPON_NONE);
+		}
+	}
+
 	if(m_State == EState::Playing)
 	{
 		// Afk players are out, a seeker gets replaced instead so the round doesnt just end
@@ -403,8 +413,12 @@ void CHideAndSeekZone::OnPlayerEnter(int ClientId)
 	Data.Reset();
 	Data.m_LastMovement = Server()->Tick();
 
-	if(CCharacter *pChr = pPlayer->GetCharacter())
+	CCharacter *pChr = pPlayer->GetCharacter();
+
+	if(pChr)
+	{
 		pChr->SetTuneOverride(-1);
+	}
 }
 
 void CHideAndSeekZone::OnPlayerLeave(int ClientId)
@@ -419,7 +433,12 @@ void CHideAndSeekZone::OnPlayerLeave(int ClientId)
 
 	CCharacter *pChr = pPlayer->GetCharacter();
 	if(pChr)
+	{
 		pChr->SetTuneOverride(-1);
+
+		pChr->GiveWeapon(WEAPON_HAMMER);
+		pChr->GiveWeapon(WEAPON_GUN);
+	}
 
 	SetForcedSolo(ClientId, false);
 	m_aClientData[ClientId].Reset(); // has to happen after the solo release, Reset() drops the ownership flag
@@ -484,7 +503,7 @@ void CHideAndSeekZone::StartGame()
 		pChr->GetPlayer()->ClearBroadcast();
 		pChr->GetPlayer()->Pause(CPlayer::PAUSE_NONE, true);
 		SetForcedSolo(ClientId, false);
-		pChr->SetSolo(false); // taking part means being able to interact, this also drops a solo they set themselves
+		pChr->SetSolo(false);
 		pChr->GiveWeapon(WEAPON_GUN);
 		pChr->GiveWeapon(WEAPON_HAMMER);
 	}
@@ -766,9 +785,6 @@ void CHideAndSeekZone::HoldPlayers()
 		pChr->ResetHook();
 		pChr->SetVelocity(vec2(0, 0));
 		pChr->SetTuneOverride(m_FrozenTuneZone);
-		// One second longer than the hold, ReleaseHold() ends it. Without the extra second the freeze
-		// would run out a tick early, and if the release is ever missed they still get out on their own
-		pChr->FreezeForce((FinishedDelaySeconds + 1) * Server()->TickSpeed());
 	}
 }
 
@@ -786,6 +802,9 @@ void CHideAndSeekZone::ReleaseHold(int ClientId)
 
 	pChr->Unfreeze();
 	pChr->SetTuneOverride(-1);
+
+	pChr->GiveWeapon(WEAPON_HAMMER);
+	pChr->GiveWeapon(WEAPON_GUN);
 }
 
 void CHideAndSeekZone::ReleasePlayers()
