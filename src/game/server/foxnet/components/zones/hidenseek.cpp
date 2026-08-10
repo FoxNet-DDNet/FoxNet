@@ -1037,10 +1037,6 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	if(!pSnapPlayer)
 		return;
 
-	// Only players inside the area get the hide and seek scoreboard, everyone else keeps the normal one
-	if(!IsInArea(SnappingClient))
-		return;
-
 	int ClientId = pPlayer->GetCid();
 
 	CClientData &Data = m_aClientData[ClientId];
@@ -1051,9 +1047,12 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	if(m_State != EState::Playing && m_State != EState::Finished)
 		return;
 
-	if(!IsInArea(ClientId) && ClientId != SnappingClient)
+	const bool InArea = IsInArea(ClientId);
+
+	if(!InArea)
 	{
-		*pTeam = (int)TEAM_SPECTATORS;
+		if(ClientId != SnappingClient)
+			*pTeam = (int)TEAM_SPECTATORS;
 		return;
 	}
 
