@@ -147,7 +147,29 @@ const char *CRouletteZone::Motd() const
 	       "[Press Tab to hide]";
 }
 
-bool CRouletteZone::CanBet(int ClientId) const
+void CRouletteZone::OnPlayerEnter(int ClientId)
+{
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+		return;
+	m_aClients[ClientId].m_PrevPassive = pChr->Core()->m_Passive;
+	pChr->SetPassive(true);
+}
+
+void CRouletteZone::OnPlayerLeave(int ClientId)
+{
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+		return;
+	pChr->SetPassive(m_aClients[ClientId].m_PrevPassive);
+}
+
+void CRouletteZone::OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg)
+{
+	m_aClients[ClientId].m_PrevPassive = false;
+}
+
+bool CRouletteZone::CanJoinRound(int ClientId) const
 {
 	if(m_State != EState::Idle && m_State != EState::Preparing)
 		return false;
@@ -212,7 +234,7 @@ bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
 		return false;
 	}
 
-	if(!CanBet(ClientId))
+	if(!CanJoinRound(ClientId))
 	{
 		GameServer()->SendChatTarget(ClientId, "Wait until the current round is over.");
 		return false;

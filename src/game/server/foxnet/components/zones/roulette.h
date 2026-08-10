@@ -72,6 +72,8 @@ class CRouletteZone : public IMinigame
 		int64_t m_UsedWager = 0;
 		char m_aBetOption[24] = "";
 		bool m_Active = false;
+
+		bool m_PrevPassive = false;
 	};
 
 	// The wheel is drawn by this zone, it never needed to be an entity: it does not move through the
@@ -107,7 +109,7 @@ class CRouletteZone : public IMinigame
 	void SendBroadcast(int ClientId);
 	int AmountOfCloseClients() const;
 
-	bool CanBet(int ClientId) const;
+	bool CanJoinRound(int ClientId) const;
 	void StartSpin();
 	void EvaluateBet(int ClientId, bool Silent = false);
 
@@ -124,6 +126,10 @@ public:
 
 	[[nodiscard]] bool ContainsPlayer(const CPlayer *pPlayer) const override;
 	[[nodiscard]] const char *Motd() const override;
+
+	void OnPlayerEnter(int ClientId) override;
+	void OnPlayerLeave(int ClientId) override;
+	void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) override;
 
 	void OnClientReset(int ClientId) override;
 	bool CanUseMoney(CPlayer *pPlayer) override;
