@@ -28,6 +28,16 @@
 #include <string>
 #include <vector>
 
+// Wheel geometry. Shared by GetField() and FieldCenterRotation() so the two stay each other's inverse:
+// the landing correction relies on that, it has to move the pointer without changing the winner.
+constexpr static float TwoPi = 2.f * pi;
+constexpr static float FieldAngle = TwoPi / MAX_FIELDS;
+constexpr static float HalfField = FieldAngle * 0.5f;
+constexpr static float AngleTop = 3.f * pi / 2.f;
+constexpr static float FineTune = 0.0f;
+constexpr static int SectorOffset = 0;
+constexpr static bool HorizontalFlip = true;
+
 const SFields CRouletteZone::s_aFields[MAX_FIELDS] = {
 	{0, COLOR_GREEN},
 	{32, COLOR_RED}, {15, COLOR_BLACK}, {19, COLOR_RED}, {4, COLOR_BLACK},
@@ -333,40 +343,62 @@ void CRouletteZone::PrepareNextSpin()
 
 	m_SpinDuration = DurationDist(Rng);
 	m_SlowDownFactor = SlowDist(Rng);
-	m_EndingField = CalculateEndingField(m_SpinDuration, m_SlowDownFactor);
+
+	float EndRotation = 0.0f;
+	int StoppingTicks = 0;
+	m_EndingField = CalculateEndingField(m_SpinDuration, m_SlowDownFactor, &EndRotation, &StoppingTicks);
+
+	// The physics comes to rest wherever it happens to, which is often right on the seam between two
+	// tiles. Spread the gap to the middle of the winning tile across the slowdown instead, so the
+	// pointer eases onto the centre rather than snapping there once it has already stopped.
+	float Offset = fmodf(FieldCenterRotation(m_EndingField) - EndRotation, TwoPi);
+	if(Offset > pi)
+		Offset -= TwoPi;
+	else if(Offset < -pi)
+		Offset += TwoPi;
+
+	// Never more than half a tile: whatever happens, the correction must not walk off the winner
+	Offset = std::clamp(Offset, -HalfField, HalfField);
+
+	m_LandingCorrection = StoppingTicks > 0 ? Offset / StoppingTicks : 0.0f;
 }
 
 int CRouletteZone::GetField(float Rotation) const
 {
-	constexpr float TWO_PI = 2.f * pi;
-	constexpr float FIELD_ANGLE = TWO_PI / MAX_FIELDS;
-	constexpr float HALF_FIELD = FIELD_ANGLE * 0.5f;
-	constexpr float ANGLE_TOP = 3.f * pi / 2.f;
-
-	constexpr float FINE_TUNE = 0.0f;
-	constexpr int SECTOR_OFFSET = 0;
-	constexpr bool HORIZONTAL_FLIP = true;
-
-	float rot = fmodf(Rotation, TWO_PI);
+	float rot = fmodf(Rotation, TwoPi);
 	if(rot < 0.f)
-		rot += TWO_PI;
+		rot += TwoPi;
 
-	float rel = ANGLE_TOP - 1 * rot;
-	rel = fmodf(rel, TWO_PI);
+	float rel = AngleTop - 1 * rot;
+	rel = fmodf(rel, TwoPi);
 	if(rel < 0.f)
-		rel += TWO_PI;
-	rel += HALF_FIELD + FINE_TUNE;
-	if(rel >= TWO_PI)
-		rel -= TWO_PI;
+		rel += TwoPi;
+	rel += HalfField + FineTune;
+	if(rel >= TwoPi)
+		rel -= TwoPi;
 
-	int index = static_cast<int>(rel / FIELD_ANGLE) % MAX_FIELDS;
+	int index = static_cast<int>(rel / FieldAngle) % MAX_FIELDS;
 
-	index = (index + SECTOR_OFFSET + MAX_FIELDS) % MAX_FIELDS;
+	index = (index + SectorOffset + MAX_FIELDS) % MAX_FIELDS;
 
-	if(HORIZONTAL_FLIP)
+	if(HorizontalFlip)
 		index = (MAX_FIELDS - index) % MAX_FIELDS;
 
 	return index;
+}
+
+float CRouletteZone::FieldCenterRotation(int Field) const
+{
+	// Undo GetField() step by step: back through the flip and the offset to the raw sector, then to the
+	// rotation that puts the middle of that sector under the pointer
+	int Index = HorizontalFlip ? (MAX_FIELDS - Field) % MAX_FIELDS : Field;
+	Index = ((Index - SectorOffset) % MAX_FIELDS + MAX_FIELDS) % MAX_FIELDS;
+
+	float Rotation = fmodf(AngleTop + FineTune - Index * FieldAngle, TwoPi);
+	if(Rotation < 0.f)
+		Rotation += TwoPi;
+
+	return Rotation;
 }
 
 int CRouletteZone::GetField() const
@@ -374,12 +406,13 @@ int CRouletteZone::GetField() const
 	return GetField(m_Rotation);
 }
 
-int CRouletteZone::CalculateEndingField(int SpinDuration, float SlowDownFactor) const
+int CRouletteZone::CalculateEndingField(int SpinDuration, float SlowDownFactor, float *pEndRotation, int *pStoppingTicks) const
 {
 	float Rotation = m_Rotation;
 	float RotationSpeed = m_RotationSpeed;
 	EState State = EState::Spinning;
 	bool FirstSpinTick = true;
+	int StoppingTicks = 0;
 
 	while(true)
 	{
@@ -396,7 +429,15 @@ int CRouletteZone::CalculateEndingField(int SpinDuration, float SlowDownFactor) 
 		{
 			RotationSpeed -= 0.005f * SlowDownFactor;
 			if(RotationSpeed < 0.0f)
+			{
+				if(pEndRotation)
+					*pEndRotation = Rotation;
+				if(pStoppingTicks)
+					*pStoppingTicks = StoppingTicks;
 				return GetField(Rotation);
+			}
+			// Counts only the ticks that still turn the wheel, the same ones OnTick corrects on
+			StoppingTicks++;
 		}
 
 		Rotation += RotationSpeed;
@@ -510,7 +551,12 @@ void CRouletteZone::OnTick()
 			for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 				EvaluateBet(ClientId);
 			SetState(EState::Idle);
-			PrepareNextSpin();
+			PrepareNextSpin(); // sets m_LandingCorrection for the next spin, nothing may clear it after
+		}
+		else
+		{
+			// Eases the pointer onto the middle of the winning tile instead of resting on a seam
+			m_Rotation += m_LandingCorrection;
 		}
 	}
 	m_Rotation += m_RotationSpeed;

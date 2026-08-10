@@ -84,6 +84,8 @@ class CRouletteZone : public IMinigame
 
 	int m_SpinDuration = 0;
 	float m_SlowDownFactor = 1.0f;
+	// Per tick nudge applied during the slowdown so the spin rests mid tile instead of on an edge
+	float m_LandingCorrection = 0.0f;
 	float m_RotationSpeed = 0.0f;
 	float m_Rotation = 0.0f;
 	int m_EndingField = -1;
@@ -100,7 +102,13 @@ class CRouletteZone : public IMinigame
 
 	void SetState(EState State);
 	void PrepareNextSpin();
-	int CalculateEndingField(int SpinDuration, float SlowDownFactor) const;
+	/*
+	 * Simulates the whole spin up front. Optionally reports the rotation it comes to rest at and how
+	 * many ticks the slowdown takes, which is what the landing correction is built from.
+	 */
+	int CalculateEndingField(int SpinDuration, float SlowDownFactor, float *pEndRotation = nullptr, int *pStoppingTicks = nullptr) const;
+	// The rotation that puts the middle of the given field under the pointer, the inverse of GetField
+	float FieldCenterRotation(int Field) const;
 	void ClearClientBet(int ClientId, bool Refund = false);
 
 	int GetField(float Rotation) const;
