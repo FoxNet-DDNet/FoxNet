@@ -141,6 +141,38 @@ void CItemRegistry::Init()
 				pl.SetGunType(EGunType::None);
 		}});
 
+	Add({EItemId::SnowflakeGun, EItemType::Gun, "Snowflake Gun", "G_S", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, UnbuyablePrice /*550000*/, 45, "Launch no gravity, bouncing Snowflakes",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Snowflake); },
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_GunType == EGunType::Snowflake)
+				pl.SetGunType(EGunType::None);
+		}});
+
+	Add({EItemId::SwayingGun, EItemType::Gun, "Sway Gun", "G_Sw", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, 350000, 55, "Shoot bullets that curve randomly",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Sway); },
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_GunType == EGunType::Sway)
+				pl.SetGunType(EGunType::None);
+		}});
+
+	Add({EItemId::IntertwiningGun, EItemType::Gun, "Intertwining Gun", "G_I", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, 200000, 35, "Shoot 2 bullets that intertwine",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Intertwine); },
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_GunType == EGunType::Intertwine)
+				pl.SetGunType(EGunType::None);
+		}});
+
+	Add({EItemId::ControllableGun, EItemType::Gun, "Control Gun", "G_C", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, 1100000, 85, "Shoot bullets that go where you look",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Control); },
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_GunType == EGunType::Control)
+				pl.SetGunType(EGunType::None);
+		}});
+
 	// Indicators
 	Add({EItemId::IndicatorClockwise, EItemType::Indicator, "Clockwise Indicator", "I_C",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator, 12500, 5, "Gun Hit -> turns Clockwise",
@@ -235,8 +267,9 @@ void CItemRegistry::Init()
 			if(pl.Cosmetics()->m_DeathEffect == EDeathEffect::Laser)
 				pl.SetDeathEffect(EDeathEffect::None);
 		}});
+
 	Add({EItemId::DeathMeteor, EItemType::Death, "Meteor Death", "D_M", EItemFlag::Equippable,
-		EExclusiveGroup::DeathEffect, UnbuyablePrice /*275000*/, 10,
+		EExclusiveGroup::DeathEffect, 300000, 40,
 		"Summon a harmless meteor on death!",
 		[](CPlayer &pl, const CItemConfig &, int) {
 			pl.SetDeathEffect(EDeathEffect::Meteor);
