@@ -25,6 +25,9 @@ enum
 {
 	ANTIBOB_PLAYERFLAG_PRACTICE = 1 << 0,
 	ANTIBOB_PLAYERFLAG_FROZEN = 1 << 1,
+	// Server side debug dummy (add_dummies). Inputs are generated locally and there
+	// is no real client behind it, so it is exempt from every check and punishment.
+	ANTIBOB_PLAYERFLAG_DUMMY = 1 << 2,
 };
 
 class CAntibobContext

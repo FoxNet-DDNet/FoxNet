@@ -102,10 +102,15 @@ unsigned int AntibobPlayerFlags(int ClientId)
 {
 	if(!g_AntibobContext.m_pGameServer || ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return 0;
+	unsigned int Flags = 0;
+	// Checked before the character, a debug dummy must stay exempt even while it has
+	// no character at all (joining, dead, dropping).
+	if(g_AntibobContext.m_pGameServer->Server()->DebugDummy(ClientId))
+		Flags |= ANTIBOB_PLAYERFLAG_DUMMY;
+
 	CCharacter *pCharacter = g_AntibobContext.m_pGameServer->GetPlayerChar(ClientId);
 	if(!pCharacter)
-		return 0;
-	unsigned int Flags = 0;
+		return Flags;
 	if(pCharacter->Teams()->IsPractice(pCharacter->Team()))
 		Flags |= ANTIBOB_PLAYERFLAG_PRACTICE;
 	if(pCharacter->Core()->m_DeepFrozen || pCharacter->m_FreezeTime > 0 || pCharacter->Core()->m_LiveFrozen)
