@@ -217,10 +217,11 @@ public:
 		//}
 
 		bool m_OverrideMapActive = false;
-		unsigned char *m_pOverrideMapData = nullptr;
-		unsigned int m_OverrideMapSize = 0;
-		SHA256_DIGEST m_OverrideMapSha256;
-		unsigned m_OverrideMapCrc = 0;
+		// Only set for a VisualOnly map: it is not loaded anywhere, so this slot owns the bytes.
+		// A real map switch is served from the loaded map's own copy instead, see IServer::MapData.
+		unsigned char *m_pVisualMapData = nullptr;
+		unsigned int m_VisualMapSize = 0;
+		unsigned m_VisualMapCrc = 0;
 		char m_aOverrideMapName[64];
 
 		void ResetContent();
@@ -571,7 +572,7 @@ public:
 	void SetCustomClient(int ClientId, const char *pCustomClient, CUnpacker Unpacker);
 	bool IncludedInServerInfo(int ClientId);
 
-	bool SendMapByName(int ClientId, const char *pMapName) override;
+	bool SendMapByName(int ClientId, const char *pMapName, bool VisualOnly = false) override;
 	bool DebugDummy(int ClientId) const override { return m_aClients[ClientId].m_DebugDummy; }
 	bool GotDDNetVersionPacket(int ClientId) const override { return m_aClients[ClientId].m_GotDDNetVersionPacket; }
 

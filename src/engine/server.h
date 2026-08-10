@@ -301,7 +301,11 @@ public:
 
 	virtual bool IsSixup(int ClientId) const = 0;
 	// <FoxNet
-	virtual bool SendMapByName(int ClientId, const char *pMapName) = 0;
+	/*
+	 * Sends a client a different map. VisualOnly allows one the server does not have loaded, which is
+	 * only for looks: nothing simulates it, so it is read off disk rather than from a loaded map.
+	 */
+	virtual bool SendMapByName(int ClientId, const char *pMapName, bool VisualOnly = false) = 0;
 	virtual bool DebugDummy(int ClientId) const = 0;
 	virtual bool GotDDNetVersionPacket(int ClientId) const = 0;
 
@@ -331,7 +335,11 @@ public:
 	// <FoxNet
 	// The file a client has to be sent for this map. Maps can get rewritten on load (settings that
 	// the server generates into them), in which case that rewritten file is the one to send.
-	virtual void MapPath(const char *pMapName, char *pPath, int PathSize) = 0;
+	/*
+	 * The bytes to send a client for a loaded map, valid until that map unloads. Returns false when
+	 * no map of that name is loaded. Never read the map file instead, see CMultiMaps for why.
+	 */
+	virtual bool MapData(const char *pMapName, bool Sixup, const unsigned char **ppData, unsigned int *pSize, SHA256_DIGEST *pSha256, unsigned *pCrc) = 0;
 	// FoxNet>
 
 	// `pPersistentData` may be null if this is the last time `IGameServer`

@@ -319,15 +319,14 @@ void CRconClientLogger::Log(const CLogMessage *pMessage)
 
 static inline void FreeClientOverrideMap(CServer::CClient &Client)
 {
-	if(Client.m_pOverrideMapData)
-	{
-		free(Client.m_pOverrideMapData);
-		Client.m_pOverrideMapData = nullptr;
-	}
+	// A real map switch only names a map, those bytes belong to the map itself and outlive this.
+	// A visual only map is not loaded anywhere, so this slot owns it.
+	free(Client.m_pVisualMapData);
+	Client.m_pVisualMapData = nullptr;
+	Client.m_VisualMapSize = 0;
+	Client.m_VisualMapCrc = 0;
+
 	Client.m_OverrideMapActive = false;
-	Client.m_OverrideMapSize = 0;
-	Client.m_OverrideMapCrc = 0;
-	mem_zero(&Client.m_OverrideMapSha256, sizeof(Client.m_OverrideMapSha256));
 	Client.m_aOverrideMapName[0] = '\0';
 }
 
@@ -1559,20 +1558,27 @@ void CServer::SendMapData(int ClientId, int Chunk)
 	int MapType = IsSixup(ClientId) ? MAP_TYPE_SIXUP : MAP_TYPE_SIX;
 
 	// Use per-client override if present, else fall back to current map
-	const bool HasOverride = ClientId >= 0 && m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_pOverrideMapData != nullptr;
-	const unsigned char *pMapData = nullptr;
-	unsigned int MapSize = 0;
-	unsigned int MapCrc = 0;
+	const bool HasOverride = ClientId >= 0 && m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_aOverrideMapName[0];
+	const unsigned char *pMapData = m_apCurrentMapData[MapType];
+	unsigned int MapSize = m_aCurrentMapSize[MapType];
+	unsigned int MapCrc = m_aCurrentMapCrc[MapType];
 
-	pMapData = m_apCurrentMapData[MapType];
-	MapSize = m_aCurrentMapSize[MapType];
-	MapCrc = m_aCurrentMapCrc[MapType];
-
-	if(HasOverride && ClientId >= 0)
+	if(HasOverride)
 	{
-		pMapData = m_aClients[ClientId].m_pOverrideMapData;
-		MapSize = m_aClients[ClientId].m_OverrideMapSize;
-		MapCrc = m_aClients[ClientId].m_OverrideMapCrc;
+		if(m_aClients[ClientId].m_pVisualMapData)
+		{
+			pMapData = m_aClients[ClientId].m_pVisualMapData;
+			MapSize = m_aClients[ClientId].m_VisualMapSize;
+			MapCrc = m_aClients[ClientId].m_VisualMapCrc;
+		}
+		else
+		{
+			// Resolved per chunk instead of held as a pointer: if the map unloads mid download the
+			// lookup just fails and the request is dropped, rather than reading a freed buffer
+			SHA256_DIGEST Sha;
+			if(!GameServer()->MapData(m_aClients[ClientId].m_aOverrideMapName, MapType == MAP_TYPE_SIXUP, &pMapData, &MapSize, &Sha, &MapCrc))
+				return;
+		}
 	}
 
 	unsigned int ChunkSize = NET_MAX_CHUNK_SIZE - 128;
@@ -5298,7 +5304,7 @@ void CServer::SetQuietBan(bool Quiet)
 	m_NetServer.NetBan()->m_QuietBan = Quiet;
 }
 
-bool CServer::SendMapByName(int ClientId, const char *pMapName)
+bool CServer::SendMapByName(int ClientId, const char *pMapName, bool VisualOnly)
 {
 	dbg_assert(0 <= ClientId && ClientId < MAX_CLIENTS, "invalid client id");
 
@@ -5345,28 +5351,37 @@ bool CServer::SendMapByName(int ClientId, const char *pMapName)
 	}
 	else
 	{
-		// Other maps can have been rewritten on load as well, that file is the one to send
-		if(!Sixup)
-			GameServer()->MapPath(pMapName, aPath, sizeof(aPath));
-
-		void *pDataVoid = nullptr;
-		if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
+		// Every other loaded map keeps its bytes too, and SendMapData resolves them by name on each
+		// chunk. Reading the file here instead would risk sending a map the server is not running.
+		const unsigned char *pData = nullptr;
+		const bool Loaded = GameServer()->MapData(pMapName, Sixup, &pData, &Size, &Sha, &Crc);
+		if(!Loaded && !VisualOnly)
 		{
-			log_info("server", "SendMapByName: couldn't load '%s'", aPath);
+			log_info("server", "SendMapByName: '%s' is not a loaded map", pMapName);
 			return false;
 		}
-		unsigned char *pData = (unsigned char *)pDataVoid;
 
-		Sha = sha256(pData, Size);
-		Crc = crc32(0, pData, Size);
+		unsigned char *pVisualData = nullptr;
+		if(!Loaded)
+		{
+			// Nothing simulates this one, it is only for looks, so the file on disk is the only
+			// source there is and there is nothing for it to disagree with
+			void *pDataVoid = nullptr;
+			if(!Storage()->ReadFile(aPath, IStorage::TYPE_ALL, &pDataVoid, &Size))
+			{
+				log_info("server", "SendMapByName: couldn't load '%s'", aPath);
+				return false;
+			}
+			pVisualData = (unsigned char *)pDataVoid;
+			Sha = sha256(pVisualData, Size);
+			Crc = crc32(0, pVisualData, Size);
+		}
 
-		// Replace any previous override
 		FreeClientOverrideMap(m_aClients[ClientId]);
 
-		m_aClients[ClientId].m_pOverrideMapData = pData;
-		m_aClients[ClientId].m_OverrideMapSize = Size;
-		m_aClients[ClientId].m_OverrideMapSha256 = Sha;
-		m_aClients[ClientId].m_OverrideMapCrc = Crc;
+		m_aClients[ClientId].m_pVisualMapData = pVisualData;
+		m_aClients[ClientId].m_VisualMapSize = pVisualData ? Size : 0;
+		m_aClients[ClientId].m_VisualMapCrc = pVisualData ? Crc : 0;
 		m_aClients[ClientId].m_OverrideMapActive = true;
 		str_copy(m_aClients[ClientId].m_aOverrideMapName, pMapName, sizeof(m_aClients[ClientId].m_aOverrideMapName));
 	}
@@ -5440,7 +5455,8 @@ void CServer::ConSendMap(IConsole::IResult *pResult, void *pUser)
 
 	const char *pMapName = pResult->GetString(0);
 	int ClientId = pResult->NumArguments() > 1 ? pResult->GetInteger(1) : pResult->m_ClientId;
-	pThis->SendMapByName(ClientId, pMapName);
+	// Visual only: the map does not have to be one the server has loaded
+	pThis->SendMapByName(ClientId, pMapName, true);
 }
 
 static std::string EscapeJsonString(const char *pStr)

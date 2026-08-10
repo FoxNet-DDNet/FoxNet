@@ -63,6 +63,8 @@
 #include <game/version.h>
 #include <game/voting.h>
 
+#include <zlib.h> // crc32, for the map data clients get sent
+
 #include <algorithm>
 #include <iterator>
 #include <optional>
@@ -5136,31 +5138,64 @@ bool CGameContext::RewriteMapSettings(const char *pMapName, char *pMapPath, int 
 	return true;
 }
 
-void CGameContext::DeleteRewrittenMap(CMultiMaps *pMultiMap)
+bool CGameContext::CacheMapData(CMultiMaps *pMultiMap, const char *pMapName, const char *pSixPath)
 {
-	if(!pMultiMap || !pMultiMap->m_aRewrittenPath[0])
-		return;
+	if(!pMultiMap)
+		return false;
 
-	Storage()->RemoveFile(pMultiMap->m_aRewrittenPath, IStorage::TYPE_SAVE);
-	pMultiMap->m_aRewrittenPath[0] = 0;
+	pMultiMap->FreeMapData();
+
+	auto Read = [&](const char *pPath, CMultiMaps::CMapData &Out) {
+		void *pData = nullptr;
+		unsigned int Size = 0;
+		if(!Storage()->ReadFile(pPath, IStorage::TYPE_ALL, &pData, &Size))
+			return false;
+
+		Out.m_pData = (unsigned char *)pData;
+		Out.m_Size = Size;
+		Out.m_Sha256 = sha256(pData, Size);
+		Out.m_Crc = crc32(0, (const unsigned char *)pData, Size);
+		return true;
+	};
+
+	if(!Read(pSixPath, pMultiMap->m_aMapData[CMultiMaps::MAPDATA_SIX]))
+		return false;
+
+	// A 0.7 client needs the maps7 file. Missing one is not fatal, it only means 0.6 clients can be
+	// sent this map and 0.7 clients cannot.
+	if(g_Config.m_SvSixup)
+	{
+		char aPath[IO_MAX_PATH_LENGTH];
+		str_format(aPath, sizeof(aPath), "maps7/%s.map", pMapName);
+		if(!Read(aPath, pMultiMap->m_aMapData[CMultiMaps::MAPDATA_SIXUP]))
+			log_info("multimap", "No 0.7 version of '%s', 0.7 clients cannot be sent it", pMapName);
+	}
+
+	return true;
 }
 
-void CGameContext::MapPath(const char *pMapName, char *pPath, int PathSize)
+bool CGameContext::MapData(const char *pMapName, bool Sixup, const unsigned char **ppData, unsigned int *pSize, SHA256_DIGEST *pSha256, unsigned *pCrc)
 {
+	const int Type = Sixup ? CMultiMaps::MAPDATA_SIXUP : CMultiMaps::MAPDATA_SIX;
 	for(const auto &pMultiMap : m_vMultiMaps)
 	{
 		if(!pMultiMap || !pMultiMap->m_pMap)
 			continue;
 		if(str_comp(pMultiMap->m_pMap->BaseName(), pMapName) != 0)
 			continue;
-		if(!pMultiMap->m_aRewrittenPath[0])
-			break;
 
-		str_copy(pPath, pMultiMap->m_aRewrittenPath, PathSize);
-		return;
+		const CMultiMaps::CMapData &Data = pMultiMap->m_aMapData[Type];
+		if(!Data.m_pData)
+			return false;
+
+		*ppData = Data.m_pData;
+		*pSize = Data.m_Size;
+		*pSha256 = Data.m_Sha256;
+		*pCrc = Data.m_Crc;
+		return true;
 	}
 
-	str_format(pPath, PathSize, "maps/%s.map", pMapName);
+	return false;
 }
 
 bool CGameContext::OnMapChange(char *pNewMapName, int MapNameSize)
@@ -5207,7 +5242,6 @@ void CGameContext::OnShutdown(void *pPersistentData)
 		for(size_t i = 1; i < m_vMultiMaps.size(); i++)
 		{
 			log_info("foxnet", "unloading map id %" PRIzu " (%s)", i, m_vMultiMaps[i]->m_pMap->BaseName());
-			DeleteRewrittenMap(m_vMultiMaps[i].get());
 			m_vMultiMaps[i]->Unload();
 			m_vMultiMaps[i]->m_pMap = nullptr;
 		}

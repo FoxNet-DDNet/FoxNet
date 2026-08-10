@@ -94,9 +94,32 @@ public:
 	bool m_CreatedEntities = false;
 	bool m_LoadedSwitchers = false;
 
-	// Set when the map had to be rewritten with generated settings, this is the file the clients
-	// have to be sent. Empty means the map on disk can be sent as it is.
-	char m_aRewrittenPath[IO_MAX_PATH_LENGTH] = "";
+	enum
+	{
+		MAPDATA_SIX = 0,
+		MAPDATA_SIXUP,
+		NUM_MAPDATA,
+	};
+
+	/*
+	 * The exact bytes this map was loaded from, which is what clients get sent. 0.7 clients need the
+	 * maps7 file, which is a different file, so both are kept.
+	 *
+	 * Kept in memory rather than re-read on demand: the file can be replaced on disk while the
+	 * server runs, and when the map had to be rewritten with generated settings that file is a
+	 * temporary that gets deleted as soon as it is loaded. Reading it again risks handing a client
+	 * a map the server is not simulating, with a matching sha because the sha is computed from the
+	 * same re-read. The main map has always been cached this way, see CServer::LoadMap.
+	 */
+	class CMapData
+	{
+	public:
+		unsigned char *m_pData = nullptr;
+		unsigned int m_Size = 0;
+		SHA256_DIGEST m_Sha256 = {{0}};
+		unsigned m_Crc = 0;
+	};
+	CMapData m_aMapData[NUM_MAPDATA];
 
 	// Needs GameContext and MultiMapIndex of this map to be initialized
 	void InitTuning(CGameContext *pGameContext, size_t MultiMapIndex);
@@ -105,6 +128,14 @@ public:
 	{
 		m_Layers.Init(m_pMap.get(), false, false);
 		m_Collision.Init(&m_Layers);
+	}
+	void FreeMapData()
+	{
+		for(CMapData &Data : m_aMapData)
+		{
+			free(Data.m_pData);
+			Data = CMapData();
+		}
 	}
 	void Unload()
 	{
@@ -115,8 +146,10 @@ public:
 		m_Collision.Unload();
 		m_LoadedSwitchers = false;
 		m_CreatedEntities = false;
+		FreeMapData();
 	}
 	CMultiMaps() = default;
+	~CMultiMaps() { FreeMapData(); }
 };
 
 class CStringDetection
@@ -412,7 +445,8 @@ public:
 	// map was saved with) plus the settings we generate for it, and points pMapPath at that file.
 	// Leaves pTempPath empty when the map already is what it should be.
 	bool RewriteMapSettings(const char *pMapName, char *pMapPath, int MapPathSize, const std::vector<std::string> *pReplacement, char *pTempPath, int TempPathSize);
-	void DeleteRewrittenMap(CMultiMaps *pMultiMap);
+	// Reads the files a map is sent from into memory, so clients never get served off disk
+	bool CacheMapData(CMultiMaps *pMultiMap, const char *pMapName, const char *pSixPath);
 
 	enum
 	{
@@ -478,7 +512,7 @@ public:
 	void RegisterDDRaceCommands();
 	void RegisterChatCommands();
 	[[nodiscard]] bool OnMapChange(char *pNewMapName, int MapNameSize) override;
-	void MapPath(const char *pMapName, char *pPath, int PathSize) override;
+	bool MapData(const char *pMapName, bool Sixup, const unsigned char **ppData, unsigned int *pSize, SHA256_DIGEST *pSha256, unsigned *pCrc) override;
 	void OnShutdown(void *pPersistentData) override;
 
 	void OnTick() override;

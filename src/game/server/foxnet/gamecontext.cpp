@@ -281,7 +281,16 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 			Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
 		return;
 	}
-	str_copy(pNewMap->m_aRewrittenPath, aRewritten);
+	// Keep the bytes we just loaded, then drop the file. Clients are served from this copy, so
+	// nothing can replace the map underneath us between loading it and sending it.
+	const bool Cached = CacheMapData(pNewMap.get(), pMapName, aBuf);
+	if(aRewritten[0])
+		Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
+	if(!Cached)
+	{
+		log_error("multimap", "Failed to keep map data for '%s', clients could not be sent it", aBuf);
+		return;
+	}
 	log_info("multimap", "Map loaded: %s", aBuf);
 	pNewMap->Init();
 	pNewMap->m_MapType = Type;
@@ -327,7 +336,6 @@ void CGameContext::UnloadMapByName(const char *pMapName)
 			pComponent->OnMapUnload(Idx);
 
 		log_info("multimap", "Map unloaded of type %d: %s", (int)(*It)->m_MapType, pMapName);
-		DeleteRewrittenMap(It->get());
 		(*It)->Unload();
 		m_vMultiMaps.erase(It);
 	}
@@ -376,7 +384,15 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 			Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
 		return;
 	}
-	str_copy(pReloadedMap->m_aRewrittenPath, aRewritten);
+	// See the load path: the bytes are kept, the file is not
+	const bool Cached = CacheMapData(pReloadedMap.get(), pMapName, aBuf);
+	if(aRewritten[0])
+		Storage()->RemoveFile(aRewritten, IStorage::TYPE_SAVE);
+	if(!Cached)
+	{
+		log_error("multimap", "Failed to keep map data for '%s', clients could not be sent it", aBuf);
+		return;
+	}
 
 	bool aWasOnMap[MAX_CLIENTS] = {false};
 
@@ -401,7 +417,6 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapUnload(Idx);
 
-	DeleteRewrittenMap(It->get());
 	(*It)->Unload();
 
 	pReloadedMap->Init();
@@ -437,7 +452,6 @@ void CGameContext::UnloadMapsAll()
 	for(size_t Idx = 1; Idx < m_vMultiMaps.size(); ++Idx)
 	{
 		log_info("multimap", "Map unloaded of type %d: %s", (int)m_vMultiMaps[Idx]->m_MapType, m_vMultiMaps[Idx]->m_pMap->BaseName());
-		DeleteRewrittenMap(m_vMultiMaps[Idx].get());
 		m_vMultiMaps[Idx]->Unload();
 		m_pController->ClearSpawnPoints(Idx);
 		m_World.DestroyEntitiesOfMap(Idx);
