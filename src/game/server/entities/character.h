@@ -399,8 +399,6 @@ public:
 	vec2 GetSnappedTargetPos(int SnappingClient);
 
 private:
-	void RouletteTileHandle();
-
 	bool CanDropWeapon(int Type);
 
 	vec2 m_HookBasePos = vec2(0, 0);

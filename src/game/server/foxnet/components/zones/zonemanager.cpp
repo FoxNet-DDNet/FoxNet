@@ -4,9 +4,10 @@
 #include "collidable.h"
 #include "death.h"
 #include "freeze.h"
+#include "gambling/moneywheel.h"
+#include "gambling/roulette.h"
 #include "hidenseek.h"
 #include "minigame.h"
-#include "roulette.h"
 #include "unfreeze.h"
 #include "zone.h"
 
@@ -60,6 +61,15 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			if(pGroupZone == nullptr)
 			{
 				pGroupZone = new CRouletteZone(GameServer(), MultiMapIdx);
+				m_vpMinigames.push_back(pGroupZone);
+			}
+		}
+		else if(!str_comp(aGroupName, "#MoneyWheel"))
+		{
+			pGroupZone = FindMinigame<CMoneyWheelZone>(MultiMapIdx);
+			if(pGroupZone == nullptr)
+			{
+				pGroupZone = new CMoneyWheelZone(GameServer(), MultiMapIdx);
 				m_vpMinigames.push_back(pGroupZone);
 			}
 		}
@@ -493,12 +503,12 @@ void CZoneManager::OnCharacterDie(int ClientId, int Killer, int Weapon, bool Sen
 		pMinigame->OnCharacterDie(ClientId, Killer, Weapon, SendKillMsg);
 	}
 }
-bool CZoneManager::OnCharacterFire(int ClientId, int Weapon)
+bool CZoneManager::OnCharacterFire(CCharacter *pChr, int Weapon)
 {
 	bool Allowed = true;
 	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		if(!pMinigame->OnCharacterFire(ClientId, Weapon))
+		if(!pMinigame->OnCharacterFire(pChr, Weapon))
 			Allowed = false;
 	}
 	return Allowed;

@@ -134,7 +134,7 @@ public:
 	virtual bool CanDropWeapon(CCharacter *pChr, int Weapon) { return true; }
 	virtual void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) {}
 	virtual void OnCharacterSpawn(int ClientId, vec2 Pos) {}
-	virtual bool OnCharacterFire(int ClientId, int Weapon) { return true; }
+	virtual bool OnCharacterFire(CCharacter *pChr, int Weapon) { return true; }
 	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
 	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
 

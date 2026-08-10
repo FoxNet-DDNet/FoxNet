@@ -1,7 +1,9 @@
-#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
-#define GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
+#ifndef GAME_SERVER_FOXNET_COMPONENTS_ZONES_GAMBLING_ROULETTE_H
+#define GAME_SERVER_FOXNET_COMPONENTS_ZONES_GAMBLING_ROULETTE_H
 
-#include "minigame.h"
+#include "../minigame.h"
+#include "betquad.h"
+#include "wheelspin.h"
 
 #include <base/vmath.h>
 
@@ -12,10 +14,10 @@
 
 #include <cstdint>
 #include <vector>
+#include <game/server/entities/character.h>
+#include <game/server/player.h>
 
-constexpr int MAX_FIELDS = 37; // 0-36
-constexpr int MIN_SPIN_DURATION = 2 * SERVER_TICK_SPEED; // seconds
-constexpr int MAX_SPIN_DURATION = 3 * SERVER_TICK_SPEED; // seconds
+constexpr int NUM_FIELDS = 37; // 0-36
 
 enum Colors
 {
@@ -40,15 +42,6 @@ constexpr const char *RouletteOptions[] = {
 	"13-24",
 	"25-36"};
 
-class CBetQuadData
-{
-public:
-	int m_MapIndex = 0;
-	vec2 m_Pos[4] = {vec2(0, 0)};
-	// Based on RouletteOptions
-	int m_BetOption = -1;
-};
-
 class CRouletteZone : public IMinigame
 {
 	enum class ESubType : uint8_t
@@ -56,14 +49,6 @@ class CRouletteZone : public IMinigame
 		Area = 0,
 		Wheel,
 		BetOption,
-	};
-
-	enum class EState
-	{
-		Idle = 0,
-		Preparing,
-		Spinning,
-		Stopping,
 	};
 
 	class CClientData
@@ -80,16 +65,12 @@ class CRouletteZone : public IMinigame
 	// world, collides with nothing, and its whole appearance is the one laser below
 	bool m_HasWheel = false;
 	vec2 m_WheelPos = vec2(0, 0);
+	float m_Radius = 0.0f;
 	int m_SnapId = -1;
 
-	int m_SpinDuration = 0;
-	float m_SlowDownFactor = 1.0f;
-	// Per tick nudge applied during the slowdown so the spin rests mid tile instead of on an edge
-	float m_LandingCorrection = 0.0f;
-	float m_RotationSpeed = 0.0f;
-	float m_Rotation = 0.0f;
-	int m_EndingField = -1;
-	EState m_State = EState::Idle;
+	CWheelSpin m_Spin;
+
+	// Counts down to the next spin once somebody has bet, the wheel itself stays Idle meanwhile
 	int m_StartDelay = -1;
 
 	int m_Betters = 0;
@@ -98,27 +79,15 @@ class CRouletteZone : public IMinigame
 	std::vector<CBetQuadData> m_vBetQuads;
 
 	CClientData m_aClients[MAX_CLIENTS];
-	static const SFields s_aFields[MAX_FIELDS];
+	static const SFields s_aFields[NUM_FIELDS];
 
-	void SetState(EState State);
-	void PrepareNextSpin();
-	/*
-	 * Simulates the whole spin up front. Optionally reports the rotation it comes to rest at and how
-	 * many ticks the slowdown takes, which is what the landing correction is built from.
-	 */
-	int CalculateEndingField(int SpinDuration, float SlowDownFactor, float *pEndRotation = nullptr, int *pStoppingTicks = nullptr) const;
-	// The rotation that puts the middle of the given field under the pointer, the inverse of GetField
-	float FieldCenterRotation(int Field) const;
+	void BeginCountdown();
 	void ClearClientBet(int ClientId, bool Refund = false);
-
-	int GetField(float Rotation) const;
-	int GetField() const;
 
 	void SendBroadcast(int ClientId);
 	int AmountOfCloseClients() const;
 
 	bool CanJoinRound(int ClientId) const;
-	void StartSpin();
 	void EvaluateBet(int ClientId, bool Silent = false);
 
 public:
@@ -145,13 +114,15 @@ public:
 	// A table with no wheel takes nothing, that map is broken
 	[[nodiscard]] bool TakesWager() const override { return m_HasWheel; }
 
+	bool OnCharacterFire(CCharacter *pChr, int Weapon) override;
+
 	bool ClientBetting(int ClientId) const { return m_aClients[ClientId].m_Active; }
 	// Bets whatever /bet set aside
 	bool AddClient(int ClientId, const char *pBetOption);
 
-	int EndingField() const { return m_EndingField; }
-	int FieldNumber(int Field) const { return (Field >= 0 && Field < MAX_FIELDS) ? s_aFields[Field].m_Number : -1; }
-	int FieldColor(int Field) const { return (Field >= 0 && Field < MAX_FIELDS) ? s_aFields[Field].m_Color : -1; }
+	int EndingField() const { return m_Spin.EndingField(); }
+	int FieldNumber(int Field) const { return (Field >= 0 && Field < NUM_FIELDS) ? s_aFields[Field].m_Number : -1; }
+	int FieldColor(int Field) const { return (Field >= 0 && Field < NUM_FIELDS) ? s_aFields[Field].m_Color : -1; }
 };
 
-#endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ROULETTE_H
+#endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_GAMBLING_ROULETTE_H

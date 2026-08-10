@@ -35,7 +35,6 @@
 #include <game/server/entity.h>
 #include <game/server/foxnet/component.h>
 #include <game/server/foxnet/components/accounts/accounts.h>
-#include <game/server/foxnet/components/zones/roulette.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
 #include <game/server/foxnet/entities/custom_projectile.h>
@@ -586,7 +585,7 @@ void CCharacter::FireWeapon()
 
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
 	{
-		if(!pComponent->OnCharacterFire(m_pPlayer->GetCid(), m_Core.m_ActiveWeapon))
+		if(!pComponent->OnCharacterFire(this, m_Core.m_ActiveWeapon))
 			return;
 	}
 
@@ -600,7 +599,6 @@ void CCharacter::FireWeapon()
 
 		Antibot()->OnHammerFire(m_pPlayer->GetCid());
 		// <FoxNet
-		RouletteTileHandle();
 		if(m_Core.m_Passive)
 			break;
 		// FoxNet>
@@ -3244,36 +3242,6 @@ vec2 CCharacter::GetSnappedTargetPos(int SnappingClient)
 		return -Target;
 
 	return Target;
-}
-
-void CCharacter::RouletteTileHandle()
-{
-	if(Team() != TEAM_FLOCK)
-		return;
-	if(!IsAlive())
-		return;
-
-	// Has to be the zone holding the player right now, being on the same map is not enough
-	CRouletteZone *pRouletteZone = GameServer()->m_ZoneManager.FindMinigame<CRouletteZone>(MultiMapIdx());
-	if(!pRouletteZone || !pRouletteZone->IsInArea(GetPlayer()->GetCid()))
-		return;
-
-	const int ClientId = GetPlayer()->GetCid();
-
-	vec2 CursorPos = GetCursorPos();
-
-	for(const CBetQuadData &QuadData : pRouletteZone->BetQuads())
-	{
-		const vec2 aPoints[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]};
-		if(!InsideQuadrilateral(CursorPos, aPoints))
-			continue;
-
-		if(pRouletteZone->AddClient(ClientId, RouletteOptions[QuadData.m_BetOption]))
-		{
-			GameServer()->CreateDeath(CursorPos, ClientId, TeamMask());
-			return;
-		}
-	}
 }
 
 void CCharacter::HandleSpawnSolo()

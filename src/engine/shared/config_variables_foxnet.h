@@ -117,9 +117,6 @@ MACRO_CONFIG_INT(SvMultimap, sv_multimaps, 0, 0, 1, CFGFLAG_SERVER, "Whether to 
 MACRO_CONFIG_INT(SvMultimapAllowInteraction, sv_multimap_allow_interaction, 0, 0, 1, CFGFLAG_SERVER, "Allow entities from different maps to interact with each other")
 MACRO_CONFIG_INT(SvMultimapShowOthers, sv_multimap_show_others, 0, 0, 1, CFGFLAG_SERVER, "Allow players to see entities from different maps")
 
-// Roulette
-MACRO_CONFIG_INT(SvRouletteLength, sv_roulette_length, 140, 0, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "Length of the roulette spinner")
-
 // Ban Syncing
 MACRO_CONFIG_INT(SvBanSyncing, sv_ban_syncing, 0, 0, 1, CFGFLAG_SERVER, "Whether to Sync bans every fs_ban_syncing_delay mins across servers")
 MACRO_CONFIG_INT(SvBanSyncingDelay, sv_ban_syncing_delay, 15, 1, 500, CFGFLAG_SERVER, "How long the server waits between syncs")

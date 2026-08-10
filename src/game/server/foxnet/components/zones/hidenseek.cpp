@@ -978,20 +978,18 @@ void CHideAndSeekZone::OnCharacterDie(int ClientId, int Killer, int Weapon, bool
 	OnPlayerLeave(ClientId);
 }
 
-bool CHideAndSeekZone::OnCharacterFire(int ClientId, int Weapon)
+bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 {
 	if(m_State != EState::Playing)
 		return true;
+
+	const int ClientId = pChr->GetPlayer()->GetCid();
 
 	if(!IsCandidate(ClientId))
 		return true;
 
 	if(!m_aClientData[ClientId].m_Alive)
 		return false;
-
-	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-	if(!pChr)
-		return true;
 
 	if(m_aClientData[ClientId].m_IsSeeker)
 	{

@@ -18,7 +18,7 @@
 #include <game/gamecore.h>
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/components/votemenu.h>
-#include <game/server/foxnet/components/zones/roulette.h>
+#include <game/server/foxnet/components/zones/gambling/roulette.h>
 #include <game/server/foxnet/entities/text/text.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>

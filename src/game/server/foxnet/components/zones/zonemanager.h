@@ -106,7 +106,7 @@ public:
 	bool CanDropWeapon(CCharacter *pChr, int Weapon) override;
 	void OnCharacterSpawn(int ClientId, vec2 Pos) override;
 	void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) override;
-	bool OnCharacterFire(int ClientId, int Weapon) override;
+	bool OnCharacterFire(CCharacter *pChr, int Weapon) override;
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 

@@ -3037,6 +3037,12 @@ if(SERVER)
     foxnet/components/spawncandidates.h
     foxnet/components/votemenu.cpp
     foxnet/components/votemenu.h
+    foxnet/components/zones/gambling/betquad.h
+    foxnet/components/zones/gambling/moneywheel.cpp
+    foxnet/components/zones/gambling/moneywheel.h
+    foxnet/components/zones/gambling/roulette.cpp
+    foxnet/components/zones/gambling/roulette.h
+    foxnet/components/zones/gambling/wheelspin.h
     foxnet/components/zones/checktele.cpp
     foxnet/components/zones/checktele.h
     foxnet/components/zones/collidable.cpp
@@ -3049,8 +3055,6 @@ if(SERVER)
     foxnet/components/zones/hidenseek.h
     foxnet/components/zones/minigame.cpp
     foxnet/components/zones/minigame.h
-    foxnet/components/zones/roulette.cpp
-    foxnet/components/zones/roulette.h
     foxnet/components/zones/unfreeze.cpp
     foxnet/components/zones/unfreeze.h
     foxnet/components/zones/zone.cpp

@@ -119,7 +119,7 @@ public:
 	/*
 	 * Called when a character fires a weapon, return false to prevent firing the weapon
 	 */
-	virtual bool OnCharacterFire(int ClientId, int Weapon) { return true; }
+	virtual bool OnCharacterFire(CCharacter *pChr, int Weapon) { return true; }
 	/*
 	 * Called when a character hits someone with the hammer
 	 */

@@ -28,17 +28,7 @@
 #include <string>
 #include <vector>
 
-// Wheel geometry. Shared by GetField() and FieldCenterRotation() so the two stay each other's inverse:
-// the landing correction relies on that, it has to move the pointer without changing the winner.
-constexpr static float TwoPi = 2.f * pi;
-constexpr static float FieldAngle = TwoPi / MAX_FIELDS;
-constexpr static float HalfField = FieldAngle * 0.5f;
-constexpr static float AngleTop = 3.f * pi / 2.f;
-constexpr static float FineTune = 0.0f;
-constexpr static int SectorOffset = 0;
-constexpr static bool HorizontalFlip = true;
-
-const SFields CRouletteZone::s_aFields[MAX_FIELDS] = {
+const SFields CRouletteZone::s_aFields[NUM_FIELDS] = {
 	{0, COLOR_GREEN},
 	{32, COLOR_RED}, {15, COLOR_BLACK}, {19, COLOR_RED}, {4, COLOR_BLACK},
 	{21, COLOR_RED}, {2, COLOR_BLACK}, {25, COLOR_RED}, {17, COLOR_BLACK},
@@ -97,12 +87,17 @@ void CRouletteZone::Init(CMapItemLayerQuads *pQuadsLayer)
 			}
 
 			m_WheelPos = QuadData.m_aPoints[4]; // pivot
+			m_Radius = distance(QuadData.m_aPoints[0], QuadData.m_aPoints[1]) * 0.5f;
 			m_HasWheel = true;
 			m_SnapId = AllocSnapId();
-			SetState(EState::Idle);
-			PrepareNextSpin();
 
-			log_info("roulette", "Roulette created at %.2f, %.2f on map %" PRIzu, m_WheelPos.x, m_WheelPos.y, MultiMapIndex());
+			CWheelSpin::CConfig Config;
+			Config.m_NumFields = NUM_FIELDS;
+			// The map art runs the other way round the pointer
+			Config.m_Reverse = true;
+			m_Spin.Init(Config);
+
+			log_info("roulette-wheel", "Roulette created at %.2f, %.2f, radius %.0f, on map %" PRIzu, m_WheelPos.x, m_WheelPos.y, m_Radius, MultiMapIndex());
 		}
 
 		if(SubType == ESubType::BetOption)
@@ -181,7 +176,7 @@ void CRouletteZone::OnCharacterDie(int ClientId, int Killer, int Weapon, bool Se
 
 bool CRouletteZone::CanJoinRound(int ClientId) const
 {
-	if(m_State != EState::Idle && m_State != EState::Preparing)
+	if(!m_Spin.Idle())
 		return false;
 	if(m_aClients[ClientId].m_Active)
 		return false;
@@ -211,10 +206,10 @@ int CRouletteZone::AmountOfCloseClients() const
 			continue;
 		if(!pPlayer->Acc()->m_Money)
 			continue;
+		if(!IsInArea(ClientId))
+			continue;
 		CCharacter *pCharacter = pPlayer->GetCharacter();
 		if(!pCharacter)
-			continue;
-		if(distance(pCharacter->m_Pos, m_WheelPos) > 32.0f * 13.0f)
 			continue;
 		if(pCharacter->Team() != TEAM_FLOCK)
 			continue;
@@ -222,6 +217,36 @@ int CRouletteZone::AmountOfCloseClients() const
 		Count++;
 	}
 	return Count;
+}
+
+bool CRouletteZone::OnCharacterFire(CCharacter *pChr, int Weapon)
+{
+	if(pChr->Team() != TEAM_FLOCK)
+		return true;
+	if(!pChr->IsAlive())
+		return true;
+	if(Weapon != WEAPON_HAMMER)
+		return true;
+
+	const int ClientId = pChr->GetPlayer()->GetCid();
+	if(!IsInArea(ClientId))
+		return true;
+
+	vec2 CursorPos = pChr->GetCursorPos();
+
+	for(const CBetQuadData &QuadData : BetQuads())
+	{
+		const vec2 aPoints[4] = {QuadData.m_Pos[0], QuadData.m_Pos[1], QuadData.m_Pos[2], QuadData.m_Pos[3]};
+		if(!InsideQuadrilateral(CursorPos, aPoints))
+			continue;
+
+		if(AddClient(ClientId, RouletteOptions[QuadData.m_BetOption]))
+		{
+			GameServer()->CreateDeath(CursorPos, ClientId, pChr->TeamMask());
+			break;
+		}
+	}
+	return true;
 }
 
 bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
@@ -283,7 +308,7 @@ bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
 		return false;
 	}
 
-	SetState(EState::Preparing);
+	BeginCountdown();
 	pPlayer->TakeMoney(BetAmount, true);
 
 	m_aClients[ClientId].m_UsedWager = BetAmount;
@@ -299,9 +324,25 @@ bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
 	return true;
 }
 
+void CRouletteZone::BeginCountdown()
+{
+	if(m_StartDelay >= 0) // already counting down
+		return;
+	if(!m_Spin.Idle())
+		return;
+
+	const int Close = AmountOfCloseClients();
+	if(Close > 3)
+		m_StartDelay = Server()->TickSpeed() * 7.5f; // 7.5 seconds
+	else if(Close > 1)
+		m_StartDelay = Server()->TickSpeed() * 5; // 5 seconds
+	else
+		m_StartDelay = Server()->TickSpeed() * 1.5f; // 1.5 seconds
+}
+
 void CRouletteZone::OnClientReset(int ClientId)
 {
-	if(m_State == EState::Idle)
+	if(m_Spin.Idle())
 	{
 		ClearClientBet(ClientId, true);
 		return;
@@ -311,141 +352,6 @@ void CRouletteZone::OnClientReset(int ClientId)
 	{
 		EvaluateBet(ClientId, true);
 		ClearClientBet(ClientId);
-	}
-}
-
-void CRouletteZone::SetState(EState State)
-{
-	if(m_State == State)
-		return;
-
-	m_State = State;
-
-	if(State == EState::Preparing)
-	{
-		int Close = AmountOfCloseClients();
-
-		if(Close > 3)
-			m_StartDelay = Server()->TickSpeed() * 7.5; // 7.5 seconds
-		else if(Close > 1)
-			m_StartDelay = Server()->TickSpeed() * 5; // 5 seconds
-		else
-			m_StartDelay = Server()->TickSpeed() * 1.5; // 1.5 seconds
-	}
-}
-
-void CRouletteZone::PrepareNextSpin()
-{
-	static std::random_device Rd;
-	static std::mt19937 Rng(Rd());
-	std::uniform_int_distribution<> DurationDist(MIN_SPIN_DURATION, MAX_SPIN_DURATION);
-	std::uniform_real_distribution<> SlowDist(0.35f, 0.7f);
-
-	m_SpinDuration = DurationDist(Rng);
-	m_SlowDownFactor = SlowDist(Rng);
-
-	float EndRotation = 0.0f;
-	int StoppingTicks = 0;
-	m_EndingField = CalculateEndingField(m_SpinDuration, m_SlowDownFactor, &EndRotation, &StoppingTicks);
-
-	// The physics comes to rest wherever it happens to, which is often right on the seam between two
-	// tiles. Spread the gap to the middle of the winning tile across the slowdown instead, so the
-	// pointer eases onto the centre rather than snapping there once it has already stopped.
-	float Offset = fmodf(FieldCenterRotation(m_EndingField) - EndRotation, TwoPi);
-	if(Offset > pi)
-		Offset -= TwoPi;
-	else if(Offset < -pi)
-		Offset += TwoPi;
-
-	// Never more than half a tile: whatever happens, the correction must not walk off the winner
-	Offset = std::clamp(Offset, -HalfField, HalfField);
-
-	m_LandingCorrection = StoppingTicks > 0 ? Offset / StoppingTicks : 0.0f;
-}
-
-int CRouletteZone::GetField(float Rotation) const
-{
-	float rot = fmodf(Rotation, TwoPi);
-	if(rot < 0.f)
-		rot += TwoPi;
-
-	float rel = AngleTop - 1 * rot;
-	rel = fmodf(rel, TwoPi);
-	if(rel < 0.f)
-		rel += TwoPi;
-	rel += HalfField + FineTune;
-	if(rel >= TwoPi)
-		rel -= TwoPi;
-
-	int index = static_cast<int>(rel / FieldAngle) % MAX_FIELDS;
-
-	index = (index + SectorOffset + MAX_FIELDS) % MAX_FIELDS;
-
-	if(HorizontalFlip)
-		index = (MAX_FIELDS - index) % MAX_FIELDS;
-
-	return index;
-}
-
-float CRouletteZone::FieldCenterRotation(int Field) const
-{
-	// Undo GetField() step by step: back through the flip and the offset to the raw sector, then to the
-	// rotation that puts the middle of that sector under the pointer
-	int Index = HorizontalFlip ? (MAX_FIELDS - Field) % MAX_FIELDS : Field;
-	Index = ((Index - SectorOffset) % MAX_FIELDS + MAX_FIELDS) % MAX_FIELDS;
-
-	float Rotation = fmodf(AngleTop + FineTune - Index * FieldAngle, TwoPi);
-	if(Rotation < 0.f)
-		Rotation += TwoPi;
-
-	return Rotation;
-}
-
-int CRouletteZone::GetField() const
-{
-	return GetField(m_Rotation);
-}
-
-int CRouletteZone::CalculateEndingField(int SpinDuration, float SlowDownFactor, float *pEndRotation, int *pStoppingTicks) const
-{
-	float Rotation = m_Rotation;
-	float RotationSpeed = m_RotationSpeed;
-	EState State = EState::Spinning;
-	bool FirstSpinTick = true;
-	int StoppingTicks = 0;
-
-	while(true)
-	{
-		if((State == EState::Spinning || State == EState::Stopping) && !FirstSpinTick)
-			SpinDuration--;
-
-		if(State == EState::Spinning)
-		{
-			RotationSpeed += 0.005f;
-			if(RotationSpeed > 0.5f)
-				RotationSpeed = 0.5f;
-		}
-		else if(State == EState::Stopping)
-		{
-			RotationSpeed -= 0.005f * SlowDownFactor;
-			if(RotationSpeed < 0.0f)
-			{
-				if(pEndRotation)
-					*pEndRotation = Rotation;
-				if(pStoppingTicks)
-					*pStoppingTicks = StoppingTicks;
-				return GetField(Rotation);
-			}
-			// Counts only the ticks that still turn the wheel, the same ones OnTick corrects on
-			StoppingTicks++;
-		}
-
-		Rotation += RotationSpeed;
-
-		if(SpinDuration <= 0 && State == EState::Spinning)
-			State = EState::Stopping;
-
-		FirstSpinTick = false;
 	}
 }
 
@@ -479,10 +385,10 @@ void CRouletteZone::EvaluateBet(int ClientId, bool Silent)
 		return;
 	if(!m_aClients[ClientId].m_Active)
 		return;
-	if(m_EndingField < 0)
+	const int WinningField = m_Spin.EndingField();
+	if(WinningField < 0)
 		return;
 
-	const int WinningField = m_EndingField;
 	const int Color = s_aFields[WinningField].m_Color;
 	const int Number = s_aFields[WinningField].m_Number;
 	const int64_t Amount = m_aClients[ClientId].m_UsedWager;
@@ -515,56 +421,27 @@ void CRouletteZone::EvaluateBet(int ClientId, bool Silent)
 	ClearClientBet(ClientId);
 }
 
-void CRouletteZone::StartSpin()
-{
-	if(m_State != EState::Preparing)
-		return;
-
-	m_StartDelay = -1;
-	SetState(EState::Spinning);
-}
-
 void CRouletteZone::OnTick()
 {
 	if(!m_HasWheel)
 		return;
 
-	if(m_State == EState::Spinning || m_State == EState::Stopping)
-		m_SpinDuration--;
 	if(m_StartDelay > 0)
+	{
 		m_StartDelay--;
-	else if(m_State == EState::Preparing && m_StartDelay == 0)
-		StartSpin();
-
-	if(m_State == EState::Spinning)
-	{
-		m_RotationSpeed += 0.005f;
-		if(m_RotationSpeed > 0.5f)
-			m_RotationSpeed = 0.5f;
 	}
-	else if(m_State == EState::Stopping)
+	else if(m_StartDelay == 0)
 	{
-		m_RotationSpeed -= 0.005f * m_SlowDownFactor;
-		if(m_RotationSpeed < 0.0f)
-		{
-			m_RotationSpeed = 0.0f;
-			for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-				EvaluateBet(ClientId);
-			SetState(EState::Idle);
-			PrepareNextSpin(); // sets m_LandingCorrection for the next spin, nothing may clear it after
-		}
-		else
-		{
-			// Eases the pointer onto the middle of the winning tile instead of resting on a seam
-			m_Rotation += m_LandingCorrection;
-		}
+		m_StartDelay = -1;
+		m_Spin.Start();
 	}
-	m_Rotation += m_RotationSpeed;
 
-	if(m_SpinDuration <= 0)
+	if(m_Spin.Tick())
 	{
-		if(m_State == EState::Spinning)
-			SetState(EState::Stopping);
+		// EndingField() still holds this spin's winner, PrepareNext() rolls the following one
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+			EvaluateBet(ClientId);
+		m_Spin.PrepareNext();
 	}
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
@@ -594,7 +471,7 @@ void CRouletteZone::SendBroadcast(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "%" PRId64 "%s", pPlayer->Acc()->m_Money, g_Config.m_SvCurrencyName);
 		Messages.push_back(aBuf);
 
-		if(m_State == EState::Idle)
+		if(m_Spin.Idle())
 		{
 			if(pPlayer->m_Wager <= 0)
 				str_copy(aBuf, "Wager: Nothing");
@@ -604,7 +481,7 @@ void CRouletteZone::SendBroadcast(int ClientId)
 		}
 	}
 
-	if(m_State != EState::Idle)
+	if(!m_Spin.Idle() || m_StartDelay >= 0)
 	{
 		if(m_aClients[ClientId].m_Active)
 		{
@@ -637,8 +514,8 @@ void CRouletteZone::OnSnap(int SnappingClient)
 	const int SnappingClientVersion = Server()->GetClientVersion(SnappingClient);
 	const bool SixUp = Server()->IsSixup(SnappingClient);
 
-	const float RouletteLength = g_Config.m_SvRouletteLength;
-	const vec2 From = m_WheelPos + direction(m_Rotation) * RouletteLength;
+	const float RouletteLength = m_Radius;
+	const vec2 From = m_WheelPos + direction(m_Spin.Rotation()) * RouletteLength;
 
 	GameServer()->SnapLaserObject(CSnapContext(SnappingClientVersion, SixUp, SnappingClient), m_SnapId, From, m_WheelPos, 0, -1, LASERTYPE_DRAGGER, LASERDRAGGERTYPE_WEAK, -1, LASERFLAG_NO_PREDICT);
 }
