@@ -216,7 +216,7 @@ void CGameControllerDDNet::OnPlayerConnect(CPlayer *pPlayer)
 		str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s %s", Server()->ClientName(ClientId), GetTeamName(pPlayer->GetTeam()), PlayerInfo);
 		if(!Server()->QuietJoin(ClientId))
 		{
-			GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1, CGameContext::FLAG_SIX);
+			GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1);
 		}
 		else
 		{

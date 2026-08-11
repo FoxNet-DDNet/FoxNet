@@ -348,6 +348,8 @@ void CServer::CClient::Reset()
 	m_Flags = 0;
 	m_RedirectDropTime = 0;
 
+	std::fill(std::begin(m_aIdMap), std::end(m_aIdMap), -1);
+	std::fill(std::begin(m_aReverseIdMap), std::end(m_aReverseIdMap), -1);
 	FreeClientOverrideMap(*this);
 }
 
@@ -2111,7 +2113,12 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 						if(m_aClients[Id].m_SnapRate != CClient::SNAPRATE_FULL)
 							continue;
 
+						if(!Translate(PreInput.m_Owner, Id))
+							continue;
+
 						SendPackMsg(&PreInput, MSGFLAG_FLUSH | MSGFLAG_NORECORD, Id);
+						// Reset for others after translating and sending
+						PreInput.m_Owner = ClientId;
 					}
 				}
 			}
@@ -3371,6 +3378,9 @@ void CServer::UpdateDebugDummies(bool ForceDisconnect)
 
 			GameServer()->OnClientConnected(ClientId, nullptr);
 			Client.m_State = CClient::STATE_INGAME;
+			Client.m_DDNetVersion = DDNET_VERSION_NUMBER;
+			Client.m_GotDDNetVersionPacket = true;
+			Client.m_DDNetVersionSettled = true;
 			str_copy(Client.m_aName, "Debug dummy");
 			GameServer()->OnClientEnter(ClientId);
 		}
@@ -4979,7 +4989,12 @@ void CServer::InitMaplist()
 
 int *CServer::GetIdMap(int ClientId)
 {
-	return m_aIdMap + VANILLA_MAX_CLIENTS * ClientId;
+	return m_aClients[ClientId].m_aIdMap;
+}
+
+int *CServer::GetReverseIdMap(int ClientId)
+{
+	return m_aClients[ClientId].m_aReverseIdMap;
 }
 
 bool CServer::SetTimedOut(int ClientId, int OrigId)
@@ -5009,8 +5024,6 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	m_NetServer.ResumeOldConnection(ClientId, OrigId);
 
 	m_aClients[ClientId].m_Sixup = m_aClients[OrigId].m_Sixup;
-
-	DelClientCallback(OrigId, "Timeout Protection used", this);
 	m_aClients[ClientId].m_AuthKey = -1;
 	m_aClients[ClientId].m_Flags = Flags;
 	m_aClients[ClientId].m_DDNetVersion = DDNetVersion;
@@ -5018,6 +5031,17 @@ bool CServer::SetTimedOut(int ClientId, int OrigId)
 	m_aClients[ClientId].m_DDNetVersionSettled = DDNetVersionSettled;
 	m_aClients[ClientId].m_ConnectionId = ConnectionId;
 	str_copy(m_aClients[ClientId].m_aDDNetVersionStr, aDDNetVersionStr);
+
+	DelClientCallback(OrigId, "Timeout Protection used", this);
+
+	// OnSetTimedOut must be called after DelClientCallback to preserve the client id.
+	// The order is important for the player initialization algorithm in CPlayerMapping::CPlayerMap::InitPlayer
+	// because it loops over all players to find others with the same ip address.
+	// IP matching is important for hammerfly/dummy copy to work by guaran-tee-ing dummy and player map have the same ids
+	// Never forget: 0.7 really implemented netmsgs for join/leave, means client ids have to be stable across using timeout protection.
+	// When InitPlayer runs it has to assign the same client id as before since local id cant be changed in 0.7
+	GameServer()->OnSetTimedOut(ClientId);
+
 	// <FoxNet
 	if(OrigMultiMapIdx != MultiMapIdx && pMapName[0] != '\0')
 		SendMapByName(ClientId, pMapName);
