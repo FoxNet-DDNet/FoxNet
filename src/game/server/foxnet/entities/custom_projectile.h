@@ -52,10 +52,6 @@ private:
 
 	void HitCharacter();
 	void Move();
-
-	void FillInfo(CNetObj_Projectile *pProj);
-	bool FillExtraInfoLegacy(CNetObj_DDRaceProjectile *pProj);
-	void FillExtraInfo(CNetObj_DDNetProjectile *pProj);
 };
 
 #endif
