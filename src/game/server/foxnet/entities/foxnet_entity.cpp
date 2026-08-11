@@ -132,6 +132,14 @@ CClientMask CEntityOwned::CosmeticMask(EItemType ItemType)
 	return pCharacter->CosmeticMask(ItemType);
 }
 
+bool CEntityOwned::TranslateOwner(int SnappingClient, int *pOwner)
+{
+	if(*pOwner < 0)
+		return true; // ownerless, nothing for the client to look up
+
+	return Server()->Translate(*pOwner, SnappingClient);
+}
+
 CClientMask CEntityOwned::TeamMask()
 {
 	CCharacter *pCharacter = GetCharacter();
@@ -151,6 +159,9 @@ void CEntityOwned::SnapCosmeticPickupPos(int SnappingClient, int SnapId, int Old
 		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos, Type, SubType, -1, OldFlags);
 		return;
 	}
+
+	if(!TranslateOwner(SnappingClient, &Owner))
+		return;
 
 	CNetObj_CosmeticPickup Pickup = {};
 
@@ -177,6 +188,9 @@ void CEntityOwned::SnapCosmeticPickup(int SnappingClient, int SnapId, int OldFla
 		GameServer()->SnapPickup(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + Offset, Type, SubType, -1, OldFlags);
 		return;
 	}
+
+	if(!TranslateOwner(SnappingClient, &Owner))
+		return;
 
 	CNetObj_CosmeticPickup Pickup = {};
 
@@ -230,6 +244,9 @@ void CEntityOwned::SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owne
 		return;
 	}
 
+	if(!TranslateOwner(SnappingClient, &Owner))
+		return;
+
 	CNetObj_CosmeticLaser Laser = {};
 
 	Laser.m_FromX = (int)From.x;
@@ -257,6 +274,9 @@ void CEntityOwned::SnapCosmeticLaser(int SnappingClient, int SnapId, int Owner, 
 		GameServer()->SnapLaserObject(CSnapContext(SnapVer, SixUp, SnappingClient), SnapId, Pos + From, Pos + To, Server()->Tick() - TickOffset, Owner, Type, -1, -1, LASERFLAG_NO_PREDICT);
 		return;
 	}
+
+	if(!TranslateOwner(SnappingClient, &Owner))
+		return;
 
 	CNetObj_CosmeticLaser Laser = {};
 
@@ -289,18 +309,25 @@ void CEntityOwned::SnapCosmeticProjectile(int SnappingClient, int SnapId, int Ow
 
 	if(SnappingClient == SERVER_DEMO_CLIENT || !GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps)
 	{
+		int ProjOwner = Owner;
+		if(!TranslateOwner(SnappingClient, &ProjOwner))
+			ProjOwner = -1;
+
 		CNetObj_DDNetProjectile Proj = {};
 
 		Proj.m_X = round_to_int((Pos.x + Offset.x) * 100.0f);
 		Proj.m_Y = round_to_int((Pos.y + Offset.y) * 100.0f);
 		Proj.m_Type = Type;
-		Proj.m_Owner = Owner;
+		Proj.m_Owner = ProjOwner;
 		Proj.m_StartTick = StartTick;
 		Proj.m_VelX = 0;
 		Proj.m_VelY = 0;
 		Server()->SnapNewItem(SnapId, Proj);
 		return;
 	}
+
+	if(!TranslateOwner(SnappingClient, &Owner))
+		return;
 
 	int Rot = 0;
 	if(length(Target) > 0.00001f)
@@ -341,6 +368,10 @@ void CEntityOwned::SnapCosmeticProjectilePos(int SnappingClient, int SnapId,  in
 	bool Supports = SnappingClient != SERVER_DEMO_CLIENT && GameServer()->m_apPlayers[SnappingClient]->m_SupportsCosmeticSnaps;
 	if(Supports)
 	{
+		int Owner = m_Owner;
+		if(!TranslateOwner(SnappingClient, &Owner))
+			return;
+
 		int Rotation = round_to_int(angle(Dir) * 180.0f / pi);
 		Rotation = ((Rotation % 360) + 360) % 360;
 
@@ -348,7 +379,7 @@ void CEntityOwned::SnapCosmeticProjectilePos(int SnappingClient, int SnapId,  in
 		Projectile.m_X = (int)Pos.x;
 		Projectile.m_Y = (int)Pos.y;
 		Projectile.m_Type = Type;
-		Projectile.m_Owner = m_Owner;
+		Projectile.m_Owner = Owner;
 		Projectile.m_Alpha = -1;
 		Projectile.m_Rotation = Rotation;
 		Projectile.m_Flags = 0;

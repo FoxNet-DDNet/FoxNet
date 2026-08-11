@@ -35,6 +35,17 @@ public:
 	CClientMask CosmeticMask(EItemType ItemType);
 	CClientMask TeamMask();
 
+	/*
+	 * Snapped objects carry their owner as a client id the receiving client looks straight up, to anchor
+	 * a cosmetic to that tee and to pick its alpha. Since 128 player support that id lives in the snapping
+	 * client's own id space, which is no longer ours.
+	 *
+	 * Returns false if that client cannot see the owner at all. An object drawn at an absolute position can
+	 * still be sent as ownerless, but anything anchored to the owner must not be snapped: it would hang off
+	 * whoever happens to hold the slot instead.
+	 */
+	bool TranslateOwner(int SnappingClient, int *pOwner);
+
 	void SnapCosmeticPickupPos(int SnappingClient, int SnapId, int OldFlags, int Owner, const vec2 &Pos, int Type, int SubType, int Rotation = 0, int Alpha = -1, int Flags = 0);
 	void SnapCosmeticLaserPos(int SnappingClient, int SnapId, int Owner, const vec2 &From, const vec2 &To, int TickOffset, int Type, int Alpha = -1, int Flags = 0);
 	void SnapCosmeticProjectilePos(int SnappingClient, int SnapId, int Type, vec2 Pos, vec2 Dir = vec2(0, 0));

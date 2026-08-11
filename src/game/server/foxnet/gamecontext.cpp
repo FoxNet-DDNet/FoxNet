@@ -146,7 +146,6 @@ void CGameContext::OnFoxNetConsoleInit()
 							    &m_VoteMenu,
 							    &m_AccountManager,
 							    &m_Shop,
-							    &m_FakeSnap,
 						    });
 
 	for(auto &pComponent : m_vpComponents)

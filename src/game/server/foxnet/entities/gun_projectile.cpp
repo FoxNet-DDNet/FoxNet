@@ -511,6 +511,10 @@ void CGunProjectile::SnapProjectileNetObj(int SnappingClient)
 	const int MaxPos = 0x7fffffff / 100;
 	bool LegacyCompatible = !(absolute((int)m_SpawnPos.y) + 1 >= MaxPos || absolute((int)m_SpawnPos.x) + 1 >= MaxPos);
 
+	int Owner = m_Owner;
+	if(!TranslateOwner(SnappingClient, &Owner))
+		Owner = -1;
+
 	if(Ver >= VERSION_DDNET_ENTITY_NETOBJS)
 	{
 		CNetObj_DDNetProjectile Proj = {};
@@ -520,7 +524,7 @@ void CGunProjectile::SnapProjectileNetObj(int SnappingClient)
 		Proj.m_VelY = round_to_int(m_MouseTarget.y);
 		Proj.m_Type = WEAPON_GUN;
 		Proj.m_StartTick = m_SpawnTick;
-		Proj.m_Owner = m_Owner;
+		Proj.m_Owner = Owner;
 		Proj.m_SwitchNumber = 0;
 		Proj.m_TuneZone = m_TuneZone;
 		Proj.m_Flags = PROJECTILEFLAG_NORMALIZE_VEL;
@@ -529,7 +533,9 @@ void CGunProjectile::SnapProjectileNetObj(int SnappingClient)
 	else if(Ver >= VERSION_DDNET_ANTIPING_PROJECTILE && LegacyCompatible)
 	{
 		float Angle = -std::atan2(m_SpawnDir.x, m_SpawnDir.y);
-		int Data = (absolute(m_Owner) & 255) << 0;
+		int Data = (absolute(Owner) & 255) << 0;
+		if(Owner < 0)
+			Data |= LEGACYPROJECTILEFLAG_NO_OWNER;
 		Data |= LEGACYPROJECTILEFLAG_IS_DDNET;
 
 		CNetObj_DDRaceProjectile Proj = {};
@@ -583,11 +589,15 @@ void CGunProjectile::SnapGunProjectile(int SnapId, int SnappingClient, int Owner
 		int Rotation = round_to_int(angle(Dir) * 180.0f / pi);
 		Rotation = ((Rotation % 360) + 360) % 360;
 
+		int CosmeticOwner = m_Owner;
+		if(!TranslateOwner(SnappingClient, &CosmeticOwner))
+			return;
+
 		CNetObj_CosmeticProjectile Projectile = {};
 		Projectile.m_X = (int)Pos.x;
 		Projectile.m_Y = (int)Pos.y;
 		Projectile.m_Type = WEAPON_GUN;
-		Projectile.m_Owner = m_Owner;
+		Projectile.m_Owner = CosmeticOwner;
 		Projectile.m_Alpha = -1;
 		Projectile.m_Rotation = Rotation;
 		Projectile.m_Flags = 0;

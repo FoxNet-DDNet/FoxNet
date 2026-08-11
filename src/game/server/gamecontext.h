@@ -5,7 +5,6 @@
 
 #include "eventhandler.h"
 #include "foxnet/components/accounts/accounts.h"
-#include "foxnet/components/fake_snap.h"
 #include "foxnet/components/scripting/scripting.h"
 #include "foxnet/components/spawncandidates.h"
 #include "foxnet/components/votemenu.h"
@@ -861,7 +860,6 @@ public:
 	CAccounts m_AccountManager;
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;
-	CFakeSnap m_FakeSnap;
 	CSpawnCandidates m_SpawnCandidates;
 	CZoneManager m_ZoneManager;
 

@@ -44,6 +44,11 @@ void CProjectileText::Snap(int SnappingClient)
 
 	size_t NumIds = m_vData.size();
 
+	// the client reads the owner out of the projectile, so it has to be in its own id space
+	int Owner = m_Owner;
+	if(!Server()->Translate(Owner, SnappingClient))
+		Owner = -1;
+
 	int Idx = 0;
 	for(const auto &Data : m_vData)
 	{
@@ -61,7 +66,7 @@ void CProjectileText::Snap(int SnappingClient)
 		Proj.m_X = round_to_int(Pos.x * 100.0f);
 		Proj.m_Y = round_to_int(Pos.y * 100.0f);
 		Proj.m_Type = m_Type;
-		Proj.m_Owner = m_Owner;
+		Proj.m_Owner = Owner;
 		Proj.m_StartTick = 0;
 		Proj.m_VelX = 0;
 		Proj.m_VelY = 0;

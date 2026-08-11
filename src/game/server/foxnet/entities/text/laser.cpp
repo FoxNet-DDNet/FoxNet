@@ -40,6 +40,11 @@ void CLaserText::Snap(int SnappingClient)
 	if(!m_Mask.test(SnappingClient))
 		return;
 
+	// the client reads the owner out of the laser, so it has to be in its own id space
+	int Owner = m_Owner;
+	if(!Server()->Translate(Owner, SnappingClient))
+		Owner = -1;
+
 	for(const auto &Data : m_vData)
 	{
 		vec2 Pos = Data.m_Pos - vec2(m_CenterX, 0);
@@ -53,7 +58,7 @@ void CLaserText::Snap(int SnappingClient)
 		Obj.m_FromX = Pos.x;
 		Obj.m_FromY = Pos.y;
 		Obj.m_StartTick = Server()->Tick();
-		Obj.m_Owner = m_Owner;
+		Obj.m_Owner = Owner;
 		Obj.m_Type = LASERTYPE_RIFLE;
 		Obj.m_Flags = LASERFLAG_NO_PREDICT;
 		Server()->SnapNewItem(Data.m_Id, Obj);

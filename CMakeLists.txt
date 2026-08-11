@@ -3018,8 +3018,6 @@ if(SERVER)
     foxnet/components/accounts/accounts.h
     foxnet/components/accounts/accountworker.cpp
     foxnet/components/accounts/accountworker.h
-    foxnet/components/fake_snap.cpp
-    foxnet/components/fake_snap.h
     foxnet/components/scripting/impl.cpp
     foxnet/components/scripting/impl.h
     foxnet/components/scripting/scripting.cpp
