@@ -1338,8 +1338,26 @@ bool CPlayer::SendToMap(int Idx)
 		pChr->Die(-1, WEAPON_GAME);
 	}
 
+	int CasinoIdx = GameServer()->GetMapIndexByType(EMapType::Casino);
 	if(MultiMapIdx() != DefaultMapIndex)
+	{
+		GameServer()->SendCommandInfo(GetCid(), "exit", "", "Leave to the Main map");
+		GameServer()->SendCommandInfo(GetCid(), "leave", "", "Leave to the Main map");
+
+		if(CasinoIdx != -1)
+			GameServer()->SendCommandInfoRemove(GetCid(), "casino");
+
 		SendChat("Use /exit to leave to the main map.");
+	}
+	else
+	{
+		if(CasinoIdx != -1)
+			GameServer()->SendCommandInfo(GetCid(), "casino", "", "Go to the Casino map");
+
+		GameServer()->SendCommandInfoRemove(GetCid(), "exit");
+		GameServer()->SendCommandInfoRemove(GetCid(), "leave");
+	}
+
 
 	return true;
 }

@@ -899,7 +899,6 @@ private:
 	void FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo);
 	void RegisterFoxNetCommands();
 	void OnFoxNetConsoleInit();
-	void SendConditionalCommands(int ClientId);
 
 	// Multimaps
 	void LoadMapByName(const char *pMapName, EMapType Type);
@@ -1060,6 +1059,9 @@ private:
 	bool RandomMapVote();
 
 public:
+	void SendCommandInfo(int ClientId, const char *pName, const char *pParams, const char *pHelp) const;
+	void SendCommandInfoRemove(int ClientId, const char *pName) const;
+
 	bool SendServerAlert(const char *pMessage, int ClientId = -1) const;
 	void SendMovingTilesInfo(int ClientId);
 

@@ -1906,13 +1906,16 @@ void CGameContext::OnClientEnter(int ClientId)
 		Server()->SendPackMsg(&MapInfoMsg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
 	}
 
-	CPlayer *pNewPlayer = m_apPlayers[ClientId];
 	// <FoxNet
 	if(!m_aAccounts[ClientId].m_LoggedIn)
 	{
 		m_AccountManager.AutoLogin(ClientId);
-		pNewPlayer->m_LastAutoLoginAttempt = Server()->Tick();
+		m_apPlayers[ClientId]->m_LastAutoLoginAttempt = Server()->Tick();
 	}
+
+	int CasinoIdx = GetMapIndexByType(EMapType::Casino);
+	if(CasinoIdx != -1)
+		SendCommandInfo(ClientId, "casino", "", "Go to the Casino map");
 	// FoxNet>
 
 	mem_zero(&m_aLastPlayerInput[ClientId], sizeof(m_aLastPlayerInput[ClientId]));
