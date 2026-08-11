@@ -3018,14 +3018,14 @@ if(SERVER)
     foxnet/components/accounts/accounts.h
     foxnet/components/accounts/accountworker.cpp
     foxnet/components/accounts/accountworker.h
+    foxnet/components/powerup.cpp
+    foxnet/components/powerup.h
     foxnet/components/scripting/impl.cpp
     foxnet/components/scripting/impl.h
     foxnet/components/scripting/scripting.cpp
     foxnet/components/scripting/scripting.h
     foxnet/components/shop.cpp
     foxnet/components/shop.h
-    foxnet/components/spawncandidates.cpp
-    foxnet/components/spawncandidates.h
     foxnet/components/votemenu.cpp
     foxnet/components/votemenu.h
     foxnet/components/zones/checktele.cpp
@@ -3094,8 +3094,6 @@ if(SERVER)
     foxnet/entities/pickupdrop.h
     foxnet/entities/portal.cpp
     foxnet/entities/portal.h
-    foxnet/entities/powerup.cpp
-    foxnet/entities/powerup.h
     foxnet/entities/text/laser.cpp
     foxnet/entities/text/projectile.cpp
     foxnet/entities/text/text.h

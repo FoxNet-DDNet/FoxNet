@@ -6,10 +6,9 @@
 #include "eventhandler.h"
 #include "foxnet/components/accounts/accounts.h"
 #include "foxnet/components/scripting/scripting.h"
-#include "foxnet/components/spawncandidates.h"
+#include "foxnet/components/powerup.h"
 #include "foxnet/components/votemenu.h"
 #include "foxnet/components/zones/zonemanager.h"
-#include "foxnet/entities/powerup.h"
 #include "foxnet/persistent_data.h"
 #include "gameworld.h"
 #include "playermapping.h"
@@ -860,7 +859,7 @@ public:
 	CAccounts m_AccountManager;
 	CVoteMenu m_VoteMenu;
 	CShop m_Shop;
-	CSpawnCandidates m_SpawnCandidates;
+	CPowerUps m_PowerUps;
 	CZoneManager m_ZoneManager;
 
 	int GetMapIndexByType(EMapType MapType) const;
@@ -1070,11 +1069,6 @@ public:
 	void OnPreReload() override;
 
 	bool m_MapVoteLock = false;
-
-	int64_t m_PowerUpDelay;
-	std::vector<CPowerUp *> m_vPowerups;
-
-	void OnCollectPowerup(int ClientId, const CPowerupData *pData);
 
 	class CBoostData
 	{

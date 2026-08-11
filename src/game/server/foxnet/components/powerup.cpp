@@ -1,13 +1,15 @@
-#include "spawncandidates.h"
+#include "powerup.h"
 
 #include "zones/zone.h"
 #include "zones/zonemanager.h"
 
 #include <base/lock.h>
 #include <base/log.h>
+#include <base/net.h>
 #include <base/vmath.h>
 
 #include <engine/shared/config.h>
+#include <generated/protocol.h>
 
 #include <game/collision.h>
 #include <game/mapitems.h>
@@ -15,10 +17,12 @@
 #include <game/server/entities/character.h>
 #include <game/server/entity.h>
 #include <game/server/foxnet/component.h>
-#include <game/server/foxnet/entities/powerup.h>
 #include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
+#include <game/server/teams.h>
 #include <game/server/player.h>
+#include <game/teamscore.h>
 
 #include <algorithm>
 #include <cmath>
@@ -861,12 +865,12 @@ namespace
 	}
 }
 
-CSpawnCandidates::~CSpawnCandidates()
+CPowerUps::~CPowerUps()
 {
 	OnShutdown(nullptr);
 }
 
-void CSpawnCandidates::QueueRebuildSnapshot(size_t MapIdx)
+void CPowerUps::QueueRebuildSnapshot(size_t MapIdx)
 {
 	auto pShared = m_pShared;
 	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
@@ -914,7 +918,7 @@ void CSpawnCandidates::QueueRebuildSnapshot(size_t MapIdx)
 	}).detach();
 }
 
-void CSpawnCandidates::RebuildAsync(size_t MapIdx)
+void CPowerUps::RebuildAsync(size_t MapIdx)
 {
 	auto pShared = m_pShared;
 	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
@@ -938,7 +942,7 @@ void CSpawnCandidates::RebuildAsync(size_t MapIdx)
 	QueueRebuildSnapshot(MapIdx);
 }
 
-void CSpawnCandidates::OnMapLoad(size_t MapIdx)
+void CPowerUps::OnMapLoad(size_t MapIdx)
 {
 	if(MapIdx != DefaultMapIndex)
 		return; // ignore other map indexes for now
@@ -946,7 +950,7 @@ void CSpawnCandidates::OnMapLoad(size_t MapIdx)
 	RebuildAsync(MapIdx);
 }
 
-void CSpawnCandidates::OnMapUnload(size_t MapIdx)
+void CPowerUps::OnMapUnload(size_t MapIdx)
 {
 	if(MapIdx != DefaultMapIndex)
 		return; // ignore other map indexes for now
@@ -962,7 +966,7 @@ void CSpawnCandidates::OnMapUnload(size_t MapIdx)
 	pShared->m_RebuildDeferred = false;
 }
 
-void CSpawnCandidates::OnShutdown(void *pPersistentData)
+void CPowerUps::OnShutdown(void *pPersistentData)
 {
 	auto pOldShared = std::move(m_pShared);
 	m_pShared = std::make_shared<SSharedState>();
@@ -973,12 +977,12 @@ void CSpawnCandidates::OnShutdown(void *pPersistentData)
 	pOldShared->m_RebuildDeferred = false;
 }
 
-void CSpawnCandidates::Rebuild(size_t MapIdx)
+void CPowerUps::Rebuild(size_t MapIdx)
 {
 	RebuildAsync(MapIdx);
 }
 
-bool CSpawnCandidates::TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const
+bool CPowerUps::TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const
 {
 	auto pShared = m_pShared;
 	const CMultiMaps *pMultiMap = MultiMaps(MapIdx);
@@ -996,7 +1000,7 @@ bool CSpawnCandidates::TryPickCachedCandidate(size_t MapIdx, vec2 &Out) const
 	return true;
 }
 
-size_t CSpawnCandidates::SpawnCandidateCount(size_t MapIdx) const
+size_t CPowerUps::SpawnCandidateCount(size_t MapIdx) const
 {
 	auto pShared = m_pShared;
 	const CMultiMaps *pMultiMap = MultiMaps(MapIdx);
@@ -1008,7 +1012,7 @@ size_t CSpawnCandidates::SpawnCandidateCount(size_t MapIdx) const
 	return It != pShared->m_CachedCandidates.end() ? It->second.size() : 0;
 }
 
-void CSpawnCandidates::OnTick()
+void CPowerUps::OnTick()
 {
 	auto pShared = m_pShared;
 	bool StartDeferredRebuild = false;
@@ -1025,31 +1029,22 @@ void CSpawnCandidates::OnTick()
 	if(StartDeferredRebuild)
 		QueueRebuildSnapshot(DefaultMapIndex);
 
-	if(!g_Config.m_SvPowerUps)
-		return;
-	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
-		return; // nah, too much work to make them work with tele grenades
-	if(!g_Config.m_SvAccounts)
-		return; // Powerups require accounts to store the data
-	if(GameServer()->m_vPowerups.size() >= (size_t)g_Config.m_SvPowerUpsMax)
-		return;
-	if(GameServer()->m_PowerUpDelay > Server()->Tick())
-		return;
-
-	const std::optional<vec2> RandomPos = GetRandomAccessiblePos();
-	if(!RandomPos.has_value())
+	for(size_t i = 0; i < m_vPowerups.size();)
 	{
-		GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed();
-		return;
+		if(TickPowerup(m_vPowerups[i]))
+		{
+			i++;
+			continue;
+		}
+
+		FreeIds(m_vPowerups[i]);
+		m_vPowerups.erase(m_vPowerups.begin() + i);
 	}
 
-	CPowerUp *NewPowerUp = new CPowerUp(&GameServer()->m_World, DefaultMapIndex, RandomPos.value());
-
-	GameServer()->m_vPowerups.push_back(NewPowerUp);
-	GameServer()->m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvPowerUpsSpawnDelay * 0.1f);
+	TrySpawn();
 }
 
-std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
+std::optional<vec2> CPowerUps::GetRandomAccessiblePos()
 {
 	const auto Dist2 = [](const vec2 &a, const vec2 &b) {
 		const float DistX = a.x - b.x;
@@ -1065,11 +1060,11 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 
 	// Snapshot the positions of powerups already placed on this map.
 	std::vector<vec2> vPowerupPositions;
-	vPowerupPositions.reserve(GameServer()->m_vPowerups.size());
-	for(const CPowerUp *pPow : GameServer()->m_vPowerups)
+	vPowerupPositions.reserve(m_vPowerups.size());
+	for(const CPowerUp &Powerup : m_vPowerups)
 	{
-		if(pPow && pPow->MultiMapIdx() == DefaultMapIndex)
-			vPowerupPositions.push_back(pPow->m_Pos);
+		if(Powerup.m_MultiMapIdx == DefaultMapIndex)
+			vPowerupPositions.push_back(Powerup.m_Pos);
 	}
 
 	const auto NearestPowerupDist2 = [&](const vec2 &Pos) {
@@ -1142,4 +1137,385 @@ std::optional<vec2> CSpawnCandidates::GetRandomAccessiblePos()
 		return BestPos;
 
 	return std::nullopt;
+}
+
+
+void CPowerUps::TrySpawn()
+{
+	if(!g_Config.m_SvPowerUps)
+		return;	
+	if(!g_Config.m_SvAccounts)
+		return; // Powerups require accounts to store the data
+	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
+		return; // nah, too much work to make them work with tele grenades
+	if(m_vPowerups.size() >= (size_t)g_Config.m_SvPowerUpsMax)
+		return;
+	if(m_SpawnDelay > Server()->Tick())
+		return;
+
+	const std::optional<vec2> RandomPos = GetRandomAccessiblePos();
+	if(!RandomPos.has_value())
+	{
+		m_SpawnDelay = Server()->Tick() + Server()->TickSpeed();
+		return;
+	}
+
+	CPowerUp Powerup;
+	Powerup.m_Pos = RandomPos.value();
+	Powerup.m_MultiMapIdx = DefaultMapIndex;
+	Powerup.m_StartTick = Server()->Tick();
+
+	Powerup.m_PickupId = Server()->SnapNewId();
+	for(CPowerUp::CSnapData &Snap : Powerup.m_aSnap)
+		Snap.m_Id = Server()->SnapNewId();
+	std::sort(Powerup.m_aSnap.begin(), Powerup.m_aSnap.end(),
+		[](const auto &a, const auto &b) { return a.m_Id.value() < b.m_Id.value(); });
+
+	SetData(Powerup);
+	SetVisual(Powerup);
+
+	m_vPowerups.push_back(Powerup);
+	m_SpawnDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvPowerUpsSpawnDelay * 0.1f);
+}
+
+void CPowerUps::SetData(CPowerUp &Powerup)
+{
+	std::uniform_real_distribution<float> dis(0.0f, 100.0f);
+
+	float RandomFloat = dis(Rng());
+
+	if(RandomFloat < 1.5f)
+		Powerup.m_Data.m_Type = EPowerUp::BOOST;
+	else if(RandomFloat < 50.0f)
+		Powerup.m_Data.m_Type = EPowerUp::XP;
+	else
+		Powerup.m_Data.m_Type = EPowerUp::MONEY;
+
+	for(int i = 0; i < Server()->MaxClients(); i++)
+	{
+		if(!Server()->ClientIngame(i))
+			continue;
+
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+
+		if(!pPlayer)
+			continue;
+
+		if(pPlayer->IsAfk())
+			continue;
+
+		CCharacter *pChr = pPlayer->GetCharacter();
+
+		if(!pChr)
+			continue;
+
+		if(!GameServer()->m_aAccounts[i].m_LoggedIn)
+			continue;
+
+		if(pChr->Team() != TEAM_FLOCK)
+			continue;
+
+		Powerup.m_MaxCollections++;
+	}
+	if(Powerup.m_MaxCollections < 1)
+		Powerup.m_MaxCollections = 1;
+
+	constexpr int MinLifetime = 120;
+
+	switch(Powerup.m_Data.m_Type)
+	{
+	case EPowerUp::XP:
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 5, 35, 0.3);
+		Powerup.m_Lifetime = MinLifetime + Powerup.m_Data.m_Value * 15;
+		break;
+	case EPowerUp::MONEY:
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 3, 20, 0.3) * 25;
+		Powerup.m_Lifetime = MinLifetime + Powerup.m_Data.m_Value * 0.45f;
+		break;
+	case EPowerUp::BOOST:
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 25, 0.3);
+		Powerup.m_Lifetime = MinLifetime;
+		Powerup.m_MaxCollections = 1;
+		break;
+	default:
+		Powerup.m_Data.m_Value = 0;
+		Powerup.m_Lifetime = 0;
+	}
+	Powerup.m_Lifetime *= Server()->TickSpeed();
+}
+
+void CPowerUps::SetVisual(CPowerUp &Powerup)
+{
+	const float Len = 28.0f;
+
+	Powerup.m_aSnap.at(0).m_To = vec2(-Len, -Len);
+	Powerup.m_aSnap.at(0).m_From = vec2(Len, -Len);
+
+	Powerup.m_aSnap.at(1).m_To = vec2(Len, -Len);
+	Powerup.m_aSnap.at(1).m_From = vec2(Len, Len);
+
+	Powerup.m_aSnap.at(2).m_To = vec2(Len, Len);
+	Powerup.m_aSnap.at(2).m_From = vec2(-Len, Len);
+
+	Powerup.m_aSnap.at(3).m_To = vec2(-Len, Len);
+	Powerup.m_aSnap.at(3).m_From = vec2(-Len, -Len);
+
+	Powerup.m_aSnap.at(4).m_To = vec2(-Len, -Len);
+	Powerup.m_aSnap.at(4).m_From = vec2(-Len, -Len);
+
+	int LaserType;
+	if(Powerup.m_Data.m_Type == EPowerUp::XP)
+		LaserType = LASERTYPE_GUN;
+	else if(Powerup.m_Data.m_Type == EPowerUp::MONEY)
+		LaserType = LASERTYPE_SHOTGUN;
+	else if(Powerup.m_Data.m_Type == EPowerUp::BOOST)
+		LaserType = LASERTYPE_FREEZE;
+	else
+		LaserType = LASERTYPE_DOOR;
+
+	for(CPowerUp::CSnapData &Snap : Powerup.m_aSnap)
+		Snap.m_LaserType = LaserType;
+}
+
+void CPowerUps::FreeIds(CPowerUp &Powerup)
+{
+	if(g_Config.m_SvLogExtra >= 2)
+		log_info("powerup", "Reset");
+
+	if(Powerup.m_PickupId.has_value())
+		Server()->SnapFreeId(Powerup.m_PickupId.value());
+	Powerup.m_PickupId.reset();
+
+	for(CPowerUp::CSnapData &Snap : Powerup.m_aSnap)
+	{
+		if(Snap.m_Id.has_value())
+			Server()->SnapFreeId(Snap.m_Id.value());
+		Snap.m_Id.reset();
+	}
+}
+
+void CPowerUps::ClearPowerups()
+{
+	for(CPowerUp &Powerup : m_vPowerups)
+		FreeIds(Powerup);
+	m_vPowerups.clear();
+	m_SpawnDelay = Server()->Tick() + Server()->TickSpeed() * 5;
+}
+
+static bool PointInSquare(vec2 Point, vec2 Center, float Size)
+{
+	return (Point.x > Center.x - Size && Point.x < Center.x + Size && Point.y > Center.y - Size && Point.y < Center.y + Size);
+}
+
+bool CPowerUps::TickPowerup(CPowerUp &Powerup)
+{
+	Powerup.m_Lifetime--;
+	if(Powerup.m_Lifetime <= 0)
+		return false;
+	if(!g_Config.m_SvAccounts) // Powerups require accounts to store the data
+		return false;
+
+	int NumCollected = 0;
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		if(!Server()->ClientIngame(ClientId))
+			continue;
+
+		// Always run HandleClient for active clients so collection/address checks are evaluated
+		// This ensures rejoined players with the same address are detected and prevented
+		// from collecting repeatedly.
+		HandleClient(Powerup, ClientId);
+
+		if(Powerup.m_aClients[ClientId].m_Collected && Powerup.m_aClients[ClientId].m_WasLoggedIn)
+			NumCollected++;
+
+		if(NumCollected >= Powerup.m_MaxCollections)
+			return false;
+	}
+
+	return true;
+}
+
+void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
+{
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr || !pChr->IsAlive() || (pChr->Team() != TEAM_FLOCK && !g_Config.m_SvSoloServer))
+		return;
+	if((size_t)pChr->MultiMapIdx() != Powerup.m_MultiMapIdx)
+		return; // Prevent collection across maps
+
+	CPlayer *pCollectingPlayer = pChr->GetPlayer();
+	if(!pCollectingPlayer || pCollectingPlayer->Acc()->m_Configs.m_HidePowerUps)
+		return;
+
+	// Prevent multi-collect from the same address (covers rejoin to different slot)
+	// If either current slot or inspected slot has a collected flag, compare addresses.
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(i == ClientId || !(Powerup.m_aClients[ClientId].m_Collected || Powerup.m_aClients[i].m_Collected))
+			continue;
+
+		// Compare stored address (may have been set when someone collected).
+		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &Powerup.m_aClients[i].m_Addr) == 0)
+		{
+			Powerup.m_aClients[ClientId].m_Collected = true;
+			Powerup.m_aClients[i].m_Collected = true;
+		}
+	}
+
+	if(Powerup.m_aClients[ClientId].m_Collected)
+		return;
+	if(!PointInSquare(Powerup.m_Pos, pChr->GetPos(), 54.0f))
+		return;
+
+	CClientMask TeamMask = pChr->TeamMask();
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		// Only fetch player pointer for active slots.
+		CPlayer *pPlayer = nullptr;
+		if(Server()->ClientIngame(i))
+			pPlayer = GameServer()->m_apPlayers[i];
+
+		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
+			TeamMask.set(i, false);
+	}
+
+	CollectPowerup(Powerup, pCollectingPlayer);
+	GameServer()->CreateSound(Powerup.m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
+
+	Powerup.m_aClients[ClientId].m_Collected = true;
+	Powerup.m_aClients[ClientId].m_WasLoggedIn = pCollectingPlayer->Acc()->m_LoggedIn;
+	Powerup.m_aClients[ClientId].m_Addr = *Server()->ClientAddr(ClientId);
+
+	if(Powerup.m_Lifetime > Server()->TickSpeed() * 30)
+		Powerup.m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
+}
+
+void CPowerUps::CollectPowerup(const CPowerUp &Powerup, CPlayer *pPlayer)
+{
+	const bool HidePowerUps = pPlayer->Acc()->m_Configs.m_HidePowerUps;
+
+	if(!pPlayer->Acc()->m_LoggedIn)
+	{
+		if(!HidePowerUps)
+		{
+			pPlayer->SendChat("You need to be logged in to collect Powerups");
+			pPlayer->SendChat("/register <name> <pw>");
+			pPlayer->SetHidePowerUps(true); // Only show powerups once
+		}
+		return;
+	}
+
+	const int ClientId = pPlayer->GetCid();
+	const long Value = Powerup.m_Data.m_Value;
+	const long MsgAmount = (long)(Value * pPlayer->StatMultiplier());
+
+	switch(Powerup.m_Data.m_Type)
+	{
+	case EPowerUp::XP:
+	{
+		pPlayer->GiveXP(Value);
+		if(!HidePowerUps)
+			pPlayer->SendChatFmt("+%ldXP for collecting a PowerUp!", MsgAmount);
+	}
+	break;
+	case EPowerUp::MONEY:
+	{
+		pPlayer->GiveMoney(Value);
+		if(!HidePowerUps)
+			pPlayer->SendChatFmt("+%ld%s for collecting a PowerUp!", MsgAmount, g_Config.m_SvCurrencyName);
+	}
+	break;
+	case EPowerUp::BOOST:
+	{
+		constexpr int Minutes = 60;
+		const int AddTicks = Server()->TickSpeed() * Minutes * 60;
+		const float BoostAmount = Value * 0.1f;
+
+		char aBuf[128];
+		if(GameServer()->m_BoostData.m_Ticks > 0)
+		{
+			GameServer()->m_BoostData.m_Ticks += AddTicks;
+			if(BoostAmount > GameServer()->m_BoostData.m_Boost)
+			{
+				GameServer()->m_BoostData.m_Boost = BoostAmount;
+				str_format(aBuf, sizeof(aBuf), "Boost upgraded to %.1fx and extended by %d minutes by '%s'!", GameServer()->m_BoostData.m_Boost, Minutes, Server()->ClientName(ClientId));
+			}
+			else
+			{
+				str_format(aBuf, sizeof(aBuf), "+%d minutes of %.1fx Boost added by '%s'!", Minutes, GameServer()->m_BoostData.m_Boost, Server()->ClientName(ClientId));
+			}
+		}
+		else
+		{
+			GameServer()->m_BoostData.m_Boost = BoostAmount;
+			GameServer()->m_BoostData.m_Ticks = AddTicks;
+			str_format(aBuf, sizeof(aBuf), "+%.1fx Boost for %d minutes collected by '%s'!", BoostAmount, Minutes, Server()->ClientName(ClientId));
+		}
+		GameServer()->SendChat(-1, 0, aBuf);
+	}
+	break;
+	default:
+		break;
+	}
+}
+
+
+void CPowerUps::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
+{
+	for(CPowerUp &Powerup : m_vPowerups)
+	{
+		// The blink state belongs to the powerup rather than to a viewer, but it only ever flips on
+		// an exact tick boundary so doing it here stays in step for everyone
+		if((Server()->Tick() - Powerup.m_StartTick) % Server()->TickSpeed() == 0)
+			Powerup.m_Switch = !Powerup.m_Switch;
+
+		SnapPowerup(Powerup, ClientId);
+	}
+}
+
+void CPowerUps::SnapPowerup(const CPowerUp &Powerup, int SnappingClient)
+{
+	if(!Powerup.m_PickupId.has_value())
+		return;
+
+	if(NetworkClipped(GameServer(), SnappingClient, Powerup.m_Pos))
+		return;
+
+	if(SnappingClient != SERVER_DEMO_CLIENT)
+	{
+		CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+		if(!pSnapPlayer)
+			return;
+
+		if(pSnapPlayer->Acc()->m_Configs.m_HidePowerUps)
+			return;
+
+		if(Powerup.m_aClients[SnappingClient].m_Collected && (!Server()->IsRconAuthed(SnappingClient) || !pSnapPlayer->IsPaused()))
+			return; // Hide already collected PowerUps
+	}
+
+	// Make the powerup blink when about to disappear
+	if(Powerup.m_Lifetime < Server()->TickSpeed() * 10 && (Server()->Tick() / (Server()->TickSpeed() / 4)) % 2 == 0)
+		return;
+
+	CGameTeams &Teams = GameServer()->m_pController->Teams();
+	if(!Teams.SetMaskWithFlags(SnappingClient, Powerup.m_MultiMapIdx, TEAM_FLOCK, CGameTeams::IGNORE_SOLO))
+		return;
+
+	const int SnappingClientVersion = Server()->GetClientVersion(SnappingClient);
+	const bool SixUp = Server()->IsSixup(SnappingClient);
+	const CSnapContext Context(SnappingClientVersion, SixUp, SnappingClient);
+
+	GameServer()->SnapPickup(Context, Powerup.m_PickupId.value(), Powerup.m_Pos, Powerup.m_Switch, 0, -1, PICKUPFLAG_NO_PREDICT);
+
+	for(const CPowerUp::CSnapData &Snap : Powerup.m_aSnap)
+	{
+		if(!Snap.m_Id.has_value())
+			continue;
+
+		const vec2 To = Powerup.m_Pos + Snap.m_To;
+		const vec2 From = Powerup.m_Pos + Snap.m_From;
+		GameServer()->SnapLaserObject(Context, Snap.m_Id.value(), To, From, Server()->Tick(), -1, Snap.m_LaserType, -1, -1, LASERFLAG_NO_PREDICT);
+	}
 }

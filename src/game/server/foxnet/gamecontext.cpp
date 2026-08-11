@@ -1,6 +1,5 @@
 
 #include "entities/pickupdrop.h"
-#include "entities/powerup.h"
 #include "fontconvert.h"
 #include "persistent_data.h"
 
@@ -141,7 +140,7 @@ void CGameContext::OnFoxNetConsoleInit()
 {
 	m_vpComponents.insert(m_vpComponents.end(), {
 							    &m_ZoneManager,
-							    &m_SpawnCandidates,
+							    &m_PowerUps,
 							    &m_Scripting,
 							    &m_VoteMenu,
 							    &m_AccountManager,
@@ -471,9 +470,7 @@ void CGameContext::FoxNetInit()
 {
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnInit();
-	m_vPowerups.clear();
-
-	m_PowerUpDelay = Server()->Tick() + Server()->TickSpeed() * 5;
+	m_PowerUps.ClearPowerups();
 	m_BanSaveDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvBanSyncingDelay * 60);
 
 	if(Score() && g_Config.m_SvAccounts)
@@ -1320,79 +1317,6 @@ void CGameContext::OnPreReload()
 
 		m_apPersistentData[i] = new CSavePlayerData();
 		m_apPersistentData[i]->Save(pPlayer);
-	}
-}
-
-void CGameContext::OnCollectPowerup(int ClientId, const CPowerupData *pData)
-{
-	if(ClientId < 0 || ClientId >= Server()->MaxClients())
-		return;
-	CPlayer *pPlayer = m_apPlayers[ClientId];
-	if(!pPlayer)
-		return;
-
-	const bool HidePowerUps = pPlayer->Acc()->m_Configs.m_HidePowerUps;
-
-	if(!pPlayer->Acc()->m_LoggedIn)
-	{
-		if(!HidePowerUps)
-		{
-			SendChatTarget(ClientId, "You need to be logged in to collect Powerups");
-			SendChatTarget(ClientId, "/register <name> <pw>");
-			pPlayer->SetHidePowerUps(true); // Only show powerups once
-		}
-		return;
-	}
-
-	long MsgAmount = (long)(pData->m_Value * pPlayer->StatMultiplier());
-
-	switch(pData->m_Type)
-	{
-	case EPowerUp::XP:
-	{
-		pPlayer->GiveXP(pData->m_Value);
-		if(!HidePowerUps)
-			pPlayer->SendChatFmt("+%ldXP for collecting a PowerUp!", MsgAmount);
-	}
-	break;
-	case EPowerUp::MONEY:
-	{
-		pPlayer->GiveMoney(pData->m_Value);
-		if(!HidePowerUps)
-			pPlayer->SendChatFmt("+%ld%s for collecting a PowerUp!", MsgAmount, g_Config.m_SvCurrencyName);
-	}
-	break;
-	case EPowerUp::BOOST:
-	{
-		constexpr int Minutes = 60;
-		const int AddTicks = Server()->TickSpeed() * Minutes * 60;
-		const float BoostAmount = pData->m_Value * 0.1f;
-
-		char aBuf[128];
-		if(m_BoostData.m_Ticks > 0)
-		{
-			m_BoostData.m_Ticks += AddTicks;
-			if(BoostAmount > m_BoostData.m_Boost)
-			{
-				m_BoostData.m_Boost = BoostAmount;
-				str_format(aBuf, sizeof(aBuf), "Boost upgraded to %.1fx and extended by %d minutes by '%s'!", m_BoostData.m_Boost, Minutes, Server()->ClientName(ClientId));
-			}
-			else
-			{
-				str_format(aBuf, sizeof(aBuf), "+%d minutes of %.1fx Boost added by '%s'!", Minutes, m_BoostData.m_Boost, Server()->ClientName(ClientId));
-			}
-		}
-		else
-		{
-			m_BoostData.m_Boost = BoostAmount;
-			m_BoostData.m_Ticks = AddTicks;
-			str_format(aBuf, sizeof(aBuf), "+%.1fx Boost for %d minutes collected by '%s'!", BoostAmount, Minutes, Server()->ClientName(ClientId));
-		}
-		SendChat(-1, 0, aBuf);
-	}
-	break;
-	default:
-		break;
 	}
 }
 
