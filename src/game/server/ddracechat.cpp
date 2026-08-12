@@ -17,19 +17,6 @@
 #include <game/teamscore.h>
 #include <game/version.h>
 
-void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
-{
-	static constexpr const char *CREDITS[] = {
-		"Credits: fokkonaut, Pointer31, Schnupp, +KZ",
-		"FoxNetwork developed by qxdFox,",
-		"Which is based on DDNet by the DDNet developers,",
-		"Which is based on DDRace by the DDRace developers,",
-		"which is a mod of Teeworlds by the Teeworlds developers.",
-	};
-	for(const char *pLine : CREDITS)
-		log_info("chatresp", "%s", pLine);
-}
-
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
 	log_info("chatresp", "FoxNetwork Mod. Version: " FOXNET_VERSION);

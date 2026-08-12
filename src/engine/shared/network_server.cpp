@@ -715,11 +715,7 @@ int CNetServer::Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken, int *pNu
 
 int CNetServer::Send(CNetChunk *pChunk)
 {
-	if(pChunk->m_DataSize >= NET_MAX_PAYLOAD)
-	{
-		dbg_msg("netserver", "packet payload too big. %d. dropping packet", pChunk->m_DataSize);
-		return -1;
-	}
+	pChunk->AssertSizeSanity();
 
 	if(pChunk->m_Flags & NETSENDFLAG_CONNLESS)
 	{
