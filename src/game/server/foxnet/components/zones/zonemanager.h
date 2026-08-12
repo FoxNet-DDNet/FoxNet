@@ -37,6 +37,11 @@ class CZoneManager : public CServerComponent
 	void FreeQuadIds();
 
 	/*
+	 * Runs the shared per-map collision quad update and collision pass once per map,
+	 * instead of once per zone that shares that list. See CCollidableZone::OnTick.
+	 */
+	void TickSharedQuadZones();
+	/*
 	 * Decides which minigame owns each player this tick and runs the enter/leave handover
 	 */
 	void UpdateMembership();

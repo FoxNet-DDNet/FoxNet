@@ -248,8 +248,37 @@ void CZoneManager::DropPlayer(IMinigame *pMinigame, int ClientId)
 		pPlayer->ClearBroadcast();
 }
 
+void CZoneManager::TickSharedQuadZones()
+{
+	// QHook / QUnHook zones hand their quads to the per-map collision list and keep
+	// their own list empty, so each of them used to update and collide against the very
+	// same global data -- one full pass over every drop and every quad per quad layer,
+	// all producing the same result. Run it once per map instead.
+	//
+	// Doing it here also settles quad positions before any zone acts on them, rather
+	// than midway through the zone loop where the outcome depended on zone ordering.
+	const EZoneType aSharedTypes[] = {EZoneType::Hookable, EZoneType::Unhookable};
+
+	std::vector<size_t> vHandledMaps;
+	for(EZoneType Type : aSharedTypes)
+	{
+		for(CQuadZone *pZone : m_avpZones[(int)Type])
+		{
+			const size_t MapIdx = pZone->MultiMapIndex();
+			if(std::find(vHandledMaps.begin(), vHandledMaps.end(), MapIdx) != vHandledMaps.end())
+				continue;
+			vHandledMaps.push_back(MapIdx);
+
+			// Only CCollidableZone is ever stored under these two types.
+			static_cast<CCollidableZone *>(pZone)->TickSharedQuads();
+		}
+	}
+}
+
 void CZoneManager::OnTick()
 {
+	TickSharedQuadZones();
+
 	for(int i = 0; i < (int)EZoneType::Num; i++)
 	{
 		auto &vZones = m_avpZones[i];

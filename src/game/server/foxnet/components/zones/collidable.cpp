@@ -48,16 +48,30 @@ void CCollidableZone::Init(CMapItemLayerQuads *pQuadsLayer)
 
 void CCollidableZone::OnTick()
 {
-	bool UsingQuads = GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles;
-
+	// A zone with no quads of its own put them in the shared per-map collision list.
+	// Every such zone reads and writes that same list, so updating it and colliding
+	// against it is map-level work that CZoneManager drives once via TickSharedQuads().
+	// Doing it here as well would repeat an identical pass once per quad layer.
 	if(Quads().empty())
-	{
-		const double Time = static_cast<double>(GameServer()->Server()->Tick() - GameServer()->m_pController->m_QuadStartTick) / GameServer()->Server()->TickSpeed();
-		Collision()->UpdateQuads(UsingQuads, Time);
-	}
+		return;
+
+	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
+		return;
+
+	HandleCharacters();
+	HandlePickups();
+}
+
+void CCollidableZone::TickSharedQuads()
+{
+	const bool UsingQuads = GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles;
+
+	const double Time = static_cast<double>(GameServer()->Server()->Tick() - GameServer()->m_pController->m_QuadStartTick) / GameServer()->Server()->TickSpeed();
+	Collision()->UpdateQuads(UsingQuads, Time);
 
 	if(!UsingQuads)
 		return;
+
 	HandleCharacters();
 	HandlePickups();
 }

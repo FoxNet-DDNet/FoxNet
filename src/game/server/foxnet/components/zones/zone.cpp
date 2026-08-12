@@ -61,22 +61,7 @@ IServer *CQuadZone::Server() const
 	return GameServer()->Server();
 }
 
-bool CQuadZone::InsideQuad(const vec2 &Pos, const CQuadData &QuadData, const vec2 &Size) const
-{
-	if(Size.x == 0 && Size.y == 0)
-	{
-		if(!QuadData.AabbContains(Pos))
-			return false;
-	}
-	else
-	{
-		if(!QuadData.AabbIntersects(Pos, Size))
-			return false;
-	}
-	const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-
-	return ::InsideQuadrilateral(Pos, Points, Size);
-}
+// InsideQuad is defined inline in zone.h -- see the comment there.
 
 static float TriangleArea(const vec2 &A, const vec2 &B, const vec2 &C)
 {
