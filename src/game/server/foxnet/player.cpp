@@ -249,9 +249,9 @@ void CPlayer::GivePlaytime(int64_t Amount)
 
 	Acc()->m_Playtime += Amount;
 	
-	auto GivePlayerMoney = [this](int64_t Amount) {
-		SendChatFmt("+%" PRId64 "%s for %" PRId64 " Hours of Playtime!", Amount, g_Config.m_SvCurrencyName, int64_t(Acc()->m_Playtime / 60));
-		GiveMoney(Amount, false);
+	auto GivePlayerMoney = [this](int64_t Money) {
+		SendChatFmt("+%" PRId64 "%s for %" PRId64 " Hours of Playtime!", Money, g_Config.m_SvCurrencyName, int64_t(Acc()->m_Playtime / 60));
+		GiveMoney(Money, false);
 	};
 
 	const int64_t Playtime = Acc()->m_Playtime;
