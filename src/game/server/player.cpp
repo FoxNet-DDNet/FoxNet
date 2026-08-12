@@ -340,10 +340,24 @@ void CPlayer::Snap(int SnappingClient)
 			return;
 	// FoxNet>
 
-	StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), Server()->ClientName(m_ClientId));
-	StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), Server()->ClientClan(m_ClientId));
+	static_assert(sizeof(ClientInfo.m_aName) == sizeof(m_aSnapName));
+	static_assert(sizeof(ClientInfo.m_aClan) == sizeof(m_aSnapClan));
+	static_assert(sizeof(ClientInfo.m_aSkin) == sizeof(m_aSnapSkin));
+
+	// None of these depend on SnappingClient, so pack them once per tick instead of
+	// once per viewer. OverrideSnap below still runs per client on top of this.
+	if(m_SnapStringsTick != Server()->Tick())
+	{
+		m_SnapStringsTick = Server()->Tick();
+		StrToInts(m_aSnapName, std::size(m_aSnapName), Server()->ClientName(m_ClientId));
+		StrToInts(m_aSnapClan, std::size(m_aSnapClan), Server()->ClientClan(m_ClientId));
+		StrToInts(m_aSnapSkin, std::size(m_aSnapSkin), m_TeeInfos.m_aSkinName);
+	}
+
+	mem_copy(ClientInfo.m_aName, m_aSnapName, sizeof(m_aSnapName));
+	mem_copy(ClientInfo.m_aClan, m_aSnapClan, sizeof(m_aSnapClan));
+	mem_copy(ClientInfo.m_aSkin, m_aSnapSkin, sizeof(m_aSnapSkin));
 	ClientInfo.m_Country = Server()->ClientCountry(m_ClientId);
-	StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), m_TeeInfos.m_aSkinName);
 	ClientInfo.m_UseCustomColor = m_TeeInfos.m_UseCustomColor;
 	ClientInfo.m_ColorBody = m_TeeInfos.m_ColorBody;
 	ClientInfo.m_ColorFeet = m_TeeInfos.m_ColorFeet;

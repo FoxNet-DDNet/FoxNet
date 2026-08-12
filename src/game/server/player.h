@@ -319,6 +319,18 @@ private:
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 
+	/*
+	 * Snap() packs this player's name, clan and skin with StrToInts once for every
+	 * snapping client, even though the result depends only on the player. Cache the
+	 * packed form and rebuild it once per tick -- keying on the tick means a rename or
+	 * skin change can never be missed, with nothing to invalidate by hand.
+	 * Sizes are static_asserted against CNetObj_ClientInfo at the point of use.
+	 */
+	int m_SnapStringsTick = -1;
+	int m_aSnapName[4] = {};
+	int m_aSnapClan[3] = {};
+	int m_aSnapSkin[6] = {};
+
 	//
 	bool m_Spawning;
 	bool m_WeakHookSpawn;
