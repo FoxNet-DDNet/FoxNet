@@ -1007,14 +1007,6 @@ private:
 	static void ConSetSpiderHook(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetSpazzing(IConsole::IResult *pResult, void *pUserData);
 
-	static void ConPayMoney(IConsole::IResult *pResult, void *pUserData);
-	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
-	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetLevel(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetXp(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetMoney(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetDeaths(IConsole::IResult *pResult, void *pUserData);
-
 	static void ConToggleItem(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConToggleMapVoteLock(IConsole::IResult *pResult, void *pUserData);
@@ -1037,8 +1029,6 @@ private:
 
 	static void ConSetBet(IConsole::IResult *pResult, void *pUserData);
 	static void ConNextRouletteTile(IConsole::IResult *pResult, void *pUserData);
-
-	static void ConReport(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConLaserText(IConsole::IResult *pResult, void *pUserData);
 	static void ConProjectileText(IConsole::IResult *pResult, void *pUserData);

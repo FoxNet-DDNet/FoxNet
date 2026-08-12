@@ -197,12 +197,24 @@ class CAccounts : public CServerComponent
 	static void ConForceLogin(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceLogout(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConPayMoney(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveMoney(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetMoney(IConsole::IResult *pResult, void *pUserData);
+	static void ConGiveXp(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetXp(IConsole::IResult *pResult, void *pUserData);
+	static void ConGivePlaytime(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetPlaytime(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetLevel(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetDeaths(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConTop5Money(IConsole::IResult *pResult, void *pUserData);
 	static void ConTop5Level(IConsole::IResult *pResult, void *pUserData);
 	static void ConTop5Playtime(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConNewMail(IConsole::IResult *pResult, void *pUserData);
 	static void ConNewGlobalMail(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConReport(IConsole::IResult *pResult, void *pUserData);
 
 public:
 	bool Register(int ClientId, const char *pUsername, const char *pPassword);

@@ -191,6 +191,229 @@ void CAccounts::ConForceLogout(IConsole::IResult *pResult, void *pUserData)
 	pSelf->Logout(ClientId);
 }
 
+void CAccounts::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	int UserId = pResult->m_ClientId;
+	const char *pName = pResult->GetString(0);
+	if(!CheckClientId(UserId))
+		return;
+
+	if(!g_Config.m_SvAccounts)
+		return;
+
+	CPlayer *pPlayer = pSelf->GetPlayer(UserId);
+	if(!pPlayer)
+		return;
+	if(!pPlayer->Acc()->m_LoggedIn)
+	{
+		pPlayer->SendChat("You need to be logged in for this.");
+		return;
+	}
+	int Victim = pSelf->GameServer()->ClientIdByName(pName);
+	if(!CheckClientId(Victim))
+	{
+		pPlayer->SendChat("Player not found");
+		return;
+	}
+	CPlayer *pVictim = pSelf->GetPlayer(Victim);
+	if(!pVictim)
+	{
+		pPlayer->SendChat("Player not found");
+		return;
+	}
+	if(Victim == UserId)
+	{
+		pPlayer->SendChat("You can't pay yourself");
+		return;
+	}
+	if(!pVictim->Acc()->m_LoggedIn)
+	{
+		pPlayer->SendChat("Player isn't logged in");
+		return;
+	}
+
+	const int Amount = pResult->GetInteger(1);
+	pPlayer->PayMoney(pVictim, Amount);
+}
+
+void CAccounts::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+
+	if(!g_Config.m_SvAccounts)
+		return;
+
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = pResult->GetInteger(1);
+	pPlayer->GiveMoney(Amount, false);
+	log_info("account", "Gave %" PRId64 " Money to player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConSetMoney(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	const CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Money = std::max<int64_t>(0, pResult->GetInteger(1));
+	pAcc->m_Money = Money;
+	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	log_info("account", "Set money to %" PRId64 " for player %s", Money, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	const CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = pResult->GetInteger(1);
+	pPlayer->GiveXP(Amount, "", false);
+	log_info("account", "Gave %" PRId64 " Xp to player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConSetXp(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	const CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	pAcc->m_XP = Amount;
+	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	log_info("account", "Set xp to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConGivePlaytime(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	const CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = pResult->GetInteger(1);
+
+	pPlayer->GivePlaytime(Amount);
+
+	log_info("account", "Gave %" PRId64 " Playtime to player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConSetPlaytime(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	const CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	pAcc->m_Playtime = Amount;
+	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	log_info("account", "Set playtime to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConSetLevel(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	const CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	pAcc->m_Level = Amount;
+	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	log_info("account", "Set level to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
+void CAccounts::ConSetDeaths(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->GetVictim();
+	if(!CheckClientId(ClientId))
+		return;
+	if(!g_Config.m_SvAccounts)
+		return;
+	const CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	CAccountSession *pAcc = pSelf->GetAcc(ClientId);
+	if(!pAcc->m_LoggedIn)
+		return;
+
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	pAcc->m_Deaths = Amount;
+	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	log_info("account", "Set deaths to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
+}
+
 void CAccounts::ConTop5Money(IConsole::IResult *pResult, void *pUserData)
 {
 	CAccounts *pSelf = (CAccounts *)pUserData;
@@ -1438,6 +1661,82 @@ void CAccounts::FetchMailBox()
 	}
 }
 
+void CAccounts::ConReport(IConsole::IResult *pResult, void *pUserData)
+{
+	CAccounts *pSelf = (CAccounts *)pUserData;
+	const int ClientId = pResult->m_ClientId;
+	if(!CheckClientId(ClientId))
+		return;
+
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientId);
+	if(!pPlayer)
+		return;
+
+	if(!g_Config.m_DcReportsWebhookUrl[0] || !g_Config.m_SvAccounts)
+	{
+		pPlayer->SendChat("Reporting is not enabled on this server.");
+		return;
+	}
+
+	const char *pFrom = pSelf->Server()->ClientName(ClientId);
+	const char *pAgainst = pResult->GetString(0);
+	const char *pReportText = pResult->GetString(1);
+
+	if(!str_comp_nocase(pAgainst, pFrom))
+	{
+		pPlayer->SendChat("You can't report yourself.");
+		return;
+	}
+
+	if(!pPlayer->Acc()->m_LoggedIn)
+	{
+		pPlayer->SendChat("You need to be logged in for this.");
+		return;
+	}
+
+	if(!pPlayer->CanReport())
+	{
+		pPlayer->SendChat("You need to wait a bit until you can report.");
+		return;
+	}
+
+	int AgainstId = pSelf->GameServer()->ClientIdByName(pAgainst);
+	if(AgainstId == -1)
+	{
+		pPlayer->SendChat("Player not found.");
+		return;
+	}
+	CPlayer *pAgainstPlayer = pSelf->GetPlayer(AgainstId);
+	if(!pAgainstPlayer)
+	{
+		pPlayer->SendChat("Player not found.");
+		return;
+	}
+
+	char aBuf[512];
+	str_format(aBuf, sizeof(aBuf), "From: `%s` (Acc: `%s`) [||%s||]\n"
+				       "against: `%s` (Acc: `%s`) [||%s||]\n"
+				       "\n"
+				       "Reason: %s\n"
+				       "\n"
+				       "-----------------------------------",
+		pFrom,
+		pPlayer->Acc()->m_aUsername,
+		pSelf->Server()->ClientAddrString(ClientId, false),
+		pAgainst,
+		pAgainstPlayer->Acc()->m_LoggedIn ? pAgainstPlayer->Acc()->m_aUsername : "No Account",
+		pSelf->Server()->ClientAddrString(AgainstId, false),
+		pReportText);
+
+	char aNameBuf[48];
+	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d%s)", pSelf->Server()->Port(), FormatServerInsntance(" | "));
+
+	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
+
+	pPlayer->m_LastReport = pSelf->Server()->Tick();
+	pPlayer->SendChat("Report sent!");
+}
+
 void CAccounts::OnConsoleInit()
 {
 	Console()->Register("force_login", "r[username] ?v[id]", CFGFLAG_SERVER, ConForceLogin, this, "Force Login player (id) into any account");
@@ -1451,10 +1750,26 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("logout", "", CFGFLAG_CHAT, ConLogout, this, "Logout of your account");
 	Console()->Register("profile", "?r[name]", CFGFLAG_CHAT, ConProfile, this, "Show someones profile");
 
+	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
+	Console()->Register("set_money", "v[id] i[money]", CFGFLAG_SERVER, ConSetMoney, this, "Set player' (id) money");
+
+	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
+	Console()->Register("set_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConSetXp, this, "Set player' (id) xp");
+
+	Console()->Register("give_playtime", "v[id] i[amount]", CFGFLAG_SERVER, ConGivePlaytime, this, "Give player (id) playtime");
+	Console()->Register("set_playtime", "v[id] i[amount]", CFGFLAG_SERVER, ConSetPlaytime, this, "Set player' (id) playtime");
+
+	Console()->Register("set_level", "v[id] i[amount]", CFGFLAG_SERVER, ConSetLevel, this, "Set player' (id) level");
+	Console()->Register("set_deaths", "v[id] i[amount]", CFGFLAG_SERVER, ConSetDeaths, this, "Set player' (id) deaths");
+
+	// Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
+
 	Console()->Register("top5money", "?i[offset]", CFGFLAG_CHAT, ConTop5Money, this, "Show someones profile");
 	Console()->Register("top5level", "?i[offset]", CFGFLAG_CHAT, ConTop5Level, this, "Show someones profile");
 	Console()->Register("top5playtime", "?i[offset]", CFGFLAG_CHAT, ConTop5Playtime, this, "Show someones profile");
 
 	Console()->Register("new_mail", "s[username] s[subject] s[message] s[cmd_name] r[cmd]", CFGFLAG_SERVER, ConNewMail, this, "Send a new mail");
 	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
+
+	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
 }
