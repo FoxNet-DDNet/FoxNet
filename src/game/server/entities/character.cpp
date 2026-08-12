@@ -1344,7 +1344,8 @@ void CCharacter::CancelSwapRequests()
 
 void CCharacter::SnapCharacter(int SnappingClient, int MapId)
 {
-	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
+	const CSnapViewer &Viewer = GameServer()->Viewer(SnappingClient);
+	int SnappingClientVersion = Viewer.m_Version;
 	CCharacterCore *pCore;
 	int Weapon = /*<FoxNet*/ GameServer()->GetWeaponType(m_Core.m_ActiveWeapon) /*FoxNet>*/,
 	    AmmoCount = 0,
@@ -1418,14 +1419,14 @@ void CCharacter::SnapCharacter(int SnappingClient, int MapId)
 	}
 
 	if(m_pPlayer->GetCid() == SnappingClient || SnappingClient == SERVER_DEMO_CLIENT ||
-		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCid() == GameServer()->m_apPlayers[SnappingClient]->SpectatorId()))
+		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCid() == Viewer.m_pPlayer->SpectatorId()))
 	{
 		Health = m_Health;
 		Armor = m_Armor;
 		AmmoCount = (m_FreezeTime == 0 && m_Core.m_ActiveWeapon >= 0) ? m_Core.m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo : 0;
 	}
 
-	if(!Server()->IsSixup(SnappingClient))
+	if(!Viewer.m_Sixup)
 	{
 		CNetObj_Character Character = {};
 
@@ -1512,8 +1513,9 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return true;
 
-	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	const CSnapViewer &Viewer = GameServer()->Viewer(SnappingClient);
+	CCharacter *pSnapChar = Viewer.m_pCharacter;
+	CPlayer *pSnapPlayer = Viewer.m_pPlayer;
 
 	if(!pSnapPlayer->IsPaused())
 	{
@@ -1577,8 +1579,10 @@ void CCharacter::Snap(int SnappingClient)
 		return;
 
 	// <FoxNet
-	if(GetPlayer()->m_Invisible && SnappingClient != m_pPlayer->GetCid() && SnappingClient >= 0 && !Server()->ClientSlotEmpty(SnappingClient))
-		if(!GameServer()->m_apPlayers[SnappingClient]->m_Invisible && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
+	const CSnapViewer &Viewer = GameServer()->Viewer(SnappingClient);
+
+	if(GetPlayer()->m_Invisible && SnappingClient != m_pPlayer->GetCid() && SnappingClient >= 0 && !Viewer.m_SlotEmpty)
+		if(!Viewer.m_pPlayer->m_Invisible && Viewer.m_AuthedState < AUTHED_MOD)
 			return;
 
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
@@ -1588,18 +1592,14 @@ void CCharacter::Snap(int SnappingClient)
 	}
 
 	// Multimap
+	if(Viewer.m_pPlayer)
 	{
-		CPlayer *pSnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
-
-		if(pSnapPlayer)
-		{
-			if(MultiMapIdx() != pSnapPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
-				return;
-		}
+		if(MultiMapIdx() != Viewer.m_pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
+			return;
 	}
 	// FoxNet>
 
-	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
+	int SnappingClientVersion = Viewer.m_Version;
 
 	// Translate id, if we are not in the map of the other person display us as weapon and our hook as a laser.
 	// This shouldn't happen but is realistically impossible to avoid as soon as you zoom out a little or simply
@@ -1608,7 +1608,7 @@ void CCharacter::Snap(int SnappingClient)
 	int TranslatedId = m_pPlayer->GetCid();
 	if(SnappingClient > -1 && !Server()->Translate(TranslatedId, SnappingClient))
 	{
-		CSnapContext SnapContext = CSnapContext(SnappingClientVersion, Server()->IsSixup(SnappingClient), SnappingClient);
+		CSnapContext SnapContext = CSnapContext(SnappingClientVersion, Viewer.m_Sixup, SnappingClient);
 
 		int Subtype = GetActiveWeapon();
 		int Type = Subtype == WEAPON_NINJA ? POWERUP_NINJA : POWERUP_WEAPON;
@@ -1666,8 +1666,8 @@ void CCharacter::Snap(int SnappingClient)
 	DDNetCharacter.m_TeleCheckpoint = m_TeleCheckpoint;
 
 	int StrongWeakId = m_StrongWeakId;
-	if(SnappingClientVersion < VERSION_DDNET_128_PLAYERS && SnappingClient >= 0 && GameServer()->m_apPlayers[SnappingClient])
-		StrongWeakId = GameServer()->m_apPlayers[SnappingClient]->m_aStrongWeakId[TranslatedId];
+	if(SnappingClientVersion < VERSION_DDNET_128_PLAYERS && SnappingClient >= 0 && Viewer.m_pPlayer)
+		StrongWeakId = Viewer.m_pPlayer->m_aStrongWeakId[TranslatedId];
 	DDNetCharacter.m_StrongWeakId = StrongWeakId;
 
 	// Display Information
@@ -1698,7 +1698,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	// <FoxNet
 	DDNetCharacter.m_TuneZoneOverride = m_TuneZoneOverride;
-	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+	CPlayer *SnapPlayer = Viewer.m_pPlayer;
 
 	if(SnapPlayer)
 	{
@@ -1712,7 +1712,7 @@ void CCharacter::Snap(int SnappingClient)
 			if(GetPlayer()->Cosmetics()->m_Sparkle)
 				DDNetCharacter.m_Flags |= CHARACTERFLAG_INVINCIBLE;
 
-			if(GetPlayer()->Cosmetics()->m_InverseAim && !Server()->ClientSlotEmpty(SnappingClient) && Server()->GetAuthedState(SnappingClient) < AUTHED_MOD)
+			if(GetPlayer()->Cosmetics()->m_InverseAim && !Viewer.m_SlotEmpty && Viewer.m_AuthedState < AUTHED_MOD)
 			{
 				DDNetCharacter.m_TargetX = GetSnappedTargetPos(SnappingClient).x;
 				DDNetCharacter.m_TargetY = GetSnappedTargetPos(SnappingClient).y;
@@ -1720,7 +1720,7 @@ void CCharacter::Snap(int SnappingClient)
 		}
 	}
 
-	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
+	CCharacter *pSnapChar = Viewer.m_pCharacter;
 
 	const auto WeaponFlag = [](int Weapon) {
 		switch(Weapon)

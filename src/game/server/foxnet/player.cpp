@@ -1353,6 +1353,7 @@ bool CPlayer::SendToMap(int Idx)
 	{
 		if(CasinoIdx != -1)
 			GameServer()->SendCommandInfo(GetCid(), "casino", "", "Go to the Casino map");
+
 		GameServer()->SendCommandInfoRemove(GetCid(), "exit");
 		GameServer()->SendCommandInfoRemove(GetCid(), "leave");
 	}

@@ -333,10 +333,11 @@ void CPlayer::Snap(int SnappingClient)
 	CNetObj_ClientInfo ClientInfo = {};
 
 	// <FoxNet
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	const CSnapViewer &Viewer = GameServer()->Viewer(SnappingClient);
+	CPlayer *pSnapPlayer = Viewer.m_pPlayer;
 
-	if(m_Vanish && SnappingClient != TranslatedId && SnappingClient >= 0)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
+	if(m_Vanish && SnappingClient != m_ClientId && SnappingClient >= 0)
+		if(!Viewer.m_pPlayer->m_Vanish && Viewer.m_AuthedState < AUTHED_ADMIN)
 			return;
 	// FoxNet>
 
@@ -350,8 +351,8 @@ void CPlayer::Snap(int SnappingClient)
 
 	OverrideSnap(SnappingClient, ClientInfo); // FoxNet
 
-	int SnappingClientVersion = GameServer()->GetClientVersion(SnappingClient);
-	int Latency = SnappingClient == SERVER_DEMO_CLIENT ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aCurLatency[m_ClientId];
+	int SnappingClientVersion = Viewer.m_Version;
+	int Latency = SnappingClient == SERVER_DEMO_CLIENT ? m_Latency.m_Min : Viewer.m_pPlayer->m_aCurLatency[m_ClientId];
 	Latency += m_ExtraPing;
 	int Score = GameServer()->m_pController->SnapPlayerScore(SnappingClient, this);
 	int Team = m_Team;
@@ -361,7 +362,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	Server()->SnapNewItem(TranslatedId, ClientInfo);
 
-	if(!Server()->IsSixup(SnappingClient))
+	if(!Viewer.m_Sixup)
 	{
 		CNetObj_PlayerInfo PlayerInfo = {};
 		PlayerInfo.m_Latency = Latency;
@@ -397,7 +398,7 @@ void CPlayer::Snap(int SnappingClient)
 			SpectatorId = TranslatedId;
 		}
 
-		if(!Server()->IsSixup(SnappingClient))
+		if(!Viewer.m_Sixup)
 		{
 			CNetObj_SpectatorInfo SpectatorInfo = {};
 			SpectatorInfo.m_SpectatorId = SpectatorId;
@@ -447,7 +448,7 @@ void CPlayer::Snap(int SnappingClient)
 						continue;
 					}
 					// <FoxNet
-					if(pPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
+					if(pPlayer->m_Vanish && Viewer.m_AuthedState < AUTHED_ADMIN)
 						continue;
 
 					if(MultiMapIdx() != pPlayer->MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
@@ -500,8 +501,8 @@ void CPlayer::Snap(int SnappingClient)
 	DDNetPlayer.m_FinishTimeMillis = PlayerTime.m_Milliseconds;
 	Server()->SnapNewItem(TranslatedId, DDNetPlayer);
 
-	if(Server()->IsSixup(SnappingClient) && m_pCharacter && m_pCharacter->m_DDRaceState == ERaceState::STARTED &&
-		GameServer()->m_apPlayers[SnappingClient]->m_TimerType == TIMERTYPE_SIXUP)
+	if(Viewer.m_Sixup && m_pCharacter && m_pCharacter->m_DDRaceState == ERaceState::STARTED &&
+		Viewer.m_pPlayer->m_TimerType == TIMERTYPE_SIXUP)
 	{
 		protocol7::CNetObj_PlayerInfoRace RaceInfo = {};
 		RaceInfo.m_RaceStartTick = m_pCharacter->m_StartTime;

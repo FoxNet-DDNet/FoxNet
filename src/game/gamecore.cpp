@@ -570,6 +570,14 @@ void CCharacterCore::TickDeferred()
 			// FoxNet>
 
 			// handle player <-> player collision
+			if(m_HookedPlayer != i)
+			{
+				const float Radius = PhysicalSize() * 1.5f;
+				const vec2 Diff = m_Pos - pCharCore->m_Pos;
+				if(Diff.x * Diff.x + Diff.y * Diff.y > Radius * Radius)
+					continue; // too far to nudge, and not the tee we are hooking
+			}
+
 			float Distance = distance(m_Pos, pCharCore->m_Pos);
 			if(Distance > 0)
 			{
@@ -679,31 +687,47 @@ void CCharacterCore::Move()
 		float Distance = distance(m_Pos, NewPos);
 		if(Distance > 0)
 		{
+			// None of the tests below depend on how far along the movement we are, so gather the
+			// tees that can matter once instead of re-testing all of them at every step. Anyone
+			// further off than the whole movement plus a physical size cannot be touched by any
+			// point on it, which on a full server is nearly everybody.
+			CCharacterCore *apCandidates[MAX_CLIENTS];
+			int NumCandidates = 0;
+			const float Reach = Distance + PhysicalSize() + 1.0f;
+			for(int p = 0; p < MAX_CLIENTS; p++)
+			{
+				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
+				if(!pCharCore || pCharCore == this)
+					continue;
+				if((!(pCharCore->m_Super || m_Super) && (m_Solo || pCharCore->m_Solo || pCharCore->m_CollisionDisabled || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, p)))))
+					continue;
+				// <FoxNet
+				if(m_Passive || pCharCore->m_Passive)
+					continue;
+				if(!m_Collidable)
+					continue;
+
+				if(!pCharCore->m_Tuning.m_PlayerCollision)
+					continue;
+
+				if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)
+					continue;
+				// FoxNet>
+				if(distance(m_Pos, pCharCore->m_Pos) > Reach)
+					continue;
+				apCandidates[NumCandidates] = pCharCore;
+				NumCandidates++;
+			}
+
 			int End = Distance + 1;
 			vec2 LastPos = m_Pos;
 			for(int i = 0; i < End; i++)
 			{
 				float a = i / Distance;
 				vec2 Pos = mix(m_Pos, NewPos, a);
-				for(int p = 0; p < MAX_CLIENTS; p++)
+				for(int c = 0; c < NumCandidates; c++)
 				{
-					CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
-					if(!pCharCore || pCharCore == this)
-						continue;
-					if((!(pCharCore->m_Super || m_Super) && (m_Solo || pCharCore->m_Solo || pCharCore->m_CollisionDisabled || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, p)))))
-						continue;
-					// <FoxNet
-					if(m_Passive || pCharCore->m_Passive)
-						continue;
-					if(!m_Collidable)
-						continue;
-
-					if(!pCharCore->m_Tuning.m_PlayerCollision)
-						continue;
-
-					if(!g_Config.m_SvMultimapAllowInteraction && m_MultiMapIdx != pCharCore->m_MultiMapIdx)
-						continue;
-					// FoxNet>
+					CCharacterCore *pCharCore = apCandidates[c];
 					float D = distance(Pos, pCharCore->m_Pos);
 					if(D < PhysicalSize())
 					{

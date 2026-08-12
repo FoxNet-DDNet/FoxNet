@@ -5326,8 +5326,26 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	// FoxNet>
 }
 
+void CGameContext::UpdateSnapViewer(int ClientId)
+{
+	m_SnapViewer = CSnapViewer();
+	m_SnapViewer.m_ClientId = ClientId;
+	m_SnapViewer.m_Version = GetClientVersion(ClientId);
+	m_SnapViewer.m_Sixup = Server()->IsSixup(ClientId);
+	if(ClientId < 0 || ClientId >= Server()->MaxClients())
+		return;
+
+	m_SnapViewer.m_SlotEmpty = Server()->ClientSlotEmpty(ClientId);
+	m_SnapViewer.m_AuthedState = Server()->GetAuthedState(ClientId);
+	m_SnapViewer.m_pPlayer = m_apPlayers[ClientId];
+	m_SnapViewer.m_pCharacter = GetPlayerChar(ClientId);
+}
+
 void CGameContext::OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo)
 {
+	// Gathered up front so the per entity snaps below do not each look it up again
+	UpdateSnapViewer(ClientId);
+
 	// sixup should only snap during global snap
 	dbg_assert(!Server()->IsSixup(ClientId) || GlobalSnap, "sixup should only snap during global snap");
 

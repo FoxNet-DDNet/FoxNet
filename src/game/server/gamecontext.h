@@ -212,6 +212,25 @@ private:
 	int m_ClientId;
 };
 
+/*
+ * The state of whoever a snapshot is being built for.
+ *
+ * Every entity snap runs once per viewer, so anything looked up off the snapping client alone was
+ * being fetched again for each of the (up to 128) entities in the snapshot. This is gathered once
+ * per OnSnap instead and read from there.
+ */
+class CSnapViewer
+{
+public:
+	int m_ClientId = -1;
+	int m_Version = 0;
+	bool m_Sixup = false;
+	bool m_SlotEmpty = true;
+	int m_AuthedState = 0;
+	class CPlayer *m_pPlayer = nullptr;
+	class CCharacter *m_pCharacter = nullptr;
+};
+
 class CMute
 {
 public:
@@ -596,6 +615,23 @@ public:
 	int64_t m_NonEmptySince;
 	int64_t m_LastMapVote;
 	int GetClientVersion(int ClientId) const;
+
+	/*
+	 * The cached state of the client currently being snapped. Re-gathers itself if asked about
+	 * somebody else, so it stays correct no matter who ends up calling Snap().
+	 */
+	const CSnapViewer &Viewer(int ClientId)
+	{
+		if(m_SnapViewer.m_ClientId != ClientId)
+			UpdateSnapViewer(ClientId);
+		return m_SnapViewer;
+	}
+	void UpdateSnapViewer(int ClientId);
+
+private:
+	CSnapViewer m_SnapViewer;
+
+public:
 	const char *GetClientVersionStr(int ClientId) const;
 	CClientMask ClientsMaskExcludeClientVersionAndHigher(int Version) const;
 	bool PlayerExists(int ClientId) const override { return m_apPlayers[ClientId]; }

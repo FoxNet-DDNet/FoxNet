@@ -1350,7 +1350,8 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 
 	// Prevent multi-collect from the same address (covers rejoin to different slot)
 	// If either current slot or inspected slot has a collected flag, compare addresses.
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	// With nothing collected yet no slot can match, so the whole walk is skipped.
+	for(int i = 0; Powerup.m_NumCollected > 0 && i < MAX_CLIENTS; i++)
 	{
 		if(i == ClientId || !(Powerup.m_aClients[ClientId].m_Collected || Powerup.m_aClients[i].m_Collected))
 			continue;
@@ -1358,6 +1359,10 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 		// Compare stored address (may have been set when someone collected).
 		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &Powerup.m_aClients[i].m_Addr) == 0)
 		{
+			if(!Powerup.m_aClients[ClientId].m_Collected)
+				Powerup.m_NumCollected++;
+			if(!Powerup.m_aClients[i].m_Collected)
+				Powerup.m_NumCollected++;
 			Powerup.m_aClients[ClientId].m_Collected = true;
 			Powerup.m_aClients[i].m_Collected = true;
 		}
@@ -1383,6 +1388,7 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 	CollectPowerup(Powerup, pCollectingPlayer);
 	GameServer()->CreateSound(Powerup.m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 
+	Powerup.m_NumCollected++;
 	Powerup.m_aClients[ClientId].m_Collected = true;
 	Powerup.m_aClients[ClientId].m_WasLoggedIn = pCollectingPlayer->Acc()->m_LoggedIn;
 	Powerup.m_aClients[ClientId].m_Addr = *Server()->ClientAddr(ClientId);

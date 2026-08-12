@@ -71,6 +71,8 @@ class CPowerUps : public CServerComponent
 		int m_Lifetime = 0;
 		bool m_Switch = false;
 		int m_MaxCollections = 0;
+		// Lets the address check below skip the client list entirely until somebody collects
+		int m_NumCollected = 0;
 
 		CPowerupData m_Data;
 
