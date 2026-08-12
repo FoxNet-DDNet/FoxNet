@@ -184,6 +184,10 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwne
 	m_PickupDelay = Server()->TickSpeed() * 1.5f;
 	m_GroundElasticity = vec2(0.5f, 0.5f);
 
+	m_Sleeping = false;
+	m_RestTicks = 0;
+	m_SleepRecheck = 0;
+
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		m_aIds[i] = Server()->SnapNewId();
 
@@ -262,6 +266,15 @@ void CPickupDrop::Tick()
 		}
 	}
 
+	if(m_Sleeping)
+	{
+		// The world can change under a resting drop (a door opening takes the floor
+		// away), so fall through to a full tick every so often to notice it.
+		if(--m_SleepRecheck > 0)
+			return;
+		m_Sleeping = false;
+	}
+
 	int CurrentIndex = Collision()->GetMapIndex(m_Pos);
 	m_TuneZone = Collision()->IsTune(CurrentIndex);
 
@@ -289,11 +302,14 @@ void CPickupDrop::Tick()
 	}
 
 	bool Grounded = false;
-	Collision()->MoveBox(&m_Pos, &m_Vel, CCharacterCore::PhysicalSizeVec2(), m_GroundElasticity, &Grounded);
+	// A true return means a solid quad was involved; those can move, so a drop
+	// riding one must keep simulating or it would detach from the platform.
+	const bool TouchedQuad = Collision()->MoveBox(&m_Pos, &m_Vel, CCharacterCore::PhysicalSizeVec2(), m_GroundElasticity, &Grounded);
 	if(Grounded)
 		m_Vel.x *= 0.88f;
 	m_Vel.x *= 0.98f;
 
+	const bool WasInFreeze = m_InsideFreeze;
 	if(m_InsideFreeze)
 	{
 		m_Vel.y -= 0.05f; // slowly float up
@@ -302,6 +318,24 @@ void CPickupDrop::Tick()
 		else
 			m_Vel.y -= TuningList()[m_TuneZone].m_Gravity;
 		m_InsideFreeze = false; // Reset for the next tick
+	}
+
+	// Snap sends (int)m_Pos, so a drop that keeps landing on the same pixel is
+	// already frozen as far as every client is concerned, however much sub-pixel
+	// velocity is left to bleed off.
+	const bool SamePixel = (int)m_Pos.x == (int)m_PrevPos.x && (int)m_Pos.y == (int)m_PrevPos.y;
+	if(Grounded && !WasInFreeze && !TouchedQuad && SamePixel)
+	{
+		if(++m_RestTicks >= SLEEP_AFTER_RESTING_TICKS)
+		{
+			m_Sleeping = true;
+			m_SleepRecheck = SLEEP_RECHECK_TICKS;
+			m_Vel = vec2(0.0f, 0.0f);
+		}
+	}
+	else
+	{
+		m_RestTicks = 0;
 	}
 
 	m_PrevPos = m_Pos;
@@ -426,6 +460,11 @@ void CPickupDrop::HandleSkippableTiles(int Index)
 
 bool CPickupDrop::CheckArmor()
 {
+	// Every case below requires m_Type to be a vanilla weapon above the gun, so
+	// custom weapon drops would scan every pickup on the map for nothing.
+	if(m_Type <= WEAPON_GUN || m_Type >= NUM_WEAPONS)
+		return false;
+
 	CPickup *apEnts[9];
 	int Num = GameWorld()->FindEntities(m_Pos, 34, (CEntity **)apEnts, 9, CGameWorld::ENTTYPE_PICKUP, MultiMapIdx());
 
@@ -511,6 +550,43 @@ bool CPickupDrop::CanBeSeenBy(int ClientId, int Asker)
 	return pPlayer->Acc()->m_Configs.m_ShowWeaponDrops;
 }
 
+// m_SnappingClient starts at a value no real client can take, so the first lookup of
+// the server's life always misses and initialises m_aVisible rather than reading zeros.
+CPickupDrop::SSnapVisibility CPickupDrop::ms_SnapVisibility = {-1, -2, {}, {}};
+
+bool CPickupDrop::CanSnapTo(int SnappingClient)
+{
+	const int MapIdx = MultiMapIdx();
+	const bool Cacheable = m_Team >= 0 && m_Team < NUM_DDRACE_TEAMS;
+
+	if(Cacheable)
+	{
+		if(ms_SnapVisibility.m_Tick != Server()->Tick() || ms_SnapVisibility.m_SnappingClient != SnappingClient)
+		{
+			ms_SnapVisibility.m_Tick = Server()->Tick();
+			ms_SnapVisibility.m_SnappingClient = SnappingClient;
+			for(signed char &Visible : ms_SnapVisibility.m_aVisible)
+				Visible = -1;
+		}
+		else if(ms_SnapVisibility.m_aVisible[m_Team] >= 0 && ms_SnapVisibility.m_aMultiMapIdx[m_Team] == MapIdx)
+		{
+			return ms_SnapVisibility.m_aVisible[m_Team] != 0;
+		}
+	}
+
+	const bool Visible =
+		(SnappingClient < 0 || CanBeSeenBy(SnappingClient, SnappingClient)) &&
+		GameServer()->m_pController->Teams().SetMaskWithFlags(SnappingClient, MapIdx, m_Team, CGameTeams::IGNORE_SOLO);
+
+	if(Cacheable)
+	{
+		ms_SnapVisibility.m_aVisible[m_Team] = Visible ? 1 : 0;
+		ms_SnapVisibility.m_aMultiMapIdx[m_Team] = MapIdx;
+	}
+
+	return Visible;
+}
+
 CClientMask CPickupDrop::PickupMask(int Asker)
 {
 	CClientMask Mask;
@@ -548,7 +624,7 @@ bool CPickupDrop::CollectItem()
 
 	const int Max = 8;
 	CCharacter *pClosest[Max];
-	int Num = GameWorld()->FindEntities(m_Pos, Radius, (CEntity **)pClosest, Max, CGameWorld::ENTTYPE_CHARACTER, MultiMapIdx());
+	int Num = GameWorld()->FindCharacters(m_Pos, Radius, (CEntity **)pClosest, Max, MultiMapIdx());
 	// find closest valid character
 	for(int i = 0; i < Num; i++)
 	{
@@ -657,27 +733,25 @@ void CPickupDrop::TakeDamage(vec2 Force)
 {
 	vec2 Temp = m_Vel + Force;
 	m_Vel = ClampVel(m_MoveRestrictions, Temp);
+	WakeUp();
 }
 
 void CPickupDrop::ForceSetPos(vec2 Pos)
 {
 	m_Pos = Pos;
 	m_PrevPos = Pos;
+	WakeUp();
 }
 
 void CPickupDrop::Snap(int SnappingClient)
 {
-	if(SnappingClient >= 0 && !CanBeSeenBy(SnappingClient, SnappingClient))
-		return;
-
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	int Tick = Server()->Tick() - m_StartTick;
-
-	CGameTeams Teams = GameServer()->m_pController->Teams();
-	if(!Teams.SetMaskWithFlags(SnappingClient, MultiMapIdx(), m_Team, CGameTeams::IGNORE_SOLO))
+	if(!CanSnapTo(SnappingClient))
 		return;
+
+	int Tick = Server()->Tick() - m_StartTick;
 
 	// Make the pickup blink when about to disappear
 	if(m_Lifetime < Server()->TickSpeed() * 10 && (Tick / (Server()->TickSpeed() / 4)) % 2 == 0)

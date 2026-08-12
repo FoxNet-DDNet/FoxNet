@@ -14,12 +14,15 @@ void CUnfreezeZone::OnTick()
 	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
 		return;
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	const int MapIdx = (int)MultiMapIndex();
+	const int MaxClients = Server()->MaxClients();
+
+	for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 	{
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer || !pPlayer->GetCharacter())
 			continue;
-		if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+		if(pPlayer->MultiMapIdx() != MapIdx)
 			continue;
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr->IsAlive())

@@ -19,6 +19,7 @@ class CMultiMaps;
 class CServerComponent
 {
 	CGameContext *m_pGameServer;
+	IServer *m_pServer;
 
 public:
 	virtual ~CServerComponent() = default;
@@ -27,7 +28,7 @@ public:
 	virtual void SendChatTarget(int ClientId, const char *pMessage);
 
 	CGameContext *GameServer() const { return m_pGameServer; }
-	IServer *Server() const;
+	IServer *Server() const { return m_pServer; }
 	IConsole *Console() const;
 	CCollision *Collision(size_t MultiMapIdx) const;
 

@@ -124,6 +124,7 @@ public:
 
 	std::optional<vec2> GetRandomAccessiblePos();
 	void OnTick() override;
+	void OnClientEnter(int ClientId) override;
 	void OnSnap(int ClientId, bool GlobalSnap, bool RecordingDemo) override;
 
 	void ClearPowerups();

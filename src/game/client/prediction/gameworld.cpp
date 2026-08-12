@@ -79,7 +79,8 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 	int Num = 0;
 	for(CEntity *pEnt = m_apFirstEntityTypes[Type]; pEnt; pEnt = pEnt->m_pNextTypeEntity)
 	{
-		if(distance(pEnt->m_Pos, Pos) < Radius + pEnt->m_ProximityRadius)
+		float CombinedRadius = Radius + pEnt->m_ProximityRadius;
+		if(distance_squared(pEnt->m_Pos, Pos) < CombinedRadius * CombinedRadius)
 		{
 			if(ppEnts)
 				ppEnts[Num] = pEnt;

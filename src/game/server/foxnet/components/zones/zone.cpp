@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <vector>
 #include <random>
+#include <vector>
 
 void CQuadZone::ReserveQuads(int AdditionalQuads)
 {

@@ -51,26 +51,35 @@ CCollision *CEntity::Collision()
 
 bool CEntity::NetworkClipped(int SnappingClient) const
 {
+	if(::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, m_Pos))
+		return true;
+
 	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
-	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, m_Pos);
+	return false;
 }
 
 bool CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos) const
 {
+	if(::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, CheckPos))
+		return true;
+
 	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
-	return ::NetworkClipped(m_pGameWorld->GameServer(), SnappingClient, CheckPos);
+	return false;
 }
 
 bool CEntity::NetworkClippedLine(int SnappingClient, vec2 StartPos, vec2 EndPos) const
 {
+	if(::NetworkClippedLine(m_pGameWorld->GameServer(), SnappingClient, StartPos, EndPos))
+		return true;
+
 	if(!CheckMultiMapIdx(SnappingClient, MultiMapIdx()))
 		return true;
 
-	return ::NetworkClippedLine(m_pGameWorld->GameServer(), SnappingClient, StartPos, EndPos);
+	return false;
 }
 
 bool CEntity::GameLayerClipped(vec2 CheckPos)

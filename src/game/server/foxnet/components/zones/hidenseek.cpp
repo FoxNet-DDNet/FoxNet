@@ -84,7 +84,8 @@ void CHideAndSeekZone::OnTick()
 {
 	UpdateCandidates();
 
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	const int MaxClients = Server()->MaxClients();
+	for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 		ClientTick(ClientId);
 
 	// ClientTick lets players enter and leave the area, refresh the list before running the game
@@ -253,10 +254,12 @@ void CHideAndSeekZone::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoO
 
 void CHideAndSeekZone::ClientTick(int ClientId)
 {
+	const int MapIdx = (int)MultiMapIndex();
+
 	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 	if(!pPlayer || !pPlayer->GetCharacter())
 		return;
-	if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+	if(pPlayer->MultiMapIdx() != MapIdx)
 		return;
 	CCharacter *pChr = pPlayer->GetCharacter();
 	if(!pChr->IsAlive())

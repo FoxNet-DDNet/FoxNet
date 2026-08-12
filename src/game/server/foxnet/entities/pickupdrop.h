@@ -9,6 +9,7 @@
 #include <game/mapitems.h>
 #include <game/server/entity.h>
 #include <game/server/gameworld.h>
+#include <game/teamscore.h>
 
 class CPickupDrop : public CEntity
 {
@@ -26,6 +27,23 @@ class CPickupDrop : public CEntity
 	vec2 m_PrevPos;
 	vec2 m_Vel;
 
+	// A drop spends nearly all of its lifetime motionless on the floor. No client
+	// predicts a drop and snaps carry integer positions, so once the truncated
+	// position stops changing the remaining simulation is unobservable. Park the
+	// drop and re-run a full tick occasionally to notice the world changing.
+	static constexpr int SLEEP_AFTER_RESTING_TICKS = 10;
+	static constexpr int SLEEP_RECHECK_TICKS = 50;
+
+	bool m_Sleeping;
+	int m_RestTicks;
+	int m_SleepRecheck;
+
+	void WakeUp()
+	{
+		m_Sleeping = false;
+		m_RestTicks = 0;
+	}
+
 	static bool IsSwitchActiveCb(unsigned char Number, void *pUser);
 	bool IsGrounded();
 	void HandleSkippableTiles(int Index);
@@ -39,6 +57,21 @@ class CPickupDrop : public CEntity
 	bool CollectItem();
 	bool CheckArmor();
 	bool CanBeSeenBy(int ClientId, int Asker = -1);
+
+	// Whether a drop is visible depends only on (SnappingClient, MultiMapIdx, Team) --
+	// never on the drop itself -- yet Snap evaluated it per drop, twice. CGameWorld
+	// snaps every drop for one client before moving to the next, so memoising the
+	// answer for the current client collapses that to one evaluation per team.
+	struct SSnapVisibility
+	{
+		int m_Tick;
+		int m_SnappingClient;
+		signed char m_aVisible[NUM_DDRACE_TEAMS]; // -1 unknown, 0 hidden, 1 visible
+		int m_aMultiMapIdx[NUM_DDRACE_TEAMS];
+	};
+	static SSnapVisibility ms_SnapVisibility;
+
+	bool CanSnapTo(int SnappingClient);
 
 	int m_LastOwner;
 
@@ -57,7 +90,11 @@ public:
 
 	void TakeDamage(vec2 Force);
 
-	void SetRawVelocity(vec2 Vel) override { m_Vel = Vel; }
+	void SetRawVelocity(vec2 Vel) override
+	{
+		m_Vel = Vel;
+		WakeUp();
+	}
 	const vec2 &GetVelocity() const override { return m_Vel; }
 	void ForceSetPos(vec2 Pos) override;
 	int TuneZone() const override { return m_TuneZone; }

@@ -237,6 +237,10 @@ void CGameContext::Clear()
 	bool InitedRandMap = m_InitRandomMap;
 	CBoostData BoostData = m_BoostData;
 	std::vector<CServerComponent *> vComponents = m_vpComponents;
+	// The placement-new below resets m_pServer to nullptr, but InitComponent caches it
+	// into every component and OnInit never re-runs InitComponent. Without carrying it
+	// across, every component would hold a null IServer after any map change.
+	IServer *pServer = m_pServer;
 	// FoxNet>
 
 	m_Resetting = true;
@@ -259,6 +263,7 @@ void CGameContext::Clear()
 	m_InitRandomMap = InitedRandMap;
 	m_vpComponents = std::move(vComponents);
 	m_BoostData = BoostData;
+	m_pServer = pServer;
 	for(auto &pComponent : m_vpComponents)
 		pComponent->InitComponent(this);
 	// FoxNet>

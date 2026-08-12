@@ -196,80 +196,90 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const vec2 aPoints[4])
 
 void CCollidableZone::HandleCharacters()
 {
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	const bool UseZoneQuads = !Quads().empty();
+	if(!UseZoneQuads && Collision()->Quads().empty())
+		return;
+
+	const int MapIdx = (int)MultiMapIndex();
+	const int MaxClients = Server()->MaxClients();
+
+	for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 	{
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer || !pPlayer->GetCharacter())
 			continue;
-		if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+		if(pPlayer->MultiMapIdx() != MapIdx)
 			continue;
 		CCharacter *pChr = pPlayer->GetCharacter();
 		if(!pChr || !pChr->IsAlive())
 			continue;
+
+		const vec2 Pos = pChr->GetPos();
 		const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
 
-		if(!Quads().empty())
+		const auto TestQuad = [&](const CQuadData &QuadData) {
+			if(!InsideQuad(Pos, QuadData, Size))
+				return;
+
+			const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+			CollidableImpl(pChr, Points);
+		};
+
+		if(UseZoneQuads)
 		{
 			for(const CQuadData &QuadData : Quads())
-			{
-				if(!InsideQuad(pChr->GetPos(), QuadData, Size))
-					continue;
-
-				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-				CollidableImpl(pChr, Points);
-			}
+				TestQuad(QuadData);
 		}
 		else
 		{
 			for(const CQuadData &QuadData : Collision()->Quads())
-			{
-				if(!InsideQuad(pChr->GetPos(), QuadData, Size))
-					continue;
-
-				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-				CollidableImpl(pChr, Points);
-			}
+				TestQuad(QuadData);
 		}
 	}
 }
 
 void CCollidableZone::HandlePickups()
 {
-	std::vector<CEntity *> apEnts = GameServer()->m_World.EntitiesOfType(CGameWorld::ENTTYPE_PICKUPDROP);
+	// Which quad set to use never varies per entity, so decide it once up front.
+	const bool UseZoneQuads = !Quads().empty();
+	if(!UseZoneQuads && Collision()->Quads().empty())
+		return;
 
-	for(CEntity *pEnt : apEnts)
+	const int MapIdx = (int)MultiMapIndex();
+
+	// Walk the entity list directly: EntitiesOfType() heap-allocates a copy of every
+	// pickup drop pointer, and this runs every tick.
+	for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PICKUPDROP); pEnt; pEnt = pEnt->TypeNext())
 	{
-		if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
+		if(pEnt->MultiMapIdx() != MapIdx)
 			continue;
 		if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
 			continue;
 
-		if(!Quads().empty())
+		// Both are fixed for this entity but were recomputed for every single quad.
+		const vec2 Pos = pEnt->GetPos();
+		const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
+
+		// The two quad containers hold different element types (CColQuadData derives
+		// from CQuadData), so the body is shared here rather than by merging them.
+		const auto TestQuad = [&](const CQuadData &QuadData) {
+			if(!InsideQuad(Pos, QuadData, Size))
+				return;
+
+			const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+
+			CollidableImpl(pEnt, Points);
+		};
+
+		if(UseZoneQuads)
 		{
 			for(const CQuadData &QuadData : Quads())
-			{
-				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
-
-				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
-					continue;
-				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-
-				CollidableImpl(pEnt, Points);
-			}
+				TestQuad(QuadData);
 		}
 		else
 		{
 			for(const CQuadData &QuadData : Collision()->Quads())
-			{
-				const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
-
-				if(!InsideQuad(pEnt->GetPos(), QuadData, Size))
-					continue;
-
-				const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-
-				CollidableImpl(pEnt, Points);
-			}
+				TestQuad(QuadData);
 		}
 	}
 }

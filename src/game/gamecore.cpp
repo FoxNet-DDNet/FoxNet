@@ -219,9 +219,7 @@ static inline vec2 RotateVec(vec2 v, float a)
 void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 {
 	// <FoxNet
-	CTuningParams Tuning = m_Tuning;
-	if(m_FakeTuned)
-		Tuning = m_FakeTuning;
+	const CTuningParams &Tuning = m_FakeTuned ? m_FakeTuning : m_Tuning;
 	// FoxNet>
 
 	m_MoveRestrictions = m_pCollision->GetMoveRestrictions(UseInput ? IsSwitchActiveCb : nullptr, this, m_Pos);
@@ -546,9 +544,7 @@ void CCharacterCore::TickDeferred()
 	if(m_pWorld)
 	{
 		// <FoxNet
-		CTuningParams Tuning = m_Tuning;
-		if(m_FakeTuned)
-			Tuning = m_FakeTuning;
+		const CTuningParams &Tuning = m_FakeTuned ? m_FakeTuning : m_Tuning;
 		// FoxNet>
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
@@ -633,9 +629,7 @@ void CCharacterCore::Move()
 {
 	// <FoxNet
 	m_PrevVel = m_Vel; // why here??
-	CTuningParams Tuning = m_Tuning;
-	if(m_FakeTuned)
-		Tuning = m_FakeTuning;
+	const CTuningParams &Tuning = m_FakeTuned ? m_FakeTuning : m_Tuning;
 	// FoxNet>
 
 	float RampValue = VelocityRamp(length(m_Vel) * 50, Tuning.m_VelrampStart, Tuning.m_VelrampRange, Tuning.m_VelrampCurvature);

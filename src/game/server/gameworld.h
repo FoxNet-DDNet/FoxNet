@@ -7,6 +7,7 @@
 
 #include <game/gamecore.h>
 
+#include <cmath>
 #include <vector>
 
 class CCollision;
@@ -63,6 +64,40 @@ private:
 	CEntity *m_pNextTraverseEntity = nullptr;
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
+	/*
+		Spatial hash over characters, used by FindCharacters.
+
+		A hash keyed on cell coordinates avoids needing map bounds, which matters
+		because Collision() is per multi-map and there is no single world extent.
+		Storage is fixed-size: there can never be more than MAX_CLIENTS characters,
+		so the index never allocates.
+
+		It is rebuilt lazily on the first query of a tick, and invalidated whenever a
+		character enters or leaves the world, so it cannot outlive its entries.
+	*/
+	enum
+	{
+		CHARACTER_GRID_CELL_SIZE = 128,
+		CHARACTER_GRID_BUCKETS = 256, // power of two, masked
+	};
+	struct SCharacterGridEntry
+	{
+		CEntity *m_pEnt;
+		int m_CellX;
+		int m_CellY;
+	};
+	int m_CharacterGridTick = -1;
+	float m_CharacterGridMaxRadius = 0.0f;
+	int m_aCharacterGridStart[CHARACTER_GRID_BUCKETS + 1] = {};
+	SCharacterGridEntry m_aCharacterGridEntries[MAX_CLIENTS] = {};
+
+	static int CharacterGridCell(float Coord) { return (int)std::floor(Coord / (float)CHARACTER_GRID_CELL_SIZE); }
+	static unsigned CharacterGridBucket(int CellX, int CellY)
+	{
+		return (unsigned)((CellX * 73856093) ^ (CellY * 19349663)) & (CHARACTER_GRID_BUCKETS - 1);
+	}
+	void RebuildCharacterGrid();
+
 	class CGameContext *m_pGameServer;
 	class CConfig *m_pConfig;
 	class IServer *m_pServer;
@@ -101,6 +136,18 @@ public:
 			Number of entities found and added to the ents array.
 	*/
 	int FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type, int MultiMapIdx);
+
+	/*
+		Function: FindCharacters
+			Same contract as FindEntities for ENTTYPE_CHARACTER, but answered from a
+			spatial index instead of scanning every character.
+
+			Intended for callers that run per-entity every tick and would otherwise be
+			O(entities * characters). Characters tick before every entity type that uses
+			this (ENTTYPE_CHARACTER sorts first), so the index is built from final
+			positions and returns exactly what FindEntities would.
+	*/
+	int FindCharacters(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int MultiMapIdx);
 
 	/**
 	 * Finds the CCharacter that intersects the line.

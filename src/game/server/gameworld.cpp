@@ -13,6 +13,7 @@
 #include <game/collision.h>
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 
 //////////////////////////////////////////////////
@@ -60,21 +61,127 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 	if(Type < 0 || Type >= NUM_ENTTYPES)
 		return 0;
 
+	const bool CheckMultiMap = !g_Config.m_SvMultimapAllowInteraction;
+
 	int Num = 0;
 	for(CEntity *pEnt = m_apFirstEntityTypes[Type]; pEnt; pEnt = pEnt->m_pNextTypeEntity)
 	{
-		if(pEnt->MultiMapIdx() != MultiMapIdx && !g_Config.m_SvMultimapAllowInteraction)
+		// Radius first: it is a few flops, while MultiMapIdx() is a virtual call that
+		// chases a pointer for characters. Most entities fail here, so this keeps the
+		// dispatch off the hot path without changing which entities are selected.
+		const float CombinedRadius = Radius + pEnt->m_ProximityRadius;
+		if(distance_squared(pEnt->m_Pos, Pos) >= CombinedRadius * CombinedRadius)
 			continue;
 
-		if(distance(pEnt->m_Pos, Pos) < Radius + pEnt->m_ProximityRadius)
+		if(CheckMultiMap && pEnt->MultiMapIdx() != MultiMapIdx)
+			continue;
+
+		if(ppEnts)
+			ppEnts[Num] = pEnt;
+		Num++;
+		if(Num == Max)
+			break;
+	}
+
+	return Num;
+}
+
+void CGameWorld::RebuildCharacterGrid()
+{
+	m_CharacterGridTick = Server()->Tick();
+	m_CharacterGridMaxRadius = 0.0f;
+
+	for(int &Start : m_aCharacterGridStart)
+		Start = 0;
+
+	// Count into slot+1 so the prefix sum below lands directly on start offsets.
+	int Num = 0;
+	for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt; pEnt = pEnt->m_pNextTypeEntity)
+	{
+		if(Num >= (int)std::size(m_aCharacterGridEntries))
+			break;
+		const unsigned Bucket = CharacterGridBucket(CharacterGridCell(pEnt->m_Pos.x), CharacterGridCell(pEnt->m_Pos.y));
+		m_aCharacterGridStart[Bucket + 1]++;
+		m_CharacterGridMaxRadius = std::max(m_CharacterGridMaxRadius, pEnt->m_ProximityRadius);
+		Num++;
+	}
+
+	for(int i = 0; i < CHARACTER_GRID_BUCKETS; i++)
+		m_aCharacterGridStart[i + 1] += m_aCharacterGridStart[i];
+
+	int aCursor[CHARACTER_GRID_BUCKETS];
+	for(int i = 0; i < CHARACTER_GRID_BUCKETS; i++)
+		aCursor[i] = m_aCharacterGridStart[i];
+
+	// Walks the same prefix of the same list as the counting pass, so the cursors
+	// cannot overrun the space reserved for their bucket.
+	int Placed = 0;
+	for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt && Placed < Num; pEnt = pEnt->m_pNextTypeEntity)
+	{
+		const int CellX = CharacterGridCell(pEnt->m_Pos.x);
+		const int CellY = CharacterGridCell(pEnt->m_Pos.y);
+		SCharacterGridEntry &Entry = m_aCharacterGridEntries[aCursor[CharacterGridBucket(CellX, CellY)]++];
+		Entry.m_pEnt = pEnt;
+		Entry.m_CellX = CellX;
+		Entry.m_CellY = CellY;
+		Placed++;
+	}
+}
+
+int CGameWorld::FindCharacters(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int MultiMapIdx)
+{
+	if(m_CharacterGridTick != Server()->Tick())
+		RebuildCharacterGrid();
+
+	const bool CheckMultiMap = !g_Config.m_SvMultimapAllowInteraction;
+
+	// Widen by the largest proximity radius in the index, since FindEntities admits
+	// an entity when the combined radii overlap, not just the query radius.
+	const float Reach = Radius + m_CharacterGridMaxRadius;
+	const int MinCellX = CharacterGridCell(Pos.x - Reach);
+	const int MaxCellX = CharacterGridCell(Pos.x + Reach);
+	const int MinCellY = CharacterGridCell(Pos.y - Reach);
+	const int MaxCellY = CharacterGridCell(Pos.y + Reach);
+
+	int Num = 0;
+	for(int CellY = MinCellY; CellY <= MaxCellY; CellY++)
+	{
+		for(int CellX = MinCellX; CellX <= MaxCellX; CellX++)
 		{
-			if(ppEnts)
-				ppEnts[Num] = pEnt;
-			Num++;
-			if(Num == Max)
-				break;
+			const unsigned Bucket = CharacterGridBucket(CellX, CellY);
+			for(int i = m_aCharacterGridStart[Bucket]; i < m_aCharacterGridStart[Bucket + 1]; i++)
+			{
+				const SCharacterGridEntry &Entry = m_aCharacterGridEntries[i];
+				// Unrelated cells can share a bucket. Requiring an exact cell match drops
+				// those, and since each entity sits in exactly one cell it also
+				// guarantees we never emit the same entity twice.
+				if(Entry.m_CellX != CellX || Entry.m_CellY != CellY)
+					continue;
+
+				CEntity *pEnt = Entry.m_pEnt;
+				const float CombinedRadius = Radius + pEnt->m_ProximityRadius;
+				if(distance_squared(pEnt->m_Pos, Pos) >= CombinedRadius * CombinedRadius)
+					continue;
+
+				if(CheckMultiMap && pEnt->MultiMapIdx() != MultiMapIdx)
+					continue;
+
+				if(ppEnts)
+					ppEnts[Num] = pEnt;
+				Num++;
+				if(Num == Max)
+					return Num;
+			}
 		}
 	}
+
+#ifdef CONF_DEBUG
+	// The index has to agree with the scan it replaces. Only checked when Max did not
+	// truncate: past that point the two visit entities in different orders and would
+	// legitimately keep different subsets.
+	dbg_assert(FindEntities(Pos, Radius, nullptr, Max, ENTTYPE_CHARACTER, MultiMapIdx) == Num,
+		"character grid disagrees with linear scan");
+#endif
 
 	return Num;
 }
@@ -85,6 +192,9 @@ void CGameWorld::InsertEntity(CEntity *pEnt)
 	for(CEntity *pCur = m_apFirstEntityTypes[pEnt->m_ObjType]; pCur; pCur = pCur->m_pNextTypeEntity)
 		dbg_assert(pCur != pEnt, "err");
 #endif
+
+	if(pEnt->m_ObjType == ENTTYPE_CHARACTER)
+		m_CharacterGridTick = -1;
 
 	// insert it
 	if(m_apFirstEntityTypes[pEnt->m_ObjType])
@@ -99,6 +209,9 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 	// not in the list
 	if(!pEnt->m_pNextTypeEntity && !pEnt->m_pPrevTypeEntity && m_apFirstEntityTypes[pEnt->m_ObjType] != pEnt)
 		return;
+
+	if(pEnt->m_ObjType == ENTTYPE_CHARACTER)
+		m_CharacterGridTick = -1;
 
 	// remove
 	if(pEnt->m_pPrevTypeEntity)

@@ -12,16 +12,13 @@
 void CServerComponent::InitComponent(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
+	m_pServer = m_pGameServer->Server();
 }
 void CServerComponent::SendChatTarget(int ClientId, const char *pMessage)
 {
 	GameServer()->SendChatTarget(ClientId, pMessage);
 }
 
-IServer *CServerComponent::Server() const
-{
-	return GameServer()->Server();
-}
 IConsole *CServerComponent::Console() const
 {
 	return GameServer()->Console();
@@ -43,12 +40,11 @@ CPlayer *CServerComponent::GetPlayer(int ClientId)
 
 CCharacter *CServerComponent::GetCharacter(int ClientId)
 {
-	if(!CheckClientId(ClientId))
-		return nullptr;
-	if(!Server()->ClientIngame(ClientId))
+	CPlayer *pPlayer = GetPlayer(ClientId);
+	if(!pPlayer)
 		return nullptr;
 
-	return GameServer()->GetPlayerChar(ClientId);
+	return pPlayer->GetCharacter();
 }
 
 CAccountSession *CServerComponent::GetAcc(int ClientId) const

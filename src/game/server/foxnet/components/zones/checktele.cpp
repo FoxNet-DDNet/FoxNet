@@ -22,14 +22,17 @@ void CCheckpointFromZone::OnTick()
 
 	std::vector<CEntity *> apEnts = GameServer()->m_World.EntitiesOfType(CGameWorld::ENTTYPE_PICKUPDROP);
 
+	const int MapIdx = (int)MultiMapIndex();
+	const int MaxClients = Server()->MaxClients();
+
 	for(const CQuadData &QuadData : Quads())
 	{
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 		{
 			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 			if(!pPlayer || !pPlayer->GetCharacter())
 				continue;
-			if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+			if(pPlayer->MultiMapIdx() != MapIdx)
 				continue;
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr->IsAlive())
@@ -42,7 +45,7 @@ void CCheckpointFromZone::OnTick()
 		}
 		for(CEntity *pEnt : apEnts)
 		{
-			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
+			if(pEnt->MultiMapIdx() != MapIdx)
 				continue;
 
 			if(!InsideQuad(pEnt->GetPos(), QuadData))

@@ -1315,10 +1315,12 @@ bool CPowerUps::TickPowerup(CPowerUp &Powerup)
 	if(!g_Config.m_SvAccounts) // Powerups require accounts to store the data
 		return false;
 
+	IServer *pServer = Server();
+
 	int NumCollected = 0;
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
-		if(!Server()->ClientIngame(ClientId))
+		if(!pServer->ClientIngame(ClientId))
 			continue;
 
 		// Always run HandleClient for active clients so collection/address checks are evaluated
@@ -1336,6 +1338,33 @@ bool CPowerUps::TickPowerup(CPowerUp &Powerup)
 	return true;
 }
 
+void CPowerUps::OnClientEnter(int ClientId)
+{
+	// A joining client may be a rejoin into a different slot, so settle their collected
+	// flags once here instead of rediscovering them on every tick of every powerup.
+	const int MaxClients = Server()->MaxClients();
+	const NETADDR *pAddr = Server()->ClientAddr(ClientId);
+
+	for(CPowerUp &Powerup : m_vPowerups)
+	{
+		if(Powerup.m_aClients[ClientId].m_Collected)
+			continue;
+
+		for(int i = 0; i < MaxClients; i++)
+		{
+			// Only slots that actually collected carry a meaningful stored address.
+			if(i == ClientId || !Powerup.m_aClients[i].m_Collected)
+				continue;
+			if(net_addr_comp_noport(pAddr, &Powerup.m_aClients[i].m_Addr) != 0)
+				continue;
+
+			Powerup.m_aClients[ClientId].m_Collected = true;
+			Powerup.m_aClients[ClientId].m_Addr = *pAddr;
+			break;
+		}
+	}
+}
+
 void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 {
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
@@ -1348,30 +1377,17 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 	if(!pCollectingPlayer || pCollectingPlayer->Acc()->m_Configs.m_HidePowerUps)
 		return;
 
-	// Prevent multi-collect from the same address (covers rejoin to different slot)
-	// If either current slot or inspected slot has a collected flag, compare addresses.
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(i == ClientId || !(Powerup.m_aClients[ClientId].m_Collected || Powerup.m_aClients[i].m_Collected))
-			continue;
-
-		// Compare stored address (may have been set when someone collected).
-		if(net_addr_comp_noport(Server()->ClientAddr(ClientId), &Powerup.m_aClients[i].m_Addr) == 0)
-		{
-			Powerup.m_aClients[ClientId].m_Collected = true;
-			Powerup.m_aClients[i].m_Collected = true;
-		}
-	}
-
 	if(Powerup.m_aClients[ClientId].m_Collected)
 		return;
 	if(!PointInSquare(Powerup.m_Pos, pChr->GetPos(), 54.0f))
 		return;
 
+	const int MaxClients = Server()->MaxClients();
+	const NETADDR *pAddr = Server()->ClientAddr(ClientId);
+
 	CClientMask TeamMask = pChr->TeamMask();
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < MaxClients; i++)
 	{
-		// Only fetch player pointer for active slots.
 		CPlayer *pPlayer = nullptr;
 		if(Server()->ClientIngame(i))
 			pPlayer = GameServer()->m_apPlayers[i];
@@ -1385,7 +1401,18 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 
 	Powerup.m_aClients[ClientId].m_Collected = true;
 	Powerup.m_aClients[ClientId].m_WasLoggedIn = pCollectingPlayer->Acc()->m_LoggedIn;
-	Powerup.m_aClients[ClientId].m_Addr = *Server()->ClientAddr(ClientId);
+	Powerup.m_aClients[ClientId].m_Addr = *pAddr;
+
+	for(int i = 0; i < MaxClients; i++)
+	{
+		if(i == ClientId || Powerup.m_aClients[i].m_Collected || !Server()->ClientIngame(i))
+			continue;
+		if(net_addr_comp_noport(pAddr, Server()->ClientAddr(i)) != 0)
+			continue;
+
+		Powerup.m_aClients[i].m_Collected = true;
+		Powerup.m_aClients[i].m_Addr = *pAddr;
+	}
 
 	if(Powerup.m_Lifetime > Server()->TickSpeed() * 30)
 		Powerup.m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection

@@ -20,16 +20,17 @@ void CDeathZone::OnTick()
 	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
 		return;
 
-	std::vector<CEntity *> apEnts = GameServer()->m_World.EntitiesOfType(CGameWorld::ENTTYPE_PICKUPDROP);
+	const int MapIdx = (int)MultiMapIndex();
+	const int MaxClients = Server()->MaxClients();
 
 	for(const CQuadData &QuadData : Quads())
 	{
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 		{
 			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 			if(!pPlayer || !pPlayer->GetCharacter())
 				continue;
-			if(pPlayer->MultiMapIdx() != (int)MultiMapIndex())
+			if(pPlayer->MultiMapIdx() != MapIdx)
 				continue;
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr->IsAlive())
@@ -41,9 +42,16 @@ void CDeathZone::OnTick()
 
 			pChr->Die(pPlayer->GetCid(), WEAPON_WORLD);
 		}
-		for(CEntity *pEnt : apEnts)
+		// Walking the list directly avoids EntitiesOfType() heap-allocating a copy of
+		// every pickup drop pointer. Reset() only marks the entity for destruction --
+		// the world unlinks it later -- but cache the next pointer regardless so the
+		// walk cannot be derailed by the entity we just touched.
+		CEntity *pNext = nullptr;
+		for(CEntity *pEnt = GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_PICKUPDROP); pEnt; pEnt = pNext)
 		{
-			if(pEnt->MultiMapIdx() != (int)MultiMapIndex())
+			pNext = pEnt->TypeNext();
+
+			if(pEnt->MultiMapIdx() != MapIdx)
 				continue;
 
 			vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
