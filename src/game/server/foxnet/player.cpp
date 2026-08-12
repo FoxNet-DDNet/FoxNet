@@ -247,11 +247,33 @@ void CPlayer::GivePlaytime(int64_t Amount)
 	if(!Acc()->m_LoggedIn)
 		return;
 
-	Acc()->m_Playtime++;
-	if(Acc()->m_Playtime % 60 == 0)
+	Acc()->m_Playtime += Amount;
+	
+	auto GivePlayerMoney = [this](int64_t Amount) {
+		SendChatFmt("+%" PRId64 "%s for %" PRId64 " Hours of Playtime!", Amount, g_Config.m_SvCurrencyName, int64_t(Acc()->m_Playtime / 60));
+		GiveMoney(Amount, false);
+	};
+
+	const int64_t Playtime = Acc()->m_Playtime;
+
+	if(Playtime % 60 == 0)
 	{
-		SendChatFmt("+%d%s for reaching %" PRId64 " Hours of Playtime!", g_Config.m_SvPlaytimeMoney, g_Config.m_SvCurrencyName, Acc()->m_Playtime / 60);
-		GiveMoney(g_Config.m_SvPlaytimeMoney, false);
+		const int64_t PlaytimeHours = Playtime / 60;
+
+		if(PlaytimeHours % 500 == 0)
+			GivePlayerMoney(1250000);
+		else if(PlaytimeHours % 250 == 0)
+			GivePlayerMoney(250000);
+		else if(PlaytimeHours % 100 == 0)
+			GivePlayerMoney(125000);
+		else if(PlaytimeHours % 50 == 0)
+			GivePlayerMoney(75000);
+		else if(PlaytimeHours % 25 == 0)
+			GivePlayerMoney(25000);
+		else if(PlaytimeHours % 10 == 0)
+			GivePlayerMoney(10000);
+		else
+			GivePlayerMoney(1000);
 	}
 }
 
