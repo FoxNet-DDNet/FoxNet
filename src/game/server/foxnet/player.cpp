@@ -1280,6 +1280,7 @@ float CPlayer::StatMultiplier()
 	if(!Acc()->m_LoggedIn)
 		return Multiplier;
 
+	bool FoundOne = false;
 	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
 	{
 		if(Server()->ClientSlotEmpty(ClientId))
@@ -1289,8 +1290,11 @@ float CPlayer::StatMultiplier()
 			continue;
 		if(pPlayer->OwnsItem(EItemId::Booster))
 		{
-			Multiplier += 1.5f;
-			break;
+			if(!FoundOne)
+				Multiplier += 1.5f;
+			else
+				Multiplier += 0.5f; // Give 0.2x boost for every server booster role
+			FoundOne = true;
 		}
 	}
 

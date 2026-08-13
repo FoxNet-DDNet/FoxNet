@@ -1164,18 +1164,26 @@ void CVoteMenu::PrepareBoosters(int ClientId)
 	// Server Booster grants a flat +1.5x if anyone owns the Booster item.
 	// Cycle the crediting player once per second so everyone providing it is shown.
 	std::vector<int> vBoosterIds;
+	float BoostAmount = 0.0f;
 	for(int i = 0; i < Server()->MaxClients(); i++)
 	{
 		if(Server()->ClientSlotEmpty(i))
 			continue;
 		CPlayer *pOther = GameServer()->m_apPlayers[i];
 		if(pOther && pOther->OwnsItem(EItemId::Booster))
+		{
+			if(vBoosterIds.empty())
+				BoostAmount += 1.5f;
+			else
+				BoostAmount += 0.2f;
 			vBoosterIds.push_back(i);
+		}
 	}
 	if(!vBoosterIds.empty())
 	{
 		const int Cycle = (int)((Server()->Tick() / Server()->TickSpeed()) % (int)vBoosterIds.size());
-		str_format(aBuf, sizeof(aBuf), "│ +1.5x Server Booster by %s", Server()->ClientName(vBoosterIds[Cycle]));
+
+		str_format(aBuf, sizeof(aBuf), "│ +%.1fx Server Booster by %s (%" PRIzu "x)", BoostAmount, Server()->ClientName(vBoosterIds[Cycle]), vBoosterIds.size());
 		AddVoteText(aBuf);
 		AnyBooster = true;
 	}
