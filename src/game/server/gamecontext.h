@@ -1047,6 +1047,8 @@ private:
 	static void ConMainMap(IConsole::IResult *pResult, void *pUserData);
 	bool RandomMapVote();
 
+	static void ConRandomPlayerSpread(IConsole::IResult *pResult, void *pUserData);
+
 public:
 	void SendCommandInfo(int ClientId, const char *pName, const char *pParams, const char *pHelp) const;
 	void SendCommandInfoRemove(int ClientId, const char *pName) const;

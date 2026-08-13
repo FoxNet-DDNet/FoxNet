@@ -1738,6 +1738,34 @@ void CGameContext::ConMainMap(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->SendToMap(MainMapIdx);
 }
 
+void CGameContext::ConRandomPlayerSpread(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int Victim = pResult->NumArguments() ? pResult->GetVictim() : pResult->m_ClientId;
+
+	if(!CheckClientId(Victim))
+		return;
+
+	CCharacter *pChr = pSelf->GetPlayerChar(Victim);
+	if(!pChr)
+		return;
+
+	std::optional<vec2> RandomPos = pSelf->m_PowerUps.GetRandomAccessiblePos();
+	
+	constexpr int MaxTries = 8;
+	int Tries = 0;
+	while (Tries < MaxTries && !RandomPos.has_value())
+	{
+		RandomPos = pSelf->m_PowerUps.GetRandomAccessiblePos();
+		Tries++;
+	}
+
+	if(!RandomPos.has_value())
+		return;
+
+	pChr->ForceSetPos(RandomPos.value());
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
 	// MultiMaps
@@ -1872,6 +1900,9 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Register("powerups", "", CFGFLAG_CHAT, ConPowerups, this, "Hide/show powerups");
 	Console()->Register("cosmetics", "", CFGFLAG_CHAT, ConCosmetics, this, "Hide/show all cosmetics");
+
+	// Misc
+	Console()->Register("random_pos", "?v[id]", CFGFLAG_SERVER, ConRandomPlayerSpread, this, "Set player' (id) position to a random one");
 
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
