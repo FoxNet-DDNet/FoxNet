@@ -442,6 +442,7 @@ void CHideAndSeekZone::OnPlayerLeave(int ClientId)
 
 		pChr->GiveWeapon(WEAPON_HAMMER);
 		pChr->GiveWeapon(WEAPON_GUN);
+		pChr->SetActiveWeapon(WEAPON_HAMMER);
 	}
 
 	SetForcedSolo(ClientId, false);
@@ -516,6 +517,7 @@ void CHideAndSeekZone::StartGame()
 		pChr->SetSolo(false);
 		pChr->GiveWeapon(WEAPON_GUN);
 		pChr->GiveWeapon(WEAPON_HAMMER);
+		pChr->SetActiveWeapon(WEAPON_HAMMER);
 	}
 
 	const int NumCandidates = (int)m_vCandidateIds.size();
@@ -819,6 +821,7 @@ void CHideAndSeekZone::ReleaseHold(int ClientId)
 
 	pChr->GiveWeapon(WEAPON_HAMMER);
 	pChr->GiveWeapon(WEAPON_GUN);
+	pChr->SetActiveWeapon(WEAPON_HAMMER);
 }
 
 void CHideAndSeekZone::ReleasePlayers()
