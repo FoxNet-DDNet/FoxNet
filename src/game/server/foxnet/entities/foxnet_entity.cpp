@@ -61,14 +61,19 @@ bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlaye
 	if(!pSnapPlayer)
 		return false;
 
-	if(!TeamMask().test(SnappingClient))
+	// Resolved once. Both of these reach the owner through a virtual ClientSlotEmpty, and this runs
+	// for every cosmetic times every viewer, so asking over and over is what showed up in the profile.
+	CCharacter *pOwnerChar = GetCharacter();
+
+	if(!(pOwnerChar ? pOwnerChar->TeamMask() : CClientMask().set()).test(SnappingClient))
 		return false;
 
-	if(pSnapPlayer->GetCharacter() && GetCharacter())
-		if(!GetCharacter()->CanSnapCharacter(SnappingClient))
+	if(pSnapPlayer->GetCharacter() && pOwnerChar)
+		if(!pOwnerChar->CanSnapCharacter(SnappingClient))
 			return false;
 
-	if(GetPlayer()->m_Vanish && SnappingClient != GetPlayer()->GetCid() && SnappingClient != -1)
+	CPlayer *pOwner = GetPlayer();
+	if(pOwner && pOwner->m_Vanish && SnappingClient != pOwner->GetCid() && SnappingClient != -1)
 		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return false;
 
@@ -80,10 +85,11 @@ bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlaye
 
 bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 {
-	if(!GetCharacter())
+	const CCharacter *pOwnerChar = GetCharacter();
+	if(!pOwnerChar)
 		return false;
 
-	if(GetCharacter()->IsPaused())
+	if(pOwnerChar->IsPaused())
 		return false;
 
 	return CanSnapEntityNoChar(SnappingClient, ppSnapPlayer);
