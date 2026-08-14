@@ -1225,15 +1225,15 @@ void CPowerUps::SetData(CPowerUp &Powerup)
 	switch(Powerup.m_Data.m_Type)
 	{
 	case EPowerUp::XP:
-		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 5, 35, 0.3);
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 5, 50, 0.15);
 		Powerup.m_Lifetime = MinLifetime + Powerup.m_Data.m_Value * 15;
 		break;
 	case EPowerUp::MONEY:
-		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 3, 20, 0.3) * 25;
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 3, 50, 0.19) * 25;
 		Powerup.m_Lifetime = MinLifetime + Powerup.m_Data.m_Value * 0.45f;
 		break;
 	case EPowerUp::BOOST:
-		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 25, 0.3);
+		Powerup.m_Data.m_Value = GameServer()->RandGeometric(Rng(), 10, 30, 0.22);
 		Powerup.m_Lifetime = MinLifetime;
 		Powerup.m_MaxCollections = 1;
 		break;
