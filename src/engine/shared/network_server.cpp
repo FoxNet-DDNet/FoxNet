@@ -678,7 +678,11 @@ int CNetServer::Recv(CNetChunk *pChunk, SECURITY_TOKEN *pResponseToken, int *pNu
 						OnConnCtrlMsg(Addr, Slot, m_RecvBuffer.m_aChunkData[0], m_RecvBuffer);
 					}
 
-					if(m_aSlots[Slot].m_Connection.Feed(&m_RecvBuffer, &Addr, Token, *pResponseToken))
+					// The slot was online when GetClientSlot picked it, but a rejoin control message
+					// re-enters the server above: it resends the map and runs the antibot join hooks,
+					// any of which can drop the client. Feeding an offline connection asserts.
+					if(m_aSlots[Slot].m_Connection.State() != CNetConnection::EState::OFFLINE &&
+						m_aSlots[Slot].m_Connection.Feed(&m_RecvBuffer, &Addr, Token, *pResponseToken))
 					{
 						if(!Control &&
 							m_RecvBuffer.m_DataSize > 0 &&
