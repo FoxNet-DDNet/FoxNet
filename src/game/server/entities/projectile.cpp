@@ -169,7 +169,7 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()), m_TeamMask);
+				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()), MultiMapIdx(), m_TeamMask);
 				GameServer()->CreateSound(ColPos, m_SoundImpact, m_TeamMask);
 			}
 		}
@@ -261,7 +261,7 @@ void CProjectile::Tick()
 	{
 		if(m_Explosive)
 		{
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()), m_TeamMask);
+			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()), MultiMapIdx(), m_TeamMask);
 			GameServer()->CreateSound(ColPos, m_SoundImpact, m_TeamMask);
 		}
 		m_MarkedForDestroy = true;

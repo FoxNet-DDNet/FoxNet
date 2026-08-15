@@ -1355,9 +1355,9 @@ void CGameContext::OnTick()
 
 	m_pController->Tick();
 
-	for(CPlayer *pPlayer : m_apPlayers)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(pPlayer)
+		if(m_apPlayers[i])
 		{
 			// By supporting 128 players with full backwards compatibility (in +spectate menu too), it's basically impossible and
 			// really unnecessary to have old 16 player clients supported
@@ -1368,9 +1368,6 @@ void CGameContext::OnTick()
 				Server()->Kick(i, "Old Teeworlds 0.6 versions are unsupported. Use DDNet client or Teeworlds 0.7");
 				continue;
 			}
-
-			// send vote options
-			ProgressVoteOptions(i);
 
 			m_apPlayers[i]->Tick();
 			m_apPlayers[i]->PostTick();
