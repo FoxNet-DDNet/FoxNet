@@ -58,7 +58,7 @@ private:
 	std::vector<CMapItemLayerQuads *> m_vQuadLayers;
 	// FoxNet>
 
-	void InitTilemapSkip(bool GameOnly);
+	void InitTilemapSkip();
 };
 
 #endif

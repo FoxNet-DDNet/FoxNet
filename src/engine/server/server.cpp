@@ -1168,6 +1168,10 @@ void CServer::DoSnapshot()
 		if(m_aClients[i].m_State != CClient::STATE_INGAME)
 			continue;
 
+		// don't send snapshots to clients that haven't identified as DDNet-based yet, can crash them.
+		if(!m_aClients[i].m_Sixup && m_aClients[i].m_DDNetVersion < VERSION_DDNET_OLD)
+			continue;
+
 		// this client is trying to recover, don't spam snapshots
 		if(m_aClients[i].m_SnapRate == CClient::SNAPRATE_RECOVER && (Tick() % TickSpeed()) != 0)
 			continue;
@@ -3869,11 +3873,11 @@ void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 	{
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "Kicked (%s)", pResult->GetString(1));
-		((CServer *)pUser)->Kick(pResult->GetInteger(0), aBuf);
+		((CServer *)pUser)->Kick(pResult->GetVictim(), aBuf);
 	}
 	else
 	{
-		((CServer *)pUser)->Kick(pResult->GetInteger(0), "Kicked by console");
+		((CServer *)pUser)->Kick(pResult->GetVictim(), "Kicked by console");
 	}
 }
 
@@ -4765,7 +4769,7 @@ void CServer::RegisterCommands()
 	m_pAntibot = Kernel()->RequestInterface<IEngineAntibot>();
 
 	// register console commands
-	Console()->Register("kick", "i[id] ?r[reason]", CFGFLAG_SERVER, ConKick, this, "Kick player with specified id for any reason");
+	Console()->Register("kick", "v[id] ?r[reason]", CFGFLAG_SERVER, ConKick, this, "Kick player with specified id for any reason");
 	Console()->Register("status", "?r[name]", CFGFLAG_SERVER, ConStatus, this, "List players containing name or all players");
 	Console()->Register("shutdown", "?r[reason]", CFGFLAG_SERVER, ConShutdown, this, "Shut down");
 	Console()->Register("logout", "", CFGFLAG_SERVER, ConLogout, this, "Logout of rcon");
