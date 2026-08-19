@@ -49,6 +49,11 @@ ANTIBOBAPI void AntibobRcon(const char *pLine);
 ANTIBOBAPI bool AntibobMapSize(int ClientId, int *pWidth, int *pHeight);
 ANTIBOBAPI bool AntibobTile(int ClientId, int TileX, int TileY, CAntibobTileData *pData);
 ANTIBOBAPI unsigned int AntibobPlayerFlags(int ClientId);
+// Not covered by AntibobVersion on purpose. The version check is an equality test, so
+// bumping it would make an older module lose tiles and player flags entirely rather than
+// just this. These resolve to null on an older server and the port is simply omitted.
+ANTIBOBAPI int AntibobServerPort();
+ANTIBOBAPI void AntibobServerInstance(char *pBuf, int BufSize);
 }
 
 #endif

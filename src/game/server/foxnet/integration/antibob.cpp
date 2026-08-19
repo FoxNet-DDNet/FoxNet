@@ -1,6 +1,9 @@
 #include "antibob.h"
 
 #include <base/log.h>
+#include <base/system.h>
+
+#include <engine/shared/config.h>
 
 #include <engine/console.h>
 
@@ -120,5 +123,20 @@ unsigned int AntibobPlayerFlags(int ClientId)
 	if(pCharacter->m_Ufo.Active() || pCharacter->m_InSnake)
 		Flags |= ANTIBOB_PLAYERFLAG_FROZEN;
 	return Flags;
+}
+
+int AntibobServerPort()
+{
+	if(!g_AntibobContext.m_pGameServer)
+		return 0;
+	return g_AntibobContext.m_pGameServer->Server()->Port();
+}
+
+void AntibobServerInstance(char *pBuf, int BufSize)
+{
+	if(!pBuf || BufSize <= 0)
+		return;
+	// Raw name, the module decides how to join it onto a title.
+	str_copy(pBuf, g_Config.m_SvAccountsInstance, BufSize);
 }
 }
