@@ -252,6 +252,18 @@ void CHideAndSeekZone::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoO
 	}
 }
 
+inline static void SetLoadout(CCharacter *pChr, bool Remove)
+{
+	constexpr int None = WEAPON_NONE;
+	constexpr int Hammer = WEAPON_HAMMER;
+	constexpr int Gun = WEAPON_GUN;
+	pChr->GiveWeapon(Hammer, Remove);
+	pChr->GiveWeapon(Gun, Remove);
+
+	// enumerated mismatch in conditional expression
+	pChr->SetActiveWeapon(Remove ? None : Hammer);
+}
+
 void CHideAndSeekZone::ClientTick(int ClientId)
 {
 	const int MapIdx = (int)MultiMapIndex();
@@ -265,8 +277,19 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	if(!pChr->IsAlive())
 		return;
 
+	const int HookedPlayer = pChr->Core()->HookedPlayer();
+	const bool InArea = IsInArea(ClientId);
+
+
+	if(HookedPlayer != -1)
+	{
+		const bool HookedPlayerInArea = IsInArea(HookedPlayer);
+		if((InArea && !HookedPlayerInArea) || (!InArea && HookedPlayerInArea))
+			pChr->ReleaseHook();
+	}
+
 	// Nothing below here may touch players that arent inside the area, CZoneManager owns that decision
-	if(!IsInArea(ClientId))
+	if(!InArea)
 		return;
 
 	CClientData &Data = m_aClientData[ClientId];
@@ -300,9 +323,7 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 	{
 		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_HAMMER))
 		{
-			pChr->GiveWeapon(WEAPON_HAMMER, true);
-			pChr->GiveWeapon(WEAPON_GUN, true);
-			pChr->SetActiveWeapon(WEAPON_NONE);
+			SetLoadout(pChr, true);
 		}
 	}
 
@@ -439,10 +460,7 @@ void CHideAndSeekZone::OnPlayerLeave(int ClientId)
 	if(pChr)
 	{
 		pChr->SetTuneOverride(-1);
-
-		pChr->GiveWeapon(WEAPON_HAMMER);
-		pChr->GiveWeapon(WEAPON_GUN);
-		pChr->SetActiveWeapon(WEAPON_HAMMER);
+		SetLoadout(pChr, false);
 	}
 
 	SetForcedSolo(ClientId, false);
@@ -515,9 +533,8 @@ void CHideAndSeekZone::StartGame()
 		pChr->GetPlayer()->Pause(CPlayer::PAUSE_NONE, true);
 		SetForcedSolo(ClientId, false);
 		pChr->SetSolo(false);
-		pChr->GiveWeapon(WEAPON_GUN);
-		pChr->GiveWeapon(WEAPON_HAMMER);
-		pChr->SetActiveWeapon(WEAPON_HAMMER);
+
+		SetLoadout(pChr, false);
 	}
 
 	const int NumCandidates = (int)m_vCandidateIds.size();
@@ -666,6 +683,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 		{
 			pChr->SetTuneOverride(-1);
 			pChr->Unfreeze();
+			SetLoadout(pChr, false);
 		}
 		SetForcedSolo(ClientId, false);
 		pPlayer->ClearBroadcast();
@@ -801,6 +819,7 @@ void CHideAndSeekZone::HoldPlayers()
 		pChr->ResetHook();
 		pChr->SetVelocity(vec2(0, 0));
 		pChr->SetTuneOverride(m_FrozenTuneZone);
+		SetLoadout(pChr, true);
 	}
 }
 
@@ -819,9 +838,7 @@ void CHideAndSeekZone::ReleaseHold(int ClientId)
 	pChr->Unfreeze();
 	pChr->SetTuneOverride(-1);
 
-	pChr->GiveWeapon(WEAPON_HAMMER);
-	pChr->GiveWeapon(WEAPON_GUN);
-	pChr->SetActiveWeapon(WEAPON_HAMMER);
+	SetLoadout(pChr, false);
 }
 
 void CHideAndSeekZone::ReleasePlayers()
@@ -1055,7 +1072,7 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 
 	if(!InArea)
 	{
-		if(ClientId != SnappingClient)
+		if(ClientId != SnappingClient && IsCandidate(SnappingClient))
 			*pTeam = (int)TEAM_SPECTATORS;
 		return;
 	}
