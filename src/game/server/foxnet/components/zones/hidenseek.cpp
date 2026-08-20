@@ -646,7 +646,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 		else
 		{
 			if(NumSeekers != 1)
-				pPlayer->SendChat("The Seeker won the game!");
+				pPlayer->SendChat("The Seekers won the game!");
 			else
 				pPlayer->SendChatFmt("'%s' won the game!", aSeekerName);
 
