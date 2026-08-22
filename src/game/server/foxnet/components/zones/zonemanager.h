@@ -80,6 +80,7 @@ public:
 	void OnMapLoad(size_t MapIdx) override;
 	void OnMapUnload(size_t MapIdx) override;
 	void OnTick() override;
+	void OnPostTick() override;
 
 	void OnSnap(int SnappingClient, bool GlobalSnap, bool RecordingDemo) override;
 	void OnConsoleInit() override;

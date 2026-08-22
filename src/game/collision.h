@@ -51,18 +51,18 @@ public:
 	void Unload();
 	void FillAntibot(CAntibotMapData *pMapData) const;
 
-	bool CheckPoint(float x, float y, const CColQuadData **ppHitQuad = nullptr) const { return IsSolid(round_to_int(x), round_to_int(y), ppHitQuad); }
-	bool CheckPoint(vec2 Pos, const CColQuadData **ppHitQuad = nullptr) const { return CheckPoint(Pos.x, Pos.y, ppHitQuad); }
+	bool CheckPoint(float x, float y, int *pOutQuadId = nullptr) const { return IsSolid(round_to_int(x), round_to_int(y), pOutQuadId); }
+	bool CheckPoint(vec2 Pos, int *pOutQuadId = nullptr) const { return CheckPoint(Pos.x, Pos.y, pOutQuadId); }
 	int GetCollisionAt(float x, float y) const { return GetTile(round_to_int(x), round_to_int(y)); }
 	int GetWidth() const { return m_Width; }
 	int GetHeight() const { return m_Height; }
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
-	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CColQuadData **ppOutQuad = nullptr) const;
-	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, const CColQuadData **ppOutQuad = nullptr) const;
+	int IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, int *pOutQuadId = nullptr) const;
+	int IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr = nullptr, int *pOutQuadId = nullptr) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
 	bool MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elasticity, bool *pGrounded = nullptr) const;
-	bool TestBox(vec2 Pos, vec2 Size, const CColQuadData **ppHitQuad = nullptr) const;
-	bool IsOnGround(vec2 Pos, float Size, const CColQuadData **ppHitQuad = nullptr) const;
+	bool TestBox(vec2 Pos, vec2 Size, int *pOutQuadId = nullptr) const;
+	bool IsOnGround(vec2 Pos, float Size, int *pOutQuadId = nullptr) const;
 
 	// DDRace
 	void SetCollisionAt(float x, float y, int Index);
@@ -107,7 +107,7 @@ public:
 	int GetSwitchNumber(int Index) const;
 	int GetSwitchDelay(int Index) const;
 
-	int IsSolid(int x, int y, const CColQuadData **ppHitQuad = nullptr) const;
+	int IsSolid(int x, int y, int *pOutQuadId = nullptr) const;
 	bool IsThrough(int x, int y, int OffsetX, int OffsetY, vec2 Pos0, vec2 Pos1) const;
 	bool IsHookBlocker(int x, int y, vec2 Pos0, vec2 Pos1) const;
 	int IsWallJump(int Index) const;
@@ -181,18 +181,33 @@ private:
 	bool m_HasSolidQuads = false;
 	bool m_UseMovingTiles = false;
 	std::vector<int> m_vAnimatedQuadIndices;
-	std::vector<CColQuadData> m_vPrevQuads;
 	std::vector<CColQuadData> m_vQuads;
 	void UnloadQuads();
+
+	static constexpr int ms_QuadGridMaxCells = 1 << 16;
+	static constexpr float ms_QuadGridMinCellSize = 128.0f;
+	vec2 m_QuadsAabbMin = vec2(0.0f, 0.0f);
+	vec2 m_QuadsAabbMax = vec2(0.0f, 0.0f);
+	float m_QuadGridCellSize = ms_QuadGridMinCellSize;
+	int m_QuadGridWidth = 0;
+	int m_QuadGridHeight = 0;
+	std::vector<int> m_vQuadGridStart; // start offset into m_vQuadGridIndices per cell, plus a final end
+	std::vector<int> m_vQuadGridIndices;
+	std::vector<int> m_vQuadGridFill; // scratch for the rebuild, kept to kill a per tick allocation
+	bool m_QuadGridValid = false;
+	void RebuildQuadGrid();
 
 public:
 	const std::vector<CColQuadData> &Quads() const { return m_vQuads; }
 
+	const CColQuadData *Quad(int QuadId) const;
+	int GetQuadIdAt(vec2 Pos) const;
+
+	int GetGroundQuadIdAt(vec2 Pos, float Size) const;
+
 	void AddQuad(CQuadData &QuadData, int TileIndex);
 	void UpdateQuads(bool UseMovingTiles, double Time);
-	CColQuadData *GetQuadAt(vec2 Pos) const;
-	bool GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const;
-	const CQuadData *ResolveCurrentQuad(const CQuadData *pQuad) const;
+	bool GetQuadBounceDir(int QuadId, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const;
 	// FoxNet>
 };
 

@@ -30,7 +30,7 @@ class CMeteor : public CEntityOwned
 	EState m_State;
 
 	vec2 m_TargetPos; // Cursor Position of the Client
-	const CQuadData *m_pTargetQuad = nullptr;
+	int m_TargetQuadId = -1;
 	vec2 m_SummonPos; // Somewhere above the Target Pos with x Offset as well
 
 	vec2 m_CurrentPos;

@@ -347,8 +347,8 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 		int ix = round_to_int(Pos.x);
 		int iy = round_to_int(Pos.y);
 
-		const CColQuadData *pHitQuad = nullptr;
-		if(CheckPoint(ix, iy, &pHitQuad))
+		int HitQuadId = -1;
+		if(CheckPoint(ix, iy, &HitQuadId))
 		{
 			if(pOutCollision)
 				*pOutCollision = Pos;
@@ -356,7 +356,7 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 				*pOutBeforeCollision = Last;
 
 			int Tile = GetCollisionAt(ix, iy);
-			if(pHitQuad)
+			if(const CColQuadData *pHitQuad = Quad(HitQuadId))
 				Tile = pHitQuad->m_TileIndex;
 			return Tile;
 		}
@@ -370,10 +370,10 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 	return 0;
 }
 
-int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, const CColQuadData **ppOutQuad) const
+int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, int *pOutQuadId) const
 {
-	if(ppOutQuad)
-		*ppOutQuad = nullptr;
+	if(pOutQuadId)
+		*pOutQuadId = -1;
 
 	float Distance = distance(Pos0, Pos1);
 	int End(Distance + 1);
@@ -406,17 +406,17 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 		}
 
 		int Hit = 0;
-		const CColQuadData *pHitQuad = nullptr;
-		if(CheckPoint(ix, iy, &pHitQuad))
+		int HitQuadId = -1;
+		if(CheckPoint(ix, iy, &HitQuadId))
 		{
 			if(!IsThrough(ix, iy, dx, dy, Pos0, Pos1))
 			{
 				Hit = GetCollisionAt(ix, iy);
 
-				if(pHitQuad)
+				if(const CColQuadData *pHitQuad = Quad(HitQuadId))
 				{
-					if(ppOutQuad)
-						*ppOutQuad = pHitQuad;
+					if(pOutQuadId)
+						*pOutQuadId = HitQuadId;
 					Hit = pHitQuad->m_TileIndex;
 				}
 			}
@@ -443,10 +443,10 @@ int CCollision::IntersectLineTeleHook(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision,
 	return 0;
 }
 
-int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, const CColQuadData **ppOutQuad) const
+int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int *pTeleNr, int *pOutQuadId) const
 {
-	if(ppOutQuad)
-		*ppOutQuad = nullptr;
+	if(pOutQuadId)
+		*pOutQuadId = -1;
 
 	float Distance = distance(Pos0, Pos1);
 	int End(Distance + 1);
@@ -476,18 +476,18 @@ int CCollision::IntersectLineTeleWeapon(vec2 Pos0, vec2 Pos1, vec2 *pOutCollisio
 			return TILE_TELEINWEAPON;
 		}
 
-		const CColQuadData *pHitQuad = nullptr;
-		if(CheckPoint(ix, iy, &pHitQuad))
+		int HitQuadId = -1;
+		if(CheckPoint(ix, iy, &HitQuadId))
 		{
 			if(pOutCollision)
 				*pOutCollision = Pos;
 			if(pOutBeforeCollision)
 				*pOutBeforeCollision = Last;
 
-			if(pHitQuad)
+			if(const CColQuadData *pHitQuad = Quad(HitQuadId))
 			{
-				if(ppOutQuad)
-					*ppOutQuad = pHitQuad;
+				if(pOutQuadId)
+					*pOutQuadId = HitQuadId;
 				return pHitQuad->m_TileIndex;
 			}
 
@@ -542,26 +542,36 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 	}
 }
 
-bool CCollision::TestBox(vec2 Pos, vec2 Size, const CColQuadData **ppHitQuad) const
+bool CCollision::TestBox(vec2 Pos, vec2 Size, int *pOutQuadId) const
 {
 	Size *= 0.5f;
-	if(CheckPoint(Pos.x - Size.x, Pos.y - Size.y, ppHitQuad))
+	if(CheckPoint(Pos.x - Size.x, Pos.y - Size.y, pOutQuadId))
 		return true;
-	if(CheckPoint(Pos.x + Size.x, Pos.y - Size.y, ppHitQuad))
+	if(CheckPoint(Pos.x + Size.x, Pos.y - Size.y, pOutQuadId))
 		return true;
-	if(CheckPoint(Pos.x - Size.x, Pos.y + Size.y, ppHitQuad))
+	if(CheckPoint(Pos.x - Size.x, Pos.y + Size.y, pOutQuadId))
 		return true;
-	if(CheckPoint(Pos.x + Size.x, Pos.y + Size.y, ppHitQuad))
+	if(CheckPoint(Pos.x + Size.x, Pos.y + Size.y, pOutQuadId))
 		return true;
 	return false;
 }
 
-bool CCollision::IsOnGround(vec2 Pos, float Size, const CColQuadData **ppHitQuad) const
+bool CCollision::IsOnGround(vec2 Pos, float Size, int *pOutQuadId) const
 {
-	if(CheckPoint(Pos.x + Size / 2, Pos.y + Size / 2 + 5, ppHitQuad))
+	if(CheckPoint(Pos.x + Size / 2, Pos.y + Size / 2 + 5, pOutQuadId))
 		return true;
-	if(CheckPoint(Pos.x - Size / 2, Pos.y + Size / 2 + 5, ppHitQuad))
+	if(CheckPoint(Pos.x - Size / 2, Pos.y + Size / 2 + 5, pOutQuadId))
 		return true;
+
+	// <FoxNet
+	const int QuadId = GetGroundQuadIdAt(Pos, Size);
+	if(QuadId >= 0)
+	{
+		if(pOutQuadId)
+			*pOutQuadId = QuadId;
+		return true;
+	}
+	// FoxNet>
 
 	return false;
 }
@@ -577,51 +587,79 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 
 	bool ReturnValue = false;
 
-	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, const CColQuadData **ppHitQuad) -> vec2 {
+	/*
+	 * Where the ground under the feet has moved to since the last tick. The contact point is
+	 * taken into the quad's own frame and read back out of the new one, the way the hook
+	 * anchors itself in CCharacterCore::Tick, so a quad that turns carries what stands on it
+	 * and the pivot never has to stand in for the surface.
+	 */
+	auto QuadStepDeltaAt = [&](vec2 Probe, float StepFraction, int *pOutQuadId) -> vec2 {
 		vec2 Delta = vec2(0, 0);
 		if(!m_UseMovingTiles)
 			return Delta;
 		if(!m_HasSolidQuads)
 			return Delta;
-		if(m_vQuads.empty() || m_vPrevQuads.size() != m_vQuads.size())
+		if(m_vQuads.empty())
 			return Delta;
 
-		vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.55f);
-		CColQuadData *pQuad = GetQuadAt(FeetPos + vec2(Size.y * 0.5f, 0));
-		if(!pQuad)
-		{
-			pQuad = GetQuadAt(FeetPos - vec2(Size.y * 0.5f, 0));
-			if(!pQuad)
-				return Delta;
-		}
-
-		if(ppHitQuad)
-			*ppHitQuad = pQuad;
-
-		const CColQuadData *pBase = m_vQuads.data();
-		if(pQuad - pBase < 0 || (size_t)(pQuad - pBase) >= m_vQuads.size())
+		/*
+		 * The very question grounding and towing ask, see GetGroundQuadIdAt. Two probes that
+		 * disagree about whether a quad is underfoot are two different ticks for the ride to end
+		 * on, and on any tick where they part company the handover fires while this is still
+		 * carrying by position -- so the character leaves with the quad's step and its whole
+		 * speed at once, at about twice the quad's own. Which tick that is comes down to sub
+		 * unit positions, so the server picks one and the client picks another.
+		 */
+		const int QuadId = GetGroundQuadIdAt(Probe, Size.x);
+		if(QuadId < 0)
 			return Delta;
-		const size_t Idx = pQuad - pBase;
 
-		const vec2 CurCenter = vec2(round_to_int(m_vQuads[Idx].m_aPoints[4].x), round_to_int(m_vQuads[Idx].m_aPoints[4].y));
-		const vec2 PrevCenter = vec2(round_to_int(m_vPrevQuads[Idx].m_aPoints[4].x), round_to_int(m_vPrevQuads[Idx].m_aPoints[4].y));
+		if(pOutQuadId)
+			*pOutQuadId = QuadId;
+
+		// where the feet actually rest, which is what the carry below follows through the quad's
+		// own frame -- the probe above only decides whether there is a quad to follow
+		const vec2 FeetPos = vec2(Probe.x, Probe.y + Size.y * 0.55f);
+
+		const CColQuadData *pCurQuad = Quad(QuadId);
+		if(!pCurQuad)
+			return Delta;
+
+		const vec2 CurPivot = pCurQuad->m_aPoints[4];
+		const vec2 PrevPivot = pCurQuad->m_PrevPivot;
 
 		// Keep this only for left/right motion while standing on top.
-		if(distance(CurCenter, PrevCenter) > 32.0f)
+		if(distance(CurPivot, PrevPivot) > 32.0f)
 			return Delta;
-		if(absolute(CurCenter.y - PrevCenter.y) > 1.0f)
+		if(absolute(CurPivot.y - PrevPivot.y) > 1.0f)
 			return Delta;
 
-		Delta.x += (CurCenter.x - PrevCenter.x) * StepFraction;
+		/*
+		 * The two pivots are what gets rounded, not the contact points either side of them.
+		 * Quantize rounds the character's position to whole units at the end of every tick, so
+		 * the carry has to come out whole or it is thrown away as fast as it is applied. Which
+		 * pair is rounded decides whether that still averages out. The pivot walks on from tick
+		 * to tick, so rounding it reads zero until the quad crosses a unit and one as it does,
+		 * which over time is the quad's speed exactly. Rounding either side of the contact point
+		 * instead pins both ends to the character, which never drifts, so the same answer comes
+		 * back every tick and a slow quad carries a whole unit per tick or nothing at all.
+		 */
+		const vec2 RoundedCurPivot = vec2(round_to_int(CurPivot.x), round_to_int(CurPivot.y));
+		const vec2 RoundedPrevPivot = vec2(round_to_int(PrevPivot.x), round_to_int(PrevPivot.y));
+
+		const vec2 LocalContact = RotateVec(FeetPos - RoundedPrevPivot, -pCurQuad->m_PrevAngle);
+		const vec2 MovedContact = RoundedCurPivot + RotateVec(LocalContact, pCurQuad->m_Angle);
+
+		Delta.x += (MovedContact.x - FeetPos.x) * StepFraction;
 		return Delta;
 	};
 
-	const CColQuadData *HitQuad = nullptr;
+	int HitQuadId = -1;
 
 	// If we are not moving ourselves but are on a moving quad, we still want to be pushed along.
 	// Peek full-frame quad displacement to decide whether to run at least one step.
-	const vec2 FullQuadDelta = QuadStepDeltaAt(Pos, 1.0f, &HitQuad);
-	if(HitQuad)
+	const vec2 FullQuadDelta = QuadStepDeltaAt(Pos, 1.0f, &HitQuadId);
+	if(HitQuadId >= 0)
 		ReturnValue = true;
 
 	if(Distance > 0.00001f || FullQuadDelta != vec2(0, 0))
@@ -635,8 +673,8 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			if(Vel == vec2(0, 0) && FullQuadDelta == vec2(0, 0))
 				break;
 
-			const vec2 QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuad);
-			if(HitQuad)
+			const vec2 QuadDelta = QuadStepDeltaAt(Pos, Fraction, &HitQuadId);
+			if(HitQuadId >= 0)
 				ReturnValue = true;
 			vec2 NewPos = Pos + Vel * Fraction;
 			NewPos += QuadDelta;
@@ -644,25 +682,25 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 			if(NewPos == Pos)
 				break;
 
-			if(TestBox(vec2(NewPos.x, NewPos.y), Size, &HitQuad))
+			if(TestBox(vec2(NewPos.x, NewPos.y), Size, &HitQuadId))
 			{
-				if(HitQuad)
+				if(HitQuadId >= 0)
 					ReturnValue = true;
 				int Hits = 0;
-				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuad))
+				if(TestBox(vec2(Pos.x, NewPos.y), Size, &HitQuadId))
 				{
-					if(HitQuad)
+					if(HitQuadId >= 0)
 						ReturnValue = true;
-					if(pGrounded && (ElasticityY > 0 || HitQuad) && Vel.y > 0)
+					if(pGrounded && (ElasticityY > 0 || HitQuadId >= 0) && Vel.y > 0)
 						*pGrounded = true;
 					NewPos.y = Pos.y;
 					Vel.y *= -ElasticityY;
 					Hits++;
 				}
 
-				if(TestBox(vec2(NewPos.x, Pos.y), Size, &HitQuad))
+				if(TestBox(vec2(NewPos.x, Pos.y), Size, &HitQuadId))
 				{
-					if(HitQuad)
+					if(HitQuadId >= 0)
 						ReturnValue = true;
 					NewPos.x = Pos.x;
 					Vel.x *= -ElasticityX;
@@ -673,7 +711,7 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 				// this is a real _corner case_!
 				if(Hits == 0)
 				{
-					if(pGrounded && (ElasticityY > 0 || HitQuad) && Vel.y > 0)
+					if(pGrounded && (ElasticityY > 0 || HitQuadId >= 0) && Vel.y > 0)
 						*pGrounded = true;
 					NewPos.y = Pos.y;
 					Vel.y *= -ElasticityY;
@@ -693,17 +731,19 @@ bool CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, vec2 Elast
 }
 
 // DDRace
-int CCollision::IsSolid(int x, int y, const CColQuadData **ppHitQuad) const
+int CCollision::IsSolid(int x, int y, int *pOutQuadId) const
 {
-	if(ppHitQuad)
-		*ppHitQuad = nullptr;
+	if(pOutQuadId)
+		*pOutQuadId = -1;
+	// GetQuadIdAt answers -1 while the feature is off, so the quads stop colliding with it
+	// rather than being stranded wherever they last stopped
 	if(m_HasSolidQuads)
 	{
-		const CColQuadData *pQuad = GetQuadAt(vec2((float)x, (float)y));
-		if(pQuad)
+		const int QuadId = GetQuadIdAt(vec2((float)x, (float)y));
+		if(const CColQuadData *pQuad = Quad(QuadId))
 		{
-			if(ppHitQuad)
-				*ppHitQuad = pQuad;
+			if(pOutQuadId)
+				*pOutQuadId = QuadId;
 			if(pQuad->m_TileIndex == TILE_SOLID || pQuad->m_TileIndex == TILE_NOHOOK)
 				return pQuad->m_TileIndex;
 
@@ -1417,8 +1457,13 @@ void CCollision::UnloadQuads()
 {
 	m_vQuads.clear();
 	m_vAnimatedQuadIndices.clear();
-	m_vPrevQuads.clear();
 	m_HasSolidQuads = false;
+	m_vQuadGridStart.clear();
+	m_vQuadGridIndices.clear();
+	m_vQuadGridFill.clear();
+	m_QuadGridWidth = 0;
+	m_QuadGridHeight = 0;
+	m_QuadGridValid = false;
 }
 
 void CCollision::AddQuad(CQuadData &QuadData, int TileIndex)
@@ -1432,6 +1477,7 @@ void CCollision::AddQuad(CQuadData &QuadData, int TileIndex)
 		m_vAnimatedQuadIndices.push_back((int)m_vQuads.size() - 1);
 
 	m_HasSolidQuads = true;
+	m_QuadGridValid = false;
 }
 
 void CCollision::UpdateQuads(bool UseMovingTiles, double Time)
@@ -1440,40 +1486,179 @@ void CCollision::UpdateQuads(bool UseMovingTiles, double Time)
 	if(!m_UseMovingTiles)
 		return;
 
-	if(m_vAnimatedQuadIndices.empty())
+	if(m_vQuads.empty())
 		return;
 
-	if(m_vPrevQuads.size() != m_vQuads.size())
-		m_vPrevQuads = m_vQuads;
-
-	std::swap(m_vPrevQuads, m_vQuads);
-
-	for(int QuadIndex : m_vAnimatedQuadIndices)
+	if(!m_vAnimatedQuadIndices.empty())
 	{
-		CColQuadData &QuadData = m_vQuads[QuadIndex];
+		// Updated in place: UpdatePositionEnvelope takes the pivot and the angle it is about
+		// to replace into m_PrevPivot and m_PrevAngle first, which is everything anything
+		// needs of the previous tick
+		for(int QuadIndex : m_vAnimatedQuadIndices)
+		{
+			CColQuadData &QuadData = m_vQuads[QuadIndex];
 
-		QuadData.UpdatePositionEnvelope(Time, Layers()->Map());
+			QuadData.UpdatePositionEnvelope(Time, Layers()->Map());
 
-		QuadData.UpdateAabb();
+			QuadData.UpdateAabb();
+		}
+
+		m_QuadGridValid = false;
 	}
+
+	if(!m_QuadGridValid)
+		RebuildQuadGrid();
 }
 
-CColQuadData *CCollision::GetQuadAt(vec2 Pos) const
+const CColQuadData *CCollision::Quad(int QuadId) const
 {
-	for(const CColQuadData &Quad : m_vQuads)
-	{
-		if(!Quad.AabbContains(Pos))
-			continue;
-
-		const vec2 aPoints[4] = {Quad.m_aPoints[0], Quad.m_aPoints[1], Quad.m_aPoints[2], Quad.m_aPoints[3]};
-		if(InsideQuadrilateral(Pos, aPoints))
-			return const_cast<CColQuadData *>(&Quad);
-	}
-	return nullptr;
+	if(!m_UseMovingTiles || QuadId < 0 || (size_t)QuadId >= m_vQuads.size())
+		return nullptr;
+	return &m_vQuads[QuadId];
 }
 
-bool CCollision::GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const
+void CCollision::RebuildQuadGrid()
 {
+	m_QuadGridValid = false;
+	m_vQuadGridStart.clear();
+	m_vQuadGridIndices.clear();
+	m_QuadGridWidth = 0;
+	m_QuadGridHeight = 0;
+
+	if(m_vQuads.empty())
+		return;
+
+	m_QuadsAabbMin = m_vQuads[0].m_AabbMin;
+	m_QuadsAabbMax = m_vQuads[0].m_AabbMax;
+	for(const CColQuadData &QuadData : m_vQuads)
+	{
+		m_QuadsAabbMin.x = std::min(m_QuadsAabbMin.x, QuadData.m_AabbMin.x);
+		m_QuadsAabbMin.y = std::min(m_QuadsAabbMin.y, QuadData.m_AabbMin.y);
+		m_QuadsAabbMax.x = std::max(m_QuadsAabbMax.x, QuadData.m_AabbMax.x);
+		m_QuadsAabbMax.y = std::max(m_QuadsAabbMax.y, QuadData.m_AabbMax.y);
+	}
+
+	// A handful of quads spread over a whole map would ask for a huge grid, so the cells
+	// grow until the grid fits a fixed budget instead
+	const vec2 Extent = m_QuadsAabbMax - m_QuadsAabbMin;
+	m_QuadGridCellSize = ms_QuadGridMinCellSize;
+	while(true)
+	{
+		m_QuadGridWidth = std::max(1, (int)(Extent.x / m_QuadGridCellSize) + 1);
+		m_QuadGridHeight = std::max(1, (int)(Extent.y / m_QuadGridCellSize) + 1);
+		if((int64_t)m_QuadGridWidth * (int64_t)m_QuadGridHeight <= ms_QuadGridMaxCells)
+			break;
+		m_QuadGridCellSize *= 2.0f;
+	}
+
+	const auto CellRange = [&](const CColQuadData &QuadData, int *pX0, int *pY0, int *pX1, int *pY1) {
+		*pX0 = std::clamp((int)((QuadData.m_AabbMin.x - m_QuadsAabbMin.x) / m_QuadGridCellSize), 0, m_QuadGridWidth - 1);
+		*pX1 = std::clamp((int)((QuadData.m_AabbMax.x - m_QuadsAabbMin.x) / m_QuadGridCellSize), 0, m_QuadGridWidth - 1);
+		*pY0 = std::clamp((int)((QuadData.m_AabbMin.y - m_QuadsAabbMin.y) / m_QuadGridCellSize), 0, m_QuadGridHeight - 1);
+		*pY1 = std::clamp((int)((QuadData.m_AabbMax.y - m_QuadsAabbMin.y) / m_QuadGridCellSize), 0, m_QuadGridHeight - 1);
+	};
+
+	// Counting sort into one flat array, so no bucket needs an allocation of its own
+	const int NumCells = m_QuadGridWidth * m_QuadGridHeight;
+	m_vQuadGridStart.assign(NumCells + 1, 0);
+	for(const CColQuadData &QuadData : m_vQuads)
+	{
+		int X0, Y0, X1, Y1;
+		CellRange(QuadData, &X0, &Y0, &X1, &Y1);
+		for(int y = Y0; y <= Y1; y++)
+			for(int x = X0; x <= X1; x++)
+				m_vQuadGridStart[y * m_QuadGridWidth + x + 1]++;
+	}
+	for(int Cell = 0; Cell < NumCells; Cell++)
+		m_vQuadGridStart[Cell + 1] += m_vQuadGridStart[Cell];
+
+	m_vQuadGridIndices.resize(m_vQuadGridStart[NumCells]);
+	m_vQuadGridFill.assign(m_vQuadGridStart.begin(), m_vQuadGridStart.end() - 1);
+	for(size_t QuadIndex = 0; QuadIndex < m_vQuads.size(); QuadIndex++)
+	{
+		int X0, Y0, X1, Y1;
+		CellRange(m_vQuads[QuadIndex], &X0, &Y0, &X1, &Y1);
+		for(int y = Y0; y <= Y1; y++)
+			for(int x = X0; x <= X1; x++)
+				m_vQuadGridIndices[m_vQuadGridFill[y * m_QuadGridWidth + x]++] = (int)QuadIndex;
+	}
+
+	m_QuadGridValid = true;
+}
+
+int CCollision::GetGroundQuadIdAt(vec2 Pos, float Size) const
+{
+	if(!m_UseMovingTiles || !m_HasSolidQuads || m_vQuads.empty())
+		return -1;
+
+	const vec2 FeetPos = vec2(Pos.x, Pos.y + Size / 2 + 5);
+
+	for(size_t QuadId = 0; QuadId < m_vQuads.size(); QuadId++)
+	{
+		const CColQuadData &QuadData = m_vQuads[QuadId];
+
+		// At the character rather than at the probe, so this is the same velocity the callers
+		// go on to hand over, see CCollidableZone::HandleSolidQuads
+		const vec2 QuadMotion = QuadData.MotionAt(Pos);
+
+		for(int Side = 0; Side < 2; Side++)
+		{
+			const vec2 Probe = FeetPos + vec2(Side == 0 ? Size / 2 : -Size / 2, 0.0f) + QuadMotion;
+			if(!QuadData.AabbContains(Probe))
+				continue;
+
+			const vec2 aPoints[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+			if(InsideQuadrilateral(Probe, aPoints))
+				return (int)QuadId;
+		}
+	}
+
+	return -1;
+}
+
+int CCollision::GetQuadIdAt(vec2 Pos) const
+{
+	if(!m_UseMovingTiles || m_vQuads.empty())
+		return -1;
+
+	const auto Contains = [&](int QuadId) {
+		const CColQuadData &QuadData = m_vQuads[QuadId];
+		if(!QuadData.AabbContains(Pos))
+			return false;
+
+		const vec2 aPoints[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+		return InsideQuadrilateral(Pos, aPoints);
+	};
+
+	if(!m_QuadGridValid)
+	{
+		for(int QuadId = 0; QuadId < (int)m_vQuads.size(); QuadId++)
+			if(Contains(QuadId))
+				return QuadId;
+		return -1;
+	}
+
+	// Nearly every probe is nowhere near a quad and stops on these four compares
+	if(Pos.x < m_QuadsAabbMin.x || Pos.x > m_QuadsAabbMax.x || Pos.y < m_QuadsAabbMin.y || Pos.y > m_QuadsAabbMax.y)
+		return -1;
+
+	const int CellX = std::clamp((int)((Pos.x - m_QuadsAabbMin.x) / m_QuadGridCellSize), 0, m_QuadGridWidth - 1);
+	const int CellY = std::clamp((int)((Pos.y - m_QuadsAabbMin.y) / m_QuadGridCellSize), 0, m_QuadGridHeight - 1);
+	const int Cell = CellY * m_QuadGridWidth + CellX;
+
+	// A quad containing Pos always covers this cell, and the bucket is in index order, so the
+	// first hit here is the same quad a walk of the whole list would have answered with
+	for(int i = m_vQuadGridStart[Cell]; i < m_vQuadGridStart[Cell + 1]; i++)
+	{
+		if(Contains(m_vQuadGridIndices[i]))
+			return m_vQuadGridIndices[i];
+	}
+	return -1;
+}
+
+bool CCollision::GetQuadBounceDir(int QuadId, vec2 From, vec2 CollisionPos, vec2 Dir, vec2 *pOutDir) const
+{
+	const CColQuadData *pQuad = Quad(QuadId);
 	if(!pQuad || !pOutDir)
 		return false;
 
@@ -1529,23 +1714,4 @@ bool CCollision::GetQuadBounceDir(const CColQuadData *pQuad, vec2 From, vec2 Col
 	return true;
 }
 
-const CQuadData *CCollision::ResolveCurrentQuad(const CQuadData *pQuad) const
-{
-	if(!m_UseMovingTiles)
-		return nullptr;
-
-	if(!pQuad || !pQuad->m_pQuad)
-		return nullptr;
-
-	for(const CColQuadData &QuadData : m_vQuads)
-	{
-		if(!QuadData.m_pQuad)
-			continue;
-
-		if(QuadData.m_pQuad == pQuad->m_pQuad)
-			return &QuadData;
-	}
-
-	return nullptr;
-}
 // FoxNet>

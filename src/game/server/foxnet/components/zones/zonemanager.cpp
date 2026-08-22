@@ -275,6 +275,13 @@ void CZoneManager::TickSharedQuadZones()
 	}
 }
 
+void CZoneManager::OnPostTick()
+{
+	for(auto &vZones : m_avpZones)
+		for(CQuadZone *pZone : vZones)
+			pZone->OnPostTick();
+}
+
 void CZoneManager::OnTick()
 {
 	TickSharedQuadZones();

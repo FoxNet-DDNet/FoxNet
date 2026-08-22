@@ -291,12 +291,12 @@ void CCharacter::SetDeepFrozen(bool Active)
 
 bool CCharacter::IsGrounded()
 {
-	const CColQuadData *pHitQuad = nullptr;
+	int HitQuadId = -1;
 	bool Standing = false;
-	if(Collision()->IsOnGround(m_Pos, GetProximityRadius(), &pHitQuad))
+	if(Collision()->IsOnGround(m_Pos, GetProximityRadius(), &HitQuadId))
 		Standing = true;
 
-	if(Standing && !pHitQuad)
+	if(Standing && HitQuadId < 0)
 		return true;
 
 	int MoveRestrictionsBelow = Collision()->GetMoveRestrictions(m_Pos + vec2(0, GetProximityRadius() / 2 + 4), 0.0f);

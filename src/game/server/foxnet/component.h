@@ -63,6 +63,14 @@ public:
 	 * Called every tick
 	 */
 	virtual void OnTick() {}
+
+	/*
+	 * After the world has ticked, so after every character has taken its movement for this tick.
+	 * Anything that pushes an entity out of somewhere belongs here rather than in OnTick: run
+	 * before the movement it is answering for a position the entity has already left, and
+	 * whatever moved it in -- a hook, most of all -- gets the last word every single tick.
+	 */
+	virtual void OnPostTick() {}
 	/*
 	 * Called every snap
 	 */

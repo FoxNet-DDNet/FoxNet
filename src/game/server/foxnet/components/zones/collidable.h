@@ -18,10 +18,13 @@ enum CollidableZoneType
 
 class CCollidableZone : public CQuadZone
 {
-	void CollidableImpl(CEntity *pEnt, const vec2 aPoints[4]);
+	void CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 QuadMotion);
 
 	void HandleCharacters();
 	void HandlePickups();
+
+	void HandleSolidQuads();
+	bool SolidQuadPush(CEntity *pEnt);
 
 	uint8_t m_Type;
 
@@ -33,14 +36,8 @@ public:
 	{
 		m_Type = Type;
 	}
-	void OnTick() override;
+	void OnPostTick() override;
 
-	/*
-	 * Runs the update and collision pass for the per-map collision quad list, which
-	 * every zone that pushed its quads there (QHook / QUnHook) shares. CZoneManager
-	 * calls this once per map; OnTick() deliberately does not, so the identical pass is
-	 * not repeated once per quad layer.
-	 */
 	void TickSharedQuads();
 };
 

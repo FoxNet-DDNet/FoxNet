@@ -133,9 +133,9 @@ void CLaser::DoBounce()
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
 	const vec2 BounceFrom = m_Pos;
-	const CColQuadData *pHitQuad = nullptr;
+	int HitQuadId = -1;
 
-	Res = Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z, &pHitQuad);
+	Res = Collision()->IntersectLineTeleWeapon(m_Pos, To, &Coltile, &To, &z, &HitQuadId);
 
 	if(Res)
 	{
@@ -148,10 +148,10 @@ void CLaser::DoBounce()
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
 			bool QuadBounce = false;
-			if(pHitQuad && (Res == TILE_SOLID || Res == TILE_NOHOOK))
+			if(HitQuadId >= 0 && (Res == TILE_SOLID || Res == TILE_NOHOOK))
 			{
 				vec2 BounceDir;
-				if(Collision()->GetQuadBounceDir(pHitQuad, BounceFrom, Coltile, m_Dir, &BounceDir))
+				if(Collision()->GetQuadBounceDir(HitQuadId, BounceFrom, Coltile, m_Dir, &BounceDir))
 				{
 					TempDir = BounceDir * length(TempDir);
 					QuadBounce = true;

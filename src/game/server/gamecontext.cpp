@@ -1351,6 +1351,7 @@ void CGameContext::OnTick()
 
 	// copy tuning
 	m_World.Tick();
+	FoxNetPostTick(); // FoxNet
 	m_PlayerMapping.Tick();
 
 	m_pController->Tick();

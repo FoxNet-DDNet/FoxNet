@@ -36,11 +36,29 @@ public:
 	float m_Angle = 0.0f;
 	uint8_t m_SubType = 0;
 
+	/*
+	 * Where the pivot and the angle were on the previous tick. Any point of the quad can be
+	 * followed from one tick to the next through these two, which is all anything needs to
+	 * know how the quad moved under it, and it costs two values rather than a second copy
+	 * of every quad on the map.
+	 */
+	vec2 m_PrevPivot = vec2(0, 0);
+	float m_PrevAngle = 0.0f;
+
 	vec2 m_AabbMin = vec2(0, 0);
 	vec2 m_AabbMax = vec2(0, 0);
 
 	void Init(CQuad *pQuad, IMap *pMap = nullptr);
 	void UpdatePositionEnvelope(double GlobalTime, IMap *pMap);
+
+	vec2 MotionAt(vec2 Pos) const
+	{
+		if(m_Angle == 0.0f && m_PrevAngle == 0.0f)
+			return m_aPoints[4] - m_PrevPivot;
+
+		const vec2 Local = RotateVec(Pos - m_PrevPivot, -m_PrevAngle);
+		return (m_aPoints[4] + RotateVec(Local, m_Angle)) - Pos;
+	}
 
 	void UpdateAabb()
 	{

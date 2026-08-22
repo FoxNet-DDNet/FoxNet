@@ -113,6 +113,8 @@ void CQuadData::Init(CQuad *pQuad, IMap *pMap)
 	for(int i = 0; i < 5; i++)
 		m_aPoints[i] = m_aLocalPoints[i];
 	m_Animated = pQuad->m_PosEnv >= 0;
+	m_PrevPivot = m_aPoints[4];
+	m_PrevAngle = 0.0f;
 	UpdateAabb();
 
 	if(!m_Animated || !pMap)
@@ -270,6 +272,9 @@ void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 		Position.y = Y0 + (Y1 - Y0) * a;
 		Angle = (R0 + (R1 - R0) * a) / 360.0f * pi * 2.0f;
 	};
+
+	m_PrevPivot = m_aPoints[4];
+	m_PrevAngle = m_Angle;
 
 	vec2 Position = vec2(0, 0);
 	GetAnimationTransform(Position, m_Angle);

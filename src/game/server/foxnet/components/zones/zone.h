@@ -80,6 +80,8 @@ public:
 
 	virtual void Init(CMapItemLayerQuads *pQuadsLayer);
 	virtual void OnTick() {}
+	// see CServerComponent::OnPostTick
+	virtual void OnPostTick() {}
 
 	virtual ~CQuadZone() = default;
 };

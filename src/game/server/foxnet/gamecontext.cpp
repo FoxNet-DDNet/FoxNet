@@ -87,6 +87,12 @@ void CMultiMaps::ApplySoloServerTuning()
 	}
 }
 
+void CGameContext::FoxNetPostTick()
+{
+	for(auto &pComponent : m_vpComponents)
+		pComponent->OnPostTick();
+}
+
 void CGameContext::FoxNetTick()
 {
 	for(size_t Idx = 0; Idx < m_vMultiMaps.size(); ++Idx)

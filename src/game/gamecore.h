@@ -227,7 +227,8 @@ public:
 	vec2 m_PrevVel;
 
 	bool m_ResendCore;
-	const CQuadData *m_pHookedQuad = nullptr;
+	// Index rather than a pointer, see the note on CCollision::Quad
+	int m_HookedQuadId = -1;
 	vec2 m_HookQuadLocal = vec2(0, 0);
 
 	vec2 m_HookPos;

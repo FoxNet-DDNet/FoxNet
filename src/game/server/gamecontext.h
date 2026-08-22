@@ -897,6 +897,7 @@ private:
 	void HandleEffects();
 
 	void FoxNetTick();
+	void FoxNetPostTick();
 	void FoxNetInit();
 	void FoxNetSnap(int ClientId, bool GlobalSnap, bool RecordingDemo);
 	void RegisterFoxNetCommands();

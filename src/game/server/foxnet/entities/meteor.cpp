@@ -40,35 +40,35 @@ constexpr float MaxDistanceFromPlayer = TileSize * 25.0f;
 
 vec2 CMeteor::FindTargetBlock(vec2 InitialPos)
 {
-	auto IsTopSurface = [this](vec2 Pos, const CColQuadData **ppTargetQuad) {
-		const CColQuadData *pHitQuad = nullptr;
-		if(!Collision()->CheckPoint(Pos, &pHitQuad) || Collision()->CheckPoint(Pos - vec2(0.0f, 1.0f)))
+	auto IsTopSurface = [this](vec2 Pos, int *pTargetQuadId) {
+		int HitQuadId = -1;
+		if(!Collision()->CheckPoint(Pos, &HitQuadId) || Collision()->CheckPoint(Pos - vec2(0.0f, 1.0f)))
 			return false;
 
-		*ppTargetQuad = pHitQuad;
+		*pTargetQuadId = HitQuadId;
 		return true;
 	};
 
-	m_pTargetQuad = nullptr;
+	m_TargetQuadId = -1;
 	const bool StartedInCollision = Collision()->CheckPoint(InitialPos);
 	for(float Distance = 1.0f; Distance <= TargetSearchDepth; Distance += 1.0f)
 	{
 		// Prefer the lower candidate when both directions find a surface at
 		// the same distance.
 		const vec2 Below = InitialPos + vec2(0.0f, Distance);
-		const CColQuadData *pTargetQuad = nullptr;
-		if(IsTopSurface(Below, &pTargetQuad))
+		int TargetQuadId = -1;
+		if(IsTopSurface(Below, &TargetQuadId))
 		{
-			m_pTargetQuad = pTargetQuad;
+			m_TargetQuadId = TargetQuadId;
 			return Below;
 		}
 
 		if(StartedInCollision)
 		{
 			const vec2 Above = InitialPos - vec2(0.0f, Distance);
-			if(IsTopSurface(Above, &pTargetQuad))
+			if(IsTopSurface(Above, &TargetQuadId))
 			{
-				m_pTargetQuad = pTargetQuad;
+				m_TargetQuadId = TargetQuadId;
 				return Above;
 			}
 		}
@@ -81,10 +81,10 @@ vec2 CMeteor::FindTargetBlock(vec2 InitialPos)
 		for(float Distance = 1.0f; Distance <= TargetSearchDepth; Distance += 1.0f)
 		{
 			const vec2 Above = InitialPos - vec2(0.0f, Distance);
-			const CColQuadData *pTargetQuad = nullptr;
-			if(IsTopSurface(Above, &pTargetQuad))
+			int TargetQuadId = -1;
+			if(IsTopSurface(Above, &TargetQuadId))
 			{
-				m_pTargetQuad = pTargetQuad;
+				m_TargetQuadId = TargetQuadId;
 				return Above;
 			}
 		}
@@ -207,7 +207,7 @@ void CMeteor::Tick()
 		m_CurrentPos += Dir * MovementSpeed;
 
 		float LowestPosition = m_TargetPos.y;
-		if(const CQuadData *pCurrentTargetQuad = Collision()->ResolveCurrentQuad(m_pTargetQuad))
+		if(const CQuadData *pCurrentTargetQuad = Collision()->Quad(m_TargetQuadId))
 			LowestPosition = pCurrentTargetQuad->m_AabbMin.y;
 
 		if(GameLayerClipped(m_CurrentPos))

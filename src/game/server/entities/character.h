@@ -390,6 +390,15 @@ public:
 
 	void SetResendCore(bool Resend) { m_Core.m_ResendCore = Resend; }
 	bool m_InsideQuadFreeze = false;
+	/*
+	 * The speed of the solid quad carrying this character, and the tick it last did. Handed over
+	 * the moment the carrying stops rather than every tick of the ride: the push alone keeps the
+	 * character on the surface while contact lasts, and adding speed on top of that would only
+	 * make it lead the surface it is standing on. Leaving is the part that needs it, so that
+	 * riding one up and jumping off keeps the climb.
+	 */
+	vec2 m_QuadCarryVel = vec2(0, 0);
+	int m_QuadCarryTick = -1;
 
 	bool m_SpawnSolo = false;
 	void UnSpawnSolo(bool Unsolo = true);

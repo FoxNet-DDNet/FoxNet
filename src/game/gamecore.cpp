@@ -157,7 +157,7 @@ void CCharacterCore::SetAntiPingInterfereCallback(FAntiPingInterfereCallback Cal
 
 void CCharacterCore::Reset()
 {
-	m_pHookedQuad = nullptr;
+	m_HookedQuadId = -1;
 	m_HookQuadLocal = vec2(0, 0);
 
 	m_Pos = vec2(0, 0);
@@ -208,12 +208,6 @@ void CCharacterCore::Reset()
 	m_Hookable = true;
 	m_Collidable = true;
 	// FoxNet>
-}
-
-static inline vec2 RotateVec(vec2 v, float a)
-{
-	const float c = cosf(a), s = sinf(a);
-	return vec2(v.x * c - v.y * s, v.x * s + v.y * c);
 }
 
 void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
@@ -308,7 +302,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			SetHookedPlayer(-1);
 			m_HookState = HOOK_IDLE;
 			m_HookPos = m_Pos;
-			m_pHookedQuad = nullptr;
+			m_HookedQuadId = -1;
 		}
 	}
 
@@ -365,8 +359,8 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 		bool GoingThroughTele = false;
 		int TeleNr = 0;
 
-		const CColQuadData *pHitQuad = nullptr;
-		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, nullptr, &TeleNr, &pHitQuad);
+		int HitQuadId = -1;
+		int Hit = m_pCollision->IntersectLineTeleHook(m_HookPos, NewPos, &NewPos, nullptr, &TeleNr, &HitQuadId);
 
 		if(Hit)
 		{
@@ -425,9 +419,9 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				m_HookState = HOOK_GRABBED;
 
 				// If we hit a hookable moving quad, remember it and compute local anchor
-				if(pHitQuad)
+				if(const CColQuadData *pHitQuad = m_pCollision->Quad(HitQuadId))
 				{
-					m_pHookedQuad = pHitQuad;
+					m_HookedQuadId = HitQuadId;
 					const vec2 Pivot = pHitQuad->m_aPoints[4];
 					const float Ang = pHitQuad->m_Angle;
 					// local = R(-ang) * (world_hit - pivot)
@@ -435,7 +429,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				}
 				else
 				{
-					m_pHookedQuad = nullptr;
+					m_HookedQuadId = -1;
 				}
 			}
 			else if(GoingToRetract)
@@ -456,7 +450,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				m_HookTeleBase = m_HookPos;
 
 				// Teleport breaks attachment
-				m_pHookedQuad = nullptr;
+				m_HookedQuadId = -1;
 			}
 			else
 			{
@@ -469,7 +463,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 	{
 		if(m_HookedPlayer != -1 && m_pWorld)
 		{
-			m_pHookedQuad = nullptr;
+			m_HookedQuadId = -1;
 
 			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[m_HookedPlayer];
 			if(pCharCore && m_Id != -1 && m_pTeams->CanKeepHook(m_Id, pCharCore->m_Id))
@@ -480,18 +474,21 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 				SetHookedPlayer(-1);
 				m_HookState = HOOK_RETRACTED;
 				m_HookPos = m_Pos;
-				m_pHookedQuad = nullptr;
+				m_HookedQuadId = -1;
 			}
 		}
 		// Update anchored hook head if grabbed to a moving quad
-		if(m_HookedPlayer == -1 && m_pHookedQuad)
+		if(m_HookedPlayer == -1 && m_HookedQuadId >= 0)
 		{
-			m_pHookedQuad = m_pCollision->ResolveCurrentQuad(m_pHookedQuad);
-			if(m_pHookedQuad)
+			if(const CColQuadData *pHookedQuad = m_pCollision->Quad(m_HookedQuadId))
 			{
-				const vec2 Pivot = m_pHookedQuad->m_aPoints[4];
-				const float Ang = m_pHookedQuad->m_Angle;
+				const vec2 Pivot = pHookedQuad->m_aPoints[4];
+				const float Ang = pHookedQuad->m_Angle;
 				m_HookPos = Pivot + RotateVec(m_HookQuadLocal, Ang);
+			}
+			else
+			{
+				m_HookedQuadId = -1;
 			}
 		}
 
@@ -526,12 +523,12 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			SetHookedPlayer(-1);
 			m_HookState = HOOK_RETRACTED;
 			m_HookPos = m_Pos;
-			m_pHookedQuad = nullptr;
+			m_HookedQuadId = -1;
 		}
 	}
 
 	// <FoxNet
-	if(m_pHookedQuad)
+	if(m_HookedQuadId >= 0)
 		m_ResendCore = true;
 	// FoxNet>
 

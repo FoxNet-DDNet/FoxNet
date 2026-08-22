@@ -260,6 +260,14 @@ inline void Rotate(const vec2 &Center, vec2 *pPoint, const float &Rotation)
 	pPoint->y = (x * sinf(Rotation) + y * cosf(Rotation) + Center.y);
 }
 
+// Rotates a vector around the origin, for points held relative to a pivot
+inline vec2 RotateVec(const vec2 &Vec, const float &Rotation)
+{
+	const float c = cosf(Rotation);
+	const float s = sinf(Rotation);
+	return vec2(Vec.x * c - Vec.y * s, Vec.x * s + Vec.y * c);
+}
+
 inline vec2 CircleDirection(const int &Part, const int &NumParts)
 {
 	vec2 Direction = direction(360.0f / (float)NumParts * Part * (pi / 180.0f));
