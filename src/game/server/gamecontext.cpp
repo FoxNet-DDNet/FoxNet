@@ -4702,14 +4702,7 @@ void CGameContext::OnInit(const void *pPersistentData)
 		g_Config.m_SvTeam = SV_TEAM_FORCED_SOLO;
 		g_Config.m_SvShowOthersDefault = SHOW_OTHERS_ON;
 
-		//GlobalTuning()->Set("player_collision", 0);
-		//GlobalTuning()->Set("player_hooking", 0);
-
-		//for(int i = 0; i < TuneZone::NUM; i++)
-		//{
-		//	TuningList()[i].Set("player_collision", 0);
-		//	TuningList()[i].Set("player_hooking", 0);
-		//}
+		m_vMultiMaps[DefaultMapIndex]->ApplySoloServerTuning();
 	}
 
 	if(!str_comp(Config()->m_SvGametype, "mod"))

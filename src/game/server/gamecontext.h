@@ -122,6 +122,9 @@ public:
 
 	// Needs GameContext and MultiMapIndex of this map to be initialized
 	void InitTuning(CGameContext *pGameContext, size_t MultiMapIndex);
+	// Disables player collision and hooking for sv_solo_server. Must run after the reset file and the
+	// map settings were executed, since those are what set sv_solo_server for the map being loaded.
+	void ApplySoloServerTuning();
 
 	void Init()
 	{

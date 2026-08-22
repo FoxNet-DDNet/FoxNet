@@ -72,17 +72,18 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 	{
 		m_aTuningList[0] = pGameContext->DDNetDefaultTuning();
 	}
+}
 
-	if(g_Config.m_SvSoloServer)
+void CMultiMaps::ApplySoloServerTuning()
+{
+	if(!g_Config.m_SvSoloServer)
+		return;
+
+	// Global tuning = m_aTuningList[0]
+	for(auto &Tune : m_aTuningList)
 	{
-		m_aTuningList[0].Set("player_collision", 0);
-		m_aTuningList[0].Set("player_hooking", 0);
-
-		for(auto &Tune : m_aTuningList)
-		{
-			Tune.Set("player_collision", 0);
-			Tune.Set("player_hooking", 0);
-		}
+		Tune.Set("player_collision", 0);
+		Tune.Set("player_hooking", 0);
 	}
 }
 
@@ -220,6 +221,8 @@ void CGameContext::LoadMapByName(const char *pMapName, EMapType Type)
 
 	LoadMapSettings(NewMapIndex);
 
+	m_vMultiMaps[NewMapIndex]->ApplySoloServerTuning();
+
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(NewMapIndex);
 }
@@ -344,6 +347,8 @@ void CGameContext::ReloadMapByName(const char *pMapName)
 	m_vMultiMaps[Idx]->InitTuning(this, Idx);
 
 	LoadMapSettings(Idx);
+
+	m_vMultiMaps[Idx]->ApplySoloServerTuning();
 
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapLoad(Idx);
