@@ -1367,14 +1367,23 @@ void CPowerUps::OnClientEnter(int ClientId)
 
 void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 {
-	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-	if(!pChr || !pChr->IsAlive() || (pChr->Team() != TEAM_FLOCK && !g_Config.m_SvSoloServer))
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!pPlayer)
 		return;
-	if((size_t)pChr->MultiMapIdx() != Powerup.m_MultiMapIdx)
+	CCharacter *pChr = pPlayer->GetCharacter();
+	if(!pChr || !pChr->IsAlive())
+		return;
+
+	if((size_t)pChr->GetPlayer()->MultiMapIdx() != Powerup.m_MultiMapIdx)
 		return; // Prevent collection across maps
 
-	CPlayer *pCollectingPlayer = pChr->GetPlayer();
-	if(!pCollectingPlayer || pCollectingPlayer->Acc()->m_Configs.m_HidePowerUps)
+	CGameTeams &Teams = GameServer()->m_pController->Teams();
+	const int Team = pChr->Team();
+
+	if((Team != TEAM_FLOCK && !g_Config.m_SvSoloServer) || Teams.IsPractice(Team))
+		return;
+
+	if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
 		return;
 
 	if(Powerup.m_aClients[ClientId].m_Collected)
@@ -1388,19 +1397,19 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 	CClientMask TeamMask = pChr->TeamMask();
 	for(int i = 0; i < MaxClients; i++)
 	{
-		CPlayer *pPlayer = nullptr;
+		CPlayer *pOtherPlayer = nullptr;
 		if(Server()->ClientIngame(i))
-			pPlayer = GameServer()->m_apPlayers[i];
+			pOtherPlayer = GameServer()->m_apPlayers[i];
 
-		if(pPlayer && pPlayer->Acc()->m_Configs.m_HidePowerUps)
+		if(pOtherPlayer && pOtherPlayer->Acc()->m_Configs.m_HidePowerUps)
 			TeamMask.set(i, false);
 	}
 
-	CollectPowerup(Powerup, pCollectingPlayer);
+	CollectPowerup(Powerup, pPlayer);
 	GameServer()->CreateSound(Powerup.m_Pos, SOUND_PICKUP_ARMOR, TeamMask);
 
 	Powerup.m_aClients[ClientId].m_Collected = true;
-	Powerup.m_aClients[ClientId].m_WasLoggedIn = pCollectingPlayer->Acc()->m_LoggedIn;
+	Powerup.m_aClients[ClientId].m_WasLoggedIn = pPlayer->Acc()->m_LoggedIn;
 	Powerup.m_aClients[ClientId].m_Addr = *pAddr;
 
 	for(int i = 0; i < MaxClients; i++)
@@ -1518,8 +1527,26 @@ void CPowerUps::SnapPowerup(const CPowerUp &Powerup, int SnappingClient)
 		if(pSnapPlayer->Acc()->m_Configs.m_HidePowerUps)
 			return;
 
-		if(Powerup.m_aClients[SnappingClient].m_Collected && (!Server()->IsRconAuthed(SnappingClient) || !pSnapPlayer->IsPaused()))
-			return; // Hide already collected PowerUps
+		const bool AuthedSpec = Server()->IsRconAuthed(SnappingClient) && pSnapPlayer->IsPaused();
+
+		if(!AuthedSpec)
+		{
+			if(Powerup.m_aClients[SnappingClient].m_Collected)
+			{
+				return; // Hide already collected PowerUps
+			}
+			else
+			{
+				CCharacter *pChr = pSnapPlayer->GetCharacter();
+				if(pChr && pChr->IsAlive())
+				{
+					CGameTeams &Teams = GameServer()->m_pController->Teams();
+					const int Team = pChr->Team();
+					if((Team != TEAM_FLOCK && !g_Config.m_SvSoloServer) || Teams.IsPractice(Team))
+						return;
+				}
+			}
+		}
 	}
 
 	// Make the powerup blink when about to disappear
