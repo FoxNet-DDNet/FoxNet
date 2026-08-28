@@ -98,7 +98,7 @@ void CGameContext::ConKillPlayer(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientId(pResult->m_ClientId))
 		return;
-	int Victim = pResult->GetVictim();
+	int Victim = pResult->GetVictim(0);
 
 	if(pSelf->m_apPlayers[Victim])
 	{
@@ -489,12 +489,16 @@ void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if(!CheckClientId(pResult->m_ClientId))
 		return;
+	// <FoxNet
+	// The destination stays a plain integer (see the "tele" registration) so that
+	// -1 can be used to mean "myself"; the source is a regular victim in slot 0.
 	int Tele = pResult->NumArguments() == 2 ? pResult->GetVictim() : pResult->m_ClientId;
 	int TeleTo = pResult->NumArguments() ? pResult->GetInteger(pResult->NumArguments() - 1) : pResult->m_ClientId;
 	const int AuthLevel = pSelf->Server()->GetAuthedState(pResult->m_ClientId);
 
 	if(pResult->GetInteger(pResult->NumArguments() - 1) == -1)
 		TeleTo = pResult->m_ClientId;
+	// FoxNet>
 
 	if(Tele != pResult->m_ClientId && AuthLevel < g_Config.m_SvTeleOthersAuthLevel)
 	{
@@ -538,7 +542,7 @@ void CGameContext::ConKill(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConForcePause(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Victim = pResult->GetVictim();
+	int Victim = pResult->GetVictim(0);
 	int Seconds = 0;
 	if(pResult->NumArguments() > 1)
 		Seconds = std::clamp(pResult->GetInteger(1), 0, 360);
@@ -585,7 +589,7 @@ void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int Target = pResult->GetVictim();
+	const int Target = pResult->GetVictim(0);
 	CPlayer *pPlayer = pSelf->m_apPlayers[Target];
 	if(!pPlayer)
 		return;
@@ -608,7 +612,7 @@ void CGameContext::ConUninvite(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	auto *pController = pSelf->m_pController;
 
-	const int Target = pResult->GetVictim();
+	const int Target = pResult->GetVictim(0);
 	if(!pSelf->m_apPlayers[Target])
 		return;
 
@@ -639,14 +643,20 @@ void CGameContext::ConDrySave(IConsole::IResult *pResult, void *pUserData)
 
 	char aTimestamp[32];
 	str_timestamp(aTimestamp, sizeof(aTimestamp));
+	const char *pSaveState = SavedTeam.GetString();
+	if(!pSaveState)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "Your team is too large to save");
+		return;
+	}
+
 	char aBuf[64];
 	str_format(aBuf, sizeof(aBuf), "%s_%s_%s.save", pSelf->Map()->BaseName(), aTimestamp, pSelf->Server()->GetAuthName(pResult->m_ClientId));
 	IOHANDLE File = pSelf->Storage()->OpenFile(aBuf, IOFLAG_WRITE, IStorage::TYPE_SAVE);
 	if(!File)
 		return;
 
-	int Len = str_length(SavedTeam.GetString());
-	io_write(File, SavedTeam.GetString(), Len);
+	io_write(File, pSaveState, str_length(pSaveState));
 	io_close(File);
 }
 

@@ -282,6 +282,8 @@ std::optional<std::vector<int>> CGameContext::ClientsForVictim(int ClientId, con
 
 	if(!str_comp(pVictim, "me"))
 	{
+		if(ClientId < 0)
+			return std::nullopt;
 		vClientIds.emplace_back(ClientId);
 	}
 	else if(!str_comp(pVictim, "all"))
@@ -821,7 +823,7 @@ void CGameContext::SendChat(int ChatterClientId, int Team, const char *pText, in
 		if(ProcessSpamProtection(SpamProtectionClientId))
 			return;
 
-	char aText[256];
+	char aText[MAX_CHAT_LENGTH];
 	str_copy(aText, pText);
 	const char *pTeamString = Team == TEAM_ALL ? "chat" : "teamchat";
 	if(ChatterClientId == -1)
@@ -1049,9 +1051,9 @@ void CGameContext::SendRename7(int ClientId)
 
 	for(int p = 0; p < protocol7::NUM_SKINPARTS; p++)
 	{
-		Info.m_apSkinPartNames[p] = pPlayer->m_TeeInfos.m_aaSkinPartNames[p];
-		Info.m_aSkinPartColors[p] = pPlayer->m_TeeInfos.m_aSkinPartColors[p];
-		Info.m_aUseCustomColors[p] = pPlayer->m_TeeInfos.m_aUseCustomColors[p];
+		Info.m_apSkinPartNames[p] = pPlayer->TeeInfos().m_aaSkinPartNames[p];
+		Info.m_aSkinPartColors[p] = pPlayer->TeeInfos().m_aSkinPartColors[p];
+		Info.m_aUseCustomColors[p] = pPlayer->TeeInfos().m_aUseCustomColors[p];
 	}
 
 	for(int i = 0; i < Server()->MaxClients(); i++)
@@ -1069,7 +1071,7 @@ void CGameContext::SendSkinChange7(int ClientId)
 	dbg_assert(in_range(ClientId, 0, MAX_CLIENTS - 1), "Invalid ClientId: %d", ClientId);
 	dbg_assert(m_apPlayers[ClientId] != nullptr, "Client not online: %d", ClientId);
 
-	const CTeeInfo &Info = m_apPlayers[ClientId]->m_TeeInfos;
+	const CTeeInfo &Info = m_apPlayers[ClientId]->TeeInfos();
 	protocol7::CNetMsg_Sv_SkinChange Msg;
 	Msg.m_ClientId = ClientId;
 	for(int Part = 0; Part < protocol7::NUM_SKINPARTS; Part++)
@@ -1195,11 +1197,12 @@ void CGameContext::SendVoteStatus(int ClientId, int Total, int Yes, int No)
 		return;
 	}
 
-	if(Total > LEGACY_MAX_CLIENTS && m_apPlayers[ClientId] && m_apPlayers[ClientId]->GetClientVersion() < VERSION_DDNET_128_PLAYERS)
+	const int MaxClients = Server()->GetMaxClients(ClientId);
+	if(Total > MaxClients && !Server()->ClientSupportsServerMaxClients(ClientId))
 	{
-		Yes = (Yes * LEGACY_MAX_CLIENTS) / (float)Total;
-		No = (No * LEGACY_MAX_CLIENTS) / (float)Total;
-		Total = LEGACY_MAX_CLIENTS;
+		Yes = (Yes * MaxClients) / (float)Total;
+		No = (No * MaxClients) / (float)Total;
+		Total = MaxClients;
 	}
 
 	CNetMsg_Sv_VoteStatus Msg = {0};
@@ -1360,14 +1363,16 @@ void CGameContext::OnTick()
 	{
 		if(m_apPlayers[i])
 		{
-			// By supporting 128 players with full backwards compatibility (in +spectate menu too), it's basically impossible and
-			// really unnecessary to have old 16 player clients supported
 			IServer::CClientInfo Info;
-			if(Server()->Tick() >= m_apPlayers[i]->m_DDNetVersionKickTick && !Server()->IsSixup(i) &&
+			if(m_apPlayers[i]->m_DDNetVersionKickTick > 0 && Server()->Tick() >= m_apPlayers[i]->m_DDNetVersionKickTick && !Server()->IsSixup(i) &&
 				Server()->GetClientInfo(i, &Info) && Info.m_DDNetVersion < VERSION_DDNET_OLD)
 			{
-				Server()->Kick(i, "Old Teeworlds 0.6 versions are unsupported. Use DDNet client or Teeworlds 0.7");
-				continue;
+				if(!g_Config.m_SvVanillaConnections)
+				{
+					Server()->Kick(i, "Old Teeworlds 0.6 versions are unsupported. Use DDNet client or Teeworlds 0.7");
+					continue;
+				}
+				m_apPlayers[i]->m_DDNetVersionKickTick = -1;
 			}
 
 			m_apPlayers[i]->Tick();
@@ -1829,47 +1834,6 @@ void CGameContext::OnClientEnter(int ClientId)
 	}
 	m_pController->OnPlayerConnect(m_apPlayers[ClientId]);
 
-	{
-		CNetMsg_Sv_CommandInfoGroupStart Msg;
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
-	}
-	for(const IConsole::ICommandInfo *pCmd = Console()->FirstCommandInfo(ClientId, CFGFLAG_CHAT);
-		pCmd; pCmd = Console()->NextCommandInfo(pCmd, ClientId, CFGFLAG_CHAT))
-	{
-		const char *pName = pCmd->Name();
-		// <FoxNet
-		if(pCmd->Flags() & CMDFLAG_CONDITIONAL)
-			continue; // skip conditional commands, they will be sent when the condition is met
-		// FoxNet>
-
-		if(Server()->IsSixup(ClientId))
-		{
-			if(!str_comp_nocase(pName, "w") || !str_comp_nocase(pName, "whisper"))
-				continue;
-
-			if(!str_comp_nocase(pName, "r"))
-				pName = "rescue";
-
-			protocol7::CNetMsg_Sv_CommandInfo Msg;
-			Msg.m_pName = pName;
-			Msg.m_pArgsFormat = pCmd->Params();
-			Msg.m_pHelpText = pCmd->Help();
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
-		}
-		else
-		{
-			CNetMsg_Sv_CommandInfo Msg;
-			Msg.m_pName = pName;
-			Msg.m_pArgsFormat = pCmd->Params();
-			Msg.m_pHelpText = pCmd->Help();
-			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
-		}
-	}
-	{
-		CNetMsg_Sv_CommandInfoGroupEnd Msg;
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
-	}
-
 	IServer::CClientInfo Info;
 	if(Server()->GetClientInfo(ClientId, &Info))
 	{
@@ -1901,9 +1865,7 @@ void CGameContext::OnClientEnter(int ClientId)
 	// the player map has to be initialized before anything can be mapped into it
 	m_PlayerMapping.InitPlayerMap(ClientId);
 
-	// send active vote
-	if(m_VoteCloseTime)
-		SendVoteSet(ClientId);
+	SendStartMessages(ClientId);
 
 	Server()->ExpireServerInfo();
 
@@ -2033,6 +1995,12 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 	SendSettings(ClientId);
 
 	Server()->ExpireServerInfo();
+}
+
+void CGameContext::OnClientInfoChange(int ClientId)
+{
+	if(m_apPlayers[ClientId])
+		m_apPlayers[ClientId]->InvalidateClientInfo();
 }
 
 void CGameContext::OnClientDrop(int ClientId, const char *pReason)
@@ -2260,22 +2228,24 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 			pMsg->m_pClan = pMsg7->m_pClan;
 			pMsg->m_Country = pMsg7->m_Country;
 
-			pPlayer->m_TeeInfos = CTeeInfo(pMsg7->m_apSkinPartNames, pMsg7->m_aUseCustomColors, pMsg7->m_aSkinPartColors);
-			pPlayer->m_TeeInfos.FromSixup();
+			CTeeInfo TeeInfos(pMsg7->m_apSkinPartNames, pMsg7->m_aUseCustomColors, pMsg7->m_aSkinPartColors);
+			TeeInfos.FromSixup();
 			// <FoxNet
 			char SkinBuf[MAX_SKIN_LENGTH];
-			str_copy(SkinBuf, pPlayer->m_TeeInfos.m_aSkinName);
+			str_copy(SkinBuf, TeeInfos.m_aSkinName);
 			if((!str_comp_nocase(SkinBuf, "x_spec") || !str_comp_nocase(SkinBuf, "x_ninja")) && Server()->GetAuthedState(ClientId) < AUTHED_MOD)
 				str_copy(SkinBuf, "default");
 
-			str_copy(pPlayer->m_TeeInfos.m_aSkinName, SkinBuf, sizeof(pPlayer->m_TeeInfos.m_aSkinName));
+			str_copy(TeeInfos.m_aSkinName, SkinBuf, sizeof(TeeInfos.m_aSkinName));
 			// FoxNet>
-			str_copy(s_aRawMsg + sizeof(*pMsg), pPlayer->m_TeeInfos.m_aSkinName, sizeof(s_aRawMsg) - sizeof(*pMsg));
+			pPlayer->SetTeeInfos(TeeInfos);
+
+			str_copy(s_aRawMsg + sizeof(*pMsg), pPlayer->TeeInfos().m_aSkinName, sizeof(s_aRawMsg) - sizeof(*pMsg));
 
 			pMsg->m_pSkin = s_aRawMsg + sizeof(*pMsg);
-			pMsg->m_UseCustomColor = pPlayer->m_TeeInfos.m_UseCustomColor;
-			pMsg->m_ColorBody = pPlayer->m_TeeInfos.m_ColorBody;
-			pMsg->m_ColorFeet = pPlayer->m_TeeInfos.m_ColorFeet;
+			pMsg->m_UseCustomColor = pPlayer->TeeInfos().m_UseCustomColor;
+			pMsg->m_ColorBody = pPlayer->TeeInfos().m_ColorBody;
+			pMsg->m_ColorFeet = pPlayer->TeeInfos().m_ColorFeet;
 		}
 		else if(*pMsgId == protocol7::NETMSGTYPE_CL_SKINCHANGE)
 		{
@@ -2288,7 +2258,7 @@ void *CGameContext::PreProcessMsg(int *pMsgId, CUnpacker *pUnpacker, int ClientI
 
 			CTeeInfo Info(pMsg->m_apSkinPartNames, pMsg->m_aUseCustomColors, pMsg->m_aSkinPartColors);
 			Info.FromSixup();
-			pPlayer->m_TeeInfos = Info;
+			pPlayer->SetTeeInfos(Info);
 			SendSkinChange7(ClientId);
 
 			return nullptr;
@@ -2489,7 +2459,7 @@ void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, con
 		else if(pEnd == nullptr)
 			pEnd = pStrOld;
 
-		if(++Length >= 256)
+		if(++Length >= MAX_CHAT_LENGTH)
 		{
 			*(const_cast<char *>(p)) = 0;
 			break;
@@ -2573,10 +2543,10 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 		return; // If player voted for custom option
 	// FoxNet>
 
-	if(RateLimitPlayerVote(ClientId) || m_VoteCloseTime)
+	if(str_comp_nocase(pMsg->m_pType, "option") != 0 && m_PlayerMapping.DoSeeOthers(ClientId, str_toint(pMsg->m_pValue), true))
 		return;
 
-	if(str_comp_nocase(pMsg->m_pType, "option") != 0 && m_PlayerMapping.DoSeeOthers(ClientId, str_toint(pMsg->m_pValue), true))
+	if(RateLimitPlayerVote(ClientId) || m_VoteCloseTime)
 		return;
 
 	m_apPlayers[ClientId]->UpdatePlaytime();
@@ -2993,7 +2963,12 @@ void CGameContext::OnIsDDNetLegacyNetMessage(const CNetMsg_Cl_IsDDNetLegacy *pMs
 		DDNetVersion = VERSION_DDRACE;
 	}
 	Server()->SetClientDDNetVersion(ClientId, DDNetVersion);
-	OnClientDDNetVersionKnown(ClientId);
+	if(OnClientDDNetVersionKnown(ClientId))
+		return;
+	// Initial identification, currently identified as 16p client, make sure we allow 64 slots
+	CPlayerMapping::CSixupCfg SixupCfg;
+	SixupCfg.m_ClearSlots = true;
+	m_PlayerMapping.InitPlayerMap(ClientId, SixupCfg);
 }
 
 void CGameContext::OnShowOthersLegacyNetMessage(const CNetMsg_Cl_ShowOthersLegacy *pMsg, int ClientId)
@@ -3117,14 +3092,8 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 	str_copy(SkinBuf, pMsg->m_pSkin);
 	if((!str_comp_nocase(SkinBuf, "x_spec") || !str_comp_nocase(SkinBuf, "x_ninja")) && Server()->GetAuthedState(ClientId) < AUTHED_MOD)
 		str_copy(SkinBuf, "default");
-
-	str_copy(pPlayer->m_TeeInfos.m_aSkinName, SkinBuf, sizeof(pPlayer->m_TeeInfos.m_aSkinName));
 	// FoxNet>
-	pPlayer->m_TeeInfos.m_UseCustomColor = pMsg->m_UseCustomColor;
-	pPlayer->m_TeeInfos.m_ColorBody = pMsg->m_ColorBody;
-	pPlayer->m_TeeInfos.m_ColorFeet = pMsg->m_ColorFeet;
-	if(!Server()->IsSixup(ClientId))
-		pPlayer->m_TeeInfos.ToSixup();
+	pPlayer->SetTeeInfos(SkinBuf, pMsg->m_UseCustomColor, pMsg->m_ColorBody, pMsg->m_ColorFeet);
 
 	if(SixupNeedsUpdate)
 	{
@@ -3287,14 +3256,8 @@ void CGameContext::OnStartInfoNetMessage(const CNetMsg_Cl_StartInfo *pMsg, int C
 	str_copy(SkinBuf, pMsg->m_pSkin);
 	if((!str_comp_nocase(SkinBuf, "x_spec") || !str_comp_nocase(SkinBuf, "x_ninja")) && Server()->GetAuthedState(ClientId) < AUTHED_MOD)
 		str_copy(SkinBuf, "default");
-
-	str_copy(pPlayer->m_TeeInfos.m_aSkinName, SkinBuf, sizeof(pPlayer->m_TeeInfos.m_aSkinName));
 	// FoxNet>
-	pPlayer->m_TeeInfos.m_UseCustomColor = pMsg->m_UseCustomColor;
-	pPlayer->m_TeeInfos.m_ColorBody = pMsg->m_ColorBody;
-	pPlayer->m_TeeInfos.m_ColorFeet = pMsg->m_ColorFeet;
-	if(!Server()->IsSixup(ClientId))
-		pPlayer->m_TeeInfos.ToSixup();
+	pPlayer->SetTeeInfos(SkinBuf, pMsg->m_UseCustomColor, pMsg->m_ColorBody, pMsg->m_ColorFeet);
 
 	// send clear vote options
 	// <FoxNet
@@ -3828,7 +3791,7 @@ void CGameContext::ConModAlert(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	const int Victim = pResult->GetVictim();
+	const int Victim = pResult->GetVictim(0);
 	if(!CheckClientId(Victim) || !pSelf->m_apPlayers[Victim])
 	{
 		log_info("moderator_alert", "Client ID not found: %d", Victim);
@@ -3891,25 +3854,6 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[ClientId]->Pause(CPlayer::PAUSE_NONE, true);
 }
 
-void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int Team = pResult->GetInteger(0);
-	if(!pSelf->m_pController->IsValidTeam(Team))
-	{
-		log_info("server", "Invalid Team: %d", Team);
-		return;
-	}
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->m_pController->GetTeamName(Team));
-	pSelf->SendChat(-1, TEAM_ALL, aBuf);
-
-	for(auto &pPlayer : pSelf->m_apPlayers)
-		if(pPlayer)
-			pSelf->m_pController->DoTeamChange(pPlayer, Team, false);
-}
-
 void CGameContext::ConHotReload(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -3934,6 +3878,7 @@ void CGameContext::ConHotReload(IConsole::IResult *pResult, void *pUserData)
 			continue;
 
 		// Save the tee individually
+		delete pSelf->m_apSavedTees[i];
 		pSelf->m_apSavedTees[i] = new CSaveHotReloadTee();
 		pSelf->m_apSavedTees[i]->Save(pChar, false);
 
@@ -4137,9 +4082,12 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 	}
 	else if(str_comp_nocase(pType, "kick") == 0)
 	{
-		int KickId = str_toint(pValue);
-		if(!pSelf->Server()->ReverseTranslate(KickId, pResult->m_ClientId))
+		if(!pSelf->Server()->ClientSupportsServerMaxClients(pResult->m_ClientId))
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Your client does not see the real client IDs of this server. Use a more recent DDNet client.");
 			return;
+		}
+		int KickId = str_toint(pValue);
 		if(KickId < 0 || KickId >= MAX_CLIENTS || !pSelf->m_apPlayers[KickId])
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Invalid client id to kick");
@@ -4159,9 +4107,12 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 	}
 	else if(str_comp_nocase(pType, "spectate") == 0)
 	{
-		int SpectateId = str_toint(pValue);
-		if(!pSelf->Server()->ReverseTranslate(SpectateId, pResult->m_ClientId))
+		if(!pSelf->Server()->ClientSupportsServerMaxClients(pResult->m_ClientId))
+		{
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Your client does not see the real client IDs of this server. Use a more recent DDNet client.");
 			return;
+		}
+		int SpectateId = str_toint(pValue);
 		if(SpectateId < 0 || SpectateId >= MAX_CLIENTS || !pSelf->m_apPlayers[SpectateId] || pSelf->m_apPlayers[SpectateId]->GetTeam() == TEAM_SPECTATORS)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Invalid client id to move");
@@ -4247,7 +4198,8 @@ void CGameContext::ConAddMapVotes(IConsole::IResult *pResult, void *pUserData)
 
 		if(!str_comp(Item.m_aName, ".."))
 		{
-			dbg_assert(fs_parent_dir(aDirectory) == 0, "Parent folder vote selected but there is no parent folder");
+			if(fs_parent_dir(aDirectory) != 0)
+				aDirectory[0] = '\0';
 			str_format(aCommand, sizeof(aCommand), "clear_votes; add_map_votes \"%s\"", aDirectory);
 		}
 		else if(Item.m_IsDirectory)
@@ -4409,7 +4361,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("broadcast", "r[message]", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r[message]", CFGFLAG_SERVER, ConSay, this, "Say in chat");
 	Console()->Register("set_team", "v[id] i[team-id] ?i[delay in minutes]", CFGFLAG_SERVER, ConSetTeam, this, "Set team for a player (spectators = -1, game = 0)");
-	Console()->Register("set_team_all", "i[team-id]", CFGFLAG_SERVER, ConSetTeamAll, this, "Set team for all players (spectators = -1, game = 0)");
 	Console()->Register("hot_reload", "", CFGFLAG_SERVER, ConHotReload, this, "Reload the map while preserving the state of tees and teams");
 	Console()->Register("reload_censorlist", "", CFGFLAG_SERVER, ConReloadCensorlist, this, "Reload the censorlist");
 
@@ -6044,7 +5995,7 @@ void CGameContext::OnUpdatePlayerServerInfo(CJsonWriter *pJsonWriter, int Client
 	if(!m_apPlayers[ClientId])
 		return;
 
-	CTeeInfo &TeeInfo = m_apPlayers[ClientId]->m_TeeInfos;
+	const CTeeInfo &TeeInfo = m_apPlayers[ClientId]->TeeInfos();
 
 	pJsonWriter->WriteAttribute("skin");
 	pJsonWriter->BeginObject();
@@ -6125,9 +6076,93 @@ bool CGameContext::PracticeByDefault() const
 	return g_Config.m_SvPracticeByDefault && g_Config.m_SvTestingCommands;
 }
 
-void CGameContext::OnSetTimedOut(int ClientId)
+void CGameContext::SendStartMessages(int ClientId)
 {
-	// Timeout=true when calling InitPlayerMap because that will make sure each disconnect packet gets sent out to 0.7 clients correctly before inserting
-	// new players on their slots. Resend=true will also trigger teams state update, otherwise you wouldn't see teams correctly in some cases.
-	m_PlayerMapping.InitPlayerMap(ClientId, true);
+	if(Server()->IsSixup(ClientId))
+	{
+		{
+			protocol7::CNetMsg_Sv_GameInfo Msg;
+			Msg.m_GameFlags = m_pController->GameFlags();
+			Msg.m_MatchCurrent = 1;
+			Msg.m_MatchNum = 0;
+			Msg.m_ScoreLimit = 0;
+			Msg.m_TimeLimit = 0;
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+
+		// /team is essential
+		{
+			protocol7::CNetMsg_Sv_CommandInfoRemove Msg;
+			Msg.m_pName = "team";
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+	}
+
+	{
+		CNetMsg_Sv_CommandInfoGroupStart Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+	}
+	for(const IConsole::ICommandInfo *pCmd = Console()->FirstCommandInfo(ClientId, CFGFLAG_CHAT);
+		pCmd; pCmd = Console()->NextCommandInfo(pCmd, ClientId, CFGFLAG_CHAT))
+	{
+		const char *pName = pCmd->Name();
+		// <FoxNet
+		if(pCmd->Flags() & CMDFLAG_CONDITIONAL)
+			continue; // skip conditional commands, they will be sent when the condition is met
+		// FoxNet>
+
+		if(Server()->IsSixup(ClientId))
+		{
+			if(!str_comp_nocase(pName, "w") || !str_comp_nocase(pName, "whisper"))
+				continue;
+
+			if(!str_comp_nocase(pName, "r"))
+				pName = "rescue";
+
+			protocol7::CNetMsg_Sv_CommandInfo Msg;
+			Msg.m_pName = pName;
+			Msg.m_pArgsFormat = pCmd->Params();
+			Msg.m_pHelpText = pCmd->Help();
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+		else
+		{
+			CNetMsg_Sv_CommandInfo Msg;
+			Msg.m_pName = pName;
+			Msg.m_pArgsFormat = pCmd->Params();
+			Msg.m_pHelpText = pCmd->Help();
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+		}
+	}
+	{
+		CNetMsg_Sv_CommandInfoGroupEnd Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientId);
+	}
+
+	// send active vote
+	if(m_VoteCloseTime)
+		SendVoteSet(ClientId);
+}
+
+void CGameContext::OnClientRejoin(int ClientId)
+{
+	if(!m_apPlayers[ClientId])
+		return;
+
+	ReinitPlayerMap(ClientId, false);
+	SendStartMessages(ClientId);
+
+	// send clear vote options and rebuild the vote menu, like the join path does
+	ClearVotes(ClientId); // FoxNet
+	SendTuningParams(ClientId, m_apPlayers[ClientId]->m_TuneZone);
+}
+
+void CGameContext::ReinitPlayerMap(int ClientId, bool Timeout)
+{
+	// Timeout, when calling InitPlayerMap because that will make sure each disconnect packet gets sent out to 0.7 clients correctly before inserting
+	// new players on their slots. will also trigger teams state update, otherwise you wouldn't see teams correctly in some cases.
+	CPlayerMapping::CSixupCfg SixupCfg;
+	SixupCfg.m_SkipTimeoutedId = Timeout;
+	SixupCfg.m_ClearSlots = true;
+	m_PlayerMapping.InitPlayerMap(ClientId, SixupCfg);
 }

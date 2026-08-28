@@ -97,8 +97,14 @@ public:
 
 		// DDRace
 
+		virtual int GetVictim(unsigned Slot) const = 0;
+
+		// <FoxNet
+		// Convenience accessors for the first victim slot, which is all that
+		// the FoxNet commands use.
 		virtual bool HasVictim() const = 0;
 		virtual int GetVictim() const = 0;
+		// FoxNet>
 	};
 
 	class ICommandInfo
@@ -108,6 +114,8 @@ public:
 		virtual const char *Name() const = 0;
 		virtual const char *Help() const = 0;
 		virtual const char *Params() const = 0;
+		// Whether any parameter of this command is a client id, see `Register`
+		virtual bool TakesClientId() const = 0;
 		virtual int Flags() const = 0;
 		virtual EAccessLevel GetAccessLevel() const = 0;
 	};

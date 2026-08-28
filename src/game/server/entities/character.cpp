@@ -102,7 +102,8 @@ CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastI
 CCharacter::~CCharacter()
 {
 	for(auto Id : m_aUntranslatedId)
-		Server()->SnapFreeId(Id.value());
+		if(Id)
+			Server()->SnapFreeId(*Id);
 }
 
 void CCharacter::Reset()
@@ -1612,12 +1613,13 @@ void CCharacter::Snap(int SnappingClient)
 
 		int Subtype = GetActiveWeapon();
 		int Type = Subtype == WEAPON_NINJA ? POWERUP_NINJA : POWERUP_WEAPON;
-		GameServer()->SnapPickup(SnapContext, m_aUntranslatedId[EUntranslatedMap::ID_WEAPON].value(), m_Pos, Type, Subtype, 0, PICKUPFLAG_NO_PREDICT);
+		if(m_aUntranslatedId[EUntranslatedMap::ID_WEAPON])
+			GameServer()->SnapPickup(SnapContext, *m_aUntranslatedId[EUntranslatedMap::ID_WEAPON], m_Pos, Type, Subtype, 0, PICKUPFLAG_NO_PREDICT);
 
-		if(m_Core.m_HookState != HOOK_IDLE && m_Core.m_HookState != HOOK_RETRACTED)
+		if(m_Core.m_HookState != HOOK_IDLE && m_Core.m_HookState != HOOK_RETRACTED && m_aUntranslatedId[EUntranslatedMap::ID_HOOK])
 		{
 			int StartTick = Server()->Tick() - 3;
-			GameServer()->SnapLaserObject(SnapContext, m_aUntranslatedId[EUntranslatedMap::ID_HOOK].value(), m_Core.m_HookPos, m_Pos, StartTick, -1, LASERTYPE_RIFLE);
+			GameServer()->SnapLaserObject(SnapContext, *m_aUntranslatedId[EUntranslatedMap::ID_HOOK], m_Core.m_HookPos, m_Pos, StartTick, -1, LASERTYPE_RIFLE);
 		}
 		return;
 	}
@@ -1666,7 +1668,7 @@ void CCharacter::Snap(int SnappingClient)
 	DDNetCharacter.m_TeleCheckpoint = m_TeleCheckpoint;
 
 	int StrongWeakId = m_StrongWeakId;
-	if(SnappingClientVersion < VERSION_DDNET_128_PLAYERS && SnappingClient >= 0 && GameServer()->m_apPlayers[SnappingClient])
+	if(!Server()->ClientSupportsServerMaxClients(SnappingClient) && SnappingClient >= 0 && GameServer()->m_apPlayers[SnappingClient])
 		StrongWeakId = GameServer()->m_apPlayers[SnappingClient]->m_aStrongWeakId[TranslatedId];
 	DDNetCharacter.m_StrongWeakId = StrongWeakId;
 

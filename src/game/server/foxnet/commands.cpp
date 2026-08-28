@@ -711,7 +711,9 @@ void CGameContext::ConSetPlayerSkin(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
-	str_copy(pPlayer->m_TeeInfos.m_aSkinName, pResult->GetString(1));
+	CTeeInfo TeeInfos = pPlayer->TeeInfos();
+	str_copy(TeeInfos.m_aSkinName, pResult->GetString(1));
+	pPlayer->SetTeeInfos(TeeInfos);
 	log_info("server", "changed player '%s's changed skin to '%s'", pSelf->Server()->ClientName(Victim), pResult->GetString(1));
 }
 
@@ -725,7 +727,9 @@ void CGameContext::ConSetPlayerCustomColor(IConsole::IResult *pResult, void *pUs
 	if(!pPlayer)
 		return;
 
-	pPlayer->m_TeeInfos.m_UseCustomColor = pResult->GetInteger(1);
+	CTeeInfo TeeInfos = pPlayer->TeeInfos();
+	TeeInfos.m_UseCustomColor = pResult->GetInteger(1);
+	pPlayer->SetTeeInfos(TeeInfos);
 	log_info("server", "changed player '%s's changed custom color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 
@@ -739,7 +743,9 @@ void CGameContext::ConSetPlayerColorBody(IConsole::IResult *pResult, void *pUser
 	if(!pPlayer)
 		return;
 
-	pPlayer->m_TeeInfos.m_ColorBody = pResult->GetInteger(1);
+	CTeeInfo TeeInfos = pPlayer->TeeInfos();
+	TeeInfos.m_ColorBody = pResult->GetInteger(1);
+	pPlayer->SetTeeInfos(TeeInfos);
 	log_info("server", "changed player '%s's changed body color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 
@@ -753,7 +759,9 @@ void CGameContext::ConSetPlayerColorFeet(IConsole::IResult *pResult, void *pUser
 	if(!pPlayer)
 		return;
 
-	pPlayer->m_TeeInfos.m_ColorFeet = pResult->GetInteger(1);
+	CTeeInfo TeeInfos = pPlayer->TeeInfos();
+	TeeInfos.m_ColorFeet = pResult->GetInteger(1);
+	pPlayer->SetTeeInfos(TeeInfos);
 	log_info("server", "changed player '%s's changed feet color to '%d'", pSelf->Server()->ClientName(Victim), pResult->GetInteger(1));
 }
 

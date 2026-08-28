@@ -9,6 +9,8 @@
 
 #include <engine/shared/protocol.h>
 
+#include <generated/protocol.h>
+
 #include <game/alloc.h>
 #include <game/server/save.h>
 
@@ -29,6 +31,7 @@ class CHeadItem;
 class CCharacter;
 class CGameContext;
 class IServer;
+struct CVoteOptionServer;
 struct CNetObj_PlayerInput;
 struct CScorePlayerResult;
 
@@ -291,7 +294,14 @@ public:
 	int m_LastWhisperTo;
 	int m_LastInvited;
 
-	CTeeInfo m_TeeInfos;
+	const CTeeInfo &TeeInfos() const { return m_TeeInfos; }
+	void SetTeeInfos(const CTeeInfo &TeeInfos);
+	// Sets the 0.6 tee infos, deriving the 0.7 skin parts from them unless the client is 0.7
+	void SetTeeInfos(const char *pSkinName, bool UseCustomColor, int ColorBody, int ColorFeet);
+	// The viewer-independent part of the snapped client info is cached and only rebuilt
+	// once the name, clan, country or tee infos have changed. Snap() copies it before
+	// applying FoxNet's per-viewer overrides.
+	void InvalidateClientInfo() { m_ClientInfoValid = false; }
 
 	int m_DieTick;
 	int m_PreviousDieTick;
@@ -311,6 +321,10 @@ public:
 	} m_Latency;
 
 private:
+	CTeeInfo m_TeeInfos;
+	CNetObj_ClientInfo m_ClientInfo = {};
+	bool m_ClientInfoValid = false;
+
 	const uint32_t m_UniqueClientId;
 	CCharacter *m_pCharacter;
 	int m_NumInputs;
@@ -318,18 +332,6 @@ private:
 
 	CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
-
-	/*
-	 * Snap() packs this player's name, clan and skin with StrToInts once for every
-	 * snapping client, even though the result depends only on the player. Cache the
-	 * packed form and rebuild it once per tick -- keying on the tick means a rename or
-	 * skin change can never be missed, with nothing to invalidate by hand.
-	 * Sizes are static_asserted against CNetObj_ClientInfo at the point of use.
-	 */
-	int m_SnapStringsTick = -1;
-	int m_aSnapName[4] = {};
-	int m_aSnapClan[3] = {};
-	int m_aSnapSkin[6] = {};
 
 	//
 	bool m_Spawning;

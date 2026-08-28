@@ -471,19 +471,12 @@ void CGameClient::OnUpdate()
 	}
 
 	// handle touch events
-	const std::vector<IInput::CTouchFingerState> &vTouchFingerStates = Input()->TouchFingerStates();
-	bool TouchHandled = false;
+	std::vector<IInput::CTouchFingerState> vTouchFingerStates = Input()->TouchFingerStates();
 	for(auto &pComponent : m_vpInput)
 	{
-		if(TouchHandled)
-		{
-			// Also update inactive components so they can handle touch fingers being released.
-			pComponent->OnTouchState({});
-		}
-		else if(pComponent->OnTouchState(vTouchFingerStates))
+		if(pComponent->OnTouchState(vTouchFingerStates))
 		{
 			Input()->ClearTouchDeltas();
-			TouchHandled = true;
 		}
 	}
 
@@ -935,6 +928,18 @@ bool CGameClient::IsTeamPlay() const
 	       (m_Snap.m_pGameInfoObj->m_GameFlags & GAMEFLAG_TEAMS) != 0;
 }
 
+int CGameClient::MinTeamSize() const
+{
+	// old servers only expose it if the map settings happen to contain it
+	return m_GameInfo.m_MinTeamSize != 0 ? m_GameInfo.m_MinTeamSize : Config()->m_SvMinTeamSize;
+}
+
+int CGameClient::MaxTeamSize() const
+{
+	// old servers only expose it if the map settings happen to contain it
+	return m_GameInfo.m_MaxTeamSize != 0 ? m_GameInfo.m_MaxTeamSize : Config()->m_SvMaxTeamSize;
+}
+
 bool CGameClient::IsWorldPaused() const
 {
 	return m_Snap.m_pGameInfoObj &&
@@ -1116,7 +1121,11 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 
 	if(Dummy)
 	{
-		if(MsgId == NETMSGTYPE_SV_CHAT && m_aLocalIds[0] >= 0 && m_aLocalIds[1] >= 0)
+		if(MsgId == NETMSGTYPE_SV_READYTOENTER)
+		{
+			Client()->EnterGame(Conn);
+		}
+		else if(MsgId == NETMSGTYPE_SV_CHAT && m_aLocalIds[0] >= 0 && m_aLocalIds[1] >= 0)
 		{
 			CNetMsg_Sv_Chat *pMsg = (CNetMsg_Sv_Chat *)pRawMsg;
 
@@ -1183,8 +1192,8 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 			}
 		}
 
-		if(i <= 16)
-			m_Teams.m_IsDDRace16 = true;
+		if(i <= VANILLA_MAX_CLIENTS)
+			m_Teams.m_NumDDRaceTeams = VANILLA_MAX_CLIENTS + 1;
 
 		m_Ghost.m_AllowRestart = true;
 		m_RaceDemo.m_AllowRestart = true;
@@ -1255,9 +1264,6 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 	else if(MsgId == NETMSGTYPE_SV_MAPSOUNDGLOBAL)
 	{
 		if(m_SuppressEvents)
-			return;
-
-		if(!g_Config.m_SndGame)
 			return;
 
 		CNetMsg_Sv_MapSoundGlobal *pMsg = (CNetMsg_Sv_MapSoundGlobal *)pRawMsg;
@@ -1514,9 +1520,6 @@ void CGameClient::ProcessEvents()
 		else if(Item.m_Type == NETEVENTTYPE_MAPSOUNDWORLD)
 		{
 			CNetEvent_MapSoundWorld *pEvent = (CNetEvent_MapSoundWorld *)Item.m_pData;
-			if(!Config()->m_SndGame)
-				continue;
-
 			m_MapSounds.PlayAt(CSounds::CHN_WORLD, pEvent->m_SoundId, vec2(pEvent->m_X, pEvent->m_Y));
 		}
 	}
@@ -1628,7 +1631,10 @@ static CGameInfo GetGameInfo(const CNetObj_GameInfoEx *pInfoEx, int InfoExSize, 
 	Info.m_NoSkinChangeForFrozen = false;
 	Info.m_DDRaceTeam = false;
 	Info.m_PredictEvents = Vanilla;
-	Info.m_Supports128Teams = false;
+	Info.m_MinTeamSize = 0;
+	Info.m_MaxTeamSize = 0;
+	Info.m_NumDDRaceTeams = 65; // `TEAM_SUPER + 1`, fallback for ddrace64 servers
+	Info.m_OldLaser = false;
 
 	if(Version >= 0)
 	{
@@ -1698,7 +1704,10 @@ static CGameInfo GetGameInfo(const CNetObj_GameInfoEx *pInfoEx, int InfoExSize, 
 	}
 	if(Version >= 12)
 	{
-		Info.m_Supports128Teams = Flags2 & GAMEINFOFLAG2_SUPPORTS_128_TEAMS;
+		Info.m_MinTeamSize = pInfoEx->m_MinTeamSize;
+		Info.m_MaxTeamSize = pInfoEx->m_MaxTeamSize;
+		Info.m_NumDDRaceTeams = pInfoEx->m_NumDDRaceTeams;
+		Info.m_OldLaser = Flags2 & GAMEINFOFLAG2_OLD_LASER;
 	}
 
 	return Info;
@@ -2120,7 +2129,7 @@ void CGameClient::OnNewSnapshot(bool DummySwapped)
 	}
 
 	// Sv_TeamsState can arrive before the first snapshot, so derive this here instead of in the message handler
-	m_Teams.m_IsDDRace64 = !m_GameInfo.m_Supports128Teams;
+	m_Teams.m_NumDDRaceTeams = m_GameInfo.m_NumDDRaceTeams;
 
 	for(CClientData &Client : m_aClients)
 	{
@@ -2246,9 +2255,12 @@ void CGameClient::OnNewSnapshot(bool DummySwapped)
 
 	if(ServerInfo.m_aGameType[0] != '0')
 	{
+		// Vanilla servers send laser_bounce_num 1, DDNet has laser_bounce_num 1000 since ~2014
+		CTuningParams VanillaTuning;
+		VanillaTuning.m_LaserBounceNum = 1;
 		if(str_comp(ServerInfo.m_aGameType, "DM") != 0 && str_comp(ServerInfo.m_aGameType, "TDM") != 0 && str_comp(ServerInfo.m_aGameType, "CTF") != 0)
 			m_ServerMode = SERVERMODE_MOD;
-		else if(mem_comp(&CTuningParams::DEFAULT, &m_aTuning[g_Config.m_ClDummy], 33) == 0)
+		else if(mem_comp(&VanillaTuning, &m_aTuning[g_Config.m_ClDummy], 33 * sizeof(CTuneParam)) == 0)
 			m_ServerMode = SERVERMODE_PURE;
 		else
 			m_ServerMode = SERVERMODE_PUREMOD;
@@ -3516,6 +3528,7 @@ void CGameClient::UpdatePrediction()
 	m_GameWorld.m_WorldConfig.m_BugDDRaceInput = m_GameInfo.m_BugDDRaceInput;
 	m_GameWorld.m_WorldConfig.m_NoWeakHookAndBounce = m_GameInfo.m_NoWeakHookAndBounce;
 	m_GameWorld.m_WorldConfig.m_PredictEvents = m_GameInfo.m_PredictEvents;
+	m_GameWorld.m_WorldConfig.m_OldLaser = m_GameInfo.m_OldLaser;
 
 	if(!m_Snap.m_pLocalCharacter)
 	{

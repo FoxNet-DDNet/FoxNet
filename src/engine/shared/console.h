@@ -34,6 +34,7 @@ class CConsole : public IConsole
 		const char *Name() const override { return m_pName; }
 		const char *Help() const override { return m_pHelp; }
 		const char *Params() const override { return m_pParams; }
+		bool TakesClientId() const override;
 		int Flags() const override { return m_Flags; }
 		EAccessLevel GetAccessLevel() const override { return m_AccessLevel; }
 		void SetAccessLevel(EAccessLevel AccessLevel);
@@ -133,13 +134,24 @@ class CConsole : public IConsole
 
 		// DDRace
 
-		char m_aSpecialVictim[16];
-		std::optional<int> m_VictimId;
+		class CVictim
+		{
+		public:
+			static constexpr unsigned MAX_VICTIM_LENGTH = 16;
+			// symbolic victim like "me" or "all", resolved to ids before the command callback runs
+			char m_aSpecialVictim[MAX_VICTIM_LENGTH] = "";
+			std::optional<int> m_Id;
+		};
+		std::vector<CVictim> m_vVictims;
+		void AddVictim(const char *pVictim);
+		void SetVictim(unsigned Slot, int Victim);
+		int GetVictim(unsigned Slot) const override;
+
+		// <FoxNet
 		void ResetVictim();
-		void SetVictim(int Victim);
-		void SetVictim(const char *pVictim);
 		bool HasVictim() const override;
 		int GetVictim() const override;
+		// FoxNet>
 	};
 
 	int ParseStart(CResult *pResult, const char *pString, int Length);
@@ -156,12 +168,12 @@ class CConsole : public IConsole
 	int ParseArgs(CResult *pResult, const char *pFormat);
 
 	/*
-	this function will set pFormat to the next parameter (i,s,r,v,?) it contains and
+	this function will set pFormat to the next parameter it contains and
 	return the parameter; descriptions in brackets like [file] will be skipped;
 	returns '\0' if there is no next parameter; expects pFormat to point at a
 	parameter
 	*/
-	char NextParam(const char *&pFormat);
+	static char NextParam(const char *&pFormat);
 
 	class CExecutionQueueEntry
 	{

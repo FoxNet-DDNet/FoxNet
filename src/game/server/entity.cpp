@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////
 // Entity
 //////////////////////////////////////////////////
-CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, bool SnapFreeId, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, bool RequestSnapId, vec2 Pos, int ProximityRadius)
 {
 	m_pGameWorld = pGameWorld;
 	m_MultiMapIndex = MultiMapIdx;
@@ -30,7 +30,7 @@ CEntity::CEntity(CGameWorld *pGameWorld, int MultiMapIdx, int ObjType, bool Snap
 	m_ProximityRadius = ProximityRadius;
 
 	m_MarkedForDestroy = false;
-	if(SnapFreeId)
+	if(RequestSnapId)
 		m_Id = Server()->SnapNewId();
 
 	m_pPrevTypeEntity = nullptr;
