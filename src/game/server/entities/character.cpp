@@ -1173,14 +1173,12 @@ void CCharacter::TickDeferred()
 		// <FoxNet
 		bool DDNetUpdate = m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0;
 		bool InstaUpdate = m_InSnake || m_Ufo.Active() || GetPlayer()->m_Spazzing || g_Config.m_SvInstantCoreUpdate;
-		if(DDNetUpdate || InstaUpdate || m_Core.m_ResendCore)
+		if(DDNetUpdate || InstaUpdate)
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;
 			m_ReckoningCore = m_Core;
 			m_Core.m_Reset = false;
-
-			m_Core.m_ResendCore = false;
 		}
 		// FoxNet>
 	}
@@ -3121,6 +3119,19 @@ void CCharacter::ForceSetPos(vec2 Pos)
 	m_Core.m_Pos = Pos;
 }
 
+// <FoxNet
+void CCharacter::ResettleCore()
+{
+	m_Core.Quantize();
+	m_Pos = m_Core.m_Pos;
+
+	m_ReckoningTick = Server()->Tick();
+	m_SendCore = m_Core;
+	m_ReckoningCore = m_Core;
+	m_Core.m_Reset = false;
+}
+// FoxNet>
+
 void CCharacter::ApplyMoveRestrictions()
 {
 	m_Core.m_Vel = ClampVel(m_MoveRestrictions, m_Core.m_Vel);
@@ -3549,7 +3560,7 @@ vec2 CCharacter::GetSpecialPos()
 
 	if(g_Config.m_SvTeeCursor)
 	{
-		m_Core.m_ResendCore = true;
+		m_Core.m_Reset = true;
 		Pos = GetCursorPos();
 	}
 

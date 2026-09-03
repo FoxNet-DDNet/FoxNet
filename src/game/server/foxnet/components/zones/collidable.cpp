@@ -203,7 +203,7 @@ bool CCollidableZone::SolidQuadPush(CEntity *pEnt)
 		if(pEnt->ObjectType() == CGameWorld::ENTTYPE_CHARACTER)
 		{
 			CCharacter *pChr = static_cast<CCharacter *>(pEnt);
-			pChr->SetResendCore(true);
+			pChr->ResetCore();
 
 			pChr->m_QuadCarryVel = BestWay * BestDistance;
 			pChr->m_QuadCarryTick = Server()->Tick();
@@ -333,7 +333,7 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 
 			if(!pChr)
 				return;
 
-			pChr->SetResendCore(true);
+			pChr->ResetCore();
 
 			if(g_Config.m_SvQStopaGivesDj && BestEdgeIdx >= 0)
 			{
@@ -350,6 +350,11 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 
 				if(IsFloorNormal && IsFlatEnough && PushedUp && WasFallingOrRest)
 					pChr->ResetJumps();
 			}
+
+			// Last, once nothing above will touch the core again: this runs after TickDeferred has
+			// quantized and taken the copy the snapshot is built from, so everything done here has
+			// to put both back, or the tick is sent without any of it
+			pChr->ResettleCore();
 		}
 	}
 }

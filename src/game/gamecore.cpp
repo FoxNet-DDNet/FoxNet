@@ -529,7 +529,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 
 	// <FoxNet
 	if(m_HookedQuadId >= 0)
-		m_ResendCore = true;
+		m_Reset = true;
 	// FoxNet>
 
 	if(DoDeferredTick)
@@ -643,7 +643,7 @@ void CCharacterCore::Move()
 		&Grounded);
 
 	if(HitQuad)
-		m_ResendCore = true;
+		m_Reset = true;
 
 	if(Grounded)
 	{

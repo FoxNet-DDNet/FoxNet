@@ -136,6 +136,10 @@ public:
 
 	// <FoxNet
 	void ForceSetPos(vec2 Pos) override;
+	// <FoxNet: redoes the two things TickDeferred does on its way out, for a position produced
+	// after it has already run, see CCollidableZone::CollidableImpl
+	void ResettleCore();
+	// FoxNet>
 	// FoxNet>
 
 	void ApplyMoveRestrictions();
@@ -388,7 +392,7 @@ public:
 
 	bool HasLineOfSight(vec2 Pos);
 
-	void SetResendCore(bool Resend) { m_Core.m_ResendCore = Resend; }
+	void ResetCore() { m_Core.m_Reset = true; }
 	bool m_InsideQuadFreeze = false;
 	/*
 	 * The speed of the solid quad carrying this character, and the tick it last did. Handed over
