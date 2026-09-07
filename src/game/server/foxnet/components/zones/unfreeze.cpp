@@ -8,8 +8,8 @@
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-
-void CUnfreezeZone::OnTick()
+ 
+void CUnfreezeZone::OnPostTick()
 {
 	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
 		return;

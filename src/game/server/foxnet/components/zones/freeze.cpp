@@ -9,43 +9,45 @@
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
-void CFreezeZone::OnTick()
+void CFreezeZone::OnPostTick()
 {
-	if(!GameServer()->GlobalTuning(MultiMapIndex())->m_MovingTiles)
-		return;
-
-	const int MapIdx = (int)MultiMapIndex();
+	const size_t MapIdx = MultiMapIndex();
 	const int MaxClients = Server()->MaxClients();
+	const bool MovingTiles = GameServer()->GlobalTuning(MapIdx)->m_MovingTiles;
 
-	for(const CQuadData &QuadData : Quads())
+	for(int ClientId = 0; ClientId < MaxClients; ClientId++)
 	{
-		for(int ClientId = 0; ClientId < MaxClients; ClientId++)
+		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
+		if(!pPlayer || !pPlayer->GetCharacter())
+			continue;
+		if(pPlayer->MultiMapIdx() != (int)MapIdx)
+			continue;
+		CCharacter *pChr = pPlayer->GetCharacter();
+
+		pChr->m_InsideQuadFreeze = false;
+
+		if(!MovingTiles)
+			continue;
+		if(!pChr->IsAlive())
+			continue;
+		if(pChr->Core()->m_IsInFreeze)
+			continue;
+		if(pChr->Core()->m_DeepFrozen)
+			continue;
+		if(pChr->Core()->m_LiveFrozen)
+			continue;
+
+		if(pChr->m_TileIndex == TILE_UNFREEZE || pChr->m_TileFIndex == TILE_UNFREEZE)
+			continue;
+
+		for(const CQuadData &QuadData : Quads())
 		{
-			CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
-			if(!pPlayer || !pPlayer->GetCharacter())
-				continue;
-			if(pPlayer->MultiMapIdx() != MapIdx)
-				continue;
-			CCharacter *pChr = pPlayer->GetCharacter();
-			pChr->m_InsideQuadFreeze = false;
-
-			if(!pChr->IsAlive())
-				continue;
-			if(pChr->Core()->m_IsInFreeze)
-				continue;
-			if(pChr->Core()->m_DeepFrozen)
-				continue;
-			if(pChr->Core()->m_LiveFrozen)
-				continue;
-
-			if(pChr->m_TileIndex == TILE_UNFREEZE || pChr->m_TileFIndex == TILE_UNFREEZE)
-				continue;
-
 			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
 				continue;
 
 			pChr->Freeze();
 			pChr->m_InsideQuadFreeze = true;
+			break;
 		}
 	}
 }

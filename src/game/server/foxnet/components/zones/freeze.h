@@ -15,7 +15,7 @@ class CFreezeZone : public CQuadZone
 public:
 	CFreezeZone(CGameContext *pGameContext, size_t MapIndex) :
 		CQuadZone(pGameContext, MapIndex) {}
-	void OnTick() override;
+	void OnPostTick() override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_FREEZE_H
