@@ -1231,9 +1231,12 @@ bool CGameContext::IsVetoEligible(int ClientId) const
 		return false;
 
 	const CCharacter *pCharacter = pPlayer->GetCharacter();
-	return (Server()->Tick() - pPlayer->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime ||
-	       (pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
-		       (Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime);
+	const bool LongRace = pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
+			      (Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime;
+	if(g_Config.m_SvVoteVetoRequireRace)
+		return LongRace;
+
+	return (Server()->Tick() - pPlayer->m_JoinTick) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime || LongRace;
 }
 
 void CGameContext::SendTuningParams(int ClientId, int Zone)
@@ -1485,7 +1488,8 @@ void CGameContext::OnTick()
 					else if(CurVote < 0)
 						No++;
 
-					// veto right for players who have been active on server for long and who're not afk
+					// veto right for players who are in a long race (or, unless sv_vote_veto_require_race is set,
+					// who have been active on server for long) and who're not afk
 					if(!IsKickVote() && !IsSpecVote() && g_Config.m_SvVoteVetoTime)
 					{
 						// look through all players with same IP again, including the current player

@@ -18,6 +18,7 @@ MACRO_CONFIG_INT(SvFoxNetType, sv_foxnet_type, 0, 0, 2, CFGFLAG_SERVER | CFGFLAG
 
 MACRO_CONFIG_INT(SvRandomMapVoteOnStart, sv_random_map_vote_on_start, 0, 0, 1, CFGFLAG_SERVER, "Call a random map vote on server startup")
 MACRO_CONFIG_INT(SvVoteSkipPrefix, sv_vote_skip_prefix, 1, 0, 1, CFGFLAG_SERVER, "Skips Prefixes for the vote message when calling a vote")
+MACRO_CONFIG_INT(SvVoteVetoRequireRace, sv_vote_veto_require_race, 1, 0, 1, CFGFLAG_SERVER, "Only grant veto rights for a long active race, ignoring time spent connected (see sv_vote_veto_time)")
 
 MACRO_CONFIG_INT(SvCustomVoteMenu, sv_custom_vote_menu, 1, 0, 1, CFGFLAG_SERVER, "Whether to use the custom vote menu or just show votes")
 
