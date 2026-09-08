@@ -4,10 +4,11 @@
 #include "zone.h"
 
 #include <game/gamecore.h>
+#include <game/quad_data.h>
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 
-class CQuadData;
+#include <vector>
 
 enum CollidableZoneType
 {
@@ -18,7 +19,10 @@ enum CollidableZoneType
 
 class CCollidableZone : public CQuadZone
 {
-	void CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 QuadMotion);
+	void CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 QuadMotion);
+
+	// Scratch for CollidableImpl's seam test, a member only to keep it off the per-push path
+	std::vector<const CQuadData *> m_vpNeighbours;
 
 	void HandleCharacters();
 	void HandlePickups();

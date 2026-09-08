@@ -15,6 +15,15 @@ class CQuad;
 
 namespace
 {
+	// Shoelace over the corners; positive means vec2(-E.y, E.x) points into the quad
+	float SignedArea(const vec2 aPoints[4])
+	{
+		float Area = 0.0f;
+		for(int i = 0, j = 3; i < 4; j = i++)
+			Area += aPoints[j].x * aPoints[i].y - aPoints[i].x * aPoints[j].y;
+		return Area * 0.5f;
+	}
+
 	struct SEnvelopeExtrema
 	{
 		bool m_Available = false;
@@ -110,6 +119,9 @@ void CQuadData::Init(CQuad *pQuad, IMap *pMap)
 	for(int i = 0; i < 5; i++)
 		m_aLocalPoints[i] = vec2(fx2f(pQuad->m_aPoints[i].x), fx2f(pQuad->m_aPoints[i].y));
 	std::swap(m_aLocalPoints[2], m_aLocalPoints[3]);
+	// A mirrored quad winds the other way, which flips the edge normals CCollidableZone pushes along
+	if(SignedArea(m_aLocalPoints) < 0.0f)
+		std::swap(m_aLocalPoints[1], m_aLocalPoints[3]);
 	for(int i = 0; i < 5; i++)
 		m_aPoints[i] = m_aLocalPoints[i];
 	m_Animated = pQuad->m_PosEnv >= 0;

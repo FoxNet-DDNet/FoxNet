@@ -123,7 +123,7 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 				pZone->Init(pTilemap);
 				m_avpZones[(int)EZoneType::StopA].push_back(pZone);
 			}
-			if(!str_comp("QHook", aLayerName))
+			else if(!str_comp("QHook", aLayerName))
 			{
 				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_HOOK);
 				pZone->Init(pTilemap);

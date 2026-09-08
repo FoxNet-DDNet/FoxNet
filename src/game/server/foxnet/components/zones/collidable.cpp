@@ -17,17 +17,24 @@
 #include <limits>
 #include <vector>
 
+// m_TuneZone is -1 until the entity has ticked once, see CPickupDrop::Tick
+static bool MovingTilesFor(CEntity *pEnt)
+{
+	return pEnt->GetTuning(std::max(0, pEnt->TuneZone()))->m_MovingTiles;
+}
+
 void CCollidableZone::Init(CMapItemLayerQuads *pQuadsLayer)
 {
 	int NumQuads = pQuadsLayer->m_NumQuads;
-	CQuad *pQuads = (CQuad *)GameServer()->Map(MultiMapIndex())->GetDataSwapped(pQuadsLayer->m_Data);
+	IMap *pMap = GameServer()->Map(MultiMapIndex());
+	CQuad *pQuads = (CQuad *)pMap->GetDataSwapped(pQuadsLayer->m_Data);
 	if(m_Type == COLLZONE_STOPA)
 	{
 		ReserveQuads(NumQuads);
 		for(int i = 0; i < NumQuads; i++)
 		{
 			CQuadData QuadData;
-			QuadData.Init(&pQuads[i]);
+			QuadData.Init(&pQuads[i], pMap);
 			AddQuad(QuadData);
 		}
 	}
@@ -40,7 +47,7 @@ void CCollidableZone::Init(CMapItemLayerQuads *pQuadsLayer)
 		for(int i = 0; i < NumQuads; i++)
 		{
 			CQuadData QuadData;
-			QuadData.Init(&pQuads[i]);
+			QuadData.Init(&pQuads[i], pMap);
 			Collision()->AddQuad(QuadData, TileType);
 		}
 	}
@@ -99,17 +106,6 @@ void CCollidableZone::HandleSolidQuads()
 			{
 				const vec2 QuadVel = pQuad->MotionAt(pChr->GetPos());
 
-				/*
-				 * Sideways only, because sideways is all that standing on a quad ever gave the
-				 * character: MoveBox carries it along the surface and no further, see
-				 * QuadStepDeltaAt, which drops the carry outright once the quad is moving
-				 * vertically at all. Handing the fall over as well makes a descending quad
-				 * sticky through the back door -- every time contact breaks, the character is
-				 * kicked down at the platform's own speed, which is the platform pulling it
-				 * along rather than gravity, and in lumps rather than smoothly. Nothing is lost
-				 * on the way up: a rising quad moves into whatever stands on it, so the push
-				 * handles that one and stores what it actually pushed.
-				 */
 				pChr->m_QuadCarryVel = vec2(QuadVel.x, 0.0f);
 				pChr->m_QuadCarryTick = Server()->Tick();
 				Carried = true;
@@ -127,7 +123,7 @@ void CCollidableZone::HandleSolidQuads()
 	{
 		if(pEnt->MultiMapIdx() != MapIdx)
 			continue;
-		if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
+		if(!MovingTilesFor(pEnt))
 			continue;
 
 		SolidQuadPush(pEnt);
@@ -215,13 +211,56 @@ bool CCollidableZone::SolidQuadPush(CEntity *pEnt)
 	return false;
 }
 
-void CCollidableZone::CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 QuadMotion)
+void CCollidableZone::CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 QuadMotion)
 {
 	const float Radius = pEnt->GetProximityRadius() * 0.55f;
 	const vec2 P = pEnt->GetPos();
 
-	const vec2 aA[4] = {aPoints[0], aPoints[1], aPoints[2], aPoints[3]};
-	const vec2 aB[4] = {aPoints[1], aPoints[2], aPoints[3], aPoints[0]};
+	const vec2 *pPoints = Quad.m_aPoints;
+	const vec2 aA[4] = {pPoints[0], pPoints[1], pPoints[2], pPoints[3]};
+	const vec2 aB[4] = {pPoints[1], pPoints[2], pPoints[3], pPoints[0]};
+
+	// Only a quad overlapping this one can hide one of its edges, and that is a handful of the layer
+	m_vpNeighbours.clear();
+	for(const CQuadData &Other : Quads())
+	{
+		if(&Other == &Quad)
+			continue;
+		if(Other.m_AabbMax.x < Quad.m_AabbMin.x || Other.m_AabbMin.x > Quad.m_AabbMax.x)
+			continue;
+		if(Other.m_AabbMax.y < Quad.m_AabbMin.y || Other.m_AabbMin.y > Quad.m_AabbMax.y)
+			continue;
+		m_vpNeighbours.push_back(&Other);
+	}
+
+	/*
+	 * An edge with solid quad on its far side is a seam inside the terrain, not a face to be
+	 * pushed out through: taking it ejects along the seam, which is how a tee ends up standing
+	 * on the join between two stacked quads instead of sliding down their shared outer wall.
+	 * Sampled a step outwards because the seam is the boundary of both quads and a point test on
+	 * a boundary answers either way, and at three places along the edge because a neighbour that
+	 * covers only part of it leaves the rest a real face.
+	 */
+	const auto SeamEdge = [&](const vec2 &A, const vec2 &B, const vec2 &Outward) {
+		if(m_vpNeighbours.empty())
+			return false;
+		for(int Sample = 1; Sample <= 3; Sample++)
+		{
+			const vec2 Point = mix(A, B, Sample * 0.25f) + Outward;
+			bool Covered = false;
+			for(const CQuadData *pOther : m_vpNeighbours)
+			{
+				if(InsideQuad(Point, *pOther))
+				{
+					Covered = true;
+					break;
+				}
+			}
+			if(!Covered)
+				return false;
+		}
+		return true;
+	};
 
 	float MinPenetration = std::numeric_limits<float>::infinity();
 	vec2 BestInwardNormal = vec2(0.0f, 0.0f);
@@ -236,6 +275,9 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const vec2 aPoints[4], vec2 
 			continue;
 
 		const vec2 N_in = normalize(vec2(-E.y, E.x));
+
+		if(SeamEdge(aA[i], aB[i], -N_in))
+			continue;
 
 		// Against the quad where it stands now, and the whole way out of it, see the note on the
 		// push below
@@ -387,8 +429,7 @@ void CCollidableZone::HandleCharacters()
 			if(!InsideQuad(Pos, QuadData, Size))
 				return;
 
-			const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-			CollidableImpl(pChr, Points, QuadMotion);
+			CollidableImpl(pChr, QuadData, QuadMotion);
 		};
 
 		for(const CQuadData &QuadData : Quads())
@@ -407,7 +448,7 @@ void CCollidableZone::HandlePickups()
 	{
 		if(pEnt->MultiMapIdx() != MapIdx)
 			continue;
-		if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
+		if(!MovingTilesFor(pEnt))
 			continue;
 
 		const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
@@ -419,8 +460,7 @@ void CCollidableZone::HandlePickups()
 			if(!InsideQuad(Pos, QuadData, Size))
 				return;
 
-			const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-			CollidableImpl(pEnt, Points, QuadMotion);
+			CollidableImpl(pEnt, QuadData, QuadMotion);
 		};
 
 		for(const CQuadData &QuadData : Quads())
