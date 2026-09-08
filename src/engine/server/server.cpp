@@ -5728,6 +5728,7 @@ void CServer::SendFoxnetInfo(int ClientId)
 {
 	CMsgPacker Msg(NETMSG_FOXNET_INFO, true);
 	Msg.AddInt(FOXNET_VERSION_NUMBER);
+	Msg.AddInt(FOXNET_MOVING_TILES_VERSION);
 	SendMsg(&Msg, MSGFLAG_VITAL, ClientId);
 }
 

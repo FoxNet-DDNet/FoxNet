@@ -24,4 +24,6 @@ extern const char *GIT_SHORTREV_HASH;
 // v16.3.1 = 16031, v8.6.4 = 8064
 #define FOXNET_VERSION_NUMBER 4000
 
+#define FOXNET_MOVING_TILES_VERSION 1
+
 #endif

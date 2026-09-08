@@ -378,14 +378,12 @@ void CCollidableZone::HandleCharacters()
 		if(!pChr || !pChr->IsAlive())
 			continue;
 
-		const vec2 Pos = pChr->GetPos();
 		const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
 
 		const auto TestQuad = [&](const CQuadData &QuadData) {
-			const vec2 QuadMotion = QuadData.MotionAt(pChr->GetPos());
+			const vec2 Pos = pChr->GetPos();
+			const vec2 QuadMotion = QuadData.MotionAt(Pos);
 
-			// The same reference CollidableImpl resolves against, or the filter and the push
-			// disagree about who is touching what
 			if(!InsideQuad(Pos, QuadData, Size))
 				return;
 
@@ -412,14 +410,12 @@ void CCollidableZone::HandlePickups()
 		if(!pEnt->GetTuning(pEnt->TuneZone())->m_MovingTiles)
 			continue;
 
-		const vec2 Pos = pEnt->GetPos();
 		const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
 
 		const auto TestQuad = [&](const CQuadData &QuadData) {
-			const vec2 QuadMotion = QuadData.MotionAt(pEnt->GetPos());
+			const vec2 Pos = pEnt->GetPos();
+			const vec2 QuadMotion = QuadData.MotionAt(Pos);
 
-			// The same reference CollidableImpl resolves against, or the filter and the push
-			// disagree about who is touching what
 			if(!InsideQuad(Pos, QuadData, Size))
 				return;
 
