@@ -1751,7 +1751,7 @@ void CCharacter::Snap(int SnappingClient)
 					DDNetCharacter.m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
 				DDNetCharacter.m_Flags &= ~CHARACTERFLAG_INVINCIBLE;
 			}
-			if(m_Ufo.Active())
+			if(m_Ufo.Active() && SnappingClient == GetPlayer()->GetCid())
 				DDNetCharacter.m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
 		}
 
