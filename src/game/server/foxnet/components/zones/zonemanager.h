@@ -20,6 +20,7 @@
 class CGameContext;
 class CQuad;
 class CMapItemLayerQuads;
+class CFinishTime;
 
 class CZoneManager : public CServerComponent
 {
@@ -100,11 +101,6 @@ public:
 	[[nodiscard]] IMinigame *MinigameOf(int ClientId) const;
 	[[nodiscard]] bool InMinigame(int ClientId) const { return MinigameOf(ClientId) != nullptr; }
 
-	/*
-	 * True when both clients are in the same minigame and it blanks race times, see CPlayer::Snap
-	 */
-	[[nodiscard]] bool HidesFinishTime(int ClientId, int SnappingClient) const;
-
 	int ShowOthers(CPlayer *pPlayer) override;
 	bool CanUseCommand(CPlayer *pPlayer, const char *pCommand) override;
 	bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) override;
@@ -116,7 +112,7 @@ public:
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
-	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) override;
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H

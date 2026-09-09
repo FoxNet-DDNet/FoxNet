@@ -20,6 +20,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/foxnet/entities/hidenseek_projectile.h>
 #include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
 #include <game/server/player.h>
 #include <game/teamscore.h>
 
@@ -279,7 +280,6 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 
 	const int HookedPlayer = pChr->Core()->HookedPlayer();
 	const bool InArea = IsInArea(ClientId);
-
 
 	if(HookedPlayer != -1)
 	{
@@ -1050,7 +1050,7 @@ bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 	return true;
 }
 
-void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore)
+void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime)
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return;
@@ -1063,16 +1063,20 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	CClientData &Data = m_aClientData[ClientId];
 	CClientData &SnapData = m_aClientData[SnappingClient];
 
-	*pScore = Data.m_NumWins;
+	const bool InArea = IsInArea(ClientId);
+	const bool SnapInArena = IsInArea(SnappingClient);
+	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer && SnapInArena)
+	{
+		*pFinishTime = IGameController::CFinishTime::Unset();
+		*pScore = Data.m_NumWins;
+	}
 
 	if(m_State != EState::Playing && m_State != EState::Finished)
 		return;
 
-	const bool InArea = IsInArea(ClientId);
-
 	if(!InArea)
 	{
-		if(ClientId != SnappingClient && IsCandidate(SnappingClient))
+		if(ClientId != SnappingClient && SnapInArena)
 			*pTeam = (int)TEAM_SPECTATORS;
 		return;
 	}

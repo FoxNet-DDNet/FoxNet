@@ -430,18 +430,6 @@ IMinigame *CZoneManager::MinigameOf(int ClientId) const
 	return nullptr;
 }
 
-bool CZoneManager::HidesFinishTime(int ClientId, int SnappingClient) const
-{
-	for(const IMinigame *pMinigame : m_vpMinigames)
-	{
-		if(!pMinigame->HidesFinishTime())
-			continue;
-		if(pMinigame->IsInArea(ClientId) && pMinigame->IsInArea(SnappingClient))
-			return true;
-	}
-	return false;
-}
-
 void CZoneManager::OnClientReset(int ClientId, size_t MultiMapIdx)
 {
 	for(IMinigame *pMinigame : m_vpMinigames)
@@ -567,11 +555,11 @@ bool CZoneManager::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId
 	return true;
 }
 
-void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore)
+void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime)
 {
 	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		pMinigame->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore);
+		pMinigame->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore, pFinishTime);
 	}
 }
 void CZoneManager::FreeQuadIds()

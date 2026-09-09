@@ -15,6 +15,30 @@
 
 struct CScoreLoadBestTimeResult;
 
+class CFinishTime
+{
+public:
+	CFinishTime(int Seconds, int Milliseconds) :
+		m_Seconds(Seconds), m_Milliseconds(Milliseconds)
+	{
+		dbg_assert(Seconds >= 0, "Invalid Seconds: %d", Seconds);
+		dbg_assert(Milliseconds >= 0 && Milliseconds < 1000, "Invalid Milliseconds: %d", Milliseconds);
+	}
+
+	int m_Seconds;
+	int m_Milliseconds;
+
+	static CFinishTime Unset() { return CFinishTime(FinishTime::UNSET); }
+	static CFinishTime NotFinished() { return CFinishTime(FinishTime::NOT_FINISHED_MILLIS); }
+
+private:
+	CFinishTime(int Type)
+	{
+		m_Seconds = Type;
+		m_Milliseconds = 0;
+	}
+};
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -156,29 +180,7 @@ public:
 	 */
 	virtual int SnapPlayerScore(int SnappingClient, CPlayer *pPlayer) { return 0; }
 
-	class CFinishTime
-	{
-	public:
-		CFinishTime(int Seconds, int Milliseconds) :
-			m_Seconds(Seconds), m_Milliseconds(Milliseconds)
-		{
-			dbg_assert(Seconds >= 0, "Invalid Seconds: %d", Seconds);
-			dbg_assert(Milliseconds >= 0 && Milliseconds < 1000, "Invalid Milliseconds: %d", Milliseconds);
-		}
-
-		int m_Seconds;
-		int m_Milliseconds;
-
-		static CFinishTime Unset() { return CFinishTime(FinishTime::UNSET); }
-		static CFinishTime NotFinished() { return CFinishTime(FinishTime::NOT_FINISHED_MILLIS); }
-
-	private:
-		CFinishTime(int Type)
-		{
-			m_Seconds = Type;
-			m_Milliseconds = 0;
-		}
-	};
+	using CFinishTime = ::CFinishTime;
 
 	/**
 	 * Returns the finish time value that will be shown in the scoreboard.

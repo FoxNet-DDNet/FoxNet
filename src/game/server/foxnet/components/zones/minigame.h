@@ -16,6 +16,7 @@
 
 class CPlayer;
 class CCharacter;
+class CFinishTime;
 
 /*
  * A stateful zone that owns the players standing inside it.
@@ -94,12 +95,6 @@ public:
 	[[nodiscard]] virtual const char *Motd() const { return ""; }
 
 	/*
-	 * Blanks the race finish time players of this minigame see on each other, for minigames that
-	 * repurpose the scoreboard
-	 */
-	[[nodiscard]] virtual bool HidesFinishTime() const { return false; }
-
-	/*
 	 * Snaps whatever the minigame draws itself, called once per snapping client on this map
 	 */
 	virtual void OnSnap(int SnappingClient) {}
@@ -138,7 +133,7 @@ public:
 	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
 	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
 
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) {}
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_MINIGAME_H

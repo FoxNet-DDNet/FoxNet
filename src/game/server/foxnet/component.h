@@ -15,6 +15,7 @@ class CPlayer;
 class CCharacter;
 class CAccountSession;
 class CMultiMaps;
+class CFinishTime;
 
 class CServerComponent
 {
@@ -48,8 +49,8 @@ public:
 	virtual void OnMapUnload(size_t MapIdx) {}
 
 	/*
-	* Called when the console initializes
-	*/
+	 * Called when the console initializes
+	 */
 	virtual void OnConsoleInit() {}
 	/*
 	 * Called after When the main map gets loaded
@@ -101,14 +102,14 @@ public:
 	// Minigame specific hooks
 	/*
 	 * Called when a player tries to spectate someone
-	 * 
+	 *
 	 * @param pPlayer the player that tries to spectate
 	 * @param pTarget the wanted spectate target
 	 */
 	virtual bool CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget) { return true; }
 	/*
 	 * Called when a character is snapped, return false to prevent it from being snapped for the client
-	 * 
+	 *
 	 * @param pChr the character that is being snapped
 	 * @param SnappingClient the client that is snapping this character
 	 */
@@ -123,7 +124,7 @@ public:
 	virtual void OnCharacterSpawn(int ClientId, vec2 Pos) {}
 	/*
 	 * Called when a character dies
-	*/
+	 */
 	virtual void OnCharacterDie(int ClientId, int Killer, int Weapon, bool SendKillMsg) {}
 	/*
 	 * Called when a character fires a weapon, return false to prevent firing the weapon
@@ -140,7 +141,7 @@ public:
 	/*
 	 * Used to override player snap data
 	 */
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) {}
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENT_H

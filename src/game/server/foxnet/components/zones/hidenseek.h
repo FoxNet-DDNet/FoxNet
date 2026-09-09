@@ -13,12 +13,16 @@
 #include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
 #include <game/server/player.h>
 
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
+
+class IGameController;
+class CFinishTime;
 
 class CHideAndSeekZone : public IMinigame
 {
@@ -152,7 +156,6 @@ public:
 	void OnPlayerEnter(int ClientId) override;
 	void OnPlayerLeave(int ClientId) override;
 	[[nodiscard]] const char *Motd() const override;
-	[[nodiscard]] bool HidesFinishTime() const override { return true; }
 
 	void OnClientDrop(int ClientId, const char *pReason) override;
 
@@ -168,7 +171,7 @@ public:
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
-	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore) override;
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime) override;
 
 	bool IsRoundRunning() const { return m_State == EState::Playing; }
 	// The only players a seekers bullet may ever touch

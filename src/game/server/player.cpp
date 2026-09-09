@@ -381,8 +381,10 @@ void CPlayer::Snap(int SnappingClient)
 	int Score = GameServer()->m_pController->SnapPlayerScore(SnappingClient, this);
 	int Team = m_Team;
 
+	IGameController::CFinishTime PlayerTime = GameServer()->m_pController->SnapPlayerTime(SnappingClient, this);
+
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
-		pComponent->OnPlayerSnap(this, SnappingClient, ClientInfo, &Team, &Latency, &Score);
+		pComponent->OnPlayerSnap(this, SnappingClient, ClientInfo, &Team, &Latency, &Score, &PlayerTime);
 
 	Server()->SnapNewItem(TranslatedId, ClientInfo);
 
@@ -513,13 +515,6 @@ void CPlayer::Snap(int SnappingClient)
 		DDNetPlayer.m_Flags |= EXPLAYERFLAG_SPEC;
 	if(m_Paused == PAUSE_PAUSED)
 		DDNetPlayer.m_Flags |= EXPLAYERFLAG_PAUSED;
-
-	IGameController::CFinishTime PlayerTime = GameServer()->m_pController->SnapPlayerTime(SnappingClient, this);
-	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer &&
-		GameServer()->m_ZoneManager.HidesFinishTime(GetCid(), SnappingClient))
-	{
-		PlayerTime = IGameController::CFinishTime::Unset();
-	}
 
 	DDNetPlayer.m_FinishTimeSeconds = PlayerTime.m_Seconds;
 	DDNetPlayer.m_FinishTimeMillis = PlayerTime.m_Milliseconds;
