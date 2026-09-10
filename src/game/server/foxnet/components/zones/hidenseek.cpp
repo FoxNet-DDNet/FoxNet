@@ -946,11 +946,11 @@ bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 		return true;
 
 	// Players outside of the area see the game like any other part of the map,
-	// players inside of it only get to see the players that share the area with them
+	// and players inside can always see players outside too
 	if(!IsInArea(SnappingClient))
 		return true;
 	if(!IsInArea(ClientId))
-		return false;
+		return true;
 
 	const CClientData &Data = m_aClientData[ClientId];
 	const CClientData &SnapData = m_aClientData[SnappingClient];
