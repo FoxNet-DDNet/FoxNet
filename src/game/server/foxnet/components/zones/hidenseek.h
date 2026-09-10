@@ -86,6 +86,9 @@ class CHideAndSeekZone : public IMinigame
 		int m_NumKills = 0;
 
 		int m_NumWins = 0;
+		// Rounds played as a candidate without being picked as seeker, used to weight the next pick
+		// towards them; not touched by Reset() so it survives across rounds like m_NumWins does
+		int m_RoundsSinceSeeker = 0;
 
 		void Reset()
 		{
@@ -135,6 +138,9 @@ class CHideAndSeekZone : public IMinigame
 	std::vector<int> m_vCandidateIds;
 	int UpdateCandidates();
 	bool IsCandidate(int ClientId) const;
+	// In the area and on TEAM_FLOCK; a player parked in a DDRace team inside the zone is
+	// treated as if they were outside of it entirely, same as UpdateCandidates() excludes them
+	bool IsEligible(int ClientId) const;
 	// True when another client on this map shares the entering player's ip
 	bool HasSameIpInArea(int ClientId) const;
 	void SendChatCandidates(const char *pMessage);

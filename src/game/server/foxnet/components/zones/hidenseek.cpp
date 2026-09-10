@@ -222,6 +222,7 @@ void CHideAndSeekZone::OnClientDrop(int ClientId, const char *pReason)
 	Data.Reset();
 	Data.m_MarkedAfk = false;
 	Data.m_NumWins = 0; // Reset wins, wins should get saved in foxnet_accounts_stats when implemented
+	Data.m_RoundsSinceSeeker = 0;
 
 	// The player is gone, don't keep them around until the list gets rebuilt
 	m_vCandidateIds.erase(std::remove(m_vCandidateIds.begin(), m_vCandidateIds.end(), ClientId), m_vCandidateIds.end());
@@ -229,7 +230,7 @@ void CHideAndSeekZone::OnClientDrop(int ClientId, const char *pReason)
 
 void CHideAndSeekZone::OnGameInfoSnap(int ClientId, CNetObj_GameInfo *pGameInfoObj, CNetObj_GameInfoEx *pGameInfoEx)
 {
-	if(!IsInArea(ClientId))
+	if(!IsEligible(ClientId))
 		return;
 
 	pGameInfoEx->m_Flags &= ~GAMEINFOFLAG_TIMESCORE;
@@ -279,18 +280,26 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 		return;
 
 	const int HookedPlayer = pChr->Core()->HookedPlayer();
-	const bool InArea = IsInArea(ClientId);
+	const bool InArea = IsEligible(ClientId);
 
 	if(HookedPlayer != -1)
 	{
-		const bool HookedPlayerInArea = IsInArea(HookedPlayer);
+		const bool HookedPlayerInArea = IsEligible(HookedPlayer);
 		if((InArea && !HookedPlayerInArea) || (!InArea && HookedPlayerInArea))
 			pChr->ReleaseHook();
 	}
 
-	// Nothing below here may touch players that arent inside the area, CZoneManager owns that decision
+	// Nothing below here may touch players that arent inside the area (or arent on TEAM_FLOCK),
+	// CZoneManager owns that decision
 	if(!InArea)
+	{
+		// Switching to a DDRace team doesn't move the player out of the quad, so CZoneManager's
+		// membership pass never sees it and never calls OnPlayerLeave for them; without this they
+		// would keep m_ActiveInRound set and get their loadout forced back on them at EndGame()
+		if(m_aClientData[ClientId].m_ActiveInRound || m_aClientData[ClientId].m_Held)
+			OnPlayerLeave(ClientId);
 		return;
+	}
 
 	CClientData &Data = m_aClientData[ClientId];
 
@@ -321,7 +330,7 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 
 	if(!Data.m_Alive && (m_State == EState::Playing || m_State == EState::Finished))
 	{
-		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_HAMMER))
+		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_GUN))
 		{
 			SetLoadout(pChr, true);
 		}
@@ -514,8 +523,6 @@ void CHideAndSeekZone::StartGame()
 		return;
 	}
 
-	// Nobody carries the flag in from an earlier round: a player who stopped being a candidate before
-	// the last EndGame never reached its Data.Reset(), so only the players set up below are in this one
 	for(CClientData &ClientData : m_aClientData)
 		ClientData.m_ActiveInRound = false;
 
@@ -541,11 +548,24 @@ void CHideAndSeekZone::StartGame()
 	const int DesiredSeekers = std::min(NumCandidates, std::max(1, (NumCandidates + 3) / 4));
 
 	std::vector<int> vCandidateIds = m_vCandidateIds;
-
-	std::shuffle(vCandidateIds.begin(), vCandidateIds.end(), Rng());
+	std::vector<double> vWeights(vCandidateIds.size());
+	for(size_t i = 0; i < vCandidateIds.size(); i++)
+		vWeights[i] = 1.0 + m_aClientData[vCandidateIds[i]].m_RoundsSinceSeeker;
 
 	for(int i = 0; i < DesiredSeekers; i++)
-		m_aClientData[vCandidateIds[i]].m_IsSeeker = true;
+	{
+		std::discrete_distribution<size_t> Dist(vWeights.begin(), vWeights.end());
+		size_t Idx = Dist(Rng());
+		m_aClientData[vCandidateIds[Idx]].m_IsSeeker = true;
+		vCandidateIds.erase(vCandidateIds.begin() + Idx);
+		vWeights.erase(vWeights.begin() + Idx);
+	}
+
+	for(int ClientId : m_vCandidateIds)
+	{
+		CClientData &Data = m_aClientData[ClientId];
+		Data.m_RoundsSinceSeeker = Data.m_IsSeeker ? 0 : Data.m_RoundsSinceSeeker + 1;
+	}
 
 	const int NumSeekers = DesiredSeekers;
 	const int NumHiders = NumCandidates - NumSeekers;
@@ -607,7 +627,7 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 	int NumHiders = 0;
 	char aHiderName[MAX_NAME_LENGTH] = "";
 	char aSeekerName[MAX_NAME_LENGTH] = "";
-	for(int ClientId : m_vCandidateIds)
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		if(!m_aClientData[ClientId].m_ActiveInRound)
 			continue;
@@ -624,9 +644,14 @@ void CHideAndSeekZone::EndGame(EWinState WinState)
 		}
 	}
 
-	for(int ClientId : m_vCandidateIds)
+	// Everyone that was active in this round, not just today's m_vCandidateIds: going afk (or,
+	// for a seeker, being replaced for it) drops a player out of the candidate list mid-round,
+	// and they still need their loadout and state cleaned up here like everyone else
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		CClientData &Data = m_aClientData[ClientId];
+		if(!Data.m_ActiveInRound)
+			continue;
 
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(!pPlayer)
@@ -872,7 +897,7 @@ int CHideAndSeekZone::ShowOthers(CPlayer *pPlayer)
 {
 	if(m_State != EState::Playing)
 		return -1;
-	if(!IsInArea(pPlayer->GetCid()))
+	if(!IsEligible(pPlayer->GetCid()))
 		return -1;
 
 	// Players that arent part of the running round are solo, they would see nothing at all with only team
@@ -886,7 +911,7 @@ bool CHideAndSeekZone::CanUseCommand(CPlayer *pPlayer, const char *pCommand)
 {
 	if(m_State != EState::Playing)
 		return true;
-	if(!IsInArea(pPlayer->GetCid()))
+	if(!IsEligible(pPlayer->GetCid()))
 		return true;
 
 	if(str_startswith_nocase(pCommand, "team") || str_startswith_nocase(pCommand, "spec"))
@@ -911,12 +936,12 @@ bool CHideAndSeekZone::CanSpectateId(CPlayer *pPlayer, CPlayer *pTarget)
 		return true;
 	if(!pPlayer || !pTarget)
 		return true;
-	if(!IsInArea(pPlayer->GetCid()))
+	if(!IsEligible(pPlayer->GetCid()))
 		return true;
 
 	const CClientData &Data = m_aClientData[pPlayer->GetCid()];
 	const bool PlayerIsAliveSeeker = Data.m_IsSeeker && Data.m_Alive;
-	if(PlayerIsAliveSeeker && !m_aClientData[pTarget->GetCid()].m_IsSeeker)
+	if(PlayerIsAliveSeeker && IsEligible(pTarget->GetCid()) && !m_aClientData[pTarget->GetCid()].m_IsSeeker)
 	{
 		pPlayer->SendChat("You can't spectate hiders!");
 		return false; // Don't allow spectators to spectate hiders, they might be invisible
@@ -945,11 +970,11 @@ bool CHideAndSeekZone::CanSnapCharacter(CCharacter *pChr, int SnappingClient)
 	if(!pSnapPlayer)
 		return true;
 
-	// Players outside of the area see the game like any other part of the map,
-	// and players inside can always see players outside too
-	if(!IsInArea(SnappingClient))
+	// Players outside of the area (or on a DDRace team, same as not being a candidate) see the
+	// game like any other part of the map, and players inside can always see players outside too
+	if(!IsEligible(SnappingClient))
 		return true;
-	if(!IsInArea(ClientId))
+	if(!IsEligible(ClientId))
 		return true;
 
 	const CClientData &Data = m_aClientData[ClientId];
@@ -986,7 +1011,7 @@ bool CHideAndSeekZone::CanDropWeapon(CCharacter *pChr, int Weapon)
 {
 	if(!pChr || !pChr->GetPlayer())
 		return true;
-	if(IsInArea(pChr->GetPlayer()->GetCid()))
+	if(IsEligible(pChr->GetPlayer()->GetCid()))
 		return false;
 	return true;
 }
@@ -1063,8 +1088,8 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	CClientData &Data = m_aClientData[ClientId];
 	CClientData &SnapData = m_aClientData[SnappingClient];
 
-	const bool InArea = IsInArea(ClientId);
-	const bool SnapInArena = IsInArea(SnappingClient);
+	const bool InArea = IsEligible(ClientId);
+	const bool SnapInArena = IsEligible(SnappingClient);
 	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer && SnapInArena)
 	{
 		*pFinishTime = IGameController::CFinishTime::Unset();
@@ -1368,6 +1393,15 @@ bool CHideAndSeekZone::IsCandidate(int ClientId) const
 	return std::find(m_vCandidateIds.begin(), m_vCandidateIds.end(), ClientId) != m_vCandidateIds.end();
 }
 
+bool CHideAndSeekZone::IsEligible(int ClientId) const
+{
+	if(!IsInArea(ClientId))
+		return false;
+
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	return pChr && pChr->Team() == TEAM_FLOCK;
+}
+
 bool CHideAndSeekZone::IsAliveHider(int ClientId) const
 {
 	if(m_State != EState::Playing)
@@ -1379,7 +1413,7 @@ bool CHideAndSeekZone::IsAliveHider(int ClientId) const
 	if(!Data.m_Alive || Data.m_IsSeeker)
 		return false;
 
-	return IsInArea(ClientId);
+	return IsEligible(ClientId);
 }
 
 vec2 CHideAndSeekZone::GetRandomSpawnPos()
