@@ -1356,7 +1356,7 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int64_t Amount = pResult->GetInteger(0);
+	const int64_t Amount = pResult->GetInteger64(0);
 	const int64_t Money = pPlayer->Acc()->m_Money;
 	if(Amount > Money)
 	{
@@ -1891,7 +1891,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Remove all records a name has");
 
 	// Casino/Multi-Map related
-	Console()->Register("bet", "i[amount]", CFGFLAG_CHAT, ConSetBet, this, "place a bet on the roulette");
+	Console()->Register("bet", "l[amount]", CFGFLAG_CHAT, ConSetBet, this, "set your wager in a gambling zone");
 	Console()->Register("next_roulette_tile", "?v[id]", CFGFLAG_SERVER, ConNextRouletteTile, this, "Reveal the next roulette tile on the given player's map (defaults to your own)");
 	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
 	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");

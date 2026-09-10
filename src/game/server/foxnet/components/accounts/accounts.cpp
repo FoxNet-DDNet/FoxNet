@@ -233,7 +233,7 @@ void CAccounts::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int Amount = pResult->GetInteger(1);
+	const int Amount = pResult->GetInteger64(1);
 	pPlayer->PayMoney(pVictim, Amount);
 }
 
@@ -255,7 +255,7 @@ void CAccounts::ConGiveMoney(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = pResult->GetInteger(1);
+	const int64_t Amount = pResult->GetInteger64(1);
 	pPlayer->GiveMoney(Amount, false);
 	log_info("account", "Gave %" PRId64 " Money to player %s", Amount, pSelf->Server()->ClientName(ClientId));
 }
@@ -276,7 +276,7 @@ void CAccounts::ConSetMoney(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Money = std::max<int64_t>(0, pResult->GetInteger(1));
+	const int64_t Money = std::max<int64_t>(0, pResult->GetInteger64(1));
 	pAcc->m_Money = Money;
 	pSelf->SaveAccountsInfo(ClientId, *pAcc);
 	log_info("account", "Set money to %" PRId64 " for player %s", Money, pSelf->Server()->ClientName(ClientId));
@@ -298,7 +298,7 @@ void CAccounts::ConGiveXp(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = pResult->GetInteger(1);
+	const int64_t Amount = pResult->GetInteger64(1);
 	pPlayer->GiveXP(Amount, "", false);
 	log_info("account", "Gave %" PRId64 " Xp to player %s", Amount, pSelf->Server()->ClientName(ClientId));
 }
@@ -319,7 +319,7 @@ void CAccounts::ConSetXp(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger64(1));
 	pAcc->m_XP = Amount;
 	pSelf->SaveAccountsInfo(ClientId, *pAcc);
 	log_info("account", "Set xp to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
@@ -341,7 +341,7 @@ void CAccounts::ConGivePlaytime(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = pResult->GetInteger(1);
+	const int64_t Amount = pResult->GetInteger64(1);
 
 	pPlayer->GivePlaytime(Amount);
 
@@ -364,7 +364,7 @@ void CAccounts::ConSetPlaytime(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger64(1));
 	pAcc->m_Playtime = Amount;
 	pSelf->SaveAccountsInfo(ClientId, *pAcc);
 	log_info("account", "Set playtime to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
@@ -386,7 +386,7 @@ void CAccounts::ConSetLevel(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger64(1));
 	pAcc->m_Level = Amount;
 	pSelf->SaveAccountsInfo(ClientId, *pAcc);
 	log_info("account", "Set level to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
@@ -408,7 +408,7 @@ void CAccounts::ConSetDeaths(IConsole::IResult *pResult, void *pUserData)
 	if(!pAcc->m_LoggedIn)
 		return;
 
-	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger(1));
+	const int64_t Amount = std::max<int64_t>(0, pResult->GetInteger64(1));
 	pAcc->m_Deaths = Amount;
 	pSelf->SaveAccountsInfo(ClientId, *pAcc);
 	log_info("account", "Set deaths to %" PRId64 " for player %s", Amount, pSelf->Server()->ClientName(ClientId));
@@ -1750,19 +1750,19 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("logout", "", CFGFLAG_CHAT, ConLogout, this, "Logout of your account");
 	Console()->Register("profile", "?r[name]", CFGFLAG_CHAT, ConProfile, this, "Show someones profile");
 
-	Console()->Register("give_money", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
-	Console()->Register("set_money", "v[id] i[money]", CFGFLAG_SERVER, ConSetMoney, this, "Set player' (id) money");
+	Console()->Register("give_money", "v[id] l[amount]", CFGFLAG_SERVER, ConGiveMoney, this, "Give player (id) money");
+	Console()->Register("set_money", "v[id] l[money]", CFGFLAG_SERVER, ConSetMoney, this, "Set player' (id) money");
 
-	Console()->Register("give_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
-	Console()->Register("set_xp", "v[id] i[amount]", CFGFLAG_SERVER, ConSetXp, this, "Set player' (id) xp");
+	Console()->Register("give_xp", "v[id] l[amount]", CFGFLAG_SERVER, ConGiveXp, this, "Give player (id) xp");
+	Console()->Register("set_xp", "v[id] l[amount]", CFGFLAG_SERVER, ConSetXp, this, "Set player' (id) xp");
 
-	Console()->Register("give_playtime", "v[id] i[amount]", CFGFLAG_SERVER, ConGivePlaytime, this, "Give player (id) playtime");
-	Console()->Register("set_playtime", "v[id] i[amount]", CFGFLAG_SERVER, ConSetPlaytime, this, "Set player' (id) playtime");
+	Console()->Register("give_playtime", "v[id] l[amount]", CFGFLAG_SERVER, ConGivePlaytime, this, "Give player (id) playtime");
+	Console()->Register("set_playtime", "v[id] l[amount]", CFGFLAG_SERVER, ConSetPlaytime, this, "Set player' (id) playtime");
 
-	Console()->Register("set_level", "v[id] i[amount]", CFGFLAG_SERVER, ConSetLevel, this, "Set player' (id) level");
-	Console()->Register("set_deaths", "v[id] i[amount]", CFGFLAG_SERVER, ConSetDeaths, this, "Set player' (id) deaths");
+	Console()->Register("set_level", "v[id] l[amount]", CFGFLAG_SERVER, ConSetLevel, this, "Set player' (id) level");
+	Console()->Register("set_deaths", "v[id] l[amount]", CFGFLAG_SERVER, ConSetDeaths, this, "Set player' (id) deaths");
 
-	// Console()->Register("pay", "s[player] i[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
+	// Console()->Register("pay", "s[player] l[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
 
 	Console()->Register("top5money", "?i[offset]", CFGFLAG_CHAT, ConTop5Money, this, "Show someones profile");
 	Console()->Register("top5level", "?i[offset]", CFGFLAG_CHAT, ConTop5Level, this, "Show someones profile");
