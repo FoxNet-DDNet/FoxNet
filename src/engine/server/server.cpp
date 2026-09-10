@@ -3522,9 +3522,7 @@ void CServer::UpdateDebugDummies(bool ForceDisconnect)
 			Client.m_DDNetVersion = DDNET_VERSION_NUMBER;
 			Client.m_GotDDNetVersionPacket = true;
 			Client.m_DDNetVersionSettled = true;
-			char aDummyName[MAX_NAME_LENGTH];
-			str_format(aDummyName, sizeof(aDummyName), "Debug dummy %d", DummyIndex + 1);
-			SetClientName(ClientId, aDummyName);
+			SetClientName(ClientId, "Dummy");
 			GameServer()->OnClientEnter(ClientId);
 		}
 		else if(!AddDummy && Client.m_DebugDummy)
