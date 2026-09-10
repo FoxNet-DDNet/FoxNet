@@ -42,4 +42,6 @@ std::mt19937 &Rng();
 
 const char *FormatServerInsntance(const char *pPrefix);
 
+std::optional<int64_t> ParseMoneyValue(const char *pStr);
+
 #endif

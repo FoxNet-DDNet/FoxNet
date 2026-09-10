@@ -523,4 +523,23 @@ const char *FormatServerInsntance(const char *pPrefix)
 		str_copy(aBuf, "", sizeof(aBuf));
 	return aBuf;
 }
+
+std::optional<int64_t> ParseMoneyValue(const char *pStr)
+{
+	size_t Idx = 0;
+	double value = std::stod(pStr, &Idx);
+	const int Length = str_length(pStr);
+	if(Idx < Length)
+	{
+		char suffix = std::tolower(pStr[Idx]);
+		if(suffix == 'k')
+			value *= 1e3;
+		else if(suffix == 'm')
+			value *= 1e6;
+		else if(suffix == 'b')
+			value *= 1e9;
+	}
+	return static_cast<int64_t>(value);
+}
+
 // FoxNet>

@@ -1356,25 +1356,45 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int64_t Amount = pResult->GetInteger64(0);
+	const char *pStr = pResult->GetString(0);
 	const int64_t Money = pPlayer->Acc()->m_Money;
-	if(Amount > Money)
+	std::optional<int64_t> Amount;
+
+	if(!str_comp_nocase(pStr, "a") || !str_comp_nocase(pStr, "all"))
+		Amount = Money;
+	else if(!str_comp_nocase(pStr, "h") || !str_comp_nocase(pStr, "half"))
+		Amount = Money * 0.5f;
+	else if(!str_comp_nocase(pStr, "t") || !str_comp_nocase(pStr, "third"))
+		Amount = Money * 0.333f;
+	else if(!str_comp_nocase(pStr, "q") || !str_comp_nocase(pStr, "quarter"))
+		Amount = Money * 0.25f;
+	else
+		Amount = ParseMoneyValue(pStr);
+
+
+	if(!Amount.has_value())
+	{
+		pPlayer->SendChat("You need to write a valid amount.");
+		return;
+	}
+
+	if(Amount.value() > Money)
 	{
 		pPlayer->SendChat("You don't have enough money to place that bet");
 		return;
 	}
 
-	if(Amount <= 0)
+	if(Amount.value() <= 0)
 		return;
-	if(pPlayer->m_Wager == Amount)
+	if(pPlayer->m_Wager == Amount.value())
 		return;
 
 	if(pPlayer->m_Wager <= 0)
-		pPlayer->SendChatFmt("You wagered %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
+		pPlayer->SendChatFmt("You wagered %" PRId64 "%s", Amount.value(), g_Config.m_SvCurrencyName);
 	else
-		pPlayer->SendChatFmt("You changed your wager to %" PRId64 "%s", Amount, g_Config.m_SvCurrencyName);
+		pPlayer->SendChatFmt("You changed your wager to %" PRId64 "%s", Amount.value(), g_Config.m_SvCurrencyName);
 
-	pPlayer->m_Wager = Amount;
+	pPlayer->m_Wager = Amount.value();
 }
 
 void CGameContext::ConNextRouletteTile(IConsole::IResult *pResult, void *pUserData)
@@ -1891,7 +1911,7 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Remove all records a name has");
 
 	// Casino/Multi-Map related
-	Console()->Register("bet", "l[amount]", CFGFLAG_CHAT, ConSetBet, this, "set your wager in a gambling zone");
+	Console()->Register("bet", "r[amount]", CFGFLAG_CHAT, ConSetBet, this, "set your wager in a gambling zone");
 	Console()->Register("next_roulette_tile", "?v[id]", CFGFLAG_SERVER, ConNextRouletteTile, this, "Reveal the next roulette tile on the given player's map (defaults to your own)");
 	Console()->Register("casino", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConCasino, this, "Send players (id) to the casino map (if loaded)");
 	Console()->Register("leave", "?v[id]", CFGFLAG_CHAT | CMDFLAG_CONDITIONAL, ConMainMap, this, "leave to the main map");
