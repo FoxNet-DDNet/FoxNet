@@ -471,14 +471,11 @@ void CRouletteZone::SendBroadcast(int ClientId)
 		str_format(aBuf, sizeof(aBuf), "%" PRId64 "%s", pPlayer->Acc()->m_Money, g_Config.m_SvCurrencyName);
 		Messages.push_back(aBuf);
 
-		if(m_Spin.Idle())
-		{
-			if(pPlayer->m_Wager <= 0)
-				str_copy(aBuf, "Wager: Nothing");
-			else
-				str_format(aBuf, sizeof(aBuf), "Wager: %" PRId64, pPlayer->m_Wager);
-			Messages.push_back(aBuf);
-		}
+		if(pPlayer->m_Wager <= 0)
+			str_copy(aBuf, "Wager: Nothing");
+		else
+			str_format(aBuf, sizeof(aBuf), "Wager: %" PRId64, pPlayer->m_Wager);
+		Messages.push_back(aBuf);
 	}
 
 	if(!m_Spin.Idle() || m_StartDelay >= 0)
