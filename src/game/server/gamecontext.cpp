@@ -1823,7 +1823,7 @@ void CGameContext::OnClientEnter(int ClientId)
 	{
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptPlayerConnect, ClientId);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 
 	if(NameDetection(ClientId, Server()->ClientName(ClientId)))
@@ -2016,7 +2016,7 @@ void CGameContext::OnClientDrop(int ClientId, const char *pReason)
 	{
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptPlayerDisconnect, ClientId);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnClientDrop(ClientId, pReason);
@@ -3625,6 +3625,13 @@ static bool ApplyRandomMapSize(const char *pSizeToken, char *pSize, int SizeBuff
 {
 	if(pSizeToken == nullptr || pSizeToken[0] == '\0' || str_comp(pSizeToken, "-") == 0)
 		return true;
+	// Reject anything that isn't plain alphanumeric so a size token can't smuggle
+	// console control characters (';', '#', ...) into the reconstructed vote command
+	for(const char *p = pSizeToken; *p; p++)
+	{
+		if(!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9')))
+			return false;
+	}
 	if(pSize[0] != '\0' && str_comp_nocase(pSize, pSizeToken) != 0)
 		return false;
 
@@ -3686,7 +3693,11 @@ static bool ParseRandomMapReason(const char *pReason, int *pMinStars, int *pMaxS
 	if(pReason == nullptr || pReason[0] == '\0')
 		return true;
 
-	char aReason[32];
+	// The whole reason has to be validated, not just a truncated prefix: the caller appends the
+	// raw reason to the vote command, so any unvalidated tail would run verbatim on vote pass.
+	char aReason[VOTE_CMD_LENGTH];
+	if(str_length(pReason) >= (int)sizeof(aReason))
+		return false;
 	str_copy(aReason, pReason, sizeof(aReason));
 
 	char *pTokenStart = nullptr;
@@ -3733,8 +3744,15 @@ static bool BuildRandomMapVoteCommand(const char *pBaseCommand, const char *pRea
 		return true;
 	}
 
-	if(MinStars != -1 || aSize[0] != '\0')
-		str_format(pCommand, CommandSize, "%s %s", pBaseCommand, pReason);
+	// Rebuild the command from the validated values instead of echoing the raw reason (which is
+	// what upstream does with "%d" stars): MinStars/MaxStars are integers and aSize is guaranteed
+	// alphanumeric, so nothing client-controlled reaches the executed command verbatim.
+	if(MinStars != -1 && aSize[0] != '\0')
+		str_format(pCommand, CommandSize, "%s %d-%d %s", pBaseCommand, MinStars, MaxStars, aSize);
+	else if(MinStars != -1)
+		str_format(pCommand, CommandSize, "%s %d-%d", pBaseCommand, MinStars, MaxStars);
+	else if(aSize[0] != '\0')
+		str_format(pCommand, CommandSize, "%s %s", pBaseCommand, aSize);
 	else
 		str_copy(pCommand, pBaseCommand, CommandSize);
 
@@ -5190,7 +5208,7 @@ void CGameContext::OnShutdown(void *pPersistentData)
 		{
 			char aScriptingBuf[256];
 			str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s", g_Config.m_SvScriptShutdown);
-			Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+			Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 		}
 	}
 	// FoxNet>

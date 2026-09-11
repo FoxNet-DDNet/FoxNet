@@ -216,7 +216,7 @@ void CGameContext::MuteWithMessage(const NETADDR *pAddr, int Seconds, const char
 
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerMutes, aScriptArgs);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 
 	char aChatMessage[256];
@@ -248,7 +248,7 @@ void CGameContext::VoteMuteWithMessage(const NETADDR *pAddr, int Seconds, const 
 
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerMutes, aScriptArgs);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 
 	char aChatMessage[256];

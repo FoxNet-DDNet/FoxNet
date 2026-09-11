@@ -656,7 +656,7 @@ void CServer::Kick(int ClientId, const char *pReason)
 
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %s", g_Config.m_SvScriptPlayerKicks, aScriptArgs);
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 	// FoxNet>
 }
@@ -3665,7 +3665,7 @@ int CServer::Run()
 	{
 		char aScriptingBuf[256];
 		str_format(aScriptingBuf, sizeof(aScriptingBuf), "chai %s %d", g_Config.m_SvScriptStartup, this->Port());
-		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED);
+		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 	// FoxNet>
 
