@@ -155,10 +155,14 @@ void CQuadData::Init(CQuad *pQuad, IMap *pMap)
 
 void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 {
-	auto GetAnimationTransform = [&](vec2 &Position, float &Angle) {
+	auto GetAnimationTransform = [&](vec2 &Position, float &Angle, double &Millis, int &PointIndex, bool &SegmentJumpsAtEnd, bool &LoopJumps) {
 		Position.x = 0.0f;
 		Position.y = 0.0f;
 		Angle = 0.0f;
+		Millis = -1.0;
+		PointIndex = -1;
+		SegmentJumpsAtEnd = false;
+		LoopJumps = false;
 
 		const int Env = m_pQuad->m_PosEnv;
 		const double Offset = m_pQuad->m_PosEnvOffset / 1000.0;
@@ -201,8 +205,17 @@ void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 		else
 			GlobalMillis = 0.0; // degenerate envelope
 
+		Millis = GlobalMillis;
+
+		// Running off the end and back to the start only moves the quad if the two ends differ
+		const CEnvPoint *pFirstPoint = EnvelopePoints.GetPoint(0);
+		LoopJumps = pFirstPoint->m_aValues[0] != pLastPoint->m_aValues[0] ||
+			    pFirstPoint->m_aValues[1] != pLastPoint->m_aValues[1] ||
+			    pFirstPoint->m_aValues[2] != pLastPoint->m_aValues[2];
+
 		// Locate current segment
 		int FoundIndex = EnvelopePoints.FindPointIndex(CFixedTime(GlobalMillis));
+		PointIndex = FoundIndex == -1 ? NumPoints - 1 : FoundIndex;
 		if(FoundIndex == -1)
 		{
 			// After last point
@@ -214,6 +227,12 @@ void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 
 		const CEnvPoint *pCur = EnvelopePoints.GetPoint(FoundIndex);
 		const CEnvPoint *pNext = EnvelopePoints.GetPoint(FoundIndex + 1);
+
+		// A step holds this point's value and drops onto the next one's when the segment ends
+		SegmentJumpsAtEnd = pCur->m_Curvetype == CURVETYPE_STEP &&
+				    (pCur->m_aValues[0] != pNext->m_aValues[0] ||
+					    pCur->m_aValues[1] != pNext->m_aValues[1] ||
+					    pCur->m_aValues[2] != pNext->m_aValues[2]);
 		CFixedTime Delta = pNext->m_Time - pCur->m_Time;
 		if(Delta <= CFixedTime(0))
 		{
@@ -289,7 +308,25 @@ void CQuadData::UpdatePositionEnvelope(double Time, IMap *pMap)
 	m_PrevAngle = m_Angle;
 
 	vec2 Position = vec2(0, 0);
-	GetAnimationTransform(Position, m_Angle);
+	double Millis = -1.0;
+	int PointIndex = -1;
+	bool SegmentJumpsAtEnd = false;
+	bool LoopJumps = false;
+	GetAnimationTransform(Position, m_Angle, Millis, PointIndex, SegmentJumpsAtEnd, LoopJumps);
+
+	/*
+	 * The delta this tick only describes motion while the envelope ran on continuously. Time
+	 * running backwards means it looped, and leaving a step segment means the value jumped to the
+	 * next point; either way the quad was placed, not moved. The first update has nothing to
+	 * compare against and counts as placed too.
+	 */
+	const bool Wrapped = m_PrevMillis >= 0.0 && Millis < m_PrevMillis && LoopJumps;
+	const bool Stepped = m_PrevPointJumps && PointIndex != m_PrevPointIndex;
+	m_Teleported = m_PrevMillis < 0.0 || Wrapped || Stepped;
+
+	m_PrevMillis = Millis;
+	m_PrevPointIndex = PointIndex;
+	m_PrevPointJumps = SegmentJumpsAtEnd;
 
 	for(int i = 0; i < 5; i++)
 		m_aPoints[i] = Position + m_aLocalPoints[i];
