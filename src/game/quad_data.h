@@ -45,6 +45,19 @@ public:
 	vec2 m_PrevPivot = vec2(0, 0);
 	float m_PrevAngle = 0.0f;
 
+	/*
+	 * Whether the quad was put somewhere else this tick rather than having travelled there. An
+	 * envelope that loops back to its start, or steps from one point to the next, moves the quad
+	 * without any speed behind it, and the tick's delta is then the whole jump: a platform that
+	 * drifts left all cycle and snaps back hands out its entire travel as velocity to whatever
+	 * stands on it. The three below are what it takes to tell the two apart, see
+	 * UpdatePositionEnvelope.
+	 */
+	bool m_Teleported = true;
+	double m_PrevMillis = -1.0;
+	int m_PrevPointIndex = -1;
+	bool m_PrevPointJumps = false;
+
 	vec2 m_AabbMin = vec2(0, 0);
 	vec2 m_AabbMax = vec2(0, 0);
 
@@ -53,6 +66,10 @@ public:
 
 	vec2 MotionAt(vec2 Pos) const
 	{
+		// A jump is not motion, so there is no speed to hand over
+		if(m_Teleported)
+			return vec2(0.0f, 0.0f);
+
 		if(m_Angle == 0.0f && m_PrevAngle == 0.0f)
 			return m_aPoints[4] - m_PrevPivot;
 

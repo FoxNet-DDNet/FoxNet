@@ -12,6 +12,7 @@
 #include "types.h"
 #include "vmath.h"
 
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>
