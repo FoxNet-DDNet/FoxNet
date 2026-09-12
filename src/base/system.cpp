@@ -529,7 +529,7 @@ std::optional<int64_t> ParseMoneyValue(const char *pStr)
 	size_t Idx = 0;
 	double value = std::stod(pStr, &Idx);
 	const int Length = str_length(pStr);
-	if(Idx < Length)
+	if((int)Idx < Length)
 	{
 		char suffix = std::tolower(pStr[Idx]);
 		if(suffix == 'k')
