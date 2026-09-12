@@ -1268,15 +1268,48 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 	if(!pChr)
 		return;
 
-	vec2 Pos = pChr->m_Pos;
-	vec2 Dir = vec2(0, 0);
-	int TeleCheck = pChr->m_TeleCheckpoint;
-	int Team = pChr->Team();
-	int Type = pResult->GetInteger(0);
+	const vec2 Pos = pChr->m_Pos;
+	const vec2 Dir = vec2(0, 0);
+	const int TeleCheck = pChr->m_TeleCheckpoint;
+	const int Team = pChr->Team();
+	const int Type = pResult->GetInteger(0);
 
-	int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
+	const int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
 
 	new CPickupDrop(&pSelf->m_World, pPlayer->MultiMapIdx(), pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type); // NOLINT(clang-analyzer-unix.Malloc)
+}
+
+void CGameContext::ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(pResult->NumArguments() < 2)
+		return;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+	CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientId);
+	if(!pChr)
+		return;
+
+	const vec2 Pos = pChr->m_Pos;
+	const int TeleCheck = pChr->m_TeleCheckpoint;
+	const int Team = pChr->Team();
+	const int Type = pResult->GetInteger(0);
+	const int Amount = pResult->GetInteger(1);
+	if(Amount <= 0) // Division by 0
+		return;
+
+	const int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
+	const int CurTick = pSelf->Server()->Tick();
+	for(int i = 0; i < Amount; i++)
+	{
+
+		const float a = float(CurTick % 100) / 100.0f;
+
+		vec2 Dir = CircleDirection(i, Amount) * (7.0f + a);
+		new CPickupDrop(&pSelf->m_World, pPlayer->MultiMapIdx(), pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type); // NOLINT(clang-analyzer-unix.Malloc)
+	}
 }
 
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
@@ -1923,6 +1956,7 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
 	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
+	Console()->Register("batch_pickupdrops", "i[type] i[amount]", CFGFLAG_SERVER, ConBatchNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
 

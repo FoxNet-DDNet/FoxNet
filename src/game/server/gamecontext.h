@@ -1029,6 +1029,7 @@ private:
 	static void ConDropWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConCleanDroppedPickups(IConsole::IResult *pResult, void *pUserData);
 	static void ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
+	static void ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConRepredict(IConsole::IResult *pResult, void *pUserData);
 	static void ConPowerups(IConsole::IResult *pResult, void *pUserData);
