@@ -1827,6 +1827,16 @@ void CGameContext::ConRandomPlayerSpread(IConsole::IResult *pResult, void *pUser
 	pChr->ForceSetPos(RandomPos.value());
 }
 
+void CGameContext::ConPracticeToggleUfo(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	auto *pChr = pSelf->GetPracticeCharacter(pResult);
+	if(!pChr)
+		return;
+
+	pChr->SetUfo(!pChr->m_Ufo.Active());
+}
+
 void CGameContext::RegisterFoxNetCommands()
 {
 	// MultiMaps
@@ -1965,6 +1975,9 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Misc
 	Console()->Register("random_pos", "?v[id]", CFGFLAG_SERVER, ConRandomPlayerSpread, this, "Set player' (id) position to a random one");
+
+	// Practice
+	Console()->Register("ufo", "", CFGFLAG_CHAT | CMDFLAG_PRACTICE, ConPracticeToggleUfo, this, "Toggles ufo");
 
 	Console()->Chain("sv_solo_on_spawn", ConchainSoloOnSpawn, this);
 	Console()->Chain("sv_cosmetics", ConchainCosmetics, this);
