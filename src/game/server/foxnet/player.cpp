@@ -248,7 +248,7 @@ void CPlayer::GivePlaytime(int64_t Amount)
 		return;
 
 	Acc()->m_Playtime += Amount;
-	
+
 	auto GivePlayerMoney = [this](int64_t Money) {
 		SendChatFmt("+%" PRId64 "%s for %" PRId64 " Hours of Playtime!", Money, g_Config.m_SvCurrencyName, int64_t(Acc()->m_Playtime / 60));
 		GiveMoney(Money, false);
@@ -834,7 +834,7 @@ void CPlayer::RainbowTick()
 
 void CPlayer::OverrideSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 {
-	Overriddename(SnappingClient, ClientInfo);
+	OverrideName(SnappingClient, ClientInfo);
 	RainbowSnap(SnappingClient, ClientInfo);
 
 	if(g_Config.m_SvForceSkin[0])
@@ -879,7 +879,7 @@ void CPlayer::RainbowSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 	}
 }
 
-void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
+void CPlayer::OverrideName(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 {
 	if(m_Obfuscated)
 	{
@@ -891,17 +891,105 @@ void CPlayer::Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo)
 
 		StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), pObf);
 		StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), " ");
+		return;
 	}
 
-	if(!GetCharacter())
-		return;
-
-	if(GetCharacter()->m_InSnake)
+	CCharacter *pChr = GetCharacter();
+	if(pChr && pChr->m_InSnake)
 	{
 		StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), " ");
 		StrToInts(ClientInfo.m_aClan, std::size(ClientInfo.m_aClan), " ");
+		return;
+	}
+
+	auto DoCaseShift = [](int64_t Tick, char *pBuffer, int BufferSize, const char *pName) {
+		str_copy(pBuffer, pName, BufferSize);
+		const int NameLength = str_length(pBuffer);
+		if(NameLength <= 2) // too short anyways
+			return;
+
+		const int TicksPerLetter = 4;
+		const int LetterIndex = (Tick / TicksPerLetter) % NameLength;
+		const char Letter = pBuffer[LetterIndex];
+		if(Letter >= 'A' && Letter <= 'Z')
+			pBuffer[LetterIndex] = str_lowercase(Letter);
+		else
+			pBuffer[LetterIndex] = str_uppercase(Letter);
+	};
+
+	auto DoNameShift = [](int64_t Tick, char *pBuffer, int BufferSize, const char *pName, int Amount) {
+		if(Amount <= 0)
+		{
+			str_copy(pBuffer, pName, BufferSize);
+			return;
+		}
+		const float a = float(Tick % 50) / 50;
+
+		const int Phase = int(a * (4 * Amount));
+		const int HalfPhase = Phase % (2 * Amount);
+		const int Spaces = HalfPhase < Amount ? HalfPhase + 1 : 2 * Amount - HalfPhase - 1;
+		const bool ShiftRight = Phase < 2 * Amount;
+
+		str_copy(pBuffer, "", BufferSize);
+		if(ShiftRight)
+		{
+			for(int i = 0; i < Spaces; i++)
+				str_append(pBuffer, " ", BufferSize);
+		}
+		str_append(pBuffer, pName, BufferSize);
+		if(!ShiftRight)
+		{
+			for(int i = 0; i < Spaces; i++)
+				str_append(pBuffer, " ", BufferSize);
+		}
+	};
+
+	if(Cosmetics()->m_NameEffect != ENameEffect::None)
+	{
+		const char *pName = Server()->ClientName(m_ClientId);
+		int64_t Tick = (int64_t)Server()->Tick() - m_JoinTick;
+		const int MaxSpaces = (MAX_NAME_LENGTH - str_length(pName)) - 1;
+
+		char aName[MAX_NAME_LENGTH] = "";
+
+		switch(Cosmetics()->m_NameEffect)
+		{
+		case ENameEffect::SpaceShift:
+		{
+			DoNameShift(Tick, aName, sizeof(aName), pName, MaxSpaces);
+			break;
+		}
+
+		case ENameEffect::CaseShift:
+		{
+			DoCaseShift(Tick, aName, sizeof(aName), pName);
+			break;
+		}
+
+		case ENameEffect::SpaceCaseShift:
+		{
+			DoCaseShift(Tick, aName, sizeof(aName), pName);
+
+			char aNameCopy[MAX_NAME_LENGTH];
+			str_copy(aNameCopy, aName);
+
+			DoNameShift(Tick, aName, sizeof(aName), aNameCopy, MaxSpaces);
+			break;
+		}
+
+		default:
+			break;
+		}
+
+		if(aName[0] != '\0')
+			StrToInts(ClientInfo.m_aName, std::size(ClientInfo.m_aName), aName);
+	}
+
+	if(Cosmetics()->m_NameEffect == ENameEffect::CaseShift)
+	{
 	}
 }
+
 void CPlayer::SetRainbowBody(bool Active)
 {
 	Cosmetics()->m_RainbowBody = Active;
@@ -1383,7 +1471,6 @@ bool CPlayer::SendToMap(int Idx)
 		GameServer()->SendCommandInfoRemove(GetCid(), "exit");
 		GameServer()->SendCommandInfoRemove(GetCid(), "leave");
 	}
-
 
 	return true;
 }

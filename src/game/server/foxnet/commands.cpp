@@ -467,6 +467,22 @@ void CGameContext::ConHatType(IConsole::IResult *pResult, void *pUserData)
 	log_info("cosmetics", "Set hat type to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
 }
 
+void CGameContext::ConNameEffect(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	int Victim = pResult->NumArguments() > 1 ? pResult->GetVictim() : pResult->m_ClientId;
+
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+
+	if(!pPlayer)
+		return;
+
+	int Type = pResult->NumArguments() > 0 ? pResult->GetInteger(0) : 0;
+	pPlayer->Cosmetics()->m_NameEffect = (ENameEffect)Type;
+	log_info("cosmetics", "Set name effect to %d for player %s", Type, pSelf->Server()->ClientName(Victim));
+}
+
 void CGameContext::ConStaffInd(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1304,7 +1320,6 @@ void CGameContext::ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUser
 	const int CurTick = pSelf->Server()->Tick();
 	for(int i = 0; i < Amount; i++)
 	{
-
 		const float a = float(CurTick % 100) / 100.0f;
 
 		vec2 Dir = CircleDirection(i, Amount) * (7.0f + a);
@@ -1403,7 +1418,6 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		Amount = Money * 0.25f;
 	else
 		Amount = ParseMoneyValue(pStr);
-
 
 	if(!Amount.has_value())
 	{
@@ -1812,10 +1826,10 @@ void CGameContext::ConRandomPlayerSpread(IConsole::IResult *pResult, void *pUser
 		return;
 
 	std::optional<vec2> RandomPos = pSelf->m_PowerUps.GetRandomAccessiblePos();
-	
+
 	constexpr int MaxTries = 8;
 	int Tries = 0;
-	while (Tries < MaxTries && !RandomPos.has_value())
+	while(Tries < MaxTries && !RandomPos.has_value())
 	{
 		RandomPos = pSelf->m_PowerUps.GetRandomAccessiblePos();
 		Tries++;
@@ -1938,6 +1952,8 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("c_damageind_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConDamageIndType, this, "Set players (id) Damage Ind Type");
 	Console()->Register("c_gun_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConGunType, this, "Set players (id) Gun Type");
 	Console()->Register("c_hat_type", "i[type] ?v[id]", CFGFLAG_SERVER, ConHatType, this, "Set players (id) Hat Type");
+
+	Console()->Register("c_name_effect", "i[type] ?v[id]", CFGFLAG_SERVER, ConNameEffect, this, "Set players (id) Hat Type");
 
 	// Player configs
 	// Console()->Register("hide_cosmetics", "?v[id]", CFGFLAG_SERVER, ConHideCosmetics, this, "Hides Cosmetics for Player (id)");

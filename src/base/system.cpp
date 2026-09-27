@@ -47,8 +47,8 @@
 // <FoxNet
 char str_lowercase(char c)
 {
-	if(c >= 'a' && c <= 'z')
-		return 'A' + (c - 'a');
+	if(c >= 'A' && c <= 'Z')
+		return 'a' + (c - 'A');
 	return c;
 }
 
@@ -57,6 +57,15 @@ void str_lower(char *pOut)
 	while(*pOut)
 	{
 		*pOut = str_lowercase(*pOut);
+		pOut++;
+	}
+}
+
+void str_upper(char *pOut)
+{
+	while(*pOut)
+	{
+		*pOut = str_uppercase(*pOut);
 		pOut++;
 	}
 }

@@ -113,6 +113,14 @@ enum class EHatType
 	COUNT
 };
 
+enum class ENameEffect
+{
+	None = 0,
+	SpaceShift,
+	CaseShift,
+	SpaceCaseShift, // combination of both
+};
+
 class CCosmetics
 {
 public:
@@ -154,6 +162,8 @@ public:
 	bool m_PickupPet = false;
 	bool m_Lissajous = false;
 	bool m_Halo = false;
+
+	ENameEffect m_NameEffect = ENameEffect::None;
 
 	void Reset() { *this = CCosmetics(); }
 };
@@ -463,7 +473,7 @@ public:
 
 private:
 	void FoxNetReset();
-	void Overriddename(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
+	void OverrideName(int SnappingClient, CNetObj_ClientInfo &ClientInfo);
 
 	int m_RainbowColor = 0;
 	void OverrideSnap(int SnappingClient, CNetObj_ClientInfo &ClientInfo);

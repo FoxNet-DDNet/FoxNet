@@ -20,6 +20,8 @@
 char str_lowercase(char c);
 void str_lower(char *pOut);
 
+void str_upper(char *pOut);
+
 void SetFlag(uint32_t &Flags, int n, bool Value);
 bool IsFlagSet(uint32_t Flags, int n);
 std::string RandomUnicode(int length);
