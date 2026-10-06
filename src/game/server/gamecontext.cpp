@@ -231,8 +231,6 @@ void CGameContext::Clear()
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnMapUnload(DefaultMapIndex);
 	std::deque<std::unique_ptr<CMultiMaps>> vMultiMaps = std::move(m_vMultiMaps);
-	std::vector<CStringDetection> vChatDetection = m_vChatDetection;
-	std::vector<CStringDetection> vNameDetection = m_vNameDetection;
 	CShop Shop = m_Shop;
 	bool InitedRandMap = m_InitRandomMap;
 	CBoostData BoostData = m_BoostData;
@@ -257,8 +255,6 @@ void CGameContext::Clear()
 
 	// <FoxNet
 	m_vMultiMaps = std::move(vMultiMaps);
-	m_vChatDetection = vChatDetection;
-	m_vNameDetection = vNameDetection;
 	m_Shop = Shop;
 	m_InitRandomMap = InitedRandMap;
 	m_vpComponents = std::move(vComponents);
@@ -1826,8 +1822,6 @@ void CGameContext::OnClientEnter(int ClientId)
 		Console()->ExecuteLine(aScriptingBuf, IConsole::CLIENT_ID_UNSPECIFIED, false);
 	}
 
-	if(NameDetection(ClientId, Server()->ClientName(ClientId)))
-		return;
 	for(auto &pComponent : m_vpComponents)
 		pComponent->OnClientEnter(ClientId);
 	// FoxNet>
@@ -2438,10 +2432,6 @@ void CGameContext::OnMessage(int MsgId, CUnpacker *pUnpacker, int ClientId)
 
 void CGameContext::OnSayNetMessage(const CNetMsg_Cl_Say *pMsg, int ClientId, const CUnpacker *pUnpacker)
 {
-	// <FoxNet
-	if(ChatDetection(ClientId, pMsg->m_pMessage))
-		return;
-	// FoxNet>
 
 	CPlayer *pPlayer = m_apPlayers[ClientId];
 	int Team = pMsg->m_Team;
@@ -3052,31 +3042,27 @@ void CGameContext::OnChangeInfoNetMessage(const CNetMsg_Cl_ChangeInfo *pMsg, int
 	// set infos
 	if(Server()->WouldClientNameChange(ClientId, pMsg->m_pName) && !ProcessSpamProtection(ClientId))
 	{
+		char aOldName[MAX_NAME_LENGTH];
+		str_copy(aOldName, Server()->ClientName(ClientId), sizeof(aOldName));
+
+		Server()->SetClientName(ClientId, pMsg->m_pName);
+
+		char aChatText[256];
+		str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientId));
+		SendChat(-1, TEAM_ALL, aChatText);
+
+		// reload scores
+		Score()->PlayerData(ClientId)->Reset();
+		Server()->SetClientScore(ClientId, std::nullopt);
+		Score()->LoadPlayerData(ClientId);
+
+		SixupNeedsUpdate = true;
+
+		LogEvent("Name change", ClientId);
+
 		//<FoxNet
-		if(!NameDetection(ClientId, pMsg->m_pName, true))
-		{ // FoxNet>
-			char aOldName[MAX_NAME_LENGTH];
-			str_copy(aOldName, Server()->ClientName(ClientId), sizeof(aOldName));
-
-			Server()->SetClientName(ClientId, pMsg->m_pName);
-
-			char aChatText[256];
-			str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientId));
-			SendChat(-1, TEAM_ALL, aChatText);
-
-			// reload scores
-			Score()->PlayerData(ClientId)->Reset();
-			Server()->SetClientScore(ClientId, std::nullopt);
-			Score()->LoadPlayerData(ClientId);
-
-			SixupNeedsUpdate = true;
-
-			LogEvent("Name change", ClientId);
-
-			//<FoxNet
-			m_AccountManager.SetPlayerName(ClientId, Server()->ClientName(ClientId));
-			// FoxNet>
-		}
+		m_AccountManager.SetPlayerName(ClientId, Server()->ClientName(ClientId));
+		// FoxNet>
 	}
 
 	if(Server()->WouldClientClanChange(ClientId, pMsg->m_pClan))

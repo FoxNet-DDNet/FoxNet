@@ -39,66 +39,6 @@ static bool IsSymbolInArray(const char *pInput, std::span<const std::string_view
 		});
 }
 
-const char *FontConvert(const char *pMsg)
-{
-	static char s_DecodedMsg[512];
-	mem_zero(s_DecodedMsg, sizeof(s_DecodedMsg));
-
-	const char *c = pMsg;
-	char aLetter[8];
-
-	while(*c)
-	{
-		const char *pOld = c;
-		if(str_utf8_decode(&c) == 0)
-			break;
-
-		const int Len = c - pOld;
-		if(Len > 0 && Len < static_cast<int>(sizeof(aLetter)))
-		{
-			mem_copy(aLetter, pOld, Len);
-			aLetter[Len] = 0;
-
-			char Replacement = 0;
-
-			for(size_t i = 0; i < g_LetterSymbols.size(); ++i)
-			{
-				const auto SymbolsSpan = std::span(
-					g_LetterSymbols[i].data(),
-					g_LetterSymbolCounts[i]);
-
-				if(IsSymbolInArray(aLetter, SymbolsSpan))
-				{
-					Replacement = static_cast<char>('a' + i);
-					break;
-				}
-			}
-
-			if(!Replacement)
-			{
-				for(size_t i = 0; i < g_NumberSymbols.size(); ++i)
-				{
-					if(IsSymbolInArray(aLetter, g_NumberSymbols[i]))
-					{
-						Replacement = static_cast<char>('0' + i);
-						break;
-					}
-				}
-			}
-
-			if(Replacement)
-			{
-				const char Temp[2] = {Replacement, 0};
-				str_append(s_DecodedMsg, Temp);
-				continue;
-			}
-			str_append(s_DecodedMsg, aLetter);
-		}
-	}
-
-	return s_DecodedMsg;
-}
-
 const char *ConvertToSmallCaps(const char *pMsg)
 {
 	static char s_SmallCapsMsg[512];

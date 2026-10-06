@@ -25,7 +25,6 @@
 |sv_currency_name|What name the currency should be|
 |sv_levelup_money|How much money a player gets on level up|
 |sv_playtime_money|How much money a player gets as playtime bonus|
-|sv_anti_ad_bot|whether to ban and hide bot client advertisement mesasges|
 |sv_prediction_test|Used for ufos visuals so the lasers are ontop of the player|
 |sv_snake_auto_move|Whether the snake can stand still or not|
 |sv_snake_speed|How fast the snake should move|
@@ -76,14 +75,6 @@
 |-|-|
 |lasertext|Write Text using Lasers|
 |projectiletext|Write text using hammer hit projectiles|
-|chat_string_add|Adds a string to the chat detection list|
-|chat_string_remove|Remove a string from the chat list|
-|chat_strings_list|List all chat strings|
-|chat_string_clear|Clears all strings from the chat list|
-|name_string_add|Adds a string to the name detection list|
-|name_string_remove|Remove a string from the name list|
-|name_strings_list|List all name strings|
-|name_string_clear|Clears all strings from the name list|
 |force_login|Log into any account|
 |force_logout|Logout any account that is logged in on this port|
 |acc_edit|Edit any logged out account|
