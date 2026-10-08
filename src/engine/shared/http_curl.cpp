@@ -74,7 +74,9 @@ bool CHttpRequestCurl::ConfigureHandle(CURL *pHandle)
 		curl_easy_setopt(pHandle, CURLOPT_DEBUGFUNCTION, CurlDebug);
 	}
 	long Protocols = CURLPROTO_HTTPS;
-	if(g_Config.m_HttpAllowInsecure)
+	const bool InsecureLoopback = m_AllowInsecureLoopback &&
+		(str_startswith(m_aUrl, "http://127.0.0.1:") || str_startswith(m_aUrl, "http://[::1]:"));
+	if(g_Config.m_HttpAllowInsecure || InsecureLoopback)
 	{
 		Protocols |= CURLPROTO_HTTP;
 	}
@@ -105,7 +107,7 @@ bool CHttpRequestCurl::ConfigureHandle(CURL *pHandle)
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-	curl_easy_setopt(pHandle, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(pHandle, CURLOPT_FOLLOWLOCATION, m_AllowInsecureLoopback ? 0L : 1L);
 	curl_easy_setopt(pHandle, CURLOPT_MAXREDIRS, 4L);
 	if(m_FailOnErrorStatus)
 	{

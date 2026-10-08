@@ -46,6 +46,7 @@
 #include <game/version.h>
 
 #include <zlib.h>
+#include <sqlite3.h>
 
 #include <algorithm>
 #include <chrono>
@@ -222,6 +223,108 @@ int CServerBan::BanRange(const CNetRange *pRange, int Seconds, const char *pReas
 	return -1;
 }
 
+int CServerBan::BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason)
+{
+	int Result = CNetBan::BanAddrTimestamp(pAddr, Timestamp, pReason, VerbatimReason);
+	if(Result >= 0)
+	{
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(Server()->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY || !NetMatch(pAddr, Server()->ClientAddr(i)))
+				continue;
+			char aBuf[256];
+			if(IsBanned(Server()->ClientAddr(i), aBuf, sizeof(aBuf)))
+				Server()->m_NetServer.Drop(i, aBuf);
+		}
+	}
+	return Result;
+}
+
+int CServerBan::BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason)
+{
+	int Result = CNetBan::BanRangeTimestamp(pRange, Timestamp, pReason);
+	if(Result >= 0)
+	{
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(Server()->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY || !NetMatch(pRange, Server()->ClientAddr(i)))
+				continue;
+			char aBuf[256];
+			if(IsBanned(Server()->ClientAddr(i), aBuf, sizeof(aBuf)))
+				Server()->m_NetServer.Drop(i, aBuf);
+		}
+	}
+	return Result;
+}
+
+static std::string RelaySafeReason(const char *pReason)
+{
+	std::string Result = pReason;
+	for(char &Char : Result)
+	{
+		if(Char == '\r' || Char == '\n' || Char == '\t')
+			Char = ' ';
+	}
+	while(!Result.empty() && Result.back() == ' ')
+		Result.pop_back();
+	const size_t First = Result.find_first_not_of(' ');
+	if(First == std::string::npos)
+		return "";
+	Result.erase(0, First);
+	return Result;
+}
+
+void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
+{
+	if(m_pServer->RelayApplying())
+		return;
+	char aAddr[NETADDR_MAXSTRSIZE];
+	char aCommand[512];
+	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	const std::string Reason = RelaySafeReason(Info.m_aReason);
+	str_format(aCommand, sizeof(aCommand), "ban_timestamp %s %" PRId64 "%s%s", aAddr, Info.m_Expires, Reason.empty() ? "" : " ", Reason.c_str());
+	m_pServer->PublishConsoleCommand(aCommand);
+}
+
+void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
+{
+	if(m_pServer->RelayApplying())
+		return;
+	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[512];
+	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
+	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
+	const std::string Reason = RelaySafeReason(Info.m_aReason);
+	str_format(aCommand, sizeof(aCommand), "ban_range_timestamp %s %s %" PRId64 "%s%s", aLower, aUpper, Info.m_Expires, Reason.empty() ? "" : " ", Reason.c_str());
+	m_pServer->PublishConsoleCommand(aCommand);
+}
+
+void CServerBan::OnBanRemoved(const NETADDR *pAddr)
+{
+	if(m_pServer->RelayApplying())
+		return;
+	char aAddr[NETADDR_MAXSTRSIZE], aCommand[128];
+	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	str_format(aCommand, sizeof(aCommand), "unban %s", aAddr);
+	m_pServer->PublishConsoleCommand(aCommand);
+}
+
+void CServerBan::OnBanRemoved(const CNetRange *pRange)
+{
+	if(m_pServer->RelayApplying())
+		return;
+	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[160];
+	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
+	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
+	str_format(aCommand, sizeof(aCommand), "unban_range %s %s", aLower, aUpper);
+	m_pServer->PublishConsoleCommand(aCommand);
+}
+
+void CServerBan::OnBansCleared()
+{
+	if(!m_pServer->RelayApplying())
+		m_pServer->PublishConsoleCommand("unban_all");
+}
+
 void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 {
 	CServerBan *pThis = static_cast<CServerBan *>(pUser);
@@ -360,6 +463,7 @@ void CServer::CClient::Reset()
 
 CServer::CServer()
 {
+	m_RelayStartedAt = time_timestamp();
 	m_pConfig = &g_Config;
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		m_aDemoRecorder[i] = CDemoRecorder(&m_SnapshotDelta, true);
@@ -404,6 +508,8 @@ CServer::CServer()
 
 CServer::~CServer()
 {
+	if(m_pRelayOutbox)
+		sqlite3_close(m_pRelayOutbox);
 	for(auto &pCurrentMapData : m_apCurrentMapData)
 	{
 		free(pCurrentMapData);
@@ -664,6 +770,11 @@ void CServer::Kick(int ClientId, const char *pReason)
 void CServer::Ban(int ClientId, int Seconds, const char *pReason, bool VerbatimReason)
 {
 	m_NetServer.NetBan()->BanAddr(ClientAddr(ClientId), Seconds, pReason, VerbatimReason);
+}
+
+int CServer::BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason, bool VerbatimReason)
+{
+	return m_ServerBan.BanAddr(pAddr, Seconds, pReason, VerbatimReason);
 }
 
 void CServer::ReconnectClient(int ClientId)
@@ -3833,6 +3944,8 @@ int CServer::Run()
 				UpdateClientMaplistEntries(CommandSendingClientId);
 
 				m_Fifo.Update();
+				UpdateCommandRelay();
+				UpdateCommandRelayPoll();
 
 #if defined(CONF_PLATFORM_ANDROID)
 				std::vector<std::string> vAndroidCommandQueue = FetchAndroidServerCommandQueue();
@@ -4914,6 +5027,9 @@ void CServer::RegisterCommands()
 	Console()->Register("kick", "v[id] ?r[reason]", CFGFLAG_SERVER, ConKick, this, "Kick player with specified id for any reason");
 	Console()->Register("status", "?r[name]", CFGFLAG_SERVER, ConStatus, this, "List players containing name or all players");
 	Console()->Register("shutdown", "?r[reason]", CFGFLAG_SERVER, ConShutdown, this, "Shut down");
+	Console()->Register("relay_local", "r[command]", CFGFLAG_SERVER, ConRelayLocal, this, "Run a command on every instance on this VPS");
+	Console()->Register("relay_all", "r[command]", CFGFLAG_SERVER, ConRelayAll, this, "Run a command on every instance across all VPSs");
+	Console()->Register("relay_status", "", CFGFLAG_SERVER, ConRelayStatus, this, "Show local command relay queue and connection state");
 	Console()->Register("logout", "", CFGFLAG_SERVER, ConLogout, this, "Logout of rcon");
 	Console()->Register("show_ips", "?i[show]", CFGFLAG_SERVER, ConShowIps, this, "Show IP addresses in rcon commands (1 = on, 0 = off)");
 	Console()->Register("hide_auth_status", "?i[hide]", CFGFLAG_SERVER, ConHideAuthStatus, this, "Opt out of spectator count and hide auth status to non-authed players (1 = hidden, 0 = shown)");
@@ -5675,6 +5791,342 @@ static std::string EscapeJsonString(const char *pStr)
 		}
 	}
 	return Out;
+}
+
+void CServer::ConRelayLocal(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pServer = static_cast<CServer *>(pUser);
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0])
+	{
+		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", "relay is not configured");
+		return;
+	}
+	if(!pServer->RelayApplying())
+	{
+		pServer->OpenRelayOutbox();
+		const size_t Before = pServer->m_RelayCommands.size();
+		pServer->PublishConsoleCommand(pResult->GetString(0), false, false, false);
+		if(pServer->m_RelayCommands.size() > Before)
+		{
+			char aBuf[96];
+			str_format(aBuf, sizeof(aBuf), "queued local event %s", pServer->m_RelayCommands.back().m_Id.c_str());
+			pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", aBuf);
+		}
+	}
+}
+
+void CServer::ConRelayAll(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pServer = static_cast<CServer *>(pUser);
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0])
+	{
+		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", "relay is not configured");
+		return;
+	}
+	if(!pServer->RelayApplying())
+	{
+		pServer->OpenRelayOutbox();
+		const size_t Before = pServer->m_RelayCommands.size();
+		pServer->PublishConsoleCommand(pResult->GetString(0), true, false, false);
+		if(pServer->m_RelayCommands.size() > Before)
+		{
+			char aBuf[96];
+			str_format(aBuf, sizeof(aBuf), "queued global event %s", pServer->m_RelayCommands.back().m_Id.c_str());
+			pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", aBuf);
+		}
+	}
+}
+
+void CServer::ConRelayStatus(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pServer = static_cast<CServer *>(pUser);
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "enabled=%d outbox_open=%d pending=%zu startup_sync=%d",
+		g_Config.m_SvCommandRelayUrl[0] && g_Config.m_SvCommandRelayToken[0],
+		pServer->m_pRelayOutbox != nullptr, pServer->m_RelayCommands.size(), pServer->m_RelayPollStartup);
+	pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", aBuf);
+}
+
+bool CServer::PersistRelayCommand(const CRelayCommand &Command)
+{
+	if(!m_pRelayOutbox)
+		return false;
+	sqlite3_stmt *pStmt = nullptr;
+	const char *pSql = "INSERT OR IGNORE INTO outbox(id,command,scope,retry,replay) VALUES(?,?,?,?,?)";
+	if(sqlite3_prepare_v2(m_pRelayOutbox, pSql, -1, &pStmt, nullptr) != SQLITE_OK)
+		return false;
+	sqlite3_bind_text(pStmt, 1, Command.m_Id.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(pStmt, 2, Command.m_Command.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(pStmt, 3, Command.m_Global ? "global" : "local", -1, SQLITE_STATIC);
+	sqlite3_bind_int(pStmt, 4, Command.m_Retry);
+	sqlite3_bind_int(pStmt, 5, Command.m_Replay);
+	const bool Success = sqlite3_step(pStmt) == SQLITE_DONE;
+	sqlite3_finalize(pStmt);
+	return Success;
+}
+
+void CServer::RemoveRelayCommand(const std::string &Id)
+{
+	if(!m_pRelayOutbox)
+		return;
+	sqlite3_stmt *pStmt = nullptr;
+	if(sqlite3_prepare_v2(m_pRelayOutbox, "DELETE FROM outbox WHERE id=?", -1, &pStmt, nullptr) != SQLITE_OK)
+	{
+		log_error("command-relay", "could not prepare outbox deletion: %s", sqlite3_errmsg(m_pRelayOutbox));
+		return;
+	}
+	sqlite3_bind_text(pStmt, 1, Id.c_str(), -1, SQLITE_TRANSIENT);
+	if(sqlite3_step(pStmt) != SQLITE_DONE)
+		log_error("command-relay", "could not clear published outbox event: %s", sqlite3_errmsg(m_pRelayOutbox));
+	sqlite3_finalize(pStmt);
+}
+
+bool CServer::OpenRelayOutbox()
+{
+	if(m_pRelayOutbox)
+		return true;
+	if(!Storage() || Port() <= 0)
+		return false;
+	char aName[64], aPath[IO_MAX_PATH_LENGTH];
+	str_format(aName, sizeof(aName), "command-relay-%d.sqlite3", Port());
+	Storage()->GetCompletePath(IStorage::TYPE_SAVE, aName, aPath, sizeof(aPath));
+	if(sqlite3_open(aPath, &m_pRelayOutbox) != SQLITE_OK)
+	{
+		log_error("command-relay", "could not open outbox: %s", sqlite3_errmsg(m_pRelayOutbox));
+		sqlite3_close(m_pRelayOutbox);
+		m_pRelayOutbox = nullptr;
+		return false;
+	}
+	sqlite3_busy_timeout(m_pRelayOutbox, 5000);
+	if(sqlite3_exec(m_pRelayOutbox, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"
+		"CREATE TABLE IF NOT EXISTS outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+		"id TEXT NOT NULL UNIQUE, command TEXT NOT NULL, scope TEXT NOT NULL,"
+		"retry INTEGER NOT NULL, replay INTEGER NOT NULL);", nullptr, nullptr, nullptr) != SQLITE_OK)
+	{
+		log_error("command-relay", "could not initialize outbox: %s", sqlite3_errmsg(m_pRelayOutbox));
+		sqlite3_close(m_pRelayOutbox);
+		m_pRelayOutbox = nullptr;
+		return false;
+	}
+	sqlite3_stmt *pStmt = nullptr;
+	if(sqlite3_prepare_v2(m_pRelayOutbox,
+		"SELECT id,command,scope,retry,replay FROM outbox ORDER BY seq", -1, &pStmt, nullptr) != SQLITE_OK)
+	{
+		sqlite3_close(m_pRelayOutbox);
+		m_pRelayOutbox = nullptr;
+		return false;
+	}
+	std::vector<CRelayCommand> vSaved;
+	int Step;
+	while((Step = sqlite3_step(pStmt)) == SQLITE_ROW)
+	{
+		vSaved.push_back({(const char *)sqlite3_column_text(pStmt, 0),
+			(const char *)sqlite3_column_text(pStmt, 1),
+			str_comp((const char *)sqlite3_column_text(pStmt, 2), "global") == 0,
+			sqlite3_column_int(pStmt, 3) != 0,
+			sqlite3_column_int(pStmt, 4) != 0, true});
+	}
+	sqlite3_finalize(pStmt);
+	if(Step != SQLITE_DONE)
+	{
+		log_error("command-relay", "could not read outbox: %s", sqlite3_errmsg(m_pRelayOutbox));
+		sqlite3_close(m_pRelayOutbox);
+		m_pRelayOutbox = nullptr;
+		return false;
+	}
+	for(auto It = vSaved.rbegin(); It != vSaved.rend(); ++It)
+		m_RelayCommands.push_front(*It);
+	for(size_t i = vSaved.size(); i < m_RelayCommands.size(); ++i)
+	{
+		if(!PersistRelayCommand(m_RelayCommands[i]))
+			log_error("command-relay", "could not persist pending command: %s", sqlite3_errmsg(m_pRelayOutbox));
+		else
+			m_RelayCommands[i].m_Persisted = true;
+	}
+	return true;
+}
+
+void CServer::PublishConsoleCommand(const char *pCommand, bool Global, bool Retry, bool Replay)
+{
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0] || !pCommand || !pCommand[0])
+		return;
+	if(str_length(pCommand) > 900 || str_find(pCommand, "\n") || str_find(pCommand, "\r"))
+	{
+		log_error("command-relay", "command is too long or contains a newline");
+		return;
+	}
+	OpenRelayOutbox();
+	char aId[UUID_MAXSTRSIZE];
+	FormatUuid(RandomUuid(), aId, sizeof(aId));
+	CRelayCommand Command{aId, pCommand, Global, Retry, Replay, false};
+	if(m_pRelayOutbox)
+	{
+		Command.m_Persisted = PersistRelayCommand(Command);
+		if(!Command.m_Persisted)
+			log_error("command-relay", "could not persist command: %s", sqlite3_errmsg(m_pRelayOutbox));
+	}
+	m_RelayCommands.push_back(std::move(Command));
+}
+
+void CServer::UpdateCommandRelay()
+{
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0])
+		return;
+	if(!OpenRelayOutbox())
+		return;
+	if(m_pRelayRequest)
+	{
+		if(!m_pRelayRequest->Done())
+			return;
+		if(m_pRelayRequest->State() == EHttpState::DONE && m_pRelayRequest->StatusCode() == 202)
+		{
+			for(size_t i = 0; i < m_RelayBatchSize; i++)
+			{
+				RemoveRelayCommand(m_RelayCommands.front().m_Id);
+				m_RelayCommands.pop_front();
+			}
+			m_RelayNextAttempt = 0;
+		}
+		else
+		{
+			if(m_pRelayRequest->State() == EHttpState::DONE)
+				log_warn("command-relay", "publish failed, HTTP status %d; retrying", m_pRelayRequest->StatusCode());
+			else
+				log_warn("command-relay", "publish request failed; retrying");
+			m_RelayNextAttempt = time_get() + time_freq() * 5;
+		}
+		m_pRelayRequest.reset();
+	}
+	if(m_RelayCommands.empty() || time_get() < m_RelayNextAttempt)
+		return;
+	for(CRelayCommand &Command : m_RelayCommands)
+	{
+		if(Command.m_Persisted)
+			continue;
+		Command.m_Persisted = PersistRelayCommand(Command);
+		if(!Command.m_Persisted)
+		{
+			m_RelayNextAttempt = time_get() + time_freq() * 5;
+			return;
+		}
+	}
+
+	std::string Json = "{\"commands\":[";
+	size_t BatchSize = 0;
+	for(const CRelayCommand &Command : m_RelayCommands)
+	{
+		if(BatchSize >= 100)
+			break;
+		if(BatchSize)
+			Json += ",";
+		Json += "{\"id\":\"" + Command.m_Id + "\",\"command\":\"" + EscapeJsonString(Command.m_Command.c_str()) +
+			"\",\"ttl_seconds\":" + (Command.m_Replay ? "2000000000" : "3600") +
+			",\"retry_uncertain\":" + (Command.m_Retry ? "true" : "false") +
+			",\"replay_on_start\":" + (Command.m_Replay ? "true" : "false") +
+			",\"scope\":\"" + (Command.m_Global ? "global" : "local") + "\"}";
+		BatchSize++;
+	}
+	Json += "]}";
+	m_RelayBatchSize = BatchSize;
+	const std::string Url = std::string(g_Config.m_SvCommandRelayUrl) + "/api/commands/batch";
+	m_pRelayRequest = HttpPostJson(Url.c_str(), Json.c_str());
+	std::string Authorization = "Bearer ";
+	Authorization += g_Config.m_SvCommandRelayToken;
+	m_pRelayRequest->HeaderString("Authorization", Authorization.c_str());
+	m_pRelayRequest->AllowInsecureLoopback(true);
+	m_pRelayRequest->Timeout(CTimeout{2000, 5000, 0, 0});
+	m_pRelayRequest->LogProgress(HTTPLOG::FAILURE);
+	m_pHttp->Run(m_pRelayRequest);
+}
+
+void CServer::UpdateCommandRelayPoll()
+{
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0])
+		return;
+	if(m_pRelayPollRequest)
+	{
+		if(!m_pRelayPollRequest->Done())
+			return;
+		bool Success = m_pRelayPollRequest->State() == EHttpState::DONE && m_pRelayPollRequest->StatusCode() == 200;
+		json_value *pResponse = Success ? m_pRelayPollRequest->ResultJson() : nullptr;
+		if(pResponse && pResponse->type == json_object)
+		{
+			const json_value *pCommands = json_object_get(pResponse, "commands");
+			const json_value *pResetBans = json_object_get(pResponse, "reset_bans");
+			const json_value *pResetId = json_object_get(pResponse, "reset_id");
+			Success = pCommands->type == json_array && json_array_length(pCommands) <= 100 &&
+				pResetBans->type == json_boolean && pResetId->type == json_string &&
+				str_length(json_string_get(pResetId)) < UUID_MAXSTRSIZE;
+			if(Success)
+			{
+				for(size_t i = 0; i < m_RelayPollSentAcks; i++)
+					m_RelayAcks.pop_front();
+				if(m_RelayResetAck == m_RelayPollSentResetAck)
+					m_RelayResetAck.clear();
+				m_RelayPollStartup = false;
+				if(json_boolean_get(pResetBans))
+				{
+					m_RelayResetAck = json_string_get(pResetId);
+					m_RelayApplying = true;
+					Console()->ExecuteLineFlag("unban_all", CFGFLAG_SERVER, IConsole::CLIENT_ID_ECON, false);
+					m_RelayApplying = false;
+				}
+				for(int i = 0; i < json_array_length(pCommands); i++)
+				{
+					const json_value *pItem = json_array_get(pCommands, i);
+					if(pItem->type != json_object)
+						continue;
+					const json_value *pId = json_object_get(pItem, "id");
+					const json_value *pCommand = json_object_get(pItem, "command");
+					if(pId->type != json_string || pCommand->type != json_string)
+						continue;
+					const char *pCommandText = json_string_get(pCommand);
+					if(str_length(pCommandText) > 900 || str_find(pCommandText, "\n") || str_find(pCommandText, "\r"))
+						continue;
+					m_RelayApplying = true;
+					Console()->ExecuteLineFlag(pCommandText, CFGFLAG_SERVER, IConsole::CLIENT_ID_ECON, false);
+					m_RelayApplying = false;
+					m_RelayAcks.emplace_back(json_string_get(pId));
+				}
+				m_RelayNextPoll = m_RelayAcks.empty() && m_RelayResetAck.empty() ? time_get() + time_freq() : 0;
+			}
+		}
+		else
+			Success = false;
+		if(pResponse)
+			json_value_free(pResponse);
+		if(!Success)
+			m_RelayNextPoll = time_get() + time_freq() * 5;
+		m_pRelayPollRequest.reset();
+	}
+	if(m_pRelayPollRequest || time_get() < m_RelayNextPoll ||
+		(m_RelayPollStartup && (!m_RelayCommands.empty() || m_pRelayRequest)))
+		return;
+	std::string Json = "{\"started\":";
+	Json += m_RelayPollStartup ? "true" : "false";
+	Json += ",\"started_at\":" + std::to_string(m_RelayStartedAt);
+	m_RelayPollSentResetAck = m_RelayResetAck;
+	Json += ",\"reset_ack\":\"" + m_RelayPollSentResetAck + "\",\"acks\":[";
+	m_RelayPollSentAcks = 0;
+	for(const std::string &Id : m_RelayAcks)
+	{
+		if(m_RelayPollSentAcks >= 100)
+			break;
+		if(m_RelayPollSentAcks)
+			Json += ",";
+		Json += "\"" + Id + "\"";
+		m_RelayPollSentAcks++;
+	}
+	Json += "]}";
+	const std::string Url = std::string(g_Config.m_SvCommandRelayUrl) + "/api/instances/" + std::to_string(Port()) + "/poll";
+	m_pRelayPollRequest = HttpPostJson(Url.c_str(), Json.c_str());
+	std::string Authorization = "Bearer ";
+	Authorization += g_Config.m_SvCommandRelayToken;
+	m_pRelayPollRequest->HeaderString("Authorization", Authorization.c_str());
+	m_pRelayPollRequest->AllowInsecureLoopback(true);
+	m_pRelayPollRequest->Timeout(CTimeout{2000, 5000, 0, 0});
+	m_pRelayPollRequest->LogProgress(HTTPLOG::FAILURE);
+	m_pHttp->Run(m_pRelayPollRequest);
 }
 
 void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)

@@ -344,6 +344,7 @@ public:
 	virtual bool HasAuthHidden(int ClientId) const = 0;
 	virtual void Kick(int ClientId, const char *pReason) = 0;
 	virtual void Ban(int ClientId, int Seconds, const char *pReason, bool VerbatimReason) = 0;
+	virtual int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason, bool VerbatimReason) = 0;
 	virtual void RedirectClient(int ClientId, int Port) = 0;
 	virtual void ChangeMap(const char *pMap) = 0;
 	virtual void ReloadMap() = 0;
@@ -396,6 +397,7 @@ public:
 	virtual const char *GetCustomClient(int ClientId) = 0;
 	virtual bool QuietJoin(int ClientId) = 0;
 	virtual void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
+	virtual void PublishConsoleCommand(const char *pCommand, bool Global = true, bool Retry = true, bool Replay = true) = 0;
 	virtual void SystemCall(const char *pCommand) = 0;
 	virtual const char *GetClientVersionStr(int ClientId) const = 0;
 

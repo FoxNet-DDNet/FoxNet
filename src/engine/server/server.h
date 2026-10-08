@@ -23,7 +23,9 @@
 #include <engine/shared/uuid_manager.h>
 
 #include <memory>
+#include <deque>
 #include <optional>
+#include <string>
 #include <vector>
 
 #if defined(CONF_UPNP)
@@ -37,11 +39,18 @@ class CMsgPacker;
 class CPacker;
 class IEngine;
 class IEngineHttp;
+class IHttpRequest;
 class ILogger;
+struct sqlite3;
 
 class CServerBan : public CNetBan
 {
 	class CServer *m_pServer;
+	void OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info) override;
+	void OnBanChanged(const CNetRange *pRange, const CBanInfo &Info) override;
+	void OnBanRemoved(const NETADDR *pAddr) override;
+	void OnBanRemoved(const CNetRange *pRange) override;
+	void OnBansCleared() override;
 
 	template<class T>
 	int BanExt(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason, bool VerbatimReason);
@@ -53,6 +62,8 @@ public:
 
 	int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason, bool VerbatimReason) override;
 	int BanRange(const CNetRange *pRange, int Seconds, const char *pReason) override;
+	int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason) override;
+	int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason) override;
 
 	static void ConBanExt(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanRegion(class IConsole::IResult *pResult, void *pUser);
@@ -75,6 +86,37 @@ class CServer : public IServer
 	class IEngineAntibot *m_pAntibot;
 	class IRegister *m_pRegister;
 	IEngine *m_pEngine;
+	struct CRelayCommand
+	{
+		std::string m_Id;
+		std::string m_Command;
+		bool m_Global;
+		bool m_Retry;
+		bool m_Replay;
+		bool m_Persisted;
+	};
+	std::deque<CRelayCommand> m_RelayCommands;
+	sqlite3 *m_pRelayOutbox = nullptr;
+	bool OpenRelayOutbox();
+	bool PersistRelayCommand(const CRelayCommand &Command);
+	void RemoveRelayCommand(const std::string &Id);
+	std::shared_ptr<IHttpRequest> m_pRelayRequest;
+	size_t m_RelayBatchSize = 0;
+	int64_t m_RelayNextAttempt = 0;
+	void UpdateCommandRelay();
+	std::shared_ptr<IHttpRequest> m_pRelayPollRequest;
+	std::deque<std::string> m_RelayAcks;
+	std::string m_RelayResetAck;
+	std::string m_RelayPollSentResetAck;
+	size_t m_RelayPollSentAcks = 0;
+	int64_t m_RelayNextPoll = 0;
+	bool m_RelayPollStartup = true;
+	int64_t m_RelayStartedAt = 0;
+	bool m_RelayApplying = false;
+	void UpdateCommandRelayPoll();
+	static void ConRelayLocal(IConsole::IResult *pResult, void *pUser);
+	static void ConRelayAll(IConsole::IResult *pResult, void *pUser);
+	static void ConRelayStatus(IConsole::IResult *pResult, void *pUser);
 
 #if defined(CONF_UPNP)
 	CUPnP m_UPnP;
@@ -92,6 +134,7 @@ class CServer : public IServer
 	void UpdateDebugDummies(bool ForceDisconnect);
 
 public:
+	bool RelayApplying() const { return m_RelayApplying; }
 	class IGameServer *GameServer() { return m_pGameServer; }
 	class CConfig *Config() { return m_pConfig; }
 	const CConfig *Config() const { return m_pConfig; }
@@ -328,6 +371,7 @@ public:
 
 	void Kick(int ClientId, const char *pReason) override;
 	void Ban(int ClientId, int Seconds, const char *pReason, bool VerbatimReason) override;
+	int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason, bool VerbatimReason) override;
 	void ReconnectClient(int ClientId);
 	void RedirectClient(int ClientId, int Port) override;
 
@@ -596,6 +640,7 @@ public:
 	bool QuietJoin(int ClientId) override { return m_aClients[ClientId].m_QuietJoin; }
 
 	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
+	void PublishConsoleCommand(const char *pCommand, bool Global = true, bool Retry = true, bool Replay = true) override;
 
 	class CSystemCall : public IJob // For ChaiScript system calls
 	{

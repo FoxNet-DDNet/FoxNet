@@ -166,6 +166,12 @@ protected:
 	// FoxNet>
 
 	class IConsole *m_pConsole;
+	// Called only after a ban list change has been accepted.
+	virtual void OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info) {}
+	virtual void OnBanChanged(const CNetRange *pRange, const CBanInfo &Info) {}
+	virtual void OnBanRemoved(const NETADDR *pAddr) {}
+	virtual void OnBanRemoved(const CNetRange *pRange) {}
+	virtual void OnBansCleared() {}
 	class IStorage *m_pStorage;
 	CBanAddrPool m_BanAddrPool;
 	CBanRangePool m_BanRangePool;
@@ -203,8 +209,8 @@ public:
 	static void ConBansFind(class IConsole::IResult *pResult, void *pUser);
 
 	// <FoxNet
-	int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason);
-	int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason);
+	virtual int BanAddrTimestamp(const NETADDR *pAddr, int64_t Timestamp, const char *pReason, bool VerbatimReason);
+	virtual int BanRangeTimestamp(const CNetRange *pRange, int64_t Timestamp, const char *pReason);
 	static void ConBansSaveOld(class IConsole::IResult *pResult, void *pUser);
 	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanTimestamp(class IConsole::IResult *pResult, void *pUser);

@@ -3411,6 +3411,33 @@ if(SERVER)
   endif()
 endif()
 
+# Standalone command relay. Python is already required for FoxNet builds; the
+# archive uses only the Python standard library at runtime.
+set(FOXNET_RELAY_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/foxnet-relay.pyz")
+add_custom_command(
+  OUTPUT "${FOXNET_RELAY_ARCHIVE}"
+  COMMAND "${Python3_EXECUTABLE}" -m zipapp
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay"
+    -o "${FOXNET_RELAY_ARCHIVE}"
+    -p "/usr/bin/env python3"
+  DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/__main__.py"
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/relay_http.py"
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/relay.conf.example"
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/foxnet-server.cfg.example"
+  COMMENT "Packaging FoxNet relay service"
+  VERBATIM
+)
+add_custom_target(foxnet-relay ALL
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/relay.conf.example"
+    "${CMAKE_CURRENT_BINARY_DIR}/relay.conf.example"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/foxnet-server.cfg.example"
+    "${CMAKE_CURRENT_BINARY_DIR}/foxnet-server.cfg.example"
+  DEPENDS "${FOXNET_RELAY_ARCHIVE}"
+  VERBATIM
+)
 # Targets for compatibility with build commands previously available with Makefiles
 if(CMAKE_GENERATOR MATCHES ".*Makefiles.*")
   if(TARGET game-client)
@@ -3891,6 +3918,12 @@ if(NOT DEV)
   if(TARGET game-server)
     install(TARGETS game-server DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT server)
   endif()
+  install(FILES "${FOXNET_RELAY_ARCHIVE}" DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT server
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  install(FILES
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/relay.conf.example"
+    "${PROJECT_SOURCE_DIR}/src/tools/foxnet_relay/foxnet-server.cfg.example"
+    DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT server)
   if(ANTIBOT)
     install(TARGETS ${TARGET_ANTIBOT} DESTINATION ${CMAKE_INSTALL_LIBDIR}/ddnet COMPONENT server)
   endif()

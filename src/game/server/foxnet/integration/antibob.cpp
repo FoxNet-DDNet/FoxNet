@@ -33,6 +33,16 @@ void AntibobRcon(const char *pLine)
 	g_AntibobContext.m_pConsole->ExecuteLine(pLine, IConsole::CLIENT_ID_FOXNET);
 }
 
+bool AntibobBanIp(const char *pIp, int Seconds, const char *pReason)
+{
+	if(!g_AntibobContext.m_pGameServer || !pIp || !pReason)
+		return false;
+	NETADDR Addr;
+	if(net_addr_from_str(&Addr, pIp) != 0)
+		return false;
+	return g_AntibobContext.m_pGameServer->Server()->BanAddr(&Addr, Seconds, pReason, false) >= 0;
+}
+
 static int AntibobMultiMapIndex(CGameContext *pGameServer, int ClientId)
 {
 	if(ClientId >= 0 && ClientId < MAX_CLIENTS && pGameServer->m_apPlayers[ClientId])

@@ -46,6 +46,7 @@ extern CAntibobContext g_AntibobContext;
 extern "C" {
 ANTIBOBAPI int AntibobVersion();
 ANTIBOBAPI void AntibobRcon(const char *pLine);
+ANTIBOBAPI bool AntibobBanIp(const char *pIp, int Seconds, const char *pReason);
 ANTIBOBAPI bool AntibobMapSize(int ClientId, int *pWidth, int *pHeight);
 ANTIBOBAPI bool AntibobTile(int ClientId, int TileX, int TileY, CAntibobTileData *pData);
 ANTIBOBAPI unsigned int AntibobPlayerFlags(int ClientId);

@@ -170,6 +170,7 @@ void CNetBan::CBanPool<T, HashCount>::Update(CBan<CDataType> *pBan, const CBanIn
 
 void CNetBan::UnbanAll()
 {
+	OnBansCleared();
 	m_BanAddrPool.Reset();
 	m_BanRangePool.Reset();
 }
@@ -231,6 +232,7 @@ int CNetBan::BanTimestamp(T *pBanPool, const typename T::CDataType *pData, int64
 	{
 		// adjust the ban
 		pBanPool->Update(pBan, &Info);
+		OnBanChanged(pData, Info);
 		// <FoxNet
 		if(!m_QuietBan)
 		{ // FoxNet>
@@ -245,6 +247,7 @@ int CNetBan::BanTimestamp(T *pBanPool, const typename T::CDataType *pData, int64
 	pBan = pBanPool->Add(pData, &Info, &NetHash);
 	if(pBan)
 	{
+		OnBanChanged(pData, Info);
 		// <FoxNet
 		if(!m_QuietBan)
 		{ // FoxNet>
@@ -284,6 +287,7 @@ int CNetBan::Ban(T *pBanPool, const typename T::CDataType *pData, int Seconds, c
 	{
 		// adjust the ban
 		pBanPool->Update(pBan, &Info);
+		OnBanChanged(pData, Info);
 		// <FoxNet
 		if(!m_QuietBan)
 		{ // FoxNet>
@@ -298,6 +302,7 @@ int CNetBan::Ban(T *pBanPool, const typename T::CDataType *pData, int Seconds, c
 	pBan = pBanPool->Add(pData, &Info, &NetHash);
 	if(pBan)
 	{
+		OnBanChanged(pData, Info);
 		// <FoxNet
 		if(!m_QuietBan)
 		{ // FoxNet>
@@ -322,11 +327,15 @@ int CNetBan::Unban(T *pBanPool, const typename T::CDataType *pData)
 		char aBuf[256];
 		MakeBanInfo(pBan, aBuf, sizeof(aBuf), MSGTYPE_BANREM);
 		pBanPool->Remove(pBan);
+		OnBanRemoved(pData);
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
 		return 0;
 	}
 	else
 	{
+		// An explicit unban is still a global intent if this instance has no
+		// matching entry yet (for example while a peer relay is unavailable).
+		OnBanRemoved(pData);
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "unban failed (invalid entry)");
 	}
 	return -1;
@@ -344,7 +353,7 @@ void CNetBan::Init(IConsole *pConsole, IStorage *pStorage)
 
 	// <FoxNet
 	Console()->Register("ban_timestamp", "s[ip|id] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanTimestamp, this, "Ban ip until an absolute UNIX timestamp");
-	Console()->Register("ban_range_timestamp", "s[first ip] s[last ip] i[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRangeTimestamp, this, "Ban ip range until an absolute UNIX timestamp");
+	Console()->Register("ban_range_timestamp", "s[first ip] s[last ip] l[timestamp] ?r[reason]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBanRangeTimestamp, this, "Ban ip range until an absolute UNIX timestamp");
 
 	Console()->Register("bans_save_old", "s[file]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBansSaveOld, this, "Save banlist in a file");
 	Console()->Register("bans_save", "s[file]", CFGFLAG_SERVER | CFGFLAG_STORE, ConBansSave, this, "Save banlist in a file");
@@ -434,16 +443,22 @@ int CNetBan::UnbanByIndex(int Index)
 	CBanAddr *pBan = m_BanAddrPool.Get(Index);
 	if(pBan)
 	{
+		NETADDR Addr = pBan->m_Data;
 		NetToString(&pBan->m_Data, aBuf, sizeof(aBuf));
 		Result = m_BanAddrPool.Remove(pBan);
+		if(Result == 0)
+			OnBanRemoved(&Addr);
 	}
 	else
 	{
 		CBanRange *pBanRange = m_BanRangePool.Get(Index - m_BanAddrPool.Num());
 		if(pBanRange)
 		{
+			CNetRange Range = pBanRange->m_Data;
 			NetToString(&pBanRange->m_Data, aBuf, sizeof(aBuf));
 			Result = m_BanRangePool.Remove(pBanRange);
+			if(Result == 0)
+				OnBanRemoved(&Range);
 		}
 		else
 		{

@@ -1,0 +1,12 @@
+# Copy this file to relay.conf, then fill in all blank required values.
+# Use a different node_id and peer_url on each VPS.
+node_id=
+admin_token=
+instance_token=
+peer_token=
+peer_url=
+peer_allowed_ips=
+local_allowed_ips=127.0.0.1,::1
+listen_host=0.0.0.0
+listen_port=666
+database=foxnet-relay.sqlite3

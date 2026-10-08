@@ -1,0 +1,2 @@
+sv_command_relay_url "http://127.0.0.1:666"
+sv_command_relay_token ""

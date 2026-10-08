@@ -1,5 +1,7 @@
 ### FoxNet, a DDNet server modification
 
+Standalone command relay build and deployment: [docs/command-relay.md](docs/command-relay.md).
+
 # Features
 - Accounts
 - Cosmetics
