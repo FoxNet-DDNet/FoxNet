@@ -1,5 +1,6 @@
 #include <base/mem.h>
 #include <base/str.h>
+#include <base/system.h>
 #include <base/windows.h>
 
 #include <engine/server/server.h>
@@ -9,6 +10,21 @@
 #include <gtest/gtest.h>
 
 #include <limits>
+
+TEST(Str, ParseMoneyValue)
+{
+	EXPECT_EQ(ParseMoneyValue("123"), 123);
+	EXPECT_EQ(ParseMoneyValue("1.5k"), 1500);
+	EXPECT_EQ(ParseMoneyValue("2M"), 2000000);
+	EXPECT_EQ(ParseMoneyValue("1b"), 1000000000);
+	EXPECT_FALSE(ParseMoneyValue("abc").has_value());
+	EXPECT_FALSE(ParseMoneyValue("").has_value());
+	EXPECT_FALSE(ParseMoneyValue("12foo").has_value());
+	EXPECT_FALSE(ParseMoneyValue("1kk").has_value());
+	EXPECT_FALSE(ParseMoneyValue("1e100").has_value());
+	EXPECT_FALSE(ParseMoneyValue("nan").has_value());
+	EXPECT_FALSE(ParseMoneyValue("9223372036854775808").has_value());
+}
 
 typedef void (*TStringArgumentFunction)(char *pStr);
 template<TStringArgumentFunction Func>

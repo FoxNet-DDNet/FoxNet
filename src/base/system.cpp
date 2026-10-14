@@ -26,7 +26,6 @@
 #include "detect.h"
 
 #include <cctype>
-#include <cerrno>
 #include <cinttypes>
 #include <climits>
 #include <cstdint>
@@ -40,6 +39,9 @@
 
 #include <engine/shared/config.h>
 
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
 #include <random>
 #include <string>
 #include <vector>
@@ -535,20 +537,32 @@ const char *FormatServerInsntance(const char *pPrefix)
 
 std::optional<int64_t> ParseMoneyValue(const char *pStr)
 {
-	size_t Idx = 0;
-	double value = std::stod(pStr, &Idx);
-	const int Length = str_length(pStr);
-	if((int)Idx < Length)
+	if(!pStr)
+		return std::nullopt;
+
+	char *pEnd;
+	errno = 0;
+	double Value = std::strtod(pStr, &pEnd);
+	if(pEnd == pStr || errno == ERANGE)
+		return std::nullopt;
+
+	if(*pEnd)
 	{
-		char suffix = std::tolower(pStr[Idx]);
-		if(suffix == 'k')
-			value *= 1e3;
-		else if(suffix == 'm')
-			value *= 1e6;
-		else if(suffix == 'b')
-			value *= 1e9;
+		if(pEnd[1] != '\0')
+			return std::nullopt;
+		switch(str_lowercase(*pEnd))
+		{
+		case 'k': Value *= 1e3; break;
+		case 'm': Value *= 1e6; break;
+		case 'b': Value *= 1e9; break;
+		default: return std::nullopt;
+		}
 	}
-	return static_cast<int64_t>(value);
+
+	const double Limit = std::ldexp(1.0, 63);
+	if(!std::isfinite(Value) || Value < -Limit || Value >= Limit)
+		return std::nullopt;
+	return static_cast<int64_t>(Value);
 }
 
 // FoxNet>
