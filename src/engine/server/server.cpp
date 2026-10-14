@@ -5841,7 +5841,7 @@ void CServer::ConRelayStatus(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = static_cast<CServer *>(pUser);
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "enabled=%d outbox_open=%d pending=%zu startup_sync=%d",
+	str_format(aBuf, sizeof(aBuf), "enabled=%d outbox_open=%d pending=%" PRIzu " startup_sync=%d",
 		g_Config.m_SvCommandRelayUrl[0] && g_Config.m_SvCommandRelayToken[0],
 		pServer->m_pRelayOutbox != nullptr, pServer->m_RelayCommands.size(), pServer->m_RelayPollStartup);
 	pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "command-relay", aBuf);
