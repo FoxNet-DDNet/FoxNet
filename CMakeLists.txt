@@ -3258,6 +3258,9 @@ if(SERVER)
     foxnet/gamecontext.cpp
     foxnet/integration/antibob.cpp
     foxnet/integration/antibob.h
+    foxnet/integration/antibob_motion.cpp
+    foxnet/integration/motion_abi.h
+    foxnet/integration/motion_peer.h
     foxnet/item_registry.cpp
     foxnet/item_registry.h
     foxnet/persistent_data.cpp
