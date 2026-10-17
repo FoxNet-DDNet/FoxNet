@@ -1,6 +1,8 @@
 #ifndef GAME_SERVER_FOXNET_INTEGRATION_ANTIBOB_H
 #define GAME_SERVER_FOXNET_INTEGRATION_ANTIBOB_H
 
+#include "motion_abi.h"
+
 #include <base/dynamic.h>
 
 class IConsole;
@@ -44,6 +46,8 @@ extern CAntibobContext g_AntibobContext;
 #endif
 
 extern "C" {
+ANTIBOBAPI bool AntibobMotionStateV1(int ClientId, CAntibobMotionStateV1 *pState, int Size);
+ANTIBOBAPI bool AntibobMotionForecastV1(int ClientId, const CAntibobMotionInputV1 *pInput, CAntibobMotionForecastV1 *pForecast, int Size);
 ANTIBOBAPI int AntibobVersion();
 ANTIBOBAPI void AntibobRcon(const char *pLine);
 ANTIBOBAPI bool AntibobBanIp(const char *pIp, int Seconds, const char *pReason);
