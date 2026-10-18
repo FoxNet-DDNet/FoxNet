@@ -3356,6 +3356,18 @@ void CServer::PumpNetwork()
 	SECURITY_TOKEN ResponseToken;
 
 	m_NetServer.Update();
+	// If a client never rejoins after a map change, its player is gone but its
+	// account is still in persistent data. A timeout-protected connection stays
+	// in the error state, so release that data without waiting for a player tick.
+	for(int ClientId = 0; ClientId < MaxClients(); ClientId++)
+	{
+		CClient &Client = m_aClients[ClientId];
+		if(Client.m_HasPersistentData && !GameServer()->PlayerExists(ClientId) && m_NetServer.HasErrored(ClientId))
+		{
+			GameServer()->OnClientDataDrop(ClientId, Client.m_pPersistentData);
+			Client.m_HasPersistentData = false;
+		}
+	}
 	if(Config()->m_SvPreauthTimeout > 0)
 	{
 		const int64_t PreauthDeadline = time_get() - time_freq() * Config()->m_SvPreauthTimeout;
