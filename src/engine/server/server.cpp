@@ -3317,10 +3317,21 @@ void CServer::UpdateServerInfo(bool Resend)
 	m_ServerInfoNeedsUpdate = false;
 }
 
+static bool IsConsolePseudoClient(int ClientId)
+{
+	return ClientId == IConsole::CLIENT_ID_UNSPECIFIED ||
+		ClientId == IConsole::CLIENT_ID_GAME ||
+		ClientId == IConsole::CLIENT_ID_NO_GAME ||
+		ClientId == IConsole::CLIENT_ID_FOXNET ||
+		ClientId == IConsole::CLIENT_ID_FIFO ||
+		ClientId == IConsole::CLIENT_ID_ECON ||
+		ClientId == IConsole::CLIENT_ID_SCRIPTING;
+}
+
 int CServer::GetMaxClients(int ClientId) const
 {
-	// Shouldn't catch anything currently
-	if(ClientId == SERVER_DEMO_CLIENT)
+	// Console commands and server demos use untranslated client IDs.
+	if(IsConsolePseudoClient(ClientId))
 		return MAX_CLIENTS;
 
 	if(m_aClients[ClientId].m_Sixup)
@@ -3334,8 +3345,8 @@ int CServer::GetMaxClients(int ClientId) const
 
 bool CServer::ClientSupportsServerMaxClients(int ClientId) const
 {
-	// server demo pseudo clients operate on untranslated ids
-	if(ClientId == SERVER_DEMO_CLIENT)
+	// Console commands and server demos use untranslated client IDs.
+	if(IsConsolePseudoClient(ClientId))
 		return true;
 
 	// We can use `m_NetServer.MaxClients()` instead of `MAX_CLIENTS` here because it can't be changed ingame.
