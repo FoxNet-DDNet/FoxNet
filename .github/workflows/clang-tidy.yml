@@ -1,5 +1,8 @@
 name: Check clang-tidy
 
+on:
+  workflow_dispatch:
+
 # on:
 #   push:
 #     branches-ignore:

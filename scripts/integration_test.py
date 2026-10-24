@@ -838,6 +838,8 @@ def smoke_test(test_env):
 		("coverage", "client2", 1020.38, "UNK", 1021.34, 0.02, 0.04, 0.04, 0.06, 600.08, 600.1, 600.12, 600.12, 1020.14, 1020.16, 1020.18, 1020.2, 1020.2, 1020.22, 1020.24, 1020.26, 1020.26, 1020.28, 1020.3, 1020.3, 1020.32, 1020.34, 1020.34, 1020.36, game_uuid, 0),
 		("coverage", "client2", 1020.98, "UNK", 0.02, 0.1, 0.2, 0.26, 0.32, 600.36, 600.42, 600.46, 600.5, 1020.54, 1020.58, 1020.6, 1020.64, 1020.66, 1020.7, 1020.72, 1020.76, 1020.78, 1020.8, 1020.84, 1020.86, 1020.88, 1020.9, 1020.94, 1020.96, game_uuid, 0),
 	]
+	# Integration clients do not log in, so their account links are NULL.
+	expected_ranks = [rank + (None,) for rank in expected_ranks]
 
 	if not ranks:
 		raise AssertionError("no ranks found")

@@ -351,11 +351,12 @@ void CPlayer::Snap(int SnappingClient)
 		return;
 
 	// <FoxNet
-	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
-
-	if(m_Vanish && SnappingClient != TranslatedId && SnappingClient >= 0)
-		if(!pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
+	CPlayer *pSnapPlayer = SnappingClient >= 0 && SnappingClient < MAX_CLIENTS ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
+	if(m_Vanish && SnappingClient >= 0 && SnappingClient != TranslatedId)
+	{
+		if(pSnapPlayer && !pSnapPlayer->m_Vanish && Server()->GetAuthedState(SnappingClient) < AUTHED_ADMIN)
 			return;
+	}
 	// FoxNet>
 
 	// None of this depends on SnappingClient, so it is packed once and rebuilt only when the
@@ -532,13 +533,13 @@ void CPlayer::Snap(int SnappingClient)
 
 	if(SnappingClient != SERVER_DEMO_CLIENT)
 	{
-		ShowSpec = ShowSpec && (GameServer()->GetDDRaceTeam(m_ClientId) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->GetShowOthers() == SHOW_OTHERS_ON || (pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused()));
+		ShowSpec = ShowSpec && pSnapPlayer && (GameServer()->GetDDRaceTeam(m_ClientId) == GameServer()->GetDDRaceTeam(SnappingClient) || pSnapPlayer->GetShowOthers() == SHOW_OTHERS_ON || (pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused()));
 	}
 
 	if(ShowSpec)
 	{
 		// <FoxNet
-		if(pSnapPlayer->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
+		if(pSnapPlayer && pSnapPlayer->MultiMapIdx() != MultiMapIdx() && !g_Config.m_SvMultimapShowOthers && !g_Config.m_SvMultimapAllowInteraction)
 			return;
 		// FoxNet>
 
