@@ -21,6 +21,48 @@ static const CUuid UUID_NO_SAVE_ID =
 	{{0x6b, 0x40, 0x7e, 0x81, 0x8b, 0x77, 0x3e, 0x04,
 		0xa2, 0x07, 0x8d, 0xa1, 0x7f, 0x37, 0xd0, 0x00}};
 
+static constexpr const char *RACE_COLUMNS =
+	"Map, Name, Timestamp, Time, Server, "
+	"cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, "
+	"cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, "
+	"cp21, cp22, cp23, cp24, cp25, GameId, DDNet7, AccountUsername";
+
+class CScopedSqlTransaction
+{
+	IDbConnection *m_pSql;
+	bool m_Active = false;
+
+public:
+	explicit CScopedSqlTransaction(IDbConnection *pSql) : m_pSql(pSql) {}
+	bool Begin(char *pError, int ErrorSize)
+	{
+		m_Active = m_pSql->BeginTransaction(pError, ErrorSize);
+		return m_Active;
+	}
+	bool Commit(char *pError, int ErrorSize)
+	{
+		if(!m_pSql->PrepareStatement("COMMIT", pError, ErrorSize))
+			return false;
+		int NumUpdated;
+		if(!m_pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+		m_Active = false;
+		return true;
+	}
+	~CScopedSqlTransaction()
+	{
+		if(m_Active)
+		{
+			char aError[256];
+			if(m_pSql->PrepareStatement("ROLLBACK", aError, sizeof(aError)))
+			{
+				int NumUpdated;
+				m_pSql->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+			}
+		}
+	}
+};
+
 static int GetIntOrDefault(IDbConnection *pSqlServer, int Col, int DefaultValue = 0)
 {
 	return pSqlServer->IsNull(Col) ? DefaultValue : pSqlServer->GetInt(Col);
@@ -202,7 +244,7 @@ bool CScoreWorker::LoadBestTime(IDbConnection *pSqlServer, const ISqlData *pGame
 	char aBuf[512];
 	// get the best time
 	str_format(aBuf, sizeof(aBuf),
-		"SELECT Time FROM %s_race WHERE Map=? ORDER BY `Time` ASC LIMIT 1",
+		"SELECT Time FROM %s_race_visible WHERE Map=? ORDER BY `Time` ASC LIMIT 1",
 		pSqlServer->GetPrefix());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
@@ -234,12 +276,12 @@ bool CScoreWorker::LoadPlayerData(IDbConnection *pSqlServer, const ISqlData *pGa
 	// get best race time
 	str_format(aBuf, sizeof(aBuf),
 		"SELECT"
-		"  (SELECT Time FROM %s_race WHERE Map = ? AND Name = ? ORDER BY Time ASC LIMIT 1) AS minTime, "
+		"  (SELECT Time FROM %s_race_visible WHERE Map = ? AND Name = ? ORDER BY Time ASC LIMIT 1) AS minTime, "
 		"  cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, cp14, "
 		"  cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, "
 		"  (cp1 + cp2 + cp3 + cp4 + cp5 + cp6 + cp7 + cp8 + cp9 + cp10 + cp11 + cp12 + cp13 + cp14 + "
 		"  cp15 + cp16 + cp17 + cp18 + cp19 + cp20 + cp21 + cp22 + cp23 + cp24 + cp25 > 0) AS hasCP, Time "
-		"FROM %s_race "
+		"FROM %s_race_visible "
 		"WHERE Map = ? AND Name = ? "
 		"ORDER BY hasCP DESC, Time ASC "
 		"LIMIT 1",
@@ -278,7 +320,7 @@ bool CScoreWorker::LoadPlayerData(IDbConnection *pSqlServer, const ISqlData *pGa
 	// birthday check
 	str_format(aBuf, sizeof(aBuf),
 		"SELECT CURRENT_TIMESTAMP AS Current, MIN(Timestamp) AS Stamp "
-		"FROM %s_race "
+		"FROM %s_race_visible "
 		"WHERE Name = ?",
 		pSqlServer->GetPrefix());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
@@ -316,7 +358,7 @@ bool CScoreWorker::LoadPlayerTimeCp(IDbConnection *pSqlServer, const ISqlData *p
 		"SELECT"
 		"  Time, cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, "
 		"  cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25 "
-		"FROM %s_race "
+		"FROM %s_race_visible "
 		"WHERE Map = ? AND Name = ? AND "
 		"  (cp1 + cp2 + cp3 + cp4 + cp5 + cp6 + cp7 + cp8 + cp9 + cp10 + cp11 + cp12 + cp13 + cp14 + "
 		"  cp15 + cp16 + cp17 + cp18 + cp19 + cp20 + cp21 + cp22 + cp23 + cp24 + cp25) > 0 "
@@ -437,11 +479,11 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	char aBuf[4096];
 	str_format(aBuf, sizeof(aBuf),
 		"SELECT l.Map, l.Server, Mapper, Points, Stars, Size, "
-		"  (SELECT COUNT(Name) FROM %s_race WHERE Map = l.Map) AS Finishes, "
-		"  (SELECT COUNT(DISTINCT Name) FROM %s_race WHERE Map = l.Map) AS Finishers, "
+		"  (SELECT COUNT(Name) FROM %s_race_visible WHERE Map = l.Map) AS Finishes, "
+		"  (SELECT COUNT(DISTINCT Name) FROM %s_race_visible WHERE Map = l.Map) AS Finishers, "
 		"  %s AS Stamp, "
 		"  %s-%s AS Ago, "
-		"  (SELECT MIN(Time) FROM %s_race WHERE Map = l.Map AND Name = ?) AS OwnTime "
+		"  (SELECT MIN(Time) FROM %s_race_visible WHERE Map = l.Map AND Name = ?) AS OwnTime "
 		"FROM ("
 		"  SELECT * FROM %s_maps "
 		"  WHERE Map LIKE %s "
@@ -495,7 +537,7 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 			char aMedianBuf[256];
 			str_format(aMedianBuf, sizeof(aMedianBuf),
 				"SELECT AVG(Time) FROM ("
-				"  SELECT Time FROM %s_race WHERE Map = ? ORDER BY Time LIMIT %d OFFSET %d"
+				"  SELECT Time FROM %s_race_visible WHERE Map = ? ORDER BY Time LIMIT %d OFFSET %d"
 				") AS m",
 				pSqlServer->GetPrefix(), 2 - (Finishes % 2), (Finishes - 1) / 2);
 			if(!pSqlServer->PrepareStatement(aMedianBuf, pError, ErrorSize))
@@ -699,12 +741,12 @@ bool CScoreWorker::SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameDat
 		"	Map, Name, Timestamp, Time, Server, "
 		"	cp1, cp2, cp3, cp4, cp5, cp6, cp7, cp8, cp9, cp10, cp11, cp12, cp13, "
 		"	cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, "
-		"	GameId, DDNet7) "
+		"	GameId, DDNet7, AccountUsername) "
 		"VALUES (?, ?, %s, %.2f, ?, "
 		"	%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
 		"	%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
 		"	%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, "
-		"	?, %s)",
+		"	?, %s, ?)",
 		pSqlServer->InsertIgnore(), pSqlServer->GetPrefix(),
 		w == Write::NORMAL ? "" : "_backup",
 		pSqlServer->InsertTimestampAsUtc(), pData->m_Time,
@@ -726,6 +768,10 @@ bool CScoreWorker::SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	pSqlServer->BindString(3, pData->m_aTimestamp);
 	pSqlServer->BindString(4, g_Config.m_SvSqlServerName);
 	pSqlServer->BindString(5, pData->m_aGameUuid);
+	if(pData->m_aAccountUsername[0])
+		pSqlServer->BindString(6, pData->m_aAccountUsername);
+	else
+		pSqlServer->BindNull(6);
 	pSqlServer->Print();
 	int NumInserted;
 	return pSqlServer->ExecuteUpdate(&NumInserted, pError, ErrorSize);
@@ -865,7 +911,23 @@ bool CScoreWorker::SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGam
 					return false;
 				}
 				// return error if we didn't update any rows
-				return NumUpdated != 0;
+				if(NumUpdated == 0)
+					return false;
+				for(unsigned int i = 0; i < pData->m_Size; i++)
+				{
+					str_format(aBuf, sizeof(aBuf), "UPDATE %s_teamrace SET AccountUsername=? WHERE Id=? AND Name=?", pSqlServer->GetPrefix());
+					if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+						return false;
+					if(pData->m_aaAccountUsernames[i][0])
+						pSqlServer->BindString(1, pData->m_aaAccountUsernames[i]);
+					else
+						pSqlServer->BindNull(1);
+					pSqlServer->BindBlob(2, Teamrank.m_TeamId.m_aData, sizeof(Teamrank.m_TeamId.m_aData));
+					pSqlServer->BindString(3, pData->m_aaNames[i]);
+					if(!pSqlServer->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+						return false;
+				}
+				return true;
 			}
 			return true;
 		}
@@ -875,8 +937,8 @@ bool CScoreWorker::SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGam
 	{
 		// if no entry found... create a new one
 		str_format(aBuf, sizeof(aBuf),
-			"%s INTO %s_teamrace%s(Map, Name, Timestamp, Time, Id, GameId, DDNet7) "
-			"VALUES (?, ?, %s, %.2f, ?, ?, %s)",
+			"%s INTO %s_teamrace%s(Map, Name, Timestamp, Time, Id, GameId, DDNet7, AccountUsername) "
+			"VALUES (?, ?, %s, %.2f, ?, ?, %s, ?)",
 			pSqlServer->InsertIgnore(), pSqlServer->GetPrefix(),
 			w == Write::NORMAL ? "" : "_backup",
 			pSqlServer->InsertTimestampAsUtc(), pData->m_Time, pSqlServer->False());
@@ -891,6 +953,10 @@ bool CScoreWorker::SaveTeamScore(IDbConnection *pSqlServer, const ISqlData *pGam
 		CUuid TeamrankId = pData->m_TeamrankUuid;
 		pSqlServer->BindBlob(4, TeamrankId.m_aData, sizeof(TeamrankId.m_aData));
 		pSqlServer->BindString(5, pData->m_aGameUuid);
+		if(pData->m_aaAccountUsernames[i][0])
+			pSqlServer->BindString(6, pData->m_aaAccountUsernames[i]);
+		else
+			pSqlServer->BindNull(6);
 		pSqlServer->Print();
 		int NumInserted;
 		if(!pSqlServer->ExecuteUpdate(&NumInserted, pError, ErrorSize))
@@ -917,10 +983,10 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 		"SELECT SUM(Best.Time < Own.Time) + 1 AS Ranking, Own.Time AS Time, "
 		"  CASE WHEN COUNT(*) > 1 THEN SUM(Best.Time < Own.Time) * 1.0 / (COUNT(*) - 1) ELSE 0 END AS PercentRank "
 		"FROM ("
-		"  SELECT MIN(Time) AS Time FROM %s_race WHERE Map = ? AND Server LIKE ? GROUP BY Name"
+		"  SELECT MIN(Time) AS Time FROM %s_race_visible WHERE Map = ? AND Server LIKE ? GROUP BY Name"
 		") AS Best "
 		"CROSS JOIN ("
-		"  SELECT MIN(Time) AS Time FROM %s_race WHERE Map = ? AND Server LIKE ? AND Name = ?"
+		"  SELECT MIN(Time) AS Time FROM %s_race_visible WHERE Map = ? AND Server LIKE ? AND Name = ?"
 		") AS Own "
 		"WHERE Own.Time IS NOT NULL "
 		"GROUP BY Own.Time",
@@ -1032,18 +1098,18 @@ bool CScoreWorker::ShowTeamRank(IDbConnection *pSqlServer, const ISqlData *pGame
 		"SELECT l.Id, Name, Time, Ranking, PercentRank "
 		"FROM (" // teamrank score board
 		"  SELECT RANK() OVER w AS Ranking, PERCENT_RANK() OVER w AS PercentRank, Id "
-		"  FROM %s_teamrace "
+		"  FROM %s_teamrace_visible "
 		"  WHERE Map = ? "
 		"  GROUP BY ID "
 		"  WINDOW w AS (ORDER BY Min(Time))"
 		") AS TeamRank INNER JOIN (" // select rank with Name in team
 		"  SELECT ID "
-		"  FROM %s_teamrace "
+		"  FROM %s_teamrace_visible "
 		"  WHERE Map = ? AND Name = ? "
 		"  ORDER BY Time "
 		"  LIMIT 1"
 		") AS l ON TeamRank.Id = l.Id "
-		"INNER JOIN %s_teamrace AS r ON l.Id = r.Id ",
+		"INNER JOIN %s_teamrace_visible AS r ON l.Id = r.Id ",
 		pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pSqlServer->GetPrefix());
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
@@ -1115,9 +1181,9 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 			"SELECT Name, Time, RANK() OVER (ORDER BY Time) AS Ranking "
 			"FROM ("
 			"  SELECT r1.Name AS Name, r1.Time AS Time "
-			"  FROM %s_race r1 "
+			"  FROM %s_race_visible r1 "
 			"  WHERE r1.Map = ? AND r1.Server LIKE ? AND NOT EXISTS ("
-			"    SELECT 1 FROM %s_race r2 "
+			"    SELECT 1 FROM %s_race_visible r2 "
 			"    WHERE r2.Map = r1.Map AND r2.Name = r1.Name AND r2.Server LIKE ? "
 			"      AND (r2.Time, r2.Timestamp, r2.Server) < (r1.Time, r1.Timestamp, r1.Server)) "
 			"  ORDER BY r1.Time LIMIT %d"
@@ -1131,7 +1197,7 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 			"SELECT Name, Time, Ranking "
 			"FROM ("
 			"  SELECT RANK() OVER w AS Ranking, MIN(Time) AS Time, Name "
-			"  FROM %s_race "
+			"  FROM %s_race_visible "
 			"  WHERE Map = ? "
 			"  AND Server LIKE ? "
 			"  GROUP BY Name "
@@ -1246,11 +1312,11 @@ bool CScoreWorker::ShowTeamTop5(IDbConnection *pSqlServer, const ISqlData *pGame
 		"    SELECT RANK() OVER w AS Ranking, COUNT(*) AS Teamsize, Id, Server "
 		"    FROM ("
 		"      SELECT tr.Map, tr.Time, tr.Id, ("
-		"        SELECT rr.Server FROM %s_race AS rr "
+		"        SELECT rr.Server FROM %s_race_visible AS rr "
 		"        WHERE rr.Map = tr.Map AND rr.Name = tr.Name AND rr.Time = tr.Time "
 		"        LIMIT 1"
 		"      ) AS Server "
-		"      FROM %s_teamrace AS tr "
+		"      FROM %s_teamrace_visible AS tr "
 		"      WHERE tr.Map = ? "
 		"    ) AS ll "
 		"    GROUP BY ID "
@@ -1260,7 +1326,7 @@ bool CScoreWorker::ShowTeamTop5(IDbConnection *pSqlServer, const ISqlData *pGame
 		"  ORDER BY Ranking %s "
 		"  LIMIT %d, ?"
 		") as l2 "
-		"INNER JOIN %s_teamrace as r ON l2.Id = r.Id "
+		"INNER JOIN %s_teamrace_visible as r ON l2.Id = r.Id "
 		"ORDER BY Ranking %s, r.Id, Name ASC",
 		pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pOrder, LimitStart, pSqlServer->GetPrefix(), pOrder);
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
@@ -1338,18 +1404,18 @@ bool CScoreWorker::ShowPlayerTeamTop5(IDbConnection *pSqlServer, const ISqlData 
 		"SELECT l.Id, Name, Time, Ranking "
 		"FROM (" // teamrank score board
 		"  SELECT RANK() OVER w AS Ranking, Id "
-		"  FROM %s_teamrace "
+		"  FROM %s_teamrace_visible "
 		"  WHERE Map = ? "
 		"  GROUP BY ID "
 		"  WINDOW w AS (ORDER BY Min(Time))"
 		") AS TeamRank INNER JOIN (" // select rank with Name in team
 		"  SELECT ID "
-		"  FROM %s_teamrace "
+		"  FROM %s_teamrace_visible "
 		"  WHERE Map = ? AND Name = ? "
 		"  ORDER BY Time %s "
 		"  LIMIT %d, 5 "
 		") AS l ON TeamRank.Id = l.Id "
-		"INNER JOIN %s_teamrace AS r ON l.Id = r.Id "
+		"INNER JOIN %s_teamrace_visible AS r ON l.Id = r.Id "
 		"ORDER BY Time %s, l.Id, Name ASC",
 		pSqlServer->GetPrefix(), pSqlServer->GetPrefix(), pOrder, LimitStart, pSqlServer->GetPrefix(), pOrder);
 	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
@@ -1420,7 +1486,7 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	{
 		str_format(aBuf, sizeof(aBuf),
 			"SELECT Time, (%s-%s) as Ago, %s as Stamp, Server "
-			"FROM %s_race "
+			"FROM %s_race_visible "
 			"WHERE Map = ? AND Name = ? "
 			"ORDER BY Timestamp %s "
 			"LIMIT ?, 5",
@@ -1438,7 +1504,7 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	{
 		str_format(aBuf, sizeof(aBuf),
 			"SELECT Time, (%s-%s) as Ago, %s as Stamp, Server, Name "
-			"FROM %s_race "
+			"FROM %s_race_visible "
 			"WHERE Map = ? "
 			"ORDER BY Timestamp %s "
 			"LIMIT ?, 5",
@@ -1680,7 +1746,7 @@ bool CScoreWorker::RandomUnfinishedMap(IDbConnection *pSqlServer, const ISqlData
 		"FROM %s_maps "
 		"WHERE Server = ? AND Map != ?%s%s AND Map NOT IN ("
 		"  SELECT Map "
-		"  FROM %s_race "
+		"  FROM %s_race_visible "
 		"  WHERE Name = ?"
 		") ORDER BY %s "
 		"LIMIT 1",
@@ -2147,8 +2213,19 @@ bool CScoreWorker::RemoveMapEntry(IDbConnection *pSqlServer, const ISqlData *pGa
 bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);
+	CScopedSqlTransaction Transaction(pSqlServer);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
 
-	char aBuf[256];
+	char aBuf[1024];
+	str_format(aBuf, sizeof(aBuf), "%s INTO %s_race_deleted (%s) SELECT %s FROM %s_race WHERE Name = ? AND Map = ?", pSqlServer->InsertIgnore(), pSqlServer->GetPrefix(), RACE_COLUMNS, RACE_COLUMNS, pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+		return false;
+	pSqlServer->BindString(1, pData->m_aName);
+	pSqlServer->BindString(2, pData->m_aMap);
+	int NumArchived;
+	if(!pSqlServer->ExecuteUpdate(&NumArchived, pError, ErrorSize))
+		return false;
 	// Remove all race records for this player on the map
 	str_format(aBuf, sizeof(aBuf),
 		"DELETE FROM %s_race WHERE Name = ? AND Map = ?",
@@ -2174,26 +2251,39 @@ bool CScoreWorker::RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlD
 		return false;
 	int MapPoints = End2 ? 0 : GetIntOrDefault(pSqlServer, 1);
 
-	str_format(aBuf, sizeof(aBuf),
-		"UPDATE %s_points SET Points = Points - ? WHERE Name = ?",
-		pSqlServer->GetPrefix());
-	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		return false;
-	pSqlServer->BindInt(1, MapPoints);
-	pSqlServer->BindString(2, pData->m_aName);
-	if(!pSqlServer->ExecuteUpdate(&NumUpdatedPoints, pError, ErrorSize))
-		return false;
+	if(NumDeletedRace > 0)
+	{
+		str_format(aBuf, sizeof(aBuf), "UPDATE %s_points SET Points = Points - ? WHERE Name = ?", pSqlServer->GetPrefix());
+		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+			return false;
+		pSqlServer->BindInt(1, MapPoints);
+		pSqlServer->BindString(2, pData->m_aName);
+		if(!pSqlServer->ExecuteUpdate(&NumUpdatedPoints, pError, ErrorSize))
+			return false;
+	}
 
 	log_info("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s'", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap);
-	return true;
+	return Transaction.Commit(pError, ErrorSize);
 }
 
 bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+	CScopedSqlTransaction Transaction(pSqlServer);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
 
 	// Remove race record with specific time
-	char aBuf[256];
+	char aBuf[1024];
+	str_format(aBuf, sizeof(aBuf), "%s INTO %s_race_deleted (%s) SELECT %s FROM %s_race WHERE Name = ? AND Map = ? AND ABS(Time - ?) < 0.001", pSqlServer->InsertIgnore(), pSqlServer->GetPrefix(), RACE_COLUMNS, RACE_COLUMNS, pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+		return false;
+	pSqlServer->BindString(1, pData->m_aName);
+	pSqlServer->BindString(2, pData->m_aMap);
+	pSqlServer->BindFloat(3, pData->m_Time);
+	int NumArchived;
+	if(!pSqlServer->ExecuteUpdate(&NumArchived, pError, ErrorSize))
+		return false;
 	str_format(aBuf, sizeof(aBuf),
 		"DELETE FROM %s_race WHERE Name = ? AND Map = ? AND ABS(Time - ?) < 0.001",
 		pSqlServer->GetPrefix());
@@ -2221,7 +2311,7 @@ bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const I
 	int NumRemaining = GetIntOrDefault(pSqlServer, 1);
 
 	int NumUpdatedPoints = 0;
-	if(NumRemaining == 0)
+	if(NumDeletedRace > 0 && NumRemaining == 0)
 	{
 		// Subtract the map's points from the player's total
 		str_format(aBuf, sizeof(aBuf),
@@ -2247,15 +2337,25 @@ bool CScoreWorker::RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const I
 	}
 
 	log_info("sql", "Removed %d records and subtracted %d points for player '%s' on map '%s' with time %.6f (remaining finishes on map: %d)", NumDeletedRace, NumUpdatedPoints, pData->m_aName, pData->m_aMap, pData->m_Time, NumRemaining);
-	return true;
+	return Transaction.Commit(pError, ErrorSize);
 }
 
 bool CScoreWorker::RemoveAllPlayerRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);
+	CScopedSqlTransaction Transaction(pSqlServer);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
 
 	// Remove all race records for this player
-	char aBuf[256];
+	char aBuf[1024];
+	str_format(aBuf, sizeof(aBuf), "%s INTO %s_race_deleted (%s) SELECT %s FROM %s_race WHERE Name = ?", pSqlServer->InsertIgnore(), pSqlServer->GetPrefix(), RACE_COLUMNS, RACE_COLUMNS, pSqlServer->GetPrefix());
+	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+		return false;
+	pSqlServer->BindString(1, pData->m_aName);
+	int NumArchived;
+	if(!pSqlServer->ExecuteUpdate(&NumArchived, pError, ErrorSize))
+		return false;
 	str_format(aBuf, sizeof(aBuf),
 		"DELETE FROM %s_race WHERE Name = ?",
 		pSqlServer->GetPrefix());
@@ -2266,18 +2366,104 @@ bool CScoreWorker::RemoveAllPlayerRecords(IDbConnection *pSqlServer, const ISqlD
 	if(!pSqlServer->ExecuteUpdate(&NumDeletedRace, pError, ErrorSize))
 		return false;
 
-	str_format(aBuf, sizeof(aBuf),
-		"DELETE FROM %s_points WHERE Name = ?",
-		pSqlServer->GetPrefix());
-	if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
-		return false;
-	pSqlServer->BindString(1, pData->m_aName);
 	int NumDeletedPoints = 0;
-	if(!pSqlServer->ExecuteUpdate(&NumDeletedPoints, pError, ErrorSize))
-		return false;
+	if(NumDeletedRace > 0)
+	{
+		str_format(aBuf, sizeof(aBuf), "DELETE FROM %s_points WHERE Name = ?", pSqlServer->GetPrefix());
+		if(!pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
+			return false;
+		pSqlServer->BindString(1, pData->m_aName);
+		if(!pSqlServer->ExecuteUpdate(&NumDeletedPoints, pError, ErrorSize))
+			return false;
+	}
 
 	log_info("sql", "Removed %d records and %d points for player '%s'", NumDeletedRace, NumDeletedPoints, pData->m_aName);
-	return true;
+	return Transaction.Commit(pError, ErrorSize);
+}
+
+static void BindRaceSelector(IDbConnection *pSql, const char *pName, const char *pMap, const float *pTime)
+{
+	pSql->BindString(1, pName);
+	if(pMap)
+		pSql->BindString(2, pMap);
+	if(pTime)
+		pSql->BindFloat(3, *pTime);
+}
+
+static bool RestoreRaceRecords(IDbConnection *pSql, const char *pName, const char *pMap, const float *pTime, char *pError, int ErrorSize)
+{
+	CScopedSqlTransaction Transaction(pSql);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
+
+	char aSelector[96] = "Name = ?";
+	char aPointsSelector[112] = "d.Name = ?";
+	if(pMap)
+	{
+		str_append(aSelector, " AND Map = ?");
+		str_append(aPointsSelector, " AND d.Map = ?");
+	}
+	if(pTime)
+	{
+		str_append(aSelector, " AND ABS(Time - ?) < 0.001");
+		str_append(aPointsSelector, " AND ABS(d.Time - ?) < 0.001");
+	}
+
+	char aSql[1024];
+	str_format(aSql, sizeof(aSql),
+		"SELECT COALESCE(SUM(m.Points), 0) FROM %s_maps m WHERE EXISTS "
+		"(SELECT 1 FROM %s_race_deleted d WHERE d.Map = m.Map AND %s) "
+		"AND NOT EXISTS (SELECT 1 FROM %s_race r WHERE r.Map = m.Map AND r.Name = ?)",
+		pSql->GetPrefix(), pSql->GetPrefix(), aPointsSelector, pSql->GetPrefix());
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	BindRaceSelector(pSql, pName, pMap, pTime);
+	pSql->BindString(pTime ? 4 : pMap ? 3 : 2, pName);
+	bool End;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	int Points = End ? 0 : GetIntOrDefault(pSql, 1);
+
+	str_format(aSql, sizeof(aSql), "%s INTO %s_race (%s) SELECT %s FROM %s_race_deleted WHERE %s",
+		pSql->InsertIgnore(), pSql->GetPrefix(), RACE_COLUMNS, RACE_COLUMNS, pSql->GetPrefix(), aSelector);
+	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+		return false;
+	BindRaceSelector(pSql, pName, pMap, pTime);
+	int NumRestored;
+	if(!pSql->ExecuteUpdate(&NumRestored, pError, ErrorSize))
+		return false;
+	if(NumRestored > 0)
+	{
+		str_format(aSql, sizeof(aSql), "DELETE FROM %s_race_deleted WHERE %s", pSql->GetPrefix(), aSelector);
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		BindRaceSelector(pSql, pName, pMap, pTime);
+		int NumDeleted;
+		if(!pSql->ExecuteUpdate(&NumDeleted, pError, ErrorSize))
+			return false;
+		if(Points && !pSql->AddPoints(pName, Points, pError, ErrorSize))
+			return false;
+	}
+	log_info("sql", "Restored %d records for player '%s'", NumRestored, pName);
+	return Transaction.Commit(pError, ErrorSize);
+}
+
+bool CScoreWorker::RestorePlayerMapRecords(IDbConnection *pSql, const ISqlData *pGameData, Write, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);
+	return RestoreRaceRecords(pSql, pData->m_aName, pData->m_aMap, nullptr, pError, ErrorSize);
+}
+
+bool CScoreWorker::RestorePlayerRecordWithTime(IDbConnection *pSql, const ISqlData *pGameData, Write, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlScoreData *>(pGameData);
+	return RestoreRaceRecords(pSql, pData->m_aName, pData->m_aMap, &pData->m_Time, pError, ErrorSize);
+}
+
+bool CScoreWorker::RestoreAllPlayerRecords(IDbConnection *pSql, const ISqlData *pGameData, Write, char *pError, int ErrorSize)
+{
+	const auto *pData = dynamic_cast<const CSqlPlayerRequest *>(pGameData);
+	return RestoreRaceRecords(pSql, pData->m_aName, nullptr, nullptr, pError, ErrorSize);
 }
 
 bool CScoreWorker::CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData, Write /*w*/, char *pError, int ErrorSize)

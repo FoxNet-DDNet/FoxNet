@@ -80,6 +80,9 @@ public:
 	void RemovePlayerRecords(const char *pName, const char *pMap);
 	void RemovePlayerRecordWithTime(const char *pName, const char *pMap, float Time);
 	void RemoveAllPlayerRecords(const char *pName);
+	void RestorePlayerRecords(const char *pName, const char *pMap);
+	void RestorePlayerRecordWithTime(const char *pName, const char *pMap, float Time);
+	void RestoreAllPlayerRecords(const char *pName);
 	void CacheMapInfo();
 	// FoxNet>
 };

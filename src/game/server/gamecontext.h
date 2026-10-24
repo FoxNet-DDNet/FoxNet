@@ -959,6 +959,9 @@ private:
 	static void ConRemoveRecord(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveRecordWithTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveAllRecords(IConsole::IResult *pResult, void *pUserData);
+	static void ConRestoreRecord(IConsole::IResult *pResult, void *pUserData);
+	static void ConRestoreRecordWithTime(IConsole::IResult *pResult, void *pUserData);
+	static void ConRestoreAllRecords(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConDropWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConCleanDroppedPickups(IConsole::IResult *pResult, void *pUserData);

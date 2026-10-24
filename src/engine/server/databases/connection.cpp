@@ -28,7 +28,7 @@ std::optional<int64_t> IDbConnection::GetOptionalInt64(int Col)
 	return GetInt64(Col);
 }
 
-void IDbConnection::FormatCreateRace(char *aBuf, unsigned int BufferSize, bool Backup) const
+void IDbConnection::FormatCreateRace(char *aBuf, unsigned int BufferSize, bool Backup, bool Deleted) const
 {
 	str_format(aBuf, BufferSize,
 		"CREATE TABLE IF NOT EXISTS %s_race%s ("
@@ -48,10 +48,11 @@ void IDbConnection::FormatCreateRace(char *aBuf, unsigned int BufferSize, bool B
 		"  cp25 FLOAT DEFAULT 0, "
 		"  GameId VARCHAR(64), "
 		"  DDNet7 BOOL DEFAULT FALSE, "
+		"  AccountUsername VARCHAR(32) COLLATE %s DEFAULT NULL, "
 		"  PRIMARY KEY (Map, Name, Time, Timestamp, Server)"
 		")",
-		GetPrefix(), Backup ? "_backup" : "",
-		BinaryCollate(), MAX_NAME_LENGTH_SQL, BinaryCollate());
+		GetPrefix(), Deleted ? "_deleted" : Backup ? "_backup" : "",
+		BinaryCollate(), MAX_NAME_LENGTH_SQL, BinaryCollate(), BinaryCollate());
 }
 
 void IDbConnection::FormatCreateTeamrace(char *aBuf, unsigned int BufferSize, const char *pIdType, bool Backup) const
@@ -65,10 +66,43 @@ void IDbConnection::FormatCreateTeamrace(char *aBuf, unsigned int BufferSize, co
 		"  ID %s NOT NULL, " // VARBINARY(16) for MySQL and BLOB for SQLite
 		"  GameId VARCHAR(64), "
 		"  DDNet7 BOOL DEFAULT FALSE, "
+		"  AccountUsername VARCHAR(32) COLLATE %s DEFAULT NULL, "
 		"  PRIMARY KEY (Id, Name)"
 		")",
 		GetPrefix(), Backup ? "_backup" : "",
-		BinaryCollate(), MAX_NAME_LENGTH_SQL, BinaryCollate(), pIdType);
+		BinaryCollate(), MAX_NAME_LENGTH_SQL, BinaryCollate(), pIdType, BinaryCollate());
+}
+
+bool IDbConnection::EnsureRaceAccountColumn(const char *pTable, char *pError, int ErrorSize)
+{
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "SELECT AccountUsername FROM %s LIMIT 0", pTable);
+	if(PrepareStatement(aBuf, pError, ErrorSize))
+		return true;
+	str_format(aBuf, sizeof(aBuf), "ALTER TABLE %s ADD COLUMN AccountUsername VARCHAR(32) COLLATE %s DEFAULT NULL", pTable, BinaryCollate());
+	if(!PrepareStatement(aBuf, pError, ErrorSize))
+		return false;
+	int NumUpdated;
+	return ExecuteUpdate(&NumUpdated, pError, ErrorSize);
+}
+
+void IDbConnection::FormatCreateVisibleRace(char *aBuf, unsigned int BufferSize, bool Mysql) const
+{
+	str_format(aBuf, BufferSize,
+		"%s %s_race_visible AS SELECT r.* FROM %s_race r "
+		"LEFT JOIN foxnet_accounts a ON a.Username = r.AccountUsername "
+		"WHERE r.AccountUsername IS NULL OR (a.Username IS NOT NULL AND a.Disabled = 0)",
+		Mysql ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS", GetPrefix(), GetPrefix());
+}
+
+void IDbConnection::FormatCreateVisibleTeamrace(char *aBuf, unsigned int BufferSize, bool Mysql) const
+{
+	str_format(aBuf, BufferSize,
+		"%s %s_teamrace_visible AS SELECT r.* FROM %s_teamrace r WHERE NOT EXISTS ("
+		"SELECT 1 FROM %s_teamrace member LEFT JOIN foxnet_accounts a "
+		"ON a.Username = member.AccountUsername WHERE member.Id = r.Id "
+		"AND member.AccountUsername IS NOT NULL AND (a.Username IS NULL OR a.Disabled <> 0))",
+		Mysql ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS", GetPrefix(), GetPrefix(), GetPrefix());
 }
 
 void IDbConnection::FormatCreateMaps(char *aBuf, unsigned int BufferSize) const

@@ -142,6 +142,7 @@ struct CSqlScoreData : ISqlData
 	char m_aMap[MAX_MAP_LENGTH];
 	char m_aGameUuid[UUID_MAXSTRSIZE];
 	char m_aName[MAX_MAP_LENGTH];
+	char m_aAccountUsername[33] = "";
 
 	int m_ClientId;
 	float m_Time;
@@ -199,6 +200,7 @@ struct CSqlTeamScoreData : ISqlData
 	char m_aTimestamp[TIMESTAMP_STR_LENGTH];
 	unsigned int m_Size;
 	char m_aaNames[MAX_CLIENTS][MAX_NAME_LENGTH];
+	char m_aaAccountUsernames[MAX_CLIENTS][33]{};
 	CUuid m_TeamrankUuid;
 };
 
@@ -382,6 +384,9 @@ struct CScoreWorker
 	static bool RemovePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool RemovePlayerRecordWithTime(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	static bool RemoveAllPlayerRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
+	static bool RestorePlayerMapRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
+	static bool RestorePlayerRecordWithTime(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
+	static bool RestoreAllPlayerRecords(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 
 	static bool CacheMapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData, Write w, char *pError, int ErrorSize);
 	// FoxNet>

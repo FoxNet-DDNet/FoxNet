@@ -181,6 +181,9 @@ void CScore::SaveScore(int ClientId, int TimeTicks, const char *pTimestamp, cons
 	str_copy(Tmp->m_aMap, GameServer()->MapName(ClientId));
 	FormatUuid(GameServer()->GameUuid(), Tmp->m_aGameUuid, sizeof(Tmp->m_aGameUuid));
 	Tmp->m_ClientId = ClientId;
+	const CAccountSession &Account = GameServer()->m_aAccounts[ClientId];
+	if(Account.m_LoggedIn)
+		str_copy(Tmp->m_aAccountUsername, Account.m_aUsername);
 	str_copy(Tmp->m_aName, Server()->ClientName(ClientId));
 	Tmp->m_Time = (float)(TimeTicks) / (float)Server()->TickSpeed();
 	str_copy(Tmp->m_aTimestamp, pTimestamp);
@@ -206,7 +209,12 @@ void CScore::SaveTeamScore(int Team, int *pClientIds, unsigned int Size, int Tim
 
 	auto Tmp = std::make_unique<CSqlTeamScoreData>();
 	for(unsigned int i = 0; i < Size; i++)
+	{
 		str_copy(Tmp->m_aaNames[i], Server()->ClientName(pClientIds[i]));
+		const CAccountSession &Account = GameServer()->m_aAccounts[pClientIds[i]];
+		if(Account.m_LoggedIn)
+			str_copy(Tmp->m_aaAccountUsernames[i], Account.m_aUsername);
+	}
 	Tmp->m_Size = Size;
 	Tmp->m_Time = (float)TimeTicks / (float)Server()->TickSpeed();
 	str_copy(Tmp->m_aTimestamp, pTimestamp);
@@ -513,6 +521,30 @@ void CScore::RemoveAllPlayerRecords(const char *pName)
 	str_copy(Tmp->m_aRequestingPlayer, pName, sizeof(Tmp->m_aRequestingPlayer));
 
 	m_pPool->ExecuteWrite(CScoreWorker::RemoveAllPlayerRecords, std::move(Tmp), "remove all player map records");
+}
+
+void CScore::RestorePlayerRecords(const char *pName, const char *pMap)
+{
+	auto Tmp = std::make_unique<CSqlPlayerRequest>(std::make_shared<CScorePlayerResult>());
+	str_copy(Tmp->m_aName, pName);
+	str_copy(Tmp->m_aMap, pMap);
+	m_pPool->ExecuteWrite(CScoreWorker::RestorePlayerMapRecords, std::move(Tmp), "restore player map records");
+}
+
+void CScore::RestorePlayerRecordWithTime(const char *pName, const char *pMap, float Time)
+{
+	auto Tmp = std::make_unique<CSqlScoreData>(std::make_shared<CScorePlayerResult>());
+	str_copy(Tmp->m_aName, pName);
+	str_copy(Tmp->m_aMap, pMap);
+	Tmp->m_Time = Time;
+	m_pPool->ExecuteWrite(CScoreWorker::RestorePlayerRecordWithTime, std::move(Tmp), "restore player record with time");
+}
+
+void CScore::RestoreAllPlayerRecords(const char *pName)
+{
+	auto Tmp = std::make_unique<CSqlPlayerRequest>(std::make_shared<CScorePlayerResult>());
+	str_copy(Tmp->m_aName, pName);
+	m_pPool->ExecuteWrite(CScoreWorker::RestoreAllPlayerRecords, std::move(Tmp), "restore all player records");
 }
 
 void CScore::CacheMapInfo()

@@ -87,6 +87,7 @@ public:
 	void Disconnect() override;
 
 	bool PrepareStatement(const char *pStmt, char *pError, int ErrorSize) override;
+	bool BeginTransaction(char *pError, int ErrorSize) override;
 
 	void BindString(int Idx, const char *pString) override;
 	void BindBlob(int Idx, unsigned char *pBlob, int Size) override;
@@ -383,6 +384,7 @@ bool CMysqlConnection::ConnectImpl()
 	if(m_Config.m_Setup)
 	{
 		char aCreateRace[1024];
+		char aCreateDeletedRace[1024];
 		char aCreateTeamrace[1024];
 		char aCreateMaps[1024];
 		char aCreateSaves[1024];
@@ -395,6 +397,7 @@ bool CMysqlConnection::ConnectImpl()
 		char aCreateAccountConfig[1024];
 		// FoxNet>
 		FormatCreateRace(aCreateRace, sizeof(aCreateRace), /* Backup */ false);
+		FormatCreateRace(aCreateDeletedRace, sizeof(aCreateDeletedRace), false, true);
 		FormatCreateTeamrace(aCreateTeamrace, sizeof(aCreateTeamrace), "VARBINARY(16)", /* Backup */ false);
 		FormatCreateMaps(aCreateMaps, sizeof(aCreateMaps));
 		FormatCreateSaves(aCreateSaves, sizeof(aCreateSaves), /* Backup */ false);
@@ -408,6 +411,7 @@ bool CMysqlConnection::ConnectImpl()
 		// FoxNet>
 
 		if(!PrepareAndExecuteStatement(aCreateRace) ||
+			!PrepareAndExecuteStatement(aCreateDeletedRace) ||
 			!PrepareAndExecuteStatement(aCreateTeamrace) ||
 			!PrepareAndExecuteStatement(aCreateMaps) ||
 			!PrepareAndExecuteStatement(aCreateSaves) ||
@@ -423,10 +427,39 @@ bool CMysqlConnection::ConnectImpl()
 		{
 			return false;
 		}
+		for(const char *pTable : {"race", "teamrace"})
+		{
+			char aTable[128];
+			char aError[256];
+			str_format(aTable, sizeof(aTable), "%s_%s", GetPrefix(), pTable);
+			if(!EnsureRaceAccountColumn(aTable, aError, sizeof(aError)))
+			{
+				str_copy(m_aErrorDetail, aError);
+				return false;
+			}
+		}
+		char aView[1024];
+		FormatCreateVisibleRace(aView, sizeof(aView), true);
+		if(!PrepareAndExecuteStatement(aView))
+			return false;
+		FormatCreateVisibleTeamrace(aView, sizeof(aView), true);
+		if(!PrepareAndExecuteStatement(aView))
+			return false;
 		m_Config.m_Setup = false;
 	}
 
 	dbg_msg("mysql", "connection established");
+	return true;
+}
+
+bool CMysqlConnection::BeginTransaction(char *pError, int ErrorSize)
+{
+	if(mysql_query(&m_Mysql, "START TRANSACTION"))
+	{
+		StoreErrorMysql("begin transaction");
+		str_copy(pError, m_aErrorDetail, ErrorSize);
+		return false;
+	}
 	return true;
 }
 

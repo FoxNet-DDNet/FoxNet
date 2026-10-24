@@ -35,6 +35,7 @@ public:
 	void Disconnect() override;
 
 	bool PrepareStatement(const char *pStmt, char *pError, int ErrorSize) override;
+	bool BeginTransaction(char *pError, int ErrorSize) override { return Execute("BEGIN", pError, ErrorSize); }
 
 	void BindString(int Idx, const char *pString) override;
 	void BindBlob(int Idx, unsigned char *pBlob, int Size) override;
@@ -191,7 +192,23 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+		FormatCreateRace(aBuf, sizeof(aBuf), false, true);
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 		FormatCreateTeamrace(aBuf, sizeof(aBuf), "BLOB", /* Backup */ true);
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
+		for(const char *pTable : {"race", "race_backup", "teamrace", "teamrace_backup"})
+		{
+			char aTable[128];
+			str_format(aTable, sizeof(aTable), "%s_%s", GetPrefix(), pTable);
+			if(!EnsureRaceAccountColumn(aTable, pError, ErrorSize))
+				return false;
+		}
+		FormatCreateVisibleRace(aBuf, sizeof(aBuf), false);
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
+		FormatCreateVisibleTeamrace(aBuf, sizeof(aBuf), false);
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
 		FormatCreateSaves(aBuf, sizeof(aBuf), /* Backup */ true);

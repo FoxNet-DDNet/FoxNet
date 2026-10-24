@@ -1030,7 +1030,7 @@ void CGameContext::ConRemoveRecord(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pName = pResult->GetString(0);
-	const char *pMap = pResult->NumArguments() > 1 ? pResult->GetString(2) : pSelf->Map()->BaseName();
+	const char *pMap = pResult->NumArguments() > 1 ? pResult->GetString(1) : pSelf->Map()->BaseName();
 	pSelf->Score()->RemovePlayerRecords(pName, pMap);
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
@@ -1068,6 +1068,57 @@ void CGameContext::ConRemoveAllRecords(IConsole::IResult *pResult, void *pUserDa
 	const char *pName = pResult->GetString(0);
 	pSelf->Score()->RemoveAllPlayerRecords(pName);
 
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
+		{
+			pSelf->Score()->PlayerData(ClientId)->Reset();
+			pSelf->Score()->LoadPlayerData(ClientId);
+			return;
+		}
+	}
+}
+
+void CGameContext::ConRestoreRecord(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pName = pResult->GetString(0);
+	const char *pMap = pResult->NumArguments() > 1 ? pResult->GetString(1) : pSelf->Map()->BaseName();
+	pSelf->Score()->RestorePlayerRecords(pName, pMap);
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
+		{
+			pSelf->Score()->PlayerData(ClientId)->Reset();
+			pSelf->Score()->LoadPlayerData(ClientId);
+			return;
+		}
+	}
+}
+
+void CGameContext::ConRestoreRecordWithTime(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pName = pResult->GetString(0);
+	const float Time = pResult->GetFloat(1);
+	const char *pMap = pResult->NumArguments() > 2 ? pResult->GetString(2) : pSelf->Map()->BaseName();
+	pSelf->Score()->RestorePlayerRecordWithTime(pName, pMap, Time);
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+	{
+		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
+		{
+			pSelf->Score()->PlayerData(ClientId)->Reset();
+			pSelf->Score()->LoadPlayerData(ClientId);
+			return;
+		}
+	}
+}
+
+void CGameContext::ConRestoreAllRecords(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const char *pName = pResult->GetString(0);
+	pSelf->Score()->RestoreAllPlayerRecords(pName);
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
@@ -1786,9 +1837,12 @@ void CGameContext::RegisterFoxNetCommands()
 	Console()->Register("map_entry_remove", "s[mapname]", CFGFLAG_SERVER, ConRemoveMapEntry, this, "Remove a map entry from the ddnet_maps sql table");
 
 	Console()->Register("record_insert", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConInsertRecord, this, "Insert a new record for that name on the given map with given time");
-	Console()->Register("record_remove", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecord, this, "Remove all records a name has on the given map");
-	Console()->Register("record_remove_time", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecordWithTime, this, "Remove records a name has on given map with given time");
-	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Remove all records a name has");
+	Console()->Register("record_remove", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecord, this, "Archive all records a name has on the given map");
+	Console()->Register("record_remove_time", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecordWithTime, this, "Archive records a name has on given map with given time");
+	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Archive all records a name has");
+	Console()->Register("record_restore", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRestoreRecord, this, "Restore archived records for a name on the given map");
+	Console()->Register("record_restore_time", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConRestoreRecordWithTime, this, "Restore archived records for a name with the given time");
+	Console()->Register("record_restore_all", "r[name]", CFGFLAG_SERVER, ConRestoreAllRecords, this, "Restore all archived records for a name");
 
 	// Casino/Multi-Map related
 	Console()->Register("bet", "r[amount]", CFGFLAG_CHAT, ConSetBet, this, "set your wager in a gambling zone");

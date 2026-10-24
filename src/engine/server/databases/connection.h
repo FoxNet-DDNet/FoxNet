@@ -56,6 +56,7 @@ public:
 	//
 	// returns true on success
 	virtual bool PrepareStatement(const char *pStmt, char *pError, int ErrorSize) = 0;
+	virtual bool BeginTransaction(char *pError, int ErrorSize) = 0;
 
 	// PrepareStatement has to be called beforehand,
 	virtual void BindString(int Idx, const char *pString) = 0;
@@ -97,8 +98,11 @@ private:
 	char m_aPrefix[64];
 
 protected:
-	void FormatCreateRace(char *aBuf, unsigned int BufferSize, bool Backup) const;
+	void FormatCreateRace(char *aBuf, unsigned int BufferSize, bool Backup, bool Deleted = false) const;
 	void FormatCreateTeamrace(char *aBuf, unsigned int BufferSize, const char *pIdType, bool Backup) const;
+	bool EnsureRaceAccountColumn(const char *pTable, char *pError, int ErrorSize);
+	void FormatCreateVisibleRace(char *aBuf, unsigned int BufferSize, bool Mysql) const;
+	void FormatCreateVisibleTeamrace(char *aBuf, unsigned int BufferSize, bool Mysql) const;
 	void FormatCreateMaps(char *aBuf, unsigned int BufferSize) const;
 	void FormatCreateSaves(char *aBuf, unsigned int BufferSize, bool Backup) const;
 	void FormatCreatePoints(char *aBuf, unsigned int BufferSize) const;
