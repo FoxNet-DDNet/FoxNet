@@ -97,7 +97,10 @@ sv_command_relay_token replace-with-random-instance-token
 
 The `instance_token` must match the local relay config. The relay does not need
 per-instance port settings. FoxNet keeps an outgoing SQLite outbox per game
-port in its save directory; retain these files too.
+port in the `command-relay/` folder of its save directory (usually
+`data/command-relay/`); retain these files too. On startup, it migrates any
+older `command-relay-<port>.sqlite3` outbox from the save directory, including
+pending commands, before opening the new path.
 
 ## Commands and delivery
 

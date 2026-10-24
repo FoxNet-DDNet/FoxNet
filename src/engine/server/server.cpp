@@ -5910,8 +5910,55 @@ bool CServer::OpenRelayOutbox()
 		return true;
 	if(!Storage() || Port() <= 0)
 		return false;
-	char aName[64], aPath[IO_MAX_PATH_LENGTH];
-	str_format(aName, sizeof(aName), "command-relay-%d.sqlite3", Port());
+	constexpr const char *pFolder = "command-relay";
+	if(!Storage()->FolderExists(pFolder, IStorage::TYPE_SAVE) && !Storage()->CreateFolder(pFolder, IStorage::TYPE_SAVE))
+	{
+		log_error("command-relay", "could not create outbox folder");
+		return false;
+	}
+	char aLegacyName[64], aName[96], aPath[IO_MAX_PATH_LENGTH];
+	str_format(aLegacyName, sizeof(aLegacyName), "command-relay-%d.sqlite3", Port());
+	str_format(aName, sizeof(aName), "%s/%s", pFolder, aLegacyName);
+	if(Storage()->FileExists(aLegacyName, IStorage::TYPE_SAVE) && !Storage()->FileExists(aName, IStorage::TYPE_SAVE))
+	{
+		char aLegacyPath[IO_MAX_PATH_LENGTH], aTempName[112], aTempPath[IO_MAX_PATH_LENGTH];
+		str_format(aTempName, sizeof(aTempName), "%s.migrating", aName);
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, aLegacyName, aLegacyPath, sizeof(aLegacyPath));
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, aTempName, aTempPath, sizeof(aTempPath));
+		Storage()->RemoveFile(aTempName, IStorage::TYPE_SAVE);
+		sqlite3 *pLegacy = nullptr, *pNew = nullptr;
+		bool Migrated = sqlite3_open_v2(aLegacyPath, &pLegacy, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK &&
+			sqlite3_open(aTempPath, &pNew) == SQLITE_OK;
+		if(Migrated)
+		{
+			sqlite3_backup *pBackup = sqlite3_backup_init(pNew, "main", pLegacy, "main");
+			Migrated = pBackup && sqlite3_backup_step(pBackup, -1) == SQLITE_DONE;
+			if(pBackup)
+				Migrated = sqlite3_backup_finish(pBackup) == SQLITE_OK && Migrated;
+		}
+		if(pNew)
+			Migrated = sqlite3_close(pNew) == SQLITE_OK && Migrated;
+		if(pLegacy)
+			Migrated = sqlite3_close(pLegacy) == SQLITE_OK && Migrated;
+		if(Migrated)
+			Migrated = Storage()->RenameFile(aTempName, aName, IStorage::TYPE_SAVE);
+		if(!Migrated)
+		{
+			Storage()->RemoveFile(aTempName, IStorage::TYPE_SAVE);
+			log_error("command-relay", "could not migrate legacy outbox %s", aLegacyName);
+			return false;
+		}
+		if(Storage()->RemoveFile(aLegacyName, IStorage::TYPE_SAVE))
+		{
+			char aSidecar[96];
+			str_format(aSidecar, sizeof(aSidecar), "%s-wal", aLegacyName);
+			Storage()->RemoveFile(aSidecar, IStorage::TYPE_SAVE);
+			str_format(aSidecar, sizeof(aSidecar), "%s-shm", aLegacyName);
+			Storage()->RemoveFile(aSidecar, IStorage::TYPE_SAVE);
+		}
+		else
+			log_warn("command-relay", "migrated outbox but could not remove %s", aLegacyName);
+	}
 	Storage()->GetCompletePath(IStorage::TYPE_SAVE, aName, aPath, sizeof(aPath));
 	if(sqlite3_open(aPath, &m_pRelayOutbox) != SQLITE_OK)
 	{
