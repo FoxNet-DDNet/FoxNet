@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <memory>
 #include <optional>
 #include <type_traits>
 
@@ -353,7 +355,7 @@ public:
 
 	// DDRace
 
-	virtual void SaveDemo(int ClientId, float Time) = 0;
+	virtual void SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank = nullptr, bool RankUnchanged = false, const char *pAccountUsername = nullptr) = 0;
 	virtual void StartRecord(int ClientId) = 0;
 	virtual void StopRecord(int ClientId) = 0;
 	virtual bool IsRecording(int ClientId) = 0;

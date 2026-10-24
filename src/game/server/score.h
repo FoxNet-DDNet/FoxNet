@@ -55,6 +55,7 @@ public:
 
 	void ShowTop(int ClientId, int Offset = 1);
 	void ShowRank(int ClientId, const char *pName);
+	std::shared_ptr<std::atomic<int>> QueryRunRank(int ClientId, float Time, bool ScoreQueued);
 
 	void ShowTeamTop5(int ClientId, int Offset = 1);
 	void ShowPlayerTeamTop5(int ClientId, const char *pName, int Offset = 1);

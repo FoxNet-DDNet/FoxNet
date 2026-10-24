@@ -62,6 +62,11 @@ CDemoRecorder::~CDemoRecorder()
 	dbg_assert(m_File == nullptr, "Demo recorder was not stopped");
 }
 
+int64_t CDemoRecorder::FileSize() const
+{
+	return m_File ? io_tell(m_File) : 0;
+}
+
 // Record
 int CDemoRecorder::Start(IStorage *pStorage, IConsole *pConsole, const char *pFilename, const char *pNetVersion, const char *pMap, const SHA256_DIGEST &Sha256, unsigned Crc, const char *pType, unsigned MapSize, unsigned char *pMapData, IOHANDLE MapFile, DEMOFUNC_FILTER pfnFilter, void *pUser)
 {
@@ -96,7 +101,7 @@ int CDemoRecorder::Start(IStorage *pStorage, IConsole *pConsole, const char *pFi
 	char aSha256[SHA256_MAXSTRSIZE];
 	sha256_str(Sha256, aSha256, sizeof(aSha256));
 
-	if(!pMapData && !MapFile)
+	if(!m_NoMapData && !pMapData && !MapFile)
 	{
 		// open mapfile
 		char aMapFilename[IO_MAX_PATH_LENGTH];

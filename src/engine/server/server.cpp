@@ -6,6 +6,7 @@
 #include "databases/connection.h"
 #include "databases/connection_pool.h"
 #include "register.h"
+#include "run_demo_recorder.h"
 
 #include <base/bytes.h>
 #include <base/fs.h>
@@ -1190,6 +1191,9 @@ int CServer::SendMsg(CMsgPacker *pMsg, int Flags, int ClientId)
 			for(auto &Recorder : m_aDemoRecorder)
 				if(Recorder.IsRecording())
 					Recorder.RecordMessage(Pack6.Data(), Pack6.Size());
+			if(m_pRunDemoRecorder)
+				for(int i = 0; i < MAX_CLIENTS; ++i)
+					m_pRunDemoRecorder->Message(i, Pack6.Data(), Pack6.Size());
 		}
 
 		if(!(Flags & MSGFLAG_NOSEND))
@@ -1231,6 +1235,8 @@ int CServer::SendMsg(CMsgPacker *pMsg, int Flags, int ClientId)
 		{
 			if(m_aDemoRecorder[ClientId].IsRecording())
 				m_aDemoRecorder[ClientId].RecordMessage(Pack.Data(), Pack.Size());
+			if(m_pRunDemoRecorder)
+				m_pRunDemoRecorder->Message(ClientId, Pack.Data(), Pack.Size());
 			if(m_aDemoRecorder[RECORDER_MANUAL].IsRecording())
 				m_aDemoRecorder[RECORDER_MANUAL].RecordMessage(Pack.Data(), Pack.Size());
 			if(m_aDemoRecorder[RECORDER_AUTO].IsRecording())
@@ -1314,7 +1320,7 @@ void CServer::DoSnapshot()
 			m_SnapshotBuilder.Init(m_aClients[i].m_Sixup);
 
 			// only snap events on global ticks
-			GameServer()->OnSnap(i, IsGlobalSnap, m_aDemoRecorder[i].IsRecording());
+			GameServer()->OnSnap(i, IsGlobalSnap, IsRecording(i));
 
 			// finish snapshot
 			CSnapshotBuffer Data;
@@ -1325,6 +1331,8 @@ void CServer::DoSnapshot()
 				// write snapshot
 				m_aDemoRecorder[i].RecordSnapshot(Tick(), Data.AsSnapshot(), SnapshotSize);
 			}
+			if(m_pRunDemoRecorder)
+				m_pRunDemoRecorder->Snapshot(i, Tick(), Data.AsSnapshot(), SnapshotSize);
 
 			int Crc = Data.AsSnapshot()->Crc();
 
@@ -3755,6 +3763,12 @@ int CServer::Run()
 	}
 
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
+	if(g_Config.m_DcRecordsWebhookUrl[0])
+	{
+		char aRunDemoFolder[IO_MAX_PATH_LENGTH];
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "demos/runs", aRunDemoFolder, sizeof(aRunDemoFolder));
+		m_pRunDemoRecorder = std::make_unique<CRunDemoRecorder>(Storage(), m_pHttp, &m_SnapshotDelta, aRunDemoFolder, g_Config.m_DcRecordsWebhookUrl, this->Port());
+	}
 	m_pRegister = CreateRegister(&g_Config, m_pConsole, m_pEngine, m_pHttp, g_Config.m_SvRegisterPort > 0 ? g_Config.m_SvRegisterPort : this->Port(), m_NetServer.GetGlobalToken());
 
 	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, ClientRejoinCallback, DelClientCallback, this);
@@ -4127,6 +4141,7 @@ int CServer::Run()
 	m_pRegister->OnShutdown();
 	m_Econ.Shutdown();
 	m_Fifo.Shutdown();
+	m_pRunDemoRecorder.reset();
 	m_pHttp->Shutdown();
 	Engine()->ShutdownJobs();
 
@@ -4513,8 +4528,13 @@ void CServer::DemoRecorder_HandleAutoStart()
 	}
 }
 
-void CServer::SaveDemo(int ClientId, float Time)
+void CServer::SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername)
 {
+	if(m_pRunDemoRecorder)
+	{
+		m_pRunDemoRecorder->Finish(ClientId, Time, ClientName(ClientId), std::move(pRank), RankUnchanged, pAccountUsername);
+		return;
+	}
 	if(IsRecording(ClientId))
 	{
 		char aNewFilename[IO_MAX_PATH_LENGTH];
@@ -4525,6 +4545,11 @@ void CServer::SaveDemo(int ClientId, float Time)
 
 void CServer::StartRecord(int ClientId)
 {
+	if(m_pRunDemoRecorder)
+	{
+		m_pRunDemoRecorder->Start(ClientId, GameServer()->NetVersion(), GameServer()->Map()->BaseName(), m_aCurrentMapSha256[MAP_TYPE_SIX], m_aCurrentMapCrc[MAP_TYPE_SIX]);
+		return;
+	}
 	if(Config()->m_SvPlayerDemoRecord)
 	{
 		char aFilename[IO_MAX_PATH_LENGTH];
@@ -4548,6 +4573,11 @@ void CServer::StartRecord(int ClientId)
 
 void CServer::StopRecord(int ClientId)
 {
+	if(m_pRunDemoRecorder)
+	{
+		m_pRunDemoRecorder->Abort(ClientId);
+		return;
+	}
 	if(IsRecording(ClientId))
 	{
 		m_aDemoRecorder[ClientId].Stop(IDemoRecorder::EStopMode::REMOVE_FILE);
@@ -4556,11 +4586,15 @@ void CServer::StopRecord(int ClientId)
 
 bool CServer::IsRecording(int ClientId)
 {
+	if(m_pRunDemoRecorder && ClientId >= 0 && ClientId < MAX_CLIENTS)
+		return m_pRunDemoRecorder->IsRecording(ClientId);
 	return m_aDemoRecorder[ClientId].IsRecording();
 }
 
 void CServer::StopDemos()
 {
+	if(m_pRunDemoRecorder)
+		m_pRunDemoRecorder->AbortAll();
 	for(int i = 0; i < NUM_RECORDERS; i++)
 	{
 		if(!m_aDemoRecorder[i].IsRecording())

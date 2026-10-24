@@ -3123,6 +3123,8 @@ if(SERVER)
     name_ban.h
     register.cpp
     register.h
+    run_demo_recorder.cpp
+    run_demo_recorder.h
     server.cpp
     server.h
     server_logger.cpp

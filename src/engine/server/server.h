@@ -39,6 +39,7 @@ class CMsgPacker;
 class CPacker;
 class IEngine;
 class IEngineHttp;
+class CRunDemoRecorder;
 class IHttpRequest;
 class ILogger;
 struct sqlite3;
@@ -338,6 +339,7 @@ public:
 	char m_aMapDownloadUrl[256];
 
 	CDemoRecorder m_aDemoRecorder[NUM_RECORDERS];
+	std::unique_ptr<CRunDemoRecorder> m_pRunDemoRecorder;
 	CAuthManager m_AuthManager;
 
 	// start of the second the connection-less server info responses are counted in
@@ -501,7 +503,7 @@ public:
 	void ReloadMap() override;
 	int LoadMap(const char *pMapName);
 
-	void SaveDemo(int ClientId, float Time) override;
+	void SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank = nullptr, bool RankUnchanged = false, const char *pAccountUsername = nullptr) override;
 	void StartRecord(int ClientId) override;
 	void StopRecord(int ClientId) override;
 	bool IsRecording(int ClientId) override;

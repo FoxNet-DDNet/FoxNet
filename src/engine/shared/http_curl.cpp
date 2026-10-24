@@ -166,7 +166,12 @@ bool CHttpRequestCurl::ConfigureHandle(CURL *pHandle)
 		}
 		else
 		{
-			Header("Content-Type:");
+			bool HasContentType = false;
+			for(const curl_slist *pHeader = m_pRequestHeaders; pHeader; pHeader = pHeader->next)
+				if(str_startswith_nocase(pHeader->data, "Content-Type:"))
+					HasContentType = true;
+			if(!HasContentType)
+				Header("Content-Type:");
 		}
 		curl_easy_setopt(pHandle, CURLOPT_POSTFIELDS, m_pBody);
 		curl_easy_setopt(pHandle, CURLOPT_POSTFIELDSIZE, m_BodyLength);

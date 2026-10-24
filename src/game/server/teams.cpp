@@ -18,6 +18,7 @@
 #include <engine/message.h>
 #include <engine/server.h>
 #include <engine/shared/config.h>
+#include <engine/shared/console.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/uuid_manager.h>
 
@@ -115,12 +116,15 @@ void CGameTeams::OnCharacterStart(int ClientId)
 	if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO &&
 		(m_Core.Team(ClientId) == TEAM_FLOCK || TeamFlock(m_Core.Team(ClientId)) || m_Core.Team(ClientId) == TEAM_SUPER))
 	{
+		const bool NewAttempt = pStartingChar->m_DDRaceState != ERaceState::STARTED;
 		if(TeamFlock(m_Core.Team(ClientId)) && (m_aTeamState[m_Core.Team(ClientId)] < ETeamState::STARTED))
 			ChangeTeamState(m_Core.Team(ClientId), ETeamState::STARTED);
 
 		m_aTeeStarted[ClientId] = true;
 		pStartingChar->m_DDRaceState = ERaceState::STARTED;
 		pStartingChar->m_StartTime = Tick;
+		if(g_Config.m_DcRecordsWebhookUrl[0] && NewAttempt)
+			Server()->StartRecord(ClientId);
 		return;
 	}
 	bool Waiting = false;
@@ -195,6 +199,8 @@ void CGameTeams::OnCharacterStart(int ClientId)
 				{
 					SetDDRaceState(pPlayer, ERaceState::STARTED);
 					SetStartTime(pPlayer, Tick);
+					if(g_Config.m_DcRecordsWebhookUrl[0])
+						Server()->StartRecord(i);
 
 					if(First)
 						First = false;
@@ -254,11 +260,15 @@ void CGameTeams::Tick()
 	{
 		CPlayerData *pData = GameServer()->Score()->PlayerData(i);
 		if(!Server()->IsRecording(i))
+		{
+			if(g_Config.m_DcRecordsWebhookUrl[0])
+				pData->m_RecordStopTick = -1;
 			continue;
+		}
 
 		if(Now >= pData->m_RecordStopTick && pData->m_RecordStopTick != -1)
 		{
-			Server()->SaveDemo(i, pData->m_RecordFinishTime);
+			Server()->SaveDemo(i, pData->m_RecordFinishTime, pData->m_pRecordRank, pData->m_RecordRankUnchanged, pData->m_RecordAccountUsername.c_str());
 			pData->m_RecordStopTick = -1;
 		}
 	}
@@ -853,12 +863,29 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 		GameServer()->SendChat(-1, TEAM_ALL, aBuf, -1., CGameContext::FLAG_SIX);
 
 	float Diff = absolute(Time - pData->m_BestTime.value_or(0.0f));
+	const bool UploadRun = g_Config.m_DcRecordsWebhookUrl[0] && !IsPractice(m_Core.Team(ClientId)) && !pPlayer->m_NotEligibleForFinish && !((CConsole *)GameServer()->Console())->Cheated();
+	if(g_Config.m_DcRecordsWebhookUrl[0])
+	{
+		if(UploadRun)
+		{
+			pData->m_RecordStopTick = Server()->Tick() + Server()->TickSpeed();
+			pData->m_RecordFinishTime = Time;
+			pData->m_RecordRankUnchanged = pData->m_BestTime.has_value() && Time >= pData->m_BestTime.value();
+			pData->m_pRecordRank.reset();
+			pData->m_RecordAccountUsername = pPlayer->Acc()->m_LoggedIn ? pPlayer->Acc()->m_aUsername : "";
+		}
+		else
+			Server()->StopRecord(ClientId);
+	}
 
 	if(Time - pData->m_BestTime.value_or(0.0f) < 0)
 	{
 		// new record \o/
-		pData->m_RecordStopTick = Server()->Tick() + Server()->TickSpeed();
-		pData->m_RecordFinishTime = Time;
+		if(!g_Config.m_DcRecordsWebhookUrl[0])
+		{
+			pData->m_RecordStopTick = Server()->Tick() + Server()->TickSpeed();
+			pData->m_RecordFinishTime = Time;
+		}
 
 		if(Diff >= 60)
 			str_format(aBuf, sizeof(aBuf), "New record: %d minute(s) %5.2f second(s) better.",
@@ -873,7 +900,8 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 	}
 	else if(pData->m_BestTime.has_value()) // tee has already finished?
 	{
-		Server()->StopRecord(ClientId);
+		if(!g_Config.m_DcRecordsWebhookUrl[0])
+			Server()->StopRecord(ClientId);
 
 		if(Diff <= 0.005f)
 		{
@@ -894,8 +922,11 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 	}
 	else
 	{
-		pData->m_RecordStopTick = Server()->Tick() + Server()->TickSpeed();
-		pData->m_RecordFinishTime = Time;
+		if(!g_Config.m_DcRecordsWebhookUrl[0])
+		{
+			pData->m_RecordStopTick = Server()->Tick() + Server()->TickSpeed();
+			pData->m_RecordFinishTime = Time;
+		}
 	}
 
 	GameServer()->SendFinish(ClientId, Time, pData->m_BestTime);
@@ -909,10 +940,12 @@ void CGameTeams::OnFinish(CPlayer *pPlayer, int TimeTicks, const char *pTimestam
 		NeedToSendNewPersonalRecord = true;
 	}
 
-	if(CallSaveScore)
-		if(g_Config.m_SvNamelessScore || !str_startswith(Server()->ClientName(ClientId), "nameless tee"))
-			GameServer()->Score()->SaveScore(ClientId, TimeTicks, pTimestamp,
-				GetCurrentTimeCp(pPlayer), pPlayer->m_NotEligibleForFinish);
+	const bool ScoreQueued = CallSaveScore && (g_Config.m_SvNamelessScore || !str_startswith(Server()->ClientName(ClientId), "nameless tee"));
+	if(ScoreQueued)
+		GameServer()->Score()->SaveScore(ClientId, TimeTicks, pTimestamp,
+			GetCurrentTimeCp(pPlayer), pPlayer->m_NotEligibleForFinish);
+	if(UploadRun && (ScoreQueued || pData->m_RecordRankUnchanged))
+		pData->m_pRecordRank = GameServer()->Score()->QueryRunRank(ClientId, pData->m_RecordRankUnchanged ? pData->m_BestTime.value() : Time, ScoreQueued);
 
 	bool NeedToSendNewServerRecord = false;
 	// update server best time

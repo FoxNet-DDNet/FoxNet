@@ -232,6 +232,19 @@ void CScore::ShowRank(int ClientId, const char *pName)
 	ExecPlayerThread(CScoreWorker::ShowRank, "show rank", ClientId, pName, 0);
 }
 
+std::shared_ptr<std::atomic<int>> CScore::QueryRunRank(int ClientId, float Time, bool ScoreQueued)
+{
+	auto pRank = std::make_shared<std::atomic<int>>(-1);
+	auto Tmp = std::make_unique<CSqlPlayerRequest>(std::make_shared<CScorePlayerResult>());
+	str_copy(Tmp->m_aMap, GameServer()->MapName(ClientId));
+	Tmp->m_RunTime = Time;
+	Tmp->m_pRunRank = pRank;
+	if(ScoreQueued)
+		Tmp->m_pRunScoreSave = GameServer()->m_apPlayers[ClientId]->m_ScoreFinishResult;
+	m_pPool->Execute(CScoreWorker::RunRank, std::move(Tmp), "run rank");
+	return pRank;
+}
+
 void CScore::ShowTeamRank(int ClientId, const char *pName)
 {
 	if(RateLimitPlayer(ClientId))

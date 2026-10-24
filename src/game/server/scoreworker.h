@@ -11,6 +11,7 @@
 #include <game/server/save.h>
 #include <game/voting.h>
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
@@ -99,6 +100,9 @@ struct CSqlPlayerRequest : ISqlData
 	// relevant for /top5 kind of requests
 	int m_Offset;
 	char m_aServer[5];
+	float m_RunTime = 0.0f;
+	std::shared_ptr<std::atomic<int>> m_pRunRank;
+	std::shared_ptr<CScorePlayerResult> m_pRunScoreSave;
 };
 
 struct CScoreRandomMapResult : ISqlResult
@@ -249,6 +253,9 @@ public:
 			BestTimeCp = 0;
 
 		m_RecordStopTick = -1;
+		m_pRecordRank.reset();
+		m_RecordRankUnchanged = false;
+		m_RecordAccountUsername.clear();
 	}
 
 	void Set(float Time, const float aTimeCp[NUM_CHECKPOINTS])
@@ -269,6 +276,9 @@ public:
 
 	int m_RecordStopTick;
 	float m_RecordFinishTime;
+	std::shared_ptr<std::atomic<int>> m_pRecordRank;
+	bool m_RecordRankUnchanged = false;
+	std::string m_RecordAccountUsername;
 };
 
 struct CTeamrank
@@ -362,6 +372,7 @@ struct CScoreWorker
 	static bool LoadPlayerTimeCp(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
 	static bool MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
 	static bool ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
+	static bool RunRank(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
 	static bool ShowTeamRank(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
 	static bool ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);
 	static bool ShowTeamTop5(IDbConnection *pSqlServer, const ISqlData *pGameData, char *pError, int ErrorSize);

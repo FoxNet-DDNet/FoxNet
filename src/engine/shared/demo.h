@@ -59,6 +59,7 @@ public:
 	void RecordMessage(const void *pData, int Size);
 
 	bool IsRecording() const override { return m_File != nullptr; }
+	int64_t FileSize() const;
 	const char *CurrentFilename() const override { return m_aCurrentFilename; }
 
 	int Length() const override { return (m_LastTickMarker - m_FirstTick) / SERVER_TICK_SPEED; }

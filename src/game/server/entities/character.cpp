@@ -163,7 +163,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameServer()->SendTuningParams(m_pPlayer->GetCid(), m_TuneZone);
 
 	TrySetRescue(RESCUEMODE_MANUAL);
-	Server()->StartRecord(m_pPlayer->GetCid());
+	if(!g_Config.m_DcRecordsWebhookUrl[0])
+		Server()->StartRecord(m_pPlayer->GetCid());
 
 	int Team = GameServer()->m_aTeamMapping[m_pPlayer->GetCid()];
 
@@ -1221,7 +1222,7 @@ void CCharacter::StopRecording()
 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCid());
 
 		if(pData->m_RecordStopTick - Server()->Tick() <= Server()->TickSpeed() && pData->m_RecordStopTick != -1)
-			Server()->SaveDemo(m_pPlayer->GetCid(), pData->m_RecordFinishTime);
+			Server()->SaveDemo(m_pPlayer->GetCid(), pData->m_RecordFinishTime, pData->m_pRecordRank, pData->m_RecordRankUnchanged, pData->m_RecordAccountUsername.c_str());
 		else
 			Server()->StopRecord(m_pPlayer->GetCid());
 
