@@ -84,6 +84,7 @@ class CPowerUps : public CServerComponent
 	std::vector<CPowerUp> m_vPowerups;
 	int64_t m_SpawnDelay = 0;
 
+	int ActivePlayerCount() const;
 	void SetData(CPowerUp &Powerup);
 	// The square never changes once the type is picked, so this only runs on spawn
 	void SetVisual(CPowerUp &Powerup);

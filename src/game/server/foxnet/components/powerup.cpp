@@ -1140,6 +1140,24 @@ std::optional<vec2> CPowerUps::GetRandomAccessiblePos()
 }
 
 
+int CPowerUps::ActivePlayerCount() const
+{
+	int Count = 0;
+	for(int i = 0; i < Server()->MaxClients(); i++)
+	{
+		if(!Server()->ClientIngame(i))
+			continue;
+		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+		if(!pPlayer || pPlayer->IsAfk() || !pPlayer->Acc()->m_LoggedIn ||
+			pPlayer->MultiMapIdx() != DefaultMapIndex)
+			continue;
+		CCharacter *pChr = pPlayer->GetCharacter();
+		if(pChr && pChr->IsAlive() && pChr->Team() == TEAM_FLOCK)
+			Count++;
+	}
+	return Count;
+}
+
 void CPowerUps::TrySpawn()
 {
 	if(!g_Config.m_SvPowerUps)
@@ -1148,7 +1166,10 @@ void CPowerUps::TrySpawn()
 		return; // Powerups require accounts to store the data
 	if(GameServer()->GlobalTuning(DefaultMapIndex)->m_TeleGrenade)
 		return; // nah, too much work to make them work with tele grenades
-	if(m_vPowerups.size() >= (size_t)g_Config.m_SvPowerUpsMax)
+	const int ActivePlayers = ActivePlayerCount();
+	if(ActivePlayers == 0)
+		return;
+	if(m_vPowerups.size() >= (size_t)std::min(g_Config.m_SvPowerUpsMax, ActivePlayers))
 		return;
 	if(m_SpawnDelay > Server()->Tick())
 		return;
@@ -1175,7 +1196,10 @@ void CPowerUps::TrySpawn()
 	SetVisual(Powerup);
 
 	m_vPowerups.push_back(Powerup);
-	m_SpawnDelay = Server()->Tick() + Server()->TickSpeed() * (g_Config.m_SvPowerUpsSpawnDelay * 0.1f);
+	// The configured delay is the full-population rate. Fewer players get fewer
+	// spawns, while a busy server reaches the configured rate at six players.
+	m_SpawnDelay = Server()->Tick() + Server()->TickSpeed() *
+		(g_Config.m_SvPowerUpsSpawnDelay * 0.1f * 6.0f / std::min(ActivePlayers, 6));
 }
 
 void CPowerUps::SetData(CPowerUp &Powerup)
@@ -1191,34 +1215,7 @@ void CPowerUps::SetData(CPowerUp &Powerup)
 	else
 		Powerup.m_Data.m_Type = EPowerUp::MONEY;
 
-	for(int i = 0; i < Server()->MaxClients(); i++)
-	{
-		if(!Server()->ClientIngame(i))
-			continue;
-
-		CPlayer *pPlayer = GameServer()->m_apPlayers[i];
-
-		if(!pPlayer)
-			continue;
-
-		if(pPlayer->IsAfk())
-			continue;
-
-		CCharacter *pChr = pPlayer->GetCharacter();
-
-		if(!pChr)
-			continue;
-
-		if(!GameServer()->m_aAccounts[i].m_LoggedIn)
-			continue;
-
-		if(pChr->Team() != TEAM_FLOCK)
-			continue;
-
-		Powerup.m_MaxCollections++;
-	}
-	if(Powerup.m_MaxCollections < 1)
-		Powerup.m_MaxCollections = 1;
+	Powerup.m_MaxCollections = std::max(1, ActivePlayerCount());
 
 	constexpr int MinLifetime = 120;
 
@@ -1242,6 +1239,8 @@ void CPowerUps::SetData(CPowerUp &Powerup)
 		Powerup.m_Lifetime = 0;
 	}
 	Powerup.m_Lifetime *= Server()->TickSpeed();
+	// Old high-value powerups could occupy a spawn slot for many minutes.
+	Powerup.m_Lifetime = std::min(Powerup.m_Lifetime, 180 * Server()->TickSpeed());
 }
 
 void CPowerUps::SetVisual(CPowerUp &Powerup)
@@ -1423,8 +1422,8 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 		Powerup.m_aClients[i].m_Addr = *pAddr;
 	}
 
-	if(Powerup.m_Lifetime > Server()->TickSpeed() * 30)
-		Powerup.m_Lifetime -= 10 * Server()->TickSpeed(); // Speed up disappearance after collection
+	// Leave a short window for other players, then free the spawn slot.
+	Powerup.m_Lifetime = std::min(Powerup.m_Lifetime, 30 * Server()->TickSpeed());
 }
 
 void CPowerUps::CollectPowerup(const CPowerUp &Powerup, CPlayer *pPlayer)
