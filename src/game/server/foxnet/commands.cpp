@@ -20,6 +20,7 @@
 #include <game/server/foxnet/components/votemenu.h>
 #include <game/server/foxnet/components/zones/gambling/roulette.h>
 #include <game/server/foxnet/entities/text/text.h>
+#include <game/server/foxnet/entities/worm.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/gameworld.h>
@@ -28,6 +29,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <cmath>
 #include <cstdint>
 #include <ctime>
 
@@ -1209,6 +1211,76 @@ void CGameContext::ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUser
 	}
 }
 
+void CGameContext::ConCleanWorms(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_World.RemoveEntities(CGameWorld::ENTTYPE_WORM);
+}
+
+void CGameContext::ConNewWorm(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if(pResult->m_ClientId < 0 || pResult->m_ClientId >= MAX_CLIENTS)
+		return;
+	CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pPlayer)
+		return;
+	CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientId);
+	if(!pChr)
+		return;
+
+	const vec2 Pos = pChr->m_Pos;
+
+	CWormConfig Config;
+	auto ReadInt = [&](int Index, int Min, int Max, const char *pName, int &Value) {
+		if(pResult->NumArguments() <= Index)
+			return true;
+		const int Input = pResult->GetInteger(Index);
+		if(Input < Min || Input > Max)
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "new_worm: %s must be between %d and %d", pName, Min, Max);
+			pPlayer->SendChat(aBuf);
+			return false;
+		}
+		Value = Input;
+		return true;
+	};
+	auto ReadFloat = [&](int Index, float Min, float Max, const char *pName, float &Value) {
+		if(pResult->NumArguments() <= Index)
+			return true;
+		const float Input = pResult->GetFloat(Index);
+		if(!std::isfinite(Input) || Input < Min || Input > Max)
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "new_worm: %s must be between %.2f and %.2f", pName, Min, Max);
+			pPlayer->SendChat(aBuf);
+			return false;
+		}
+		Value = Input;
+		return true;
+	};
+
+	// Keep the no-argument command's existing closest-in-front target mode.
+	int TargetType = 0;
+	if(!ReadInt(0, 0, 2, "target", TargetType) ||
+		!ReadInt(1, 1, 32, "segments", Config.m_Segments) ||
+		!ReadFloat(2, 4.0f, 128.0f, "length", Config.m_Length) ||
+		!ReadFloat(3, 0.1f, 64.0f, "speed", Config.m_Speed) ||
+		!ReadFloat(4, 0.0f, 4.0f, "ground acceleration", Config.m_GroundAcceleration) ||
+		!ReadFloat(5, 1.0f, 50.0f, "ground turn radius tiles", Config.m_GroundTurnRadiusTiles) ||
+		!ReadFloat(6, 0.0f, 4.0f, "air gravity", Config.m_AirGravity) ||
+		!ReadFloat(7, 0.2f, 120.0f, "tee retarget seconds", Config.m_TeeRetargetSeconds) ||
+		!ReadFloat(8, 0.2f, 120.0f, "random position timeout", Config.m_RandomPositionTimeoutSeconds) ||
+		!ReadFloat(9, 2.0f, 100.0f, "search radius tiles", Config.m_RandomSearchRadiusTiles) ||
+		!ReadFloat(10, 1.0f, 50.0f, "nearby solid range tiles", Config.m_NearbySolidRangeTiles))
+		return;
+	Config.m_TargetType = (EWormTargetType)TargetType;
+
+	new CWorm(&pSelf->m_World, pPlayer->MultiMapIdx(), Pos, Config); // NOLINT(clang-analyzer-unix.Malloc)
+}
+
 void CGameContext::ConRepredict(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1853,11 +1925,8 @@ void CGameContext::RegisterFoxNetCommands()
 
 	// Shop
 	Console()->Register("toggleitem", "s[item] ?i[value]", CFGFLAG_CHAT, ConToggleItem, this, "Toggle an Item, value is only needed for 2 items");
+	
 	Console()->Register("dropweapon", "", CFGFLAG_CHAT, ConDropWeapon, this, "Drops the weapon you're currently holding");
-
-	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
-	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
-	Console()->Register("batch_pickupdrops", "i[type] i[amount]", CFGFLAG_SERVER, ConBatchNewPickupDrop, this, "Spawns a new pickup drop on your position");
 
 	Console()->Register("repredict", "?i[predmargin]", CFGFLAG_CHAT, ConRepredict, this, "Recalculates the Server-Side prediction (based on Ping + pred margin)");
 
@@ -1867,6 +1936,14 @@ void CGameContext::RegisterFoxNetCommands()
 	// Misc
 	Console()->Register("random_pos", "?v[id]", CFGFLAG_SERVER, ConRandomPlayerSpread, this, "Set player' (id) position to a random one");
 
+	// entities
+	Console()->Register("cleanup_pickupdrops", "", CFGFLAG_SERVER, ConCleanDroppedPickups, this, "Removes all dropped pickups");
+	Console()->Register("new_pickupdrop", "i[type]", CFGFLAG_SERVER, ConNewPickupDrop, this, "Spawns a new pickup drop on your position");
+	Console()->Register("batch_pickupdrops", "i[type] i[amount]", CFGFLAG_SERVER, ConBatchNewPickupDrop, this, "Spawns a new pickup drop on your position");
+
+	Console()->Register("new_worm", "?i[target] ?i[segments] ?f[length] ?f[speed] ?f[ground-accel] ?f[turn-radius-tiles] ?f[air-gravity] ?f[tee-retarget-sec] ?f[random-timeout-sec] ?f[search-radius-tiles] ?f[solid-range-tiles]", CFGFLAG_SERVER, ConNewWorm, this, "new worm 0=closest in front, 1=random tee, 2=random air; smaller turn radius turns tighter");
+	Console()->Register("cleanup_worms", "", CFGFLAG_SERVER, ConCleanWorms, this, "Removes all worms");
+	
 	// Practice
 	Console()->Register("ufo", "", CFGFLAG_CHAT | CMDFLAG_PRACTICE, ConPracticeToggleUfo, this, "Toggles ufo");
 

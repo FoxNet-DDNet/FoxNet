@@ -143,7 +143,7 @@ CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosme
 void CMeteor::Reset()
 {
 	if(g_Config.m_SvLogExtra >= 2)
-		log_info("roulette", "Reset");
+		log_info("meteor", "Reset");
 
 	if(GetId().has_value())
 		Server()->SnapFreeId(GetId().value());

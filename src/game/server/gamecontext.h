@@ -968,6 +968,9 @@ private:
 	static void ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
 	static void ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConNewWorm(IConsole::IResult *pResult, void *pUserData);
+	static void ConCleanWorms(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConRepredict(IConsole::IResult *pResult, void *pUserData);
 	static void ConPowerups(IConsole::IResult *pResult, void *pUserData);
 	static void ConCosmetics(IConsole::IResult *pResult, void *pUserData);
