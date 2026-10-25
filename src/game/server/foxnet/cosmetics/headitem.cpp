@@ -29,23 +29,16 @@ CHeadItem::EDirection CHeadItem::FacingDirection(int SnappingClient)
 	return FacingLeft ? EDirection::LEFT : EDirection::RIGHT;
 }
 
-CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset) :
+CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Offset) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_HEAD_ITEM, Pos)
 {
 	m_Pos = Pos;
 
-	// Type of Entity
-	m_Type = Type;
 	m_Offset = Offset;
 
-	if(m_Type == HEADITEM_COSMETIC)
-	{
-		for(size_t i = 0; i < std::size(m_aIds); i++)
-			m_aIds[i] = Server()->SnapNewId();
-		std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
-	}
-	else
-		std::fill(std::begin(m_aIds), std::end(m_aIds), std::nullopt);
+	for(size_t i = 0; i < std::size(m_aIds); i++)
+		m_aIds[i] = Server()->SnapNewId();
+	std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
 	GameWorld()->InsertEntity(this);
 }
 
@@ -77,23 +70,8 @@ void CHeadItem::Tick()
 		return;
 	}
 
-	switch(m_Type)
+	if(GetPlayer()->Cosmetics()->m_HatType == EHatType::None)
 	{
-	case HEADITEM_SPAWNSOLO:
-		if(!GetCharacter() || !GetCharacter()->m_SpawnSolo)
-		{
-			Reset();
-			return;
-		}
-		break;
-	case HEADITEM_COSMETIC:
-		if(GetPlayer()->Cosmetics()->m_HatType == EHatType::None)
-		{
-			Reset();
-			return;
-		}
-		break;
-	default:
 		Reset();
 		return;
 	}
@@ -182,44 +160,30 @@ void CHeadItem::Snap(int SnappingClient)
 
 	EHatType PlHatType = GetPlayer()->Cosmetics()->m_HatType;
 
-	if(m_Type != HEADITEM_SPAWNSOLO)
+	if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
+		return;
+
+	switch(PlHatType)
 	{
-		if(m_Owner != SnappingClient && pSnapPlayer && !pSnapPlayer->Acc()->m_Configs.m_Cosmetics.m_ShowHats)
-			return;
-
-		if(m_Type == HEADITEM_COSMETIC)
-		{
-			switch(PlHatType)
-			{
-			case EHatType::Party: SnapPartyHat(SnappingClient); return;
-			case EHatType::Tophat: SnapTopHat(SnappingClient); return;
-			case EHatType::Antennae: SnapAntennae(SnappingClient); return;
-			default: break;
-			}
-		}
-
-		if(GetCharacter()->m_SpawnSolo)
-			return;
-	}
-
-	int Type = 0;
-	int SubType = 0;
-	int Flags = 0;
-
-	switch(m_Type)
-	{
-	case HEADITEM_SPAWNSOLO:
-		Type = POWERUP_ARMOR;
-		SubType = 0;
-		break;
-	case HEADITEM_COSMETIC:
-		Type = POWERUP_WEAPON;
-		SubType = (int)PlHatType - 1;
-		Flags |= GetCharacter()->Acc()->m_Configs.m_HatItemFlags;
+	case EHatType::Party: SnapPartyHat(SnappingClient); return;
+	case EHatType::Tophat: SnapTopHat(SnappingClient); return;
+	case EHatType::Antennae: SnapAntennae(SnappingClient); return;
+	case EHatType::Hammer:
+	case EHatType::Gun:
+	case EHatType::Shotgun:
+	case EHatType::Grenade:
+	case EHatType::Laser:
+	case EHatType::Ninja:
 		break;
 	default:
-		break;
+		return;
 	}
+	if(GetCharacter()->m_SpawnSolo)
+		return;
+
+	const int Type = POWERUP_WEAPON;
+	const int SubType = (int)PlHatType - 1;
+	int Flags = GetCharacter()->Acc()->m_Configs.m_HatItemFlags;
 
 	int Rotation = 0;
 	if(Flags == PICKUPFLAG_ROTATE + PICKUPFLAG_XFLIP + PICKUPFLAG_YFLIP)

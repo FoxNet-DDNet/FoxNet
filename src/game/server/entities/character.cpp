@@ -37,6 +37,7 @@
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/cosmetics/headitem.h>
 #include <game/server/foxnet/cosmetics/laserdeath.h>
+#include <game/server/foxnet/cosmetics/spawn_solo_indicator.h>
 #include <game/server/foxnet/entities/custom_projectile.h>
 #include <game/server/foxnet/entities/gun_projectile.h>
 #include <game/server/foxnet/entities/light_saber.h>
@@ -3281,7 +3282,7 @@ void CCharacter::FoxNetSpawn()
 	{
 		m_SpawnSolo = true;
 		SetSolo(true);
-		new CHeadItem(GameWorld(), GetPlayer()->GetCid(), m_Pos, HEADITEM_SPAWNSOLO, vec2(0, -56.0f));
+		new CSpawnSoloIndicator(GameWorld(), GetPlayer()->GetCid(), m_Pos);
 	}
 }
 vec2 CCharacter::GetSnappedTargetPos(int SnappingClient)
@@ -3302,10 +3303,50 @@ void CCharacter::HandleSpawnSolo()
 		return;
 	if(!m_SpawnSolo)
 		return;
-	if(m_SpawnTick > Server()->Tick() - Server()->TickSpeed() * g_Config.m_SvSoloOnSpawn)
+	const int ElapsedTicks = Server()->Tick() - m_SpawnTick;
+	const int NormalTicks = Server()->TickSpeed() * g_Config.m_SvSoloOnSpawn;
+	if(ElapsedTicks < NormalTicks)
+		return;
+	if(ElapsedTicks < NormalTicks * 2 && InSpawnSoloOverlap())
 		return;
 
 	UnSpawnSolo();
+}
+
+bool CCharacter::InSpawnSoloOverlap()
+{
+	// As with cosmetic prediction, extrapolate from the last position delta.
+	// The overlap check needs one server position, so it uses a fixed 0.25 s lead.
+	const vec2 PredictedPos = m_Pos + (m_Pos - m_PrevPos) * (Server()->TickSpeed() * 0.25f);
+
+	// Both players have a 128x128 box. Compare the projected box against
+	// each other player's box at their current server position.
+	constexpr float BoxSize = 128.0f;
+	const CCharacterCore &OwnCore = *Core();
+	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
+	{
+		if(ClientId == GetPlayer()->GetCid())
+			continue;
+		CCharacter *pOther = GameServer()->GetPlayerChar(ClientId);
+		if(!pOther || !pOther->IsAlive() || pOther->Team() == TEAM_SPECTATORS)
+			continue;
+		const CCharacterCore &OtherCore = *pOther->Core();
+		const bool Super = OwnCore.m_Super || OtherCore.m_Super;
+		if(!Super && (Team() != pOther->Team() || (OtherCore.m_Solo && !pOther->m_SpawnSolo)))
+			continue;
+		if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pOther->MultiMapIdx())
+			continue;
+		if(!Super && (OwnCore.m_CollisionDisabled || OtherCore.m_CollisionDisabled ||
+			OwnCore.m_Passive || OtherCore.m_Passive || !OwnCore.m_Collidable ||
+			!GetCurrentTuning()->m_PlayerCollision || !pOther->GetCurrentTuning()->m_PlayerCollision))
+			continue;
+
+		const vec2 OtherPos = pOther->GetPos();
+		if(abs(PredictedPos.x - OtherPos.x) < BoxSize &&
+			abs(PredictedPos.y - OtherPos.y) < BoxSize)
+			return true;
+	}
+	return false;
 }
 void CCharacter::UnSpawnSolo(bool Unsolo)
 {

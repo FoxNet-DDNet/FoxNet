@@ -3234,6 +3234,8 @@ if(SERVER)
     foxnet/cosmetics/pickup_pet.h
     foxnet/cosmetics/rotating_ball.cpp
     foxnet/cosmetics/rotating_ball.h
+    foxnet/cosmetics/spawn_solo_indicator.cpp
+    foxnet/cosmetics/spawn_solo_indicator.h
     foxnet/cosmetics/staff_ind.cpp
     foxnet/cosmetics/staff_ind.h
     foxnet/entities/custom_projectile.cpp

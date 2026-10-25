@@ -429,6 +429,7 @@ private:
 
 	void FoxNetTick();
 	void HandleSpawnSolo();
+	bool InSpawnSoloOverlap();
 	void FoxNetSpawn();
 	// FoxNet>
 };

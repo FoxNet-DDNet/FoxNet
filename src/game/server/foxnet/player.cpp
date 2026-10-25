@@ -1115,7 +1115,7 @@ void CPlayer::SetHatType(EHatType Type)
 	Cosmetics()->m_HatType = Type;
 	const vec2 Pos = GetCharacter() ? GetCharacter()->GetPos() : vec2(0, 0);
 	if(Cosmetics()->m_HatType != EHatType::None && PrevType == EHatType::None)
-		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, HEADITEM_COSMETIC, vec2(0, -45.0f));
+		new CHeadItem(&GameServer()->m_World, GetCid(), Pos, vec2(0, -45.0f));
 }
 // NOLINTEND(clang-analyzer-unix.Malloc)
 

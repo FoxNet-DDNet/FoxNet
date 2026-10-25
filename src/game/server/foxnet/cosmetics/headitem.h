@@ -9,15 +9,8 @@
 
 #include <optional>
 
-enum HeadItemType
-{
-	HEADITEM_SPAWNSOLO = 0,
-	HEADITEM_COSMETIC = 1,
-};
-
 class CHeadItem : public CEntityOwned
 {
-	int m_Type;
 	vec2 m_Offset;
 
 	void SnapPartyHat(int SnappingClient);
@@ -43,7 +36,7 @@ class CHeadItem : public CEntityOwned
 	EDirection FacingDirection(int SnappingClient);
 
 public:
-	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, int Type, vec2 Offset);
+	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Offset);
 	void Reset() override;
 	void Tick() override;
 	void Snap(int SnappingClient) override;
