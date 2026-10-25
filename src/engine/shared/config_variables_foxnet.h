@@ -132,8 +132,9 @@ MACRO_CONFIG_STR(SvDiscordLink, sv_discord_link, 128, "", CFGFLAG_SERVER, "Disco
 MACRO_CONFIG_STR(SvForceSkin, sv_force_skin, 128, "", CFGFLAG_SERVER, "Force skin for all players (Leave empty to disable)")
 
 // Discord Webhooks
+MACRO_CONFIG_STR(DcCommandsWebhookUrl, dc_commands_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, "Discord webhook for RCON commands")
+MACRO_CONFIG_STR(DcModerationWebhookUrl, dc_moderation_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, "Discord webhook for moderation events")
 MACRO_CONFIG_STR(DcReportsWebhookUrl, dc_reports_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook reports get sent to")
-MACRO_CONFIG_STR(DcBansWebhookUrl, dc_bans_webhook_url, 256, "", CFGFLAG_SERVER, "What webhook automated-bans get sent to")
 MACRO_CONFIG_STR(DcRecordsWebhookUrl, dc_records_webhook_url, 256, "", CFGFLAG_SERVER | CFGFLAG_NONTEEHISTORIC, "Discord webhook for completed run demos; empty disables recording and upload")
 
 MACRO_CONFIG_INT(SvReportsMinAccountAge, sv_reports_min_account_age, 30, 0, 1000, CFGFLAG_SERVER, "Minimum account age in Minutes required to report")

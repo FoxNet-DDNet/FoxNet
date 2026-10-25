@@ -12,6 +12,7 @@
 #include <engine/server/databases/connection.h>
 #include <engine/server/databases/connection_pool.h>
 #include <engine/server/server.h>
+#include <engine/server/webhook_format.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
@@ -105,19 +106,6 @@ void CAccounts::ConLogin(IConsole::IResult *pResult, void *pUserData)
 	if(pPlayer->m_AccLoginAttempts >= g_Config.m_SvAccountsMaxLoginAttempts)
 	{
 		const char *pAddr = pSelf->Server()->ClientAddrString(ClientId, false);
-		char aBanBuf[1024];
-		str_format(aBanBuf, sizeof(aBanBuf), "`%s` [||%s||] was banned for %d minutes for too many '/login' attempts.\n"
-						     "ver: %s (%d) [%s]",
-			pSelf->Server()->ClientName(ClientId),
-			pAddr,
-			g_Config.m_SvRconBantime,
-			pSelf->Server()->GetCustomClient(ClientId),
-			pSelf->Server()->GetClientVersion(ClientId),
-			pSelf->Server()->GetClientVersionStr(ClientId));
-		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - /Login (%d%s)", pSelf->Server()->Port(), FormatServerInsntance(" | "));
-		pSelf->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-
 		char aCmdBuf[512];
 		str_format(aCmdBuf, sizeof(aCmdBuf), "ban %s %d %s", pAddr, g_Config.m_SvRconBantime, "Too many '/login' attempts.");
 		pSelf->Console()->ExecuteLineFlag(aCmdBuf, CFGFLAG_SERVER, IConsole::CLIENT_ID_FOXNET);
@@ -1713,25 +1701,13 @@ void CAccounts::ConReport(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	char aBuf[512];
-	str_format(aBuf, sizeof(aBuf), "From: `%s` (Acc: `%s`) [||%s||]\n"
-				       "against: `%s` (Acc: `%s`) [||%s||]\n"
-				       "\n"
-				       "Reason: %s\n"
-				       "\n"
-				       "-----------------------------------",
-		pFrom,
-		pPlayer->Acc()->m_aUsername,
-		pSelf->Server()->ClientAddrString(ClientId, false),
-		pAgainst,
-		pAgainstPlayer->Acc()->m_LoggedIn ? pAgainstPlayer->Acc()->m_aUsername : "No Account",
-		pSelf->Server()->ClientAddrString(AgainstId, false),
-		pReportText);
-
-	char aNameBuf[48];
-	str_format(aNameBuf, sizeof(aNameBuf), "Player Report (Port: %d%s)", pSelf->Server()->Port(), FormatServerInsntance(" | "));
-
-	pSelf->Server()->SendWebhookMessage(g_Config.m_DcReportsWebhookUrl, aBuf, aNameBuf);
+	const std::string Message = "From: " + WebhookFormat::Name(pFrom) + " (" + std::to_string(ClientId) + ", acc: " + WebhookFormat::Name(pPlayer->Acc()->m_aUsername) + ") [||" +
+		WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(ClientId, false)) + "||]\n" +
+		"Against: " + WebhookFormat::Name(pSelf->Server()->ClientName(AgainstId)) + " (" + std::to_string(AgainstId) + ", acc: " +
+		WebhookFormat::Name(pAgainstPlayer->Acc()->m_LoggedIn ? pAgainstPlayer->Acc()->m_aUsername : "No Account") + ") [||" +
+		WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(AgainstId, false)) + "||]\n" +
+		WebhookFormat::CodeBlock(pReportText);
+	pSelf->Server()->SendWebhookMessage(IServer::EWebhookCategory::REPORTS, g_Config.m_DcReportsWebhookUrl, Message.c_str(), "[REPORT] - Player");
 
 	pPlayer->m_LastReport = pSelf->Server()->Tick();
 	pPlayer->SendChat("Report sent!");

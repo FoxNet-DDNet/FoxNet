@@ -1,5 +1,7 @@
 #include "run_demo_recorder.h"
 
+#include "webhook_format.h"
+
 #include <base/log.h>
 #include <base/str.h>
 #include <base/time.h>
@@ -41,24 +43,12 @@ namespace
 		return Result;
 	}
 
-	std::string SafeDiscordText(const char *pText)
+	std::string SafeDiscordName(const char *pName)
 	{
-		std::string Result;
-		for(const unsigned char Ch : std::string(pText ? pText : ""))
-		{
-			if(Ch < 0x20 || Ch == 0x7f)
-				Result += ' ';
-			else if(Ch == '@' || Ch == '`')
-				Result += '_';
-			else if(Ch == '\\' || Ch == '*' || Ch == '_' || Ch == '~' || Ch == '|' || Ch == '>' || Ch == '[' || Ch == ']')
-			{
-				Result += '\\';
-				Result += static_cast<char>(Ch);
-			}
-			else
-				Result += static_cast<char>(Ch);
-		}
-		return Result;
+		std::string Clean;
+		for(const unsigned char Ch : std::string(pName ? pName : ""))
+			Clean += Ch < 0x20 || Ch == 0x7f ? ' ' : static_cast<char>(Ch);
+		return WebhookFormat::Name(Clean.c_str());
 	}
 
 	std::string FilenameComponent(const char *pText, const char *pFallback)
@@ -92,13 +82,14 @@ namespace
 	}
 } // namespace
 
-CRunDemoRecorder::CRunDemoRecorder(IStorage *pStorage, IHttp *pHttp, CSnapshotDelta *pSnapshotDelta, const char *pFolder, const char *pWebhookUrl, int Port) :
+CRunDemoRecorder::CRunDemoRecorder(IStorage *pStorage, IHttp *pHttp, CSnapshotDelta *pSnapshotDelta, const char *pFolder, const char *pWebhookUrl, int Port, const char *pServerInstance) :
 	m_pStorage(pStorage),
 	m_pHttp(pHttp),
 	m_pSnapshotDelta(pSnapshotDelta),
 	m_Folder(pFolder),
 	m_WebhookUrl(pWebhookUrl),
-	m_Port(Port)
+	m_Port(Port),
+	m_ServerInstance(pServerInstance ? pServerInstance : "")
 {
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
@@ -394,10 +385,10 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 				Meta << "FOXNET_RUN_DEMO_V2\n"
 				     << Count << '\n'
 				     << Event.m_RankUnchanged << '\n';
-				Meta << "🏁 **Run finished**\n**Map:** " << SafeDiscordText(Run.m_Map.c_str()) << " · **Player:** " << SafeDiscordText(Event.m_Player.c_str());
+				Meta << "Player: " << SafeDiscordName(Event.m_Player.c_str()) << " (" << Event.m_ClientId;
 				if(!Event.m_AccountUsername.empty())
-					Meta << "\n**Account:** " << SafeDiscordText(Event.m_AccountUsername.c_str());
-				Meta << "\n**Time:** " << aDisplayTime << " · **Rank:** ";
+					Meta << ", acc: " << SafeDiscordName(Event.m_AccountUsername.c_str());
+				Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str()) << "\nTime: " << aDisplayTime << "\nRank: ";
 				Meta.flush();
 				MetaWritten = Meta.good();
 			}
@@ -535,9 +526,24 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 			return true;
 		}
 		std::string Message = Content;
+		for(const char *pOldHeading : {"**Run finished**\n", "🏁 **Run finished**\n"})
+		{
+			const size_t HeadingLength = str_length(pOldHeading);
+			if(Message.compare(0, HeadingLength, pOldHeading) == 0)
+			{
+				Message.erase(0, HeadingLength);
+				break;
+			}
+		}
+		for(const char *pLabel : {"Map", "Player", "Account", "Time", "Rank"})
+		{
+			const std::string OldLabel = std::string("**") + pLabel + ":**";
+			for(size_t Pos = 0; (Pos = Message.find(OldLabel, Pos)) != std::string::npos; Pos += str_length(pLabel) + 1)
+				Message.replace(Pos, OldLabel.size(), std::string(pLabel) + ":");
+		}
 		if(Grouped)
 		{
-			Message += " · **Demos:** ";
+			Message += "\nDemos: ";
 			if(vFiles.size() == static_cast<size_t>(PartCount))
 				Message += std::to_string(PartCount) + (PartCount == 1 ? " part" : " parts");
 			else if(vFiles.size() == 1)
@@ -545,7 +551,9 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 			else
 				Message += "Parts " + std::to_string(vPartNumbers.front()) + "-" + std::to_string(vPartNumbers.back()) + " of " + std::to_string(PartCount);
 		}
-		const std::string Payload = "{\"username\":\"FoxNet Runs\",\"content\":\"" + JsonEscape(Message) + "\",\"allowed_mentions\":{\"parse\":[]}}";
+		const std::string ServerTitle = "server: " + std::to_string(m_Port) + (m_ServerInstance.empty() ? "" : " | " + WebhookFormat::EscapeText(m_ServerInstance.c_str()));
+		const std::string Payload = "{\"username\":\"FoxNet Runs\",\"embeds\":[{\"title\":\"" + JsonEscape(ServerTitle) +
+			"\",\"description\":\"" + JsonEscape(Message) + "\",\"color\":5763719}],\"allowed_mentions\":{\"parse\":[]}}";
 		const std::string Boundary = "FoxNetRunDemo" + ShortRunId(Upload.m_Base);
 		std::string Body;
 		Body.reserve(static_cast<size_t>(TotalSize) + 4096);

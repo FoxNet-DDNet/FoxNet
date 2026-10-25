@@ -1526,49 +1526,23 @@ void CGameContext::OnTick()
 				m_VoteEnforce = (m_VoteWillPass && !Veto) ? VOTE_ENFORCE_YES : VOTE_ENFORCE_NO;
 
 			// / Ensure minimum time for vote to end when moderating.
-			if(m_VoteEnforce == VOTE_ENFORCE_YES && !(PlayerModerating() &&
-									(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime))
+			const bool NormalVotePasses = m_VoteEnforce == VOTE_ENFORCE_YES && !(PlayerModerating() &&
+				(IsKickVote() || IsSpecVote()) && time_get() < m_VoteCloseTime);
+			if((NormalVotePasses || m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN) && str_startswith(m_aVoteCommand, "ban "))
 			{
-				// <FoxNet
-				if(m_VoteCreator != -1 && m_VoteVictim != -1 && m_apPlayers[m_VoteCreator])
-				{
-					if(str_startswith(m_aVoteCommand, "ban "))
-					{
-						char VictimAddr[NETADDR_MAXSTRSIZE];
-						char CreatorAddr[NETADDR_MAXSTRSIZE];
-						const char *pParsedArg = GetParsedArgument(m_aVoteCommand, 1, false);
-						if(pParsedArg)
-							str_copy(VictimAddr, pParsedArg, sizeof(VictimAddr));
-						else if(!Server()->ClientSlotEmpty(m_VoteVictim))
-							str_copy(VictimAddr, Server()->ClientAddrString(m_VoteVictim, false), sizeof(VictimAddr));
-						else
-							str_copy(VictimAddr, "unknown, left game", sizeof(VictimAddr));
-
-						if(Server()->ClientSlotEmpty(m_VoteCreator))
-							str_copy(CreatorAddr, "unknown", sizeof(CreatorAddr));
-						else
-							str_copy(CreatorAddr, Server()->ClientAddrString(m_VoteCreator, false), sizeof(CreatorAddr));
-
-						char aBanBuf[1024];
-						str_format(aBanBuf, sizeof(aBanBuf),
-							"`%s` [||%s||] was vote-kicked for %d minutes by `%s` [||%s||].\n"
-							"Reason: %s\n"
-							"ver: %s (%d) [%s]",
-							Server()->ClientName(m_VoteVictim),
-							VictimAddr,
-							g_Config.m_SvVoteKickBantime,
-							Server()->ClientName(m_VoteCreator),
-							CreatorAddr,
-							m_aVoteReason,
-							Server()->GetCustomClient(m_VoteVictim),
-							GetClientVersion(m_VoteVictim),
-							GetClientVersionStr(m_VoteVictim));
-						char aTitle[32];
-						str_format(aTitle, sizeof(aTitle), "[BAN] - Vote kick (%d%s)", Server()->Port(), FormatServerInsntance(" | "));
-						Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-					}
-				}
-				// FoxNet>
+				const char *pParsedArg = GetParsedArgument(m_aVoteCommand, 1, false);
+				IServer::CModerationEvent Event;
+				Event.m_pAction = "Vote kick";
+				Event.m_pAddress = pParsedArg ? pParsedArg : "";
+				Event.m_TargetClientId = m_VoteVictim;
+				Event.m_DurationSeconds = g_Config.m_SvVoteKickBantime * 60;
+				Event.m_pReason = m_aVoteReason;
+				Event.m_ActorClientId = m_VoteCreator;
+				Event.m_pActorName = m_VoteCreator < 0 || Server()->ClientSlotEmpty(m_VoteCreator) ? "vote" : nullptr;
+				Server()->SendModerationEvent(Event);
+			}
+			if(NormalVotePasses)
+			{
 
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
 				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);

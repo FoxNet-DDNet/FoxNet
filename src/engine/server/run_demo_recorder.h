@@ -87,6 +87,7 @@ class CRunDemoRecorder
 	std::string m_Folder;
 	std::string m_WebhookUrl;
 	int m_Port;
+	std::string m_ServerInstance;
 	uint64_t m_NextId = 0;
 	std::array<uint64_t, MAX_CLIENTS> m_aGeneration{};
 	std::array<bool, MAX_CLIENTS> m_aActive{};
@@ -123,7 +124,7 @@ class CRunDemoRecorder
 	bool Upload(const CUpload &Upload);
 
 public:
-	CRunDemoRecorder(IStorage *pStorage, IHttp *pHttp, CSnapshotDelta *pSnapshotDelta, const char *pFolder, const char *pWebhookUrl, int Port);
+	CRunDemoRecorder(IStorage *pStorage, IHttp *pHttp, CSnapshotDelta *pSnapshotDelta, const char *pFolder, const char *pWebhookUrl, int Port, const char *pServerInstance);
 	~CRunDemoRecorder();
 	CRunDemoRecorder(const CRunDemoRecorder &) = delete;
 	CRunDemoRecorder &operator=(const CRunDemoRecorder &) = delete;

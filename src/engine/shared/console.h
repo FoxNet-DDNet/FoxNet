@@ -89,6 +89,8 @@ class CConsole : public IConsole
 
 	FCanUseCommandCallback m_pfnCanUseCommandCallback = nullptr;
 	void *m_pCanUseCommandUserData;
+	FCommandAuditCallback m_pfnCommandAuditCallback = nullptr;
+	void *m_pCommandAuditUserData = nullptr;
 
 	bool CanUseCommand(int ClientId, const IConsole::ICommandInfo *pCommand) const;
 
@@ -222,6 +224,7 @@ public:
 	void SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser) override;
 	void SetUnknownCommandCallback(FUnknownCommandCallback pfnCallback, void *pUser) override;
 	void SetCanUseCommandCallback(FCanUseCommandCallback pfnCallback, void *pUser) override;
+	void SetCommandAuditCallback(FCommandAuditCallback pfnCallback, void *pUser) override;
 	void InitChecksum(CChecksumData *pData) const override;
 
 	/**

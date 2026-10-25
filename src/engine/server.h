@@ -398,7 +398,26 @@ public:
 	virtual void OverrideClientName(int ClientId, const char *pName) = 0;
 	virtual const char *GetCustomClient(int ClientId) = 0;
 	virtual bool QuietJoin(int ClientId) = 0;
-	virtual void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
+	enum class EWebhookCategory
+	{
+		COMMANDS,
+		MODERATION,
+		REPORTS,
+	};
+	virtual void SendWebhookMessage(EWebhookCategory Category, const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") = 0;
+	struct CModerationEvent
+	{
+		const char *m_pAction = "";
+		const char *m_pAddress = "";
+		int m_TargetClientId = -1;
+		const char *m_pTargetName = nullptr;
+		int m_DurationSeconds = 0;
+		const char *m_pReason = nullptr;
+		const char *m_pReasonLabel = "Reason";
+		int m_ActorClientId = -1;
+		const char *m_pActorName = nullptr;
+	};
+	virtual void SendModerationEvent(const CModerationEvent &Event) = 0;
 	virtual void PublishConsoleCommand(const char *pCommand, bool Global = true, bool Retry = true, bool Replay = true) = 0;
 	virtual void SystemCall(const char *pCommand) = 0;
 	virtual const char *GetClientVersionStr(int ClientId) const = 0;

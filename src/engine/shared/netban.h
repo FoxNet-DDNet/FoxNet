@@ -215,7 +215,7 @@ public:
 	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanTimestamp(class IConsole::IResult *pResult, void *pUser);
 	static void ConBanRangeTimestamp(class IConsole::IResult *pResult, void *pUser);
-	bool m_QuietBan;
+	bool m_QuietBan = false;
 
 	NETADDR *GetAddrFromBanIndex(int Index) const;
 	// FoxNet>

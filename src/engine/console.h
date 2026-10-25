@@ -127,6 +127,7 @@ public:
 	typedef void (*FChainCommandCallback)(IResult *pResult, void *pUserData, FCommandCallback pfnCallback, void *pCallbackUserData);
 	typedef bool (*FUnknownCommandCallback)(const char *pCommand, void *pUser); // returns true if the callback has handled the argument
 	typedef bool (*FCanUseCommandCallback)(int ClientId, const ICommandInfo *pCommand, void *pUser);
+	typedef void (*FCommandAuditCallback)(int ClientId, int FlagMask, const char *pCommand, const char *pRawCommand, int CommandFlags, void *pUser);
 
 	static void EmptyPossibleCommandCallback(int Index, const char *pCmd, void *pUser) {}
 	static bool EmptyUnknownCommandCallback(const char *pCommand, void *pUser) { return false; }
@@ -163,6 +164,7 @@ public:
 	virtual void SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser) = 0;
 	virtual void SetUnknownCommandCallback(FUnknownCommandCallback pfnCallback, void *pUser) = 0;
 	virtual void SetCanUseCommandCallback(FCanUseCommandCallback pfnCallback, void *pUser) = 0;
+	virtual void SetCommandAuditCallback(FCommandAuditCallback pfnCallback, void *pUser) = 0;
 	virtual void InitChecksum(CChecksumData *pData) const = 0;
 
 	static LEVEL ToLogLevel(int ConsoleLevel);

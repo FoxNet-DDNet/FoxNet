@@ -3135,6 +3135,7 @@ if(SERVER)
     sql_string_helpers.h
     upnp.cpp
     upnp.h
+    webhook_format.h
     # tidy-alphabetical-end
   )
 

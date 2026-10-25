@@ -23,6 +23,7 @@
 #include <engine/shared/uuid_manager.h>
 
 #include <memory>
+#include <chrono>
 #include <deque>
 #include <optional>
 #include <string>
@@ -87,6 +88,28 @@ class CServer : public IServer
 	class IEngineAntibot *m_pAntibot;
 	class IRegister *m_pRegister;
 	IEngine *m_pEngine;
+	struct CWebhookEntry
+	{
+		std::string m_Url;
+		std::string m_AvatarUrl;
+		std::string m_Title;
+		std::string m_Message;
+	};
+	std::deque<CWebhookEntry> m_WebhookQueue;
+	std::deque<CWebhookEntry> m_ModerationWebhookQueue;
+	std::deque<CWebhookEntry> m_ReportWebhookQueue;
+	std::shared_ptr<IHttpRequest> m_pWebhookRequest;
+	std::chrono::steady_clock::time_point m_WebhookNextSendAt{};
+	std::chrono::steady_clock::time_point m_ReportWebhookNextSendAt{};
+	size_t m_WebhookInFlightCount = 0;
+	std::deque<CWebhookEntry> *m_pWebhookInFlightQueue = nullptr;
+	int m_WebhookRetryCount = 0;
+	int m_ReportWebhookRetryCount = 0;
+	bool m_WebhookHttpReady = false;
+	bool m_ModerationEventsReady = false;
+	void UpdateWebhooks();
+	static void CommandAuditCallback(int ClientId, int FlagMask, const char *pCommand, const char *pRawCommand, int CommandFlags, void *pUser);
+	void AuditCommand(int ClientId, int FlagMask, const char *pCommand, const char *pRawCommand, int CommandFlags);
 	struct CRelayCommand
 	{
 		std::string m_Id;
@@ -641,7 +664,8 @@ public:
 	const char *GetCustomClient(int ClientId) override { return m_aClients[ClientId].m_aCustomClient; }
 	bool QuietJoin(int ClientId) override { return m_aClients[ClientId].m_QuietJoin; }
 
-	void SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
+	void SendWebhookMessage(EWebhookCategory Category, const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL = "") override;
+	void SendModerationEvent(const CModerationEvent &Event) override;
 	void PublishConsoleCommand(const char *pCommand, bool Global = true, bool Retry = true, bool Replay = true) override;
 
 	class CSystemCall : public IJob // For ChaiScript system calls

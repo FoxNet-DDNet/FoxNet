@@ -440,6 +440,12 @@ void CConsole::SetCanUseCommandCallback(FCanUseCommandCallback pfnCallback, void
 	m_pCanUseCommandUserData = pUser;
 }
 
+void CConsole::SetCommandAuditCallback(FCommandAuditCallback pfnCallback, void *pUser)
+{
+	m_pfnCommandAuditCallback = pfnCallback;
+	m_pCommandAuditUserData = pUser;
+}
+
 void CConsole::InitChecksum(CChecksumData *pData) const
 {
 	pData->m_NumCommands = 0;
@@ -580,6 +586,11 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 			pCommand = FindCommand(Result.m_pCommand, m_FlagMask | CFGFLAG_GAME);
 		else
 			pCommand = FindCommand(Result.m_pCommand, m_FlagMask);
+		if(Stroke && m_pfnCommandAuditCallback)
+		{
+			const std::string RawCommand(pStr, pEnd - pStr);
+			m_pfnCommandAuditCallback(ClientId, m_FlagMask, Result.m_pCommand, RawCommand.c_str(), pCommand ? pCommand->m_Flags : 0, m_pCommandAuditUserData);
+		}
 
 		if(pCommand)
 		{

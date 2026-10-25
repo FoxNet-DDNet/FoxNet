@@ -7,6 +7,34 @@
 
 #include <engine/shared/config.h>
 
+static void SendMuteEvent(IServer *pServer, const char *pAction, const NETADDR *pAddr, int Seconds, const char *pReason, const char *pDisplayName, int ActorClientId)
+{
+	char aAddr[NETADDR_MAXSTRSIZE];
+	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	IServer::CModerationEvent Event;
+	Event.m_pAction = pAction;
+	Event.m_pAddress = aAddr;
+	Event.m_pTargetName = pDisplayName;
+	Event.m_DurationSeconds = Seconds;
+	Event.m_pReason = pReason;
+	Event.m_ActorClientId = ActorClientId;
+	pServer->SendModerationEvent(Event);
+}
+
+static void SendUnmuteEvent(IServer *pServer, const char *pAction, const std::pair<NETADDR, CMute> &Removed, int ActorClientId)
+{
+	char aAddr[NETADDR_MAXSTRSIZE];
+	net_addr_str(&Removed.first, aAddr, sizeof(aAddr), false);
+	IServer::CModerationEvent Event;
+	Event.m_pAction = pAction;
+	Event.m_pAddress = aAddr;
+	Event.m_pTargetName = Removed.second.m_NameKnown ? Removed.second.m_aClientName : nullptr;
+	Event.m_pReason = Removed.second.m_aReason;
+	Event.m_pReasonLabel = "Original mute reason";
+	Event.m_ActorClientId = ActorClientId;
+	pServer->SendModerationEvent(Event);
+}
+
 static NETADDR KeyAddress(NETADDR Addr)
 {
 	if(Addr.type == NETTYPE_WEBSOCKET_IPV4)
@@ -70,12 +98,12 @@ bool CMutes::Mute(const NETADDR *pAddr, int Seconds, const char *pReason, const 
 	return true;
 }
 
-void CMutes::UnmuteIndex(int Index)
+std::optional<std::pair<NETADDR, CMute>> CMutes::UnmuteIndex(int Index)
 {
 	if(Index < 0 || Index >= (int)m_Mutes.size())
 	{
 		log_info(m_pSystemName, "Invalid index to unmute: %d", Index);
-		return;
+		return std::nullopt;
 	}
 	auto It = std::next(m_Mutes.begin(), Index);
 	char aAddrString[NETADDR_MAXSTRSIZE];
@@ -84,10 +112,12 @@ void CMutes::UnmuteIndex(int Index)
 		log_info(m_pSystemName, "Unmuted: '%s' (<{%s}>)", It->second.m_aClientName, aAddrString);
 	else
 		log_info(m_pSystemName, "Unmuted: (unknown) (<{%s}>)", aAddrString);
+	const std::pair<NETADDR, CMute> Removed = *It;
 	m_Mutes.erase(It);
+	return Removed;
 }
 
-void CMutes::UnmuteAddr(const NETADDR *pAddr)
+std::optional<std::pair<NETADDR, CMute>> CMutes::UnmuteAddr(const NETADDR *pAddr)
 {
 	NETADDR KeyAddr = KeyAddress(*pAddr);
 	char aAddrString[NETADDR_MAXSTRSIZE];
@@ -96,13 +126,15 @@ void CMutes::UnmuteAddr(const NETADDR *pAddr)
 	if(It == m_Mutes.end())
 	{
 		log_info(m_pSystemName, "No mutes for this IP address found: %s", aAddrString);
-		return;
+		return std::nullopt;
 	}
 	if(It->second.m_NameKnown)
 		log_info(m_pSystemName, "Unmuted: '%s' (<{%s}>)", It->second.m_aClientName, aAddrString);
 	else
 		log_info(m_pSystemName, "Unmuted: (unknown) (<{%s}>)", aAddrString);
+	const std::pair<NETADDR, CMute> Removed = *It;
 	m_Mutes.erase(It);
+	return Removed;
 }
 
 std::optional<CMute> CMutes::IsMuted(const NETADDR *pAddr, bool RespectInitialDelay) const
@@ -199,12 +231,13 @@ void CMutes::Print(int Page) const
 		(int)m_Mutes.size(), m_Mutes.size() == 1 ? "mute" : "mutes", Start, Count - 1, Page, NumPages);
 }
 
-void CGameContext::MuteWithMessage(const NETADDR *pAddr, int Seconds, const char *pReason, const char *pDisplayName)
+void CGameContext::MuteWithMessage(const NETADDR *pAddr, int Seconds, const char *pReason, const char *pDisplayName, int ActorClientId)
 {
 	if(!m_Mutes.Mute(pAddr, Seconds, pReason, pDisplayName, false))
 	{
 		return;
 	}
+	SendMuteEvent(Server(), "Chat mute", pAddr, Seconds, pReason, pDisplayName, ActorClientId);
 
 	if(g_Config.m_SvScriptPlayerMutes[0])
 	{
@@ -231,12 +264,13 @@ void CGameContext::MuteWithMessage(const NETADDR *pAddr, int Seconds, const char
 	SendChat(-1, TEAM_ALL, aChatMessage);
 }
 
-void CGameContext::VoteMuteWithMessage(const NETADDR *pAddr, int Seconds, const char *pReason, const char *pDisplayName)
+void CGameContext::VoteMuteWithMessage(const NETADDR *pAddr, int Seconds, const char *pReason, const char *pDisplayName, int ActorClientId)
 {
 	if(!m_VoteMutes.Mute(pAddr, Seconds, pReason, pDisplayName, false))
 	{
 		return;
 	}
+	SendMuteEvent(Server(), "Vote mute", pAddr, Seconds, pReason, pDisplayName, ActorClientId);
 
 	if(g_Config.m_SvScriptPlayerMutes[0])
 	{
@@ -280,7 +314,7 @@ void CGameContext::ConMuteId(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "";
-	pSelf->MuteWithMessage(pSelf->Server()->ClientAddr(Victim), pResult->GetInteger(1), pReason, pSelf->Server()->ClientName(Victim));
+	pSelf->MuteWithMessage(pSelf->Server()->ClientAddr(Victim), pResult->GetInteger(1), pReason, pSelf->Server()->ClientName(Victim), pResult->m_ClientId);
 }
 
 void CGameContext::ConMuteIp(IConsole::IResult *pResult, void *pUserData)
@@ -296,14 +330,16 @@ void CGameContext::ConMuteIp(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "";
 
-	pSelf->m_Mutes.Mute(&Addr, pResult->GetInteger(1), pReason, nullptr, false);
+	if(pSelf->m_Mutes.Mute(&Addr, pResult->GetInteger(1), pReason, nullptr, false))
+		SendMuteEvent(pSelf->Server(), "Chat mute", &Addr, pResult->GetInteger(1), pReason, nullptr, pResult->m_ClientId);
 }
 
 void CGameContext::ConUnmute(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	pSelf->m_Mutes.UnmuteIndex(pResult->GetInteger(0));
+	if(const auto Removed = pSelf->m_Mutes.UnmuteIndex(pResult->GetInteger(0)))
+		SendUnmuteEvent(pSelf->Server(), "Chat unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConUnmuteId(IConsole::IResult *pResult, void *pUserData)
@@ -317,7 +353,8 @@ void CGameContext::ConUnmuteId(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	pSelf->m_Mutes.UnmuteAddr(pSelf->Server()->ClientAddr(Victim));
+	if(const auto Removed = pSelf->m_Mutes.UnmuteAddr(pSelf->Server()->ClientAddr(Victim)))
+		SendUnmuteEvent(pSelf->Server(), "Chat unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConUnmuteIp(IConsole::IResult *pResult, void *pUserData)
@@ -331,7 +368,8 @@ void CGameContext::ConUnmuteIp(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	pSelf->m_Mutes.UnmuteAddr(&Addr);
+	if(const auto Removed = pSelf->m_Mutes.UnmuteAddr(&Addr))
+		SendUnmuteEvent(pSelf->Server(), "Chat unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConMutes(IConsole::IResult *pResult, void *pUserData)
@@ -358,7 +396,7 @@ void CGameContext::ConVoteMuteId(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "";
-	pSelf->VoteMuteWithMessage(pSelf->Server()->ClientAddr(Victim), pResult->GetInteger(1), pReason, pSelf->Server()->ClientName(Victim));
+	pSelf->VoteMuteWithMessage(pSelf->Server()->ClientAddr(Victim), pResult->GetInteger(1), pReason, pSelf->Server()->ClientName(Victim), pResult->m_ClientId);
 }
 
 void CGameContext::ConVoteMuteIp(IConsole::IResult *pResult, void *pUserData)
@@ -374,14 +412,16 @@ void CGameContext::ConVoteMuteIp(IConsole::IResult *pResult, void *pUserData)
 
 	const char *pReason = pResult->NumArguments() > 2 ? pResult->GetString(2) : "";
 
-	pSelf->m_VoteMutes.Mute(&Addr, pResult->GetInteger(1), pReason, nullptr, false);
+	if(pSelf->m_VoteMutes.Mute(&Addr, pResult->GetInteger(1), pReason, nullptr, false))
+		SendMuteEvent(pSelf->Server(), "Vote mute", &Addr, pResult->GetInteger(1), pReason, nullptr, pResult->m_ClientId);
 }
 
 void CGameContext::ConVoteUnmute(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	pSelf->m_VoteMutes.UnmuteIndex(pResult->GetInteger(0));
+	if(const auto Removed = pSelf->m_VoteMutes.UnmuteIndex(pResult->GetInteger(0)))
+		SendUnmuteEvent(pSelf->Server(), "Vote unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConVoteUnmuteId(IConsole::IResult *pResult, void *pUserData)
@@ -395,7 +435,8 @@ void CGameContext::ConVoteUnmuteId(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	pSelf->m_VoteMutes.UnmuteAddr(pSelf->Server()->ClientAddr(Victim));
+	if(const auto Removed = pSelf->m_VoteMutes.UnmuteAddr(pSelf->Server()->ClientAddr(Victim)))
+		SendUnmuteEvent(pSelf->Server(), "Vote unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConVoteUnmuteIp(IConsole::IResult *pResult, void *pUserData)
@@ -409,7 +450,8 @@ void CGameContext::ConVoteUnmuteIp(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	pSelf->m_VoteMutes.UnmuteAddr(&Addr);
+	if(const auto Removed = pSelf->m_VoteMutes.UnmuteAddr(&Addr))
+		SendUnmuteEvent(pSelf->Server(), "Vote unmute", *Removed, pResult->m_ClientId);
 }
 
 void CGameContext::ConVoteMutes(IConsole::IResult *pResult, void *pUserData)

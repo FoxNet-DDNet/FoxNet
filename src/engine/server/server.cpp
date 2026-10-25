@@ -7,6 +7,7 @@
 #include "databases/connection_pool.h"
 #include "register.h"
 #include "run_demo_recorder.h"
+#include "webhook_format.h"
 
 #include <base/bytes.h>
 #include <base/fs.h>
@@ -50,7 +51,10 @@
 #include <sqlite3.h>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
+#include <cmath>
+#include <limits>
 #include <vector>
 
 using namespace std::chrono_literals;
@@ -122,25 +126,6 @@ void CServerBan::ConBanClientId(IConsole::IResult *pResult, void *pUser)
 	{
 		log_info("net_ban", "ban error (client has no ip)");
 		return;
-	}
-
-	if(UserId >= 0)
-	{
-		char aBuf[1024];
-		str_format(aBuf, sizeof(aBuf), "`%s` [||%s||] banned `%s` [||%s||] for %d Minutes: `%s`\n"
-					       "ver: %s (%d) [%s]",
-			pThis->Server()->ClientName(UserId),
-			pThis->Server()->ClientAddrString(UserId, false),
-			pThis->Server()->ClientName(Victim),
-			pVictimAddr,
-			Minutes,
-			pReason,
-			pThis->Server()->GetCustomClient(Victim),
-			pThis->Server()->GetClientVersion(Victim),
-			pThis->Server()->GetClientVersionStr(Victim));
-		char aTitle[32];
-		str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d%s)", pThis->Server()->Port(), FormatServerInsntance(" | "));
-		pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
 	}
 
 	pResult->SetVictimAddrStr(pVictimAddr);
@@ -277,6 +262,19 @@ static std::string RelaySafeReason(const char *pReason)
 
 void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 {
+	if(m_pServer->m_RconClientId != IServer::RCON_CID_VOTE)
+	{
+		char aAddr[NETADDR_MAXSTRSIZE];
+		net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+		IServer::CModerationEvent Event;
+		Event.m_pAction = "Ban";
+		Event.m_pAddress = aAddr;
+		Event.m_DurationSeconds = Info.m_Expires == CBanInfo::EXPIRES_NEVER ? -1 :
+			static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
+		Event.m_pReason = Info.m_aReason;
+		Event.m_ActorClientId = m_pServer->m_RconClientId;
+		m_pServer->SendModerationEvent(Event);
+	}
 	if(m_pServer->RelayApplying())
 		return;
 	char aAddr[NETADDR_MAXSTRSIZE];
@@ -289,9 +287,21 @@ void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 
 void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 {
+	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[512];
+	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
+	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
+	char aRange[2 * NETADDR_MAXSTRSIZE + 4];
+	str_format(aRange, sizeof(aRange), "%s - %s", aLower, aUpper);
+	IServer::CModerationEvent Event;
+	Event.m_pAction = "Ban range";
+	Event.m_pAddress = aRange;
+	Event.m_DurationSeconds = Info.m_Expires == CBanInfo::EXPIRES_NEVER ? -1 :
+		static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
+	Event.m_pReason = Info.m_aReason;
+	Event.m_ActorClientId = m_pServer->m_RconClientId;
+	m_pServer->SendModerationEvent(Event);
 	if(m_pServer->RelayApplying())
 		return;
-	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[512];
 	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
 	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
 	const std::string Reason = RelaySafeReason(Info.m_aReason);
@@ -301,27 +311,44 @@ void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 
 void CServerBan::OnBanRemoved(const NETADDR *pAddr)
 {
+	char aAddr[NETADDR_MAXSTRSIZE];
+	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	IServer::CModerationEvent Event;
+	Event.m_pAction = "Unban";
+	Event.m_pAddress = aAddr;
+	Event.m_ActorClientId = m_pServer->m_RconClientId;
+	m_pServer->SendModerationEvent(Event);
 	if(m_pServer->RelayApplying())
 		return;
-	char aAddr[NETADDR_MAXSTRSIZE], aCommand[128];
-	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	char aCommand[128];
 	str_format(aCommand, sizeof(aCommand), "unban %s", aAddr);
 	m_pServer->PublishConsoleCommand(aCommand);
 }
 
 void CServerBan::OnBanRemoved(const CNetRange *pRange)
 {
-	if(m_pServer->RelayApplying())
-		return;
 	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[160];
 	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
 	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
+	char aRange[2 * NETADDR_MAXSTRSIZE + 4];
+	str_format(aRange, sizeof(aRange), "%s - %s", aLower, aUpper);
+	IServer::CModerationEvent Event;
+	Event.m_pAction = "Unban range";
+	Event.m_pAddress = aRange;
+	Event.m_ActorClientId = m_pServer->m_RconClientId;
+	m_pServer->SendModerationEvent(Event);
+	if(m_pServer->RelayApplying())
+		return;
 	str_format(aCommand, sizeof(aCommand), "unban_range %s %s", aLower, aUpper);
 	m_pServer->PublishConsoleCommand(aCommand);
 }
 
 void CServerBan::OnBansCleared()
 {
+	IServer::CModerationEvent Event;
+	Event.m_pAction = "Clear all bans";
+	Event.m_ActorClientId = m_pServer->m_RconClientId;
+	m_pServer->SendModerationEvent(Event);
 	if(!m_pServer->RelayApplying())
 		m_pServer->PublishConsoleCommand("unban_all");
 }
@@ -343,26 +370,6 @@ void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 			log_info("net_ban", "ban error (invalid client id)");
 		else
 		{
-			const int UserId = pResult->m_ClientId;
-			if(UserId >= 0)
-			{
-				char aBuf[1024];
-				str_format(aBuf, sizeof(aBuf), "`%s` [||%s||] banned `%s` [||%s||] for %d Minutes: `%s`\n"
-							       "ver: %s (%d) [%s]",
-					pThis->Server()->ClientName(UserId),
-					pThis->Server()->ClientAddrString(UserId, false),
-					pThis->Server()->ClientName(ClientId),
-					pThis->Server()->ClientAddrString(ClientId, false),
-					Minutes,
-					pReason,
-					pThis->Server()->GetCustomClient(ClientId),
-					pThis->Server()->GetClientVersion(ClientId),
-					pThis->Server()->GetClientVersionStr(ClientId));
-				char aTitle[32];
-				str_format(aTitle, sizeof(aTitle), "[BAN] - Command (%d%s)", pThis->Server()->Port(), FormatServerInsntance(" | "));
-				pThis->Server()->SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBuf, aTitle);
-			}
-
 			pResult->SetVictimAddrStr(pThis->Server()->ClientAddrString(ClientId, false));
 			pThis->BanAddr(pThis->Server()->ClientAddr(ClientId), Minutes * 60, pReason, false);
 		}
@@ -754,6 +761,13 @@ void CServer::Kick(int ClientId, const char *pReason)
 		return;
 	}
 
+	CModerationEvent Event;
+	Event.m_pAction = "Kick";
+	Event.m_pAddress = ClientAddrString(ClientId, false);
+	Event.m_TargetClientId = ClientId;
+	Event.m_pReason = pReason;
+	Event.m_ActorClientId = m_RconClientId;
+	SendModerationEvent(Event);
 	m_NetServer.Drop(ClientId, pReason);
 	// <FoxNet
 	if(g_Config.m_SvScriptPlayerKicks[0])
@@ -2049,27 +2063,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 		if(m_aClients[ClientId].m_Traffic > Limit)
 		{
-			char aBanBuf[1024];
-			const double TrafficBytesPerTick = m_aClients[ClientId].m_Traffic; // EMA, bytes/tick
-			const double LimitBytesPerTick = Limit;
-			const double TrafficKBps = TrafficBytesPerTick * (double)time_freq() / 1024.0;
-			const double LimitKBps = LimitBytesPerTick * (double)time_freq() / 1024.0;
-
-			str_format(aBanBuf, sizeof(aBanBuf),
-				"`%s` [||%s||] was banned for 10 minutes for stressing the network.\n"
-				"%.2f/%.2f KB/s\n"
-				"ver: %s (%d) [%s]",
-				ClientName(ClientId),
-				ClientAddrString(ClientId, false),
-				TrafficKBps,
-				LimitKBps,
-				GetCustomClient(ClientId),
-				GetClientVersion(ClientId),
-				GetClientVersionStr(ClientId));
-			char aTitle[48];
-			str_format(aTitle, sizeof(aTitle), "[BAN] - Stressing network (%d%s)", Port(), FormatServerInsntance(" | "));
-			SendWebhookMessage(g_Config.m_DcBansWebhookUrl, aBanBuf, aTitle);
-
 			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
 			return;
 		}
@@ -3761,14 +3754,9 @@ int CServer::Run()
 		log_error("server", "Failed to initialize the HTTP client.");
 		return -1;
 	}
+	m_WebhookHttpReady = true;
 
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
-	if(g_Config.m_DcRecordsWebhookUrl[0])
-	{
-		char aRunDemoFolder[IO_MAX_PATH_LENGTH];
-		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "demos/runs", aRunDemoFolder, sizeof(aRunDemoFolder));
-		m_pRunDemoRecorder = std::make_unique<CRunDemoRecorder>(Storage(), m_pHttp, &m_SnapshotDelta, aRunDemoFolder, g_Config.m_DcRecordsWebhookUrl, this->Port());
-	}
 	m_pRegister = CreateRegister(&g_Config, m_pConsole, m_pEngine, m_pHttp, g_Config.m_SvRegisterPort > 0 ? g_Config.m_SvRegisterPort : this->Port(), m_NetServer.GetGlobalToken());
 
 	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, ClientRejoinCallback, DelClientCallback, this);
@@ -3799,7 +3787,14 @@ int CServer::Run()
 
 	// process pending commands
 	m_pConsole->StoreCommands(false);
+	m_ModerationEventsReady = true;
 	m_pRegister->OnConfigChange();
+	if(g_Config.m_DcRecordsWebhookUrl[0])
+	{
+		char aRunDemoFolder[IO_MAX_PATH_LENGTH];
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "demos/runs", aRunDemoFolder, sizeof(aRunDemoFolder));
+		m_pRunDemoRecorder = std::make_unique<CRunDemoRecorder>(Storage(), m_pHttp, &m_SnapshotDelta, aRunDemoFolder, g_Config.m_DcRecordsWebhookUrl, this->Port(), g_Config.m_SvAccountsInstance);
+	}
 
 	if(m_AuthManager.IsGenerated())
 	{
@@ -3880,9 +3875,11 @@ int CServer::Run()
 					m_GameStartTime = time_get();
 					m_CurrentGameTick = MIN_TICK;
 					Kernel()->ReregisterInterface(GameServer());
+					m_ModerationEventsReady = false;
 					Console()->StoreCommands(true);
 					GameServer()->OnInit(m_pPersistentData);
 					Console()->StoreCommands(false);
+					m_ModerationEventsReady = true;
 
 					for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 					{
@@ -3983,6 +3980,7 @@ int CServer::Run()
 				m_Fifo.Update();
 				UpdateCommandRelay();
 				UpdateCommandRelayPoll();
+				UpdateWebhooks();
 
 #if defined(CONF_PLATFORM_ANDROID)
 				std::vector<std::string> vAndroidCommandQueue = FetchAndroidServerCommandQueue();
@@ -4142,6 +4140,11 @@ int CServer::Run()
 	m_Econ.Shutdown();
 	m_Fifo.Shutdown();
 	m_pRunDemoRecorder.reset();
+	m_pWebhookRequest.reset();
+	m_pWebhookInFlightQueue = nullptr;
+	m_WebhookQueue.clear();
+	m_ModerationWebhookQueue.clear();
+	m_ReportWebhookQueue.clear();
 	m_pHttp->Shutdown();
 	Engine()->ShutdownJobs();
 
@@ -5152,6 +5155,7 @@ void CServer::RegisterCommands()
 	m_NameBans.InitConsole(Console());
 	m_pGameServer->OnConsoleInit();
 	Console()->SetCanUseCommandCallback(CanClientUseCommandCallback, this);
+	Console()->SetCommandAuditCallback(CommandAuditCallback, this);
 }
 
 std::optional<int> CServer::SnapNewId()
@@ -5850,6 +5854,44 @@ static std::string EscapeJsonString(const char *pStr)
 	return Out;
 }
 
+static void TruncateUtf8(std::string &Text, size_t MaxBytes)
+{
+	if(Text.size() <= MaxBytes)
+		return;
+	size_t Length = MaxBytes;
+	while(Length > 0 && (static_cast<unsigned char>(Text[Length]) & 0xc0) == 0x80)
+		--Length;
+	Text.resize(Length);
+}
+
+static std::string WebhookTitle(const std::string &Title)
+{
+	std::string Result;
+	for(char Ch : Title)
+	{
+		if(Ch == '\\' || Ch == '`' || Ch == '*' || Ch == '_' || Ch == '~' || Ch == '|' || Ch == '>' || Ch == '[' || Ch == ']')
+			Result += '\\';
+		Result += Ch;
+	}
+	TruncateUtf8(Result, 240);
+	if(!Result.empty() && Result.back() == '\\')
+		Result.pop_back();
+	return Result.empty() ? "FoxNet" : Result;
+}
+
+static std::string FormatWebhookDuration(int Seconds)
+{
+	if(Seconds < 0)
+		return "permanently";
+	if(Seconds % 86400 == 0)
+		return "for " + std::to_string(Seconds / 86400) + (Seconds == 86400 ? " day" : " days");
+	if(Seconds % 3600 == 0)
+		return "for " + std::to_string(Seconds / 3600) + (Seconds == 3600 ? " hour" : " hours");
+	if(Seconds % 60 == 0)
+		return "for " + std::to_string(Seconds / 60) + (Seconds == 60 ? " minute" : " minutes");
+	return "for " + std::to_string(Seconds) + (Seconds == 1 ? " second" : " seconds");
+}
+
 void CServer::ConRelayLocal(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = static_cast<CServer *>(pUser);
@@ -6233,27 +6275,307 @@ void CServer::UpdateCommandRelayPoll()
 	m_pHttp->Run(m_pRelayPollRequest);
 }
 
-void CServer::SendWebhookMessage(const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
+void CServer::SendWebhookMessage(EWebhookCategory Category, const char *pUrl, const char *pMessage, const char *pUsername, const char *pAvatarURL)
 {
 	if(pUrl == nullptr || pUrl[0] == '\0' || pMessage == nullptr || pMessage[0] == '\0')
 		return;
+	constexpr size_t MAX_MESSAGE_BYTES = 3800;
+	std::string Title = pUsername ? pUsername : "FoxNet event";
+	TruncateUtf8(Title, 160);
+	const std::string Message = pMessage;
+	auto &Queue = Category == EWebhookCategory::REPORTS ? m_ReportWebhookQueue :
+		Category == EWebhookCategory::MODERATION ? m_ModerationWebhookQueue : m_WebhookQueue;
+	const bool WasDelayedQueueEmpty = m_WebhookQueue.empty() && m_ModerationWebhookQueue.empty();
+	for(size_t Offset = 0; Offset < Message.size();)
+	{
+		size_t Take = std::min(MAX_MESSAGE_BYTES, Message.size() - Offset);
+		if(Offset + Take < Message.size())
+			while(Take > 0 && (static_cast<unsigned char>(Message[Offset + Take]) & 0xc0) == 0x80)
+				--Take;
+		if(Take == 0)
+			break;
+		Queue.push_back({pUrl, pAvatarURL ? pAvatarURL : "", Title, Message.substr(Offset, Take)});
+		Offset += Take;
+	}
+	if(Category != EWebhookCategory::REPORTS && WasDelayedQueueEmpty && !Queue.empty())
+		m_WebhookNextSendAt = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+}
 
-	const std::string Username = EscapeJsonString(pUsername ? pUsername : "");
-	const std::string Content = EscapeJsonString(SanitizeMessage(pMessage).c_str());
-	const std::string AvatarUrl = EscapeJsonString(pAvatarURL ? pAvatarURL : "");
+void CServer::SendModerationEvent(const CModerationEvent &Event)
+{
+	if(!m_ModerationEventsReady || m_RelayApplying || m_ServerBan.m_QuietBan || !g_Config.m_DcModerationWebhookUrl[0])
+		return;
+	NETADDR Addr;
+	const bool HasAddress = Event.m_pAddress && net_addr_from_str(&Addr, Event.m_pAddress) == 0;
+	int TargetClientId = Event.m_TargetClientId;
+	if(TargetClientId >= 0 && TargetClientId < MAX_CLIENTS && !ClientSlotEmpty(TargetClientId) && HasAddress &&
+		net_addr_comp_noport(&Addr, ClientAddr(TargetClientId)) != 0)
+		TargetClientId = -1;
+	if(TargetClientId < 0 || TargetClientId >= MAX_CLIENTS || ClientSlotEmpty(TargetClientId))
+	{
+		TargetClientId = -1;
+		if(HasAddress)
+		{
+			for(int i = 0; i < MAX_CLIENTS; ++i)
+			{
+				if(!ClientSlotEmpty(i) && net_addr_comp_noport(&Addr, ClientAddr(i)) == 0)
+				{
+					TargetClientId = i;
+					break;
+				}
+			}
+		}
+	}
+	const char *pName = Event.m_pTargetName && Event.m_pTargetName[0] ? Event.m_pTargetName :
+		TargetClientId >= 0 ? ClientName(TargetClientId) : "(unknown)";
+	const bool HasTarget = (Event.m_pAddress && Event.m_pAddress[0]) || TargetClientId >= 0 || (Event.m_pTargetName && Event.m_pTargetName[0]);
+	std::string Target = HasTarget ? WebhookFormat::Name(pName) : "All bans";
+	if(TargetClientId >= 0)
+		Target += " (" + std::to_string(TargetClientId) + ")";
+	if(Event.m_pAddress && Event.m_pAddress[0])
+		Target += " [||" + WebhookFormat::EscapeText(Event.m_pAddress) + "||]";
+	std::string Actor = Event.m_pActorName && Event.m_pActorName[0] ? WebhookFormat::Name(Event.m_pActorName) :
+		m_RconClientId == IServer::RCON_CID_VOTE ? "vote" : "server";
+	if(Event.m_ActorClientId >= 0 && Event.m_ActorClientId < MAX_CLIENTS && !ClientSlotEmpty(Event.m_ActorClientId))
+	{
+		if(!Event.m_pActorName || !Event.m_pActorName[0])
+			Actor = WebhookFormat::Name(ClientName(Event.m_ActorClientId));
+		Actor += " (" + std::to_string(Event.m_ActorClientId) + ")";
+		if(IsRconAuthed(Event.m_ActorClientId))
+			Actor += " [rcon: " + WebhookFormat::Name(GetAuthName(Event.m_ActorClientId)) + "]";
+	}
+	const char *pVerb = "was moderated";
+	const char *pTitle = "[MODERATION]";
+	if(str_comp(Event.m_pAction, "Ban") == 0 || str_comp(Event.m_pAction, "Ban range") == 0)
+	{
+		pVerb = "was banned";
+		pTitle = str_comp(Event.m_pAction, "Ban range") == 0 ? "[BAN] - Range" : "[BAN]";
+	}
+	else if(str_comp(Event.m_pAction, "Vote kick") == 0)
+	{
+		pVerb = "was vote-kicked";
+		pTitle = "[BAN] - Vote kick";
+	}
+	else if(str_comp(Event.m_pAction, "Kick") == 0)
+	{
+		pVerb = "was kicked";
+		pTitle = "[KICK]";
+	}
+	else if(str_comp(Event.m_pAction, "Chat mute") == 0 || str_comp(Event.m_pAction, "Vote mute") == 0)
+	{
+		pVerb = "was muted";
+		pTitle = str_comp(Event.m_pAction, "Chat mute") == 0 ? "[MUTE] - Chat" : "[MUTE] - Vote";
+	}
+	else if(str_comp(Event.m_pAction, "Chat unmute") == 0 || str_comp(Event.m_pAction, "Vote unmute") == 0)
+	{
+		pVerb = "was unmuted";
+		pTitle = str_comp(Event.m_pAction, "Chat unmute") == 0 ? "[UNMUTE] - Chat" : "[UNMUTE] - Vote";
+	}
+	else if(str_comp(Event.m_pAction, "Unban") == 0 || str_comp(Event.m_pAction, "Unban range") == 0)
+	{
+		pVerb = "was unbanned";
+		pTitle = str_comp(Event.m_pAction, "Unban range") == 0 ? "[UNBAN] - Range" : "[UNBAN]";
+	}
+	else if(str_comp(Event.m_pAction, "Clear all bans") == 0)
+	{
+		pVerb = "were cleared";
+		pTitle = "[UNBAN] - All bans";
+	}
+	std::string Message = Target + " " + pVerb;
+	if(Event.m_DurationSeconds != 0)
+		Message += " " + FormatWebhookDuration(Event.m_DurationSeconds);
+	Message += " by " + Actor + ".";
+	if(TargetClientId >= 0)
+	{
+		Message += "\nver: " + WebhookFormat::EscapeText(GetCustomClient(TargetClientId)) + " (" + std::to_string(GetClientVersion(TargetClientId)) + ")";
+		const char *pVersionStr = GetClientVersionStr(TargetClientId);
+		if(pVersionStr && pVersionStr[0])
+			Message += " [" + WebhookFormat::EscapeText(pVersionStr) + "]";
+		else
+			Message += " [] <- empty";
 
-	std::string Json =
-		"{"
-		"\"username\":\"" +
-		Username + "\","
-			   "\"content\":\"" +
-		Content + "\","
-			  "\"avatar_url\":\"" +
-		AvatarUrl + "\""
-			    "}";
+	}
+	if(Event.m_pReason && Event.m_pReason[0])
+		Message += "\n" + WebhookFormat::EscapeText(Event.m_pReasonLabel) + ": " + WebhookFormat::EscapeText(Event.m_pReason);
+	const std::string Title = pTitle;
+	SendWebhookMessage(EWebhookCategory::MODERATION, g_Config.m_DcModerationWebhookUrl, Message.c_str(), Title.c_str());
+}
 
-	auto pReq = HttpPostJson(pUrl, Json.c_str());
-	m_pHttp->Run(std::move(pReq));
+void CServer::UpdateWebhooks()
+{
+	if(!m_WebhookHttpReady)
+		return;
+	constexpr size_t MAX_FIELD_BYTES = 1000;
+	constexpr size_t MAX_EMBED_BYTES = 5500;
+	constexpr size_t MAX_FIELDS = 25;
+	constexpr auto SEND_INTERVAL = std::chrono::seconds(10);
+	const auto Now = std::chrono::steady_clock::now();
+	if(m_pWebhookRequest)
+	{
+		if(!m_pWebhookRequest->Done())
+			return;
+		const EHttpState State = m_pWebhookRequest->State();
+		const int Status = State == EHttpState::DONE ? m_pWebhookRequest->StatusCode() : 0;
+		auto &Queue = *m_pWebhookInFlightQueue;
+		const bool IsReport = m_pWebhookInFlightQueue == &m_ReportWebhookQueue;
+		auto &RetryCount = IsReport ? m_ReportWebhookRetryCount : m_WebhookRetryCount;
+		auto &NextSendAt = IsReport ? m_ReportWebhookNextSendAt : m_WebhookNextSendAt;
+		if(Status >= 200 && Status < 300)
+		{
+			for(size_t i = 0; i < m_WebhookInFlightCount; ++i)
+				Queue.pop_front();
+			RetryCount = 0;
+			NextSendAt = IsReport ? Now : Now + SEND_INTERVAL;
+		}
+		else if(Status == 429)
+		{
+			double RetrySeconds = 5.0;
+			if(json_value *pResponse = m_pWebhookRequest->ResultJson())
+			{
+				const json_value &RetryAfter = (*pResponse)["retry_after"];
+				if(RetryAfter.type == json_integer || RetryAfter.type == json_double)
+					RetrySeconds = static_cast<double>(RetryAfter);
+				json_value_free(pResponse);
+			}
+			if(!std::isfinite(RetrySeconds))
+				RetrySeconds = 5.0;
+			NextSendAt = Now + std::chrono::milliseconds(static_cast<int>(std::clamp(RetrySeconds, 2.0, 86400.0) * 1000));
+		}
+		else if(State != EHttpState::DONE || Status >= 500)
+		{
+			const int RetrySeconds = std::min(60, 2 << std::min(RetryCount, 5));
+			if(RetryCount == 0)
+				log_error("webhook", "delivery failed; retrying queued messages");
+			++RetryCount;
+			NextSendAt = Now + std::chrono::seconds(RetrySeconds);
+		}
+		else
+		{
+			log_error("webhook", "rejected with HTTP %d; dropping one batch", Status);
+			for(size_t i = 0; i < m_WebhookInFlightCount; ++i)
+				Queue.pop_front();
+			RetryCount = 0;
+			NextSendAt = IsReport ? Now : Now + SEND_INTERVAL;
+		}
+		m_pWebhookRequest.reset();
+		m_pWebhookInFlightQueue = nullptr;
+		m_WebhookInFlightCount = 0;
+		return;
+	}
+	const bool ReportReady = !m_ReportWebhookQueue.empty() && Now >= m_ReportWebhookNextSendAt;
+	const bool DelayedReady = (!m_WebhookQueue.empty() || !m_ModerationWebhookQueue.empty()) && Now >= m_WebhookNextSendAt;
+	if(!ReportReady && !DelayedReady)
+		return;
+	auto &Queue = ReportReady ? m_ReportWebhookQueue : !m_ModerationWebhookQueue.empty() ? m_ModerationWebhookQueue : m_WebhookQueue;
+	m_pWebhookInFlightQueue = &Queue;
+	const CWebhookEntry &First = Queue.front();
+	const bool IsModeration = m_pWebhookInFlightQueue == &m_ModerationWebhookQueue;
+	const bool IsCommands = m_pWebhookInFlightQueue == &m_WebhookQueue;
+	const char *pWebhookName = IsModeration ? "FoxNet Moderation" : ReportReady ? "FoxNet Reports" : "FoxNet Commands";
+	const int EmbedColor = IsModeration || ReportReady ? 0x3498db : 0x95a5a6;
+	char aServerTitle[256];
+	str_format(aServerTitle, sizeof(aServerTitle), "server: %d%s", Port(), FormatServerInsntance(" | "));
+	const std::string TitleJson = "\"title\":\"" + EscapeJsonString(WebhookTitle(aServerTitle).c_str()) + "\",";
+	struct CWebhookField
+	{
+		std::string m_Title;
+		std::string m_Value;
+	};
+	std::vector<CWebhookField> vFields;
+	size_t EmbedBytes = str_length(aServerTitle);
+	for(const CWebhookEntry &Entry : Queue)
+	{
+		if(Entry.m_Url != First.m_Url || Entry.m_AvatarUrl != First.m_AvatarUrl || Entry.m_Message.size() > MAX_FIELD_BYTES)
+			break;
+		const std::string FieldTitle = IsCommands ? Entry.m_Title : WebhookTitle(Entry.m_Title);
+		const bool AppendCommand = IsCommands && !vFields.empty() && vFields.back().m_Title == FieldTitle &&
+			vFields.back().m_Value.size() + 1 + Entry.m_Message.size() <= MAX_FIELD_BYTES;
+		if(!AppendCommand && vFields.size() >= MAX_FIELDS)
+			break;
+		const size_t AddedBytes = Entry.m_Message.size() + (AppendCommand ? 1 : FieldTitle.size());
+		if(EmbedBytes + AddedBytes > MAX_EMBED_BYTES)
+			break;
+		if(AppendCommand)
+			vFields.back().m_Value += "\n" + Entry.m_Message;
+		else
+			vFields.push_back({FieldTitle, Entry.m_Message});
+		EmbedBytes += AddedBytes;
+		++m_WebhookInFlightCount;
+	}
+	std::string Fields;
+	for(const CWebhookField &Field : vFields)
+	{
+		if(!Fields.empty())
+			Fields += ',';
+		Fields += "{\"name\":\"" + EscapeJsonString(Field.m_Title.c_str()) + "\",\"value\":\"" + EscapeJsonString(Field.m_Value.c_str()) + "\",\"inline\":false}";
+	}
+	std::string Embed;
+	if(m_WebhookInFlightCount == 0)
+	{
+		m_WebhookInFlightCount = 1;
+		const std::string Description = "**" + WebhookTitle(First.m_Title) + "**\n" + First.m_Message;
+		Embed = "{" + TitleJson + "\"description\":\"" + EscapeJsonString(Description.c_str()) + "\",\"color\":" + std::to_string(EmbedColor) + "}";
+	}
+	else
+		Embed = "{" + TitleJson + "\"color\":" + std::to_string(EmbedColor) + ",\"fields\":[" + Fields + "]}";
+	const std::string Json = "{\"username\":\"" + EscapeJsonString(pWebhookName) + "\",\"embeds\":[" + Embed + "],\"avatar_url\":\"" + EscapeJsonString(First.m_AvatarUrl.c_str()) + "\",\"allowed_mentions\":{\"parse\":[]}}";
+	m_pWebhookRequest = HttpPostJson(First.m_Url.c_str(), Json.c_str());
+	m_pWebhookRequest->FailOnErrorStatus(false);
+	m_pWebhookRequest->WriteToMemory();
+	m_pWebhookRequest->LogProgress(HTTPLOG::NONE);
+	m_pHttp->Run(m_pWebhookRequest);
+}
+
+void CServer::CommandAuditCallback(int ClientId, int FlagMask, const char *pCommand, const char *pRawCommand, int CommandFlags, void *pUser)
+{
+	static_cast<CServer *>(pUser)->AuditCommand(ClientId, FlagMask, pCommand, pRawCommand, CommandFlags);
+}
+
+void CServer::AuditCommand(int ClientId, int FlagMask, const char *pCommand, const char *pRawCommand, int CommandFlags)
+{
+	if(!g_Config.m_DcCommandsWebhookUrl[0])
+		return;
+	if((FlagMask & CFGFLAG_CHAT) || ClientId < 0 || ClientId != m_RconClientId)
+		return;
+	const bool Secret = (CommandFlags & CFGFLAG_NONTEEHISTORIC) ||
+		str_find_nocase(pCommand, "password") || str_find_nocase(pCommand, "passwd") ||
+		str_find_nocase(pCommand, "token") || str_find_nocase(pCommand, "secret") ||
+		str_find_nocase(pCommand, "webhook") || str_find_nocase(pCommand, "auth_") ||
+		str_find_nocase(pCommand, "login") || str_find_nocase(pCommand, "register") ||
+		str_find_nocase(pCommand, "relay_") || str_find_nocase(pCommand, "sqlserver") ||
+		!str_comp_nocase(pCommand, "password") || !str_comp_nocase(pCommand, "key");
+	const char *pArguments = pRawCommand;
+	while(*pArguments && std::isspace(static_cast<unsigned char>(*pArguments)))
+		++pArguments;
+	while(*pArguments && !std::isspace(static_cast<unsigned char>(*pArguments)))
+		++pArguments;
+	while(*pArguments && std::isspace(static_cast<unsigned char>(*pArguments)))
+		++pArguments;
+	std::string Command = Secret ? std::string(pCommand) + (*pArguments ? " [arguments redacted]" : "") : pRawCommand;
+	// A fence inside a command must not close the Discord code block.
+	for(size_t Pos = 0; (Pos = Command.find("```", Pos)) != std::string::npos; Pos += 5)
+		Command.replace(Pos, 3, "`\xe2\x80\x8b``");
+	const bool ValidPlayer = ClientId >= 0 && ClientId < MAX_CLIENTS && !ClientSlotEmpty(ClientId);
+	std::string Actor = ValidPlayer ? WebhookFormat::Name(ClientName(ClientId)) : "server";
+	Actor += " (" + std::to_string(ClientId) + ")";
+	if(ValidPlayer && IsRconAuthed(ClientId))
+		Actor += " [rcon: " + WebhookFormat::Name(GetAuthName(ClientId)) + "]";
+	constexpr size_t MAX_COMMAND_PART_BYTES = 900;
+	for(size_t Offset = 0, Part = 1; Offset < Command.size(); ++Part)
+	{
+		size_t Take = std::min(MAX_COMMAND_PART_BYTES, Command.size() - Offset);
+		if(Offset + Take < Command.size())
+			while(Take > 0 && (static_cast<unsigned char>(Command[Offset + Take]) & 0xc0) == 0x80)
+				--Take;
+		if(Take == 0)
+			break;
+		std::string Title = Actor;
+		if(Offset > 0 || Offset + Take < Command.size())
+			Title += " | part " + std::to_string(Part);
+		const std::string Block = "```\n" + Command.substr(Offset, Take) + "\n```";
+		SendWebhookMessage(EWebhookCategory::COMMANDS, g_Config.m_DcCommandsWebhookUrl, Block.c_str(), Title.c_str());
+		Offset += Take;
+	}
 }
 
 void CServer::SystemCall(const char *pCommand)
