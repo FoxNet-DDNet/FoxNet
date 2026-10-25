@@ -2,6 +2,7 @@
 #define ENGINE_SERVER_RUN_DEMO_RECORDER_H
 
 #include <base/hash.h>
+#include <base/lock.h>
 #include <base/sphore.h>
 
 #include <engine/shared/protocol.h>
@@ -118,7 +119,7 @@ class CRunDemoRecorder
 	void CloseRun(CRun &Run, bool KeepFiles);
 	bool StartPart(CRun &Run);
 	void CheckRollover(int ClientId, CRun &Run);
-	void QueueUpload(CUpload Upload);
+	void QueueUpload(CUpload Upload) NO_THREAD_SAFETY_ANALYSIS;
 	bool Upload(const CUpload &Upload);
 
 public:

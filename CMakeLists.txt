@@ -3255,6 +3255,8 @@ if(SERVER)
     foxnet/entities/text/laser.cpp
     foxnet/entities/text/projectile.cpp
     foxnet/entities/text/text.h
+    foxnet/entities/worm.cpp
+    foxnet/entities/worm.h
     foxnet/fontconvert.cpp
     foxnet/fontconvert.h
     foxnet/gamecontext.cpp

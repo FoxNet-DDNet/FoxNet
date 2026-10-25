@@ -358,7 +358,7 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 			for(size_t i = 0; i < Count; ++i)
 			{
 				char aPart[24];
-				str_format(aPart, sizeof(aPart), "_part%02zu-of%02zu", i + 1, Count);
+				str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
 				const fs::path PartBase = fs::path(m_Folder) / (FinalBase + aPart);
 				std::error_code Error;
 				if(fs::exists(PartBase.string() + ".demo", Error) || fs::exists(PartBase.string() + ".txt", Error))
@@ -373,7 +373,7 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 		{
 			const fs::path TempPath = fs::path(m_Folder) / Run.m_vParts[i];
 			char aPart[24];
-			str_format(aPart, sizeof(aPart), "_part%02zu-of%02zu", i + 1, Count);
+			str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
 			const std::string ReadyName = FinalBase + aPart;
 			const fs::path DemoPath = fs::path(m_Folder) / (ReadyName + ".demo");
 			std::error_code Error;
@@ -589,7 +589,7 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 				return true; // Retain the manifest for manual recovery.
 			}
 		}
-		log_info("run_demo", "uploaded %s (%zu part%s)", Upload.m_Base.c_str(), vFiles.size(), vFiles.size() == 1 ? "" : "s");
+		log_info("run_demo", "uploaded %s (%" PRIzu " part%s)", Upload.m_Base.c_str(), vFiles.size(), vFiles.size() == 1 ? "" : "s");
 		if(!MoreParts)
 		{
 			fs::remove(MetaPath, Error);
