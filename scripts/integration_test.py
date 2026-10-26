@@ -676,6 +676,25 @@ def client_can_connect(test_env):
 
 
 @test
+def client_can_switch_multimap(test_env):
+	client = test_env.client(["cl_auto_demo_record 1"])
+	server = test_env.server(["sv_map dm2", "sv_multimaps 1", "load_map 1 dm1"])
+	wait_for_startup([client, server])
+	client.command(f"connect localhost:{server.port}")
+	server.wait_for_log_prefix("server: player has entered the game", timeout=10)
+	client.command("say /casino")
+	client.wait_for_log_prefix("demo_recorder: Recording to 'demos/auto/dm1_", timeout=10)
+	client.command("say /exit")
+	client.wait_for_log_prefix("demo_recorder: Recording to 'demos/auto/dm2_", timeout=10)
+	client.command("disconnect")
+	client.wait_for_log_prefix("client: disconnecting.", timeout=10)
+	client.exit()
+	client.wait_for_exit()
+	server.exit()
+	server.wait_for_exit()
+
+
+@test
 def client_can_connect_7(test_env):
 	client = test_env.client()
 	server = test_env.server()

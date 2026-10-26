@@ -504,6 +504,7 @@ void CServer::CClient::Reset()
 	m_Flags = 0;
 	m_RedirectDropTime = 0;
 	m_IngameBeforeRejoin = false;
+	m_OverrideMapReloading = false;
 
 	std::fill(std::begin(m_aIdMap), std::end(m_aIdMap), -1);
 	std::fill(std::begin(m_aReverseIdMap), std::end(m_aReverseIdMap), -1);
@@ -1350,8 +1351,9 @@ void CServer::DoSnapshot()
 	// create snapshots for all clients
 	for(int i = 0; i < MaxClients(); i++)
 	{
-		// client must be ingame to receive snapshots
-		if(m_aClients[i].m_State != CClient::STATE_INGAME)
+		// Wait for ENTERGAME after a per-client map change. Early snapshots can make
+		// the client render before it has rebuilt the map layers.
+		if(m_aClients[i].m_State != CClient::STATE_INGAME || m_aClients[i].m_OverrideMapReloading)
 			continue;
 
 		// this client is trying to recover, don't spam snapshots
@@ -2518,6 +2520,16 @@ void CServer::OnNetMsgInfo(int ClientId, const char *pVersion, const char *pPass
 
 void CServer::OnNetMsgReady(int ClientId)
 {
+	// A per-client map change keeps the server-side player in-game. The client still
+	// sends READY after loading the new map and needs the normal handshake reply.
+	if(m_aClients[ClientId].m_OverrideMapReloading && m_aClients[ClientId].m_State == CClient::STATE_INGAME)
+	{
+		SendConnectionReady(ClientId);
+		CNetMsg_Sv_ReadyToEnter Msg;
+		SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientId);
+		return;
+	}
+
 	if(m_aClients[ClientId].m_State != CClient::STATE_CONNECTING)
 		return;
 
@@ -2551,11 +2563,13 @@ void CServer::OnNetMsgReady(int ClientId)
 
 void CServer::OnNetMsgEnterGame(int ClientId)
 {
-	const bool OverrideMapReload = m_aClients[ClientId].m_OverrideMapActive && m_aClients[ClientId].m_State == CClient::STATE_INGAME;
+	const bool OverrideMapReload = m_aClients[ClientId].m_OverrideMapReloading && m_aClients[ClientId].m_State == CClient::STATE_INGAME;
 	if(!OverrideMapReload && m_aClients[ClientId].m_State != CClient::STATE_READY)
 		return;
 	if(!GameServer()->IsClientReady(ClientId))
 		return;
+	if(OverrideMapReload)
+		m_aClients[ClientId].m_OverrideMapReloading = false;
 
 	if(!OverrideMapReload)
 	{
@@ -5914,6 +5928,7 @@ bool CServer::SendMapByName(int ClientId, const char *pMapName, bool VisualOnly)
 	}
 
 	// Prepare client for chunk requests
+	m_aClients[ClientId].m_OverrideMapReloading = true;
 	m_aClients[ClientId].m_NextMapChunk = 0;
 	m_aClients[ClientId].m_NumMapChunks = 0;
 

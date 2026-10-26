@@ -295,6 +295,8 @@ public:
 		//}
 
 		bool m_OverrideMapActive = false;
+		// Pause snapshots until the client finishes loading either an override or the main map.
+		bool m_OverrideMapReloading = false;
 		// Only set for a VisualOnly map: it is not loaded anywhere, so this slot owns the bytes.
 		// A real map switch is served from the loaded map's own copy instead, see IServer::MapData.
 		unsigned char *m_pVisualMapData = nullptr;
