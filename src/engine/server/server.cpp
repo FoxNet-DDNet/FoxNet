@@ -6454,8 +6454,7 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 	if(!m_ModerationEventsReady || m_RelayApplying || m_ServerBan.m_QuietBan || !g_Config.m_DcModerationWebhookUrl[0])
 		return;
 	if(Event.m_ActorClientId == RCON_CID_SERV &&
-		(str_comp(Event.m_pAction, "Ban") == 0 || str_comp(Event.m_pAction, "Ban range") == 0 ||
-			str_comp(Event.m_pAction, "Chat mute") == 0 || str_comp(Event.m_pAction, "Vote mute") == 0))
+		(!Event.m_pActorName || !Event.m_pActorName[0]) && m_RconClientId != RCON_CID_VOTE)
 		return;
 	NETADDR Addr;
 	const bool HasAddress = Event.m_pAddress && net_addr_from_str(&Addr, Event.m_pAddress) == 0;
