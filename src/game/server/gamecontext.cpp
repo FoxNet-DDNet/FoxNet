@@ -2704,8 +2704,8 @@ void CGameContext::OnCallVoteNetMessage(const CNetMsg_Cl_CallVote *pMsg, int Cli
 
 		int Authed = Server()->GetAuthedState(ClientId);
 		int KickedAuthed = Server()->GetAuthedState(KickId);
-		bool SuperUser = m_apPlayers[ClientId]->OwnsItem(EItemId::SuperUser) && !Server()->IsRconAuthed(KickId);
-		if(KickedAuthed > Authed || SuperUser)
+		bool SuperUserProtected = m_apPlayers[KickId]->OwnsItem(EItemId::SuperUser) && !Server()->IsRconAuthed(ClientId);
+		if(KickedAuthed > Authed || SuperUserProtected)
 		{
 			SendChatTarget(ClientId, "You can't kick that player");
 			char aBufKick[128];
