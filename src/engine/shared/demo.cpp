@@ -43,7 +43,7 @@ bool CDemoHeader::Valid() const
 	       mem_has_null(m_aTimestamp, sizeof(m_aTimestamp)) && str_utf8_check(m_aTimestamp);
 }
 
-CDemoRecorder::CDemoRecorder(CSnapshotDelta *pSnapshotDelta, bool NoMapData)
+CDemoRecorder::CDemoRecorder(CSnapshotDelta *pSnapshotDelta, bool NoMapData, bool LogActivity)
 {
 	m_File = nullptr;
 	m_aCurrentFilename[0] = '\0';
@@ -52,6 +52,7 @@ CDemoRecorder::CDemoRecorder(CSnapshotDelta *pSnapshotDelta, bool NoMapData)
 	m_LastTickMarker = -1;
 	m_pSnapshotDelta = pSnapshotDelta;
 	m_NoMapData = NoMapData;
+	m_LogActivity = LogActivity;
 }
 
 CDemoRecorder::~CDemoRecorder()
@@ -196,7 +197,8 @@ int CDemoRecorder::Start(IStorage *pStorage, const char *pFilename, const char *
 	m_FirstTick = -1;
 	m_NumTimelineMarkers = 0;
 
-	log_info_color(DEMO_PRINT_COLOR, "demo_recorder", "Recording to '%s'", pFilename);
+	if(m_LogActivity)
+		log_info_color(DEMO_PRINT_COLOR, "demo_recorder", "Recording to '%s'", pFilename);
 
 	m_pfnFilter = pfnFilter;
 	m_pUser = pUser;
@@ -405,7 +407,8 @@ int CDemoRecorder::Stop(IDemoRecorder::EStopMode Mode, const char *pTargetFilena
 		}
 	}
 
-	log_info_color(DEMO_PRINT_COLOR, "demo_recorder", "Stopped recording to '%s'", m_aCurrentFilename);
+	if(m_LogActivity)
+		log_info_color(DEMO_PRINT_COLOR, "demo_recorder", "Stopped recording to '%s'", m_aCurrentFilename);
 	return 0;
 }
 

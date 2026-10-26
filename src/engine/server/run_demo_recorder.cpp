@@ -245,7 +245,7 @@ bool CRunDemoRecorder::StartPart(CRun &Run)
 	char aPart[8];
 	str_format(aPart, sizeof(aPart), "_p%02d.tmp.demo", Part);
 	const std::string Filename = Run.m_Base + aPart;
-	Run.m_pRecorder = std::make_unique<CDemoRecorder>(m_pSnapshotDelta, true);
+	Run.m_pRecorder = std::make_unique<CDemoRecorder>(m_pSnapshotDelta, true, false);
 	if(Run.m_pRecorder->Start(m_pStorage, (std::string("demos/runs/") + Filename).c_str(), Run.m_NetVersion.c_str(), Run.m_Map.c_str(), Run.m_MapSha256, Run.m_MapCrc, "server", 0, nullptr, nullptr, nullptr, nullptr) != 0)
 	{
 		Run.m_pRecorder.reset();

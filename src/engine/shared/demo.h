@@ -35,6 +35,7 @@ class CDemoRecorder : public IDemoRecorder
 	int m_aTimelineMarkers[MAX_TIMELINE_MARKERS];
 
 	bool m_NoMapData;
+	bool m_LogActivity = true;
 
 	DEMOFUNC_FILTER m_pfnFilter;
 	void *m_pUser;
@@ -43,7 +44,7 @@ class CDemoRecorder : public IDemoRecorder
 	bool Write(int Type, const void *pData, int Size);
 
 public:
-	CDemoRecorder(CSnapshotDelta *pSnapshotDelta, bool NoMapData = false);
+	CDemoRecorder(CSnapshotDelta *pSnapshotDelta, bool NoMapData = false, bool LogActivity = true);
 	CDemoRecorder() = default;
 	~CDemoRecorder() override;
 
