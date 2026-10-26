@@ -49,8 +49,8 @@
 
 #include <game/version.h>
 
-#include <zlib.h>
 #include <sqlite3.h>
+#include <zlib.h>
 
 #include <algorithm>
 #include <cctype>
@@ -272,7 +272,7 @@ void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 		Event.m_pAction = "Ban";
 		Event.m_pAddress = aAddr;
 		Event.m_DurationSeconds = Info.m_Expires == CBanInfo::EXPIRES_NEVER ? -1 :
-			static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
+										      static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
 		Event.m_pReason = Info.m_aReason;
 		Event.m_ActorClientId = m_pServer->m_RconClientId;
 		m_pServer->SendModerationEvent(Event);
@@ -298,7 +298,7 @@ void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 	Event.m_pAction = "Ban range";
 	Event.m_pAddress = aRange;
 	Event.m_DurationSeconds = Info.m_Expires == CBanInfo::EXPIRES_NEVER ? -1 :
-		static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
+									      static_cast<int>(std::clamp<int64_t>(Info.m_Expires - time_timestamp(), 1, std::numeric_limits<int>::max()));
 	Event.m_pReason = Info.m_aReason;
 	Event.m_ActorClientId = m_pServer->m_RconClientId;
 	m_pServer->SendModerationEvent(Event);
@@ -3351,12 +3351,12 @@ void CServer::UpdateServerInfo(bool Resend)
 static bool IsConsolePseudoClient(int ClientId)
 {
 	return ClientId == IConsole::CLIENT_ID_UNSPECIFIED ||
-		ClientId == IConsole::CLIENT_ID_GAME ||
-		ClientId == IConsole::CLIENT_ID_NO_GAME ||
-		ClientId == IConsole::CLIENT_ID_FOXNET ||
-		ClientId == IConsole::CLIENT_ID_FIFO ||
-		ClientId == IConsole::CLIENT_ID_ECON ||
-		ClientId == IConsole::CLIENT_ID_SCRIPTING;
+	       ClientId == IConsole::CLIENT_ID_GAME ||
+	       ClientId == IConsole::CLIENT_ID_NO_GAME ||
+	       ClientId == IConsole::CLIENT_ID_FOXNET ||
+	       ClientId == IConsole::CLIENT_ID_FIFO ||
+	       ClientId == IConsole::CLIENT_ID_ECON ||
+	       ClientId == IConsole::CLIENT_ID_SCRIPTING;
 }
 
 int CServer::GetMaxClients(int ClientId) const
@@ -6108,7 +6108,7 @@ bool CServer::OpenRelayOutbox()
 		Storage()->RemoveFile(aTempName, IStorage::TYPE_SAVE);
 		sqlite3 *pLegacy = nullptr, *pNew = nullptr;
 		bool Migrated = sqlite3_open_v2(aLegacyPath, &pLegacy, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK &&
-			sqlite3_open(aTempPath, &pNew) == SQLITE_OK;
+				sqlite3_open(aTempPath, &pNew) == SQLITE_OK;
 		if(Migrated)
 		{
 			sqlite3_backup *pBackup = sqlite3_backup_init(pNew, "main", pLegacy, "main");
@@ -6149,9 +6149,10 @@ bool CServer::OpenRelayOutbox()
 	}
 	sqlite3_busy_timeout(m_pRelayOutbox, 5000);
 	if(sqlite3_exec(m_pRelayOutbox, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"
-		"CREATE TABLE IF NOT EXISTS outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"id TEXT NOT NULL UNIQUE, command TEXT NOT NULL, scope TEXT NOT NULL,"
-		"retry INTEGER NOT NULL, replay INTEGER NOT NULL);", nullptr, nullptr, nullptr) != SQLITE_OK)
+					"CREATE TABLE IF NOT EXISTS outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+					"id TEXT NOT NULL UNIQUE, command TEXT NOT NULL, scope TEXT NOT NULL,"
+					"retry INTEGER NOT NULL, replay INTEGER NOT NULL);",
+		   nullptr, nullptr, nullptr) != SQLITE_OK)
 	{
 		log_error("command-relay", "could not initialize outbox: %s", sqlite3_errmsg(m_pRelayOutbox));
 		sqlite3_close(m_pRelayOutbox);
@@ -6160,7 +6161,7 @@ bool CServer::OpenRelayOutbox()
 	}
 	sqlite3_stmt *pStmt = nullptr;
 	if(sqlite3_prepare_v2(m_pRelayOutbox,
-		"SELECT id,command,scope,retry,replay FROM outbox ORDER BY seq", -1, &pStmt, nullptr) != SQLITE_OK)
+		   "SELECT id,command,scope,retry,replay FROM outbox ORDER BY seq", -1, &pStmt, nullptr) != SQLITE_OK)
 	{
 		sqlite3_close(m_pRelayOutbox);
 		m_pRelayOutbox = nullptr;
@@ -6305,8 +6306,8 @@ void CServer::UpdateCommandRelayPoll()
 			const json_value *pResetBans = json_object_get(pResponse, "reset_bans");
 			const json_value *pResetId = json_object_get(pResponse, "reset_id");
 			Success = pCommands->type == json_array && json_array_length(pCommands) <= 100 &&
-				pResetBans->type == json_boolean && pResetId->type == json_string &&
-				str_length(json_string_get(pResetId)) < UUID_MAXSTRSIZE;
+				  pResetBans->type == json_boolean && pResetId->type == json_string &&
+				  str_length(json_string_get(pResetId)) < UUID_MAXSTRSIZE;
 			if(Success)
 			{
 				for(size_t i = 0; i < m_RelayPollSentAcks; i++)
@@ -6387,8 +6388,9 @@ void CServer::SendWebhookMessage(EWebhookCategory Category, const char *pUrl, co
 	std::string Title = pUsername ? pUsername : "Event";
 	TruncateUtf8(Title, 160);
 	const std::string Message = pMessage;
-	auto &Queue = Category == EWebhookCategory::REPORTS ? m_ReportWebhookQueue :
-		Category == EWebhookCategory::MODERATION ? m_ModerationWebhookQueue : m_WebhookQueue;
+	auto &Queue = Category == EWebhookCategory::REPORTS    ? m_ReportWebhookQueue :
+		      Category == EWebhookCategory::MODERATION ? m_ModerationWebhookQueue :
+								 m_WebhookQueue;
 	const bool WasDelayedQueueEmpty = m_WebhookQueue.empty() && m_ModerationWebhookQueue.empty();
 	for(size_t Offset = 0; Offset < Message.size();)
 	{
@@ -6431,7 +6433,8 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 		}
 	}
 	const char *pName = Event.m_pTargetName && Event.m_pTargetName[0] ? Event.m_pTargetName :
-		TargetClientId >= 0 ? ClientName(TargetClientId) : "(unknown)";
+			    TargetClientId >= 0                           ? ClientName(TargetClientId) :
+									    "(unknown)";
 	const bool HasTarget = (Event.m_pAddress && Event.m_pAddress[0]) || TargetClientId >= 0 || (Event.m_pTargetName && Event.m_pTargetName[0]);
 	std::string Target = HasTarget ? WebhookFormat::Name(pName) : "All bans";
 	if(TargetClientId >= 0)
@@ -6439,7 +6442,8 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 	if(Event.m_pAddress && Event.m_pAddress[0])
 		Target += " [||" + WebhookFormat::EscapeText(Event.m_pAddress) + "||]";
 	std::string Actor = Event.m_pActorName && Event.m_pActorName[0] ? WebhookFormat::Name(Event.m_pActorName) :
-		m_RconClientId == IServer::RCON_CID_VOTE ? "vote" : "server";
+			    m_RconClientId == IServer::RCON_CID_VOTE    ? "vote" :
+									  "server";
 	if(Event.m_ActorClientId >= 0 && Event.m_ActorClientId < MAX_CLIENTS && !ClientSlotEmpty(Event.m_ActorClientId))
 	{
 		if(!Event.m_pActorName || !Event.m_pActorName[0])
@@ -6497,7 +6501,6 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 			Message += " [" + WebhookFormat::EscapeText(pVersionStr) + "]";
 		else
 			Message += " [] <- empty";
-
 	}
 	if(Event.m_pReason && Event.m_pReason[0])
 		Message += "\n" + WebhookFormat::EscapeText(Event.m_pReasonLabel) + ": " + WebhookFormat::EscapeText(Event.m_pReason);
@@ -6570,12 +6573,14 @@ void CServer::UpdateWebhooks()
 	const bool DelayedReady = (!m_WebhookQueue.empty() || !m_ModerationWebhookQueue.empty()) && Now >= m_WebhookNextSendAt;
 	if(!ReportReady && !DelayedReady)
 		return;
-	auto &Queue = ReportReady ? m_ReportWebhookQueue : !m_ModerationWebhookQueue.empty() ? m_ModerationWebhookQueue : m_WebhookQueue;
+	auto &Queue = ReportReady ? m_ReportWebhookQueue : !m_ModerationWebhookQueue.empty() ? m_ModerationWebhookQueue :
+											       m_WebhookQueue;
 	m_pWebhookInFlightQueue = &Queue;
 	const CWebhookEntry &First = Queue.front();
 	const bool IsModeration = m_pWebhookInFlightQueue == &m_ModerationWebhookQueue;
 	const bool IsCommands = m_pWebhookInFlightQueue == &m_WebhookQueue;
-	const char *pWebhookName = IsModeration ? "FoxNet Moderation" : ReportReady ? "FoxNet Reports" : "FoxNet Commands";
+	const char *pWebhookName = IsModeration ? "Moderation" : ReportReady ? "Reports" :
+									       "Commands";
 	const int EmbedColor = IsModeration || ReportReady ? 0x3498db : 0x95a5a6;
 	char aServerTitle[256];
 	str_format(aServerTitle, sizeof(aServerTitle), "server: %d%s", Port(), FormatServerInsntance(" | "));
@@ -6593,7 +6598,7 @@ void CServer::UpdateWebhooks()
 			break;
 		const std::string FieldTitle = IsCommands ? Entry.m_Title : WebhookTitle(Entry.m_Title);
 		const bool AppendCommand = IsCommands && !vFields.empty() && vFields.back().m_Title == FieldTitle &&
-			vFields.back().m_Value.size() + 1 + Entry.m_Message.size() <= MAX_FIELD_BYTES;
+					   vFields.back().m_Value.size() + 1 + Entry.m_Message.size() <= MAX_FIELD_BYTES;
 		if(!AppendCommand && vFields.size() >= MAX_FIELDS)
 			break;
 		const size_t AddedBytes = Entry.m_Message.size() + (AppendCommand ? 1 : FieldTitle.size());
@@ -6642,12 +6647,12 @@ void CServer::AuditCommand(int ClientId, int FlagMask, const char *pCommand, con
 	if((FlagMask & CFGFLAG_CHAT) || ClientId < 0 || ClientId != m_RconClientId)
 		return;
 	const bool Secret = (CommandFlags & CFGFLAG_NONTEEHISTORIC) ||
-		str_find_nocase(pCommand, "password") || str_find_nocase(pCommand, "passwd") ||
-		str_find_nocase(pCommand, "token") || str_find_nocase(pCommand, "secret") ||
-		str_find_nocase(pCommand, "webhook") || str_find_nocase(pCommand, "auth_") ||
-		str_find_nocase(pCommand, "login") || str_find_nocase(pCommand, "register") ||
-		str_find_nocase(pCommand, "relay_") || str_find_nocase(pCommand, "sqlserver") ||
-		!str_comp_nocase(pCommand, "password") || !str_comp_nocase(pCommand, "key");
+			    str_find_nocase(pCommand, "password") || str_find_nocase(pCommand, "passwd") ||
+			    str_find_nocase(pCommand, "token") || str_find_nocase(pCommand, "secret") ||
+			    str_find_nocase(pCommand, "webhook") || (str_find_nocase(pCommand, "auth_") && str_comp_nocase(pCommand, "hide_auth_status") != 0) ||
+			    str_find_nocase(pCommand, "login") || str_find_nocase(pCommand, "register") ||
+			    str_find_nocase(pCommand, "relay_") || str_find_nocase(pCommand, "sqlserver") ||
+			    !str_comp_nocase(pCommand, "password") || !str_comp_nocase(pCommand, "key");
 	const char *pArguments = pRawCommand;
 	while(*pArguments && std::isspace(static_cast<unsigned char>(*pArguments)))
 		++pArguments;
