@@ -141,6 +141,7 @@ struct SConfigVariable
 	virtual void Register() = 0;
 	virtual bool IsDefault() const = 0;
 	virtual void Serialize(char *pOut, size_t Size) const = 0;
+	virtual void SerializeHumanReadable(char *pOut, size_t Size) const = 0;
 	virtual void ResetToDefault() = 0;
 	virtual void ResetToOld() = 0;
 
@@ -175,6 +176,7 @@ struct SIntConfigVariable : public SConfigVariable
 	bool IsDefault() const override;
 	void Serialize(char *pOut, size_t Size, int Value) const;
 	void Serialize(char *pOut, size_t Size) const override;
+	void SerializeHumanReadable(char *pOut, size_t Size) const override;
 	void SetValue(int Value);
 	void ResetToDefault() override;
 	void ResetToOld() override;
@@ -217,6 +219,7 @@ struct SColorConfigVariable : public SConfigVariable
 	bool IsDefault() const override;
 	void Serialize(char *pOut, size_t Size, unsigned Value) const;
 	void Serialize(char *pOut, size_t Size) const override;
+	void SerializeHumanReadable(char *pOut, size_t Size) const override;
 	void SetValue(unsigned Value);
 	void ResetToDefault() override;
 	void ResetToOld() override;
@@ -237,6 +240,7 @@ struct SStringConfigVariable : public SConfigVariable
 	bool IsDefault() const override;
 	void Serialize(char *pOut, size_t Size, const char *pValue) const;
 	void Serialize(char *pOut, size_t Size) const override;
+	void SerializeHumanReadable(char *pOut, size_t Size) const override;
 	void SetValue(const char *pValue);
 	void ResetToDefault() override;
 	void ResetToOld() override;
@@ -289,6 +293,8 @@ public:
 	void StoreUnknownCommand(const char *pCommand) override;
 
 	void PossibleConfigVariables(const char *pStr, int FlagMask, POSSIBLECFGFUNC pfnCallback, void *pUserData) override;
+
+	const SConfigVariable *FindVariable(const char *pScriptName) const override;
 };
 
 #endif

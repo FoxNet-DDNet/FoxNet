@@ -249,9 +249,7 @@ public:
 	void Reset()
 	{
 		m_BestTime.reset();
-		for(float &BestTimeCp : m_aBestTimeCp)
-			BestTimeCp = 0;
-
+		std::fill(std::begin(m_aBestTimeCp), std::end(m_aBestTimeCp), 0.0f);
 		m_RecordStopTick = -1;
 		m_pRecordRank.reset();
 		m_RecordRankUnchanged = false;

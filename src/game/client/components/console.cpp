@@ -12,8 +12,10 @@
 #include <base/str.h>
 #include <base/time.h>
 
+#include <engine/client/keyboard.h>
 #include <engine/console.h>
 #include <engine/engine.h>
+#include <engine/font_icons.h>
 #include <engine/graphics.h>
 #include <engine/keys.h>
 #include <engine/shared/config.h>
@@ -82,6 +84,7 @@ enum class EArgumentCompletionType
 	TUNE,
 	SETTING,
 	KEY,
+	COMMAND,
 };
 
 class CArgumentCompletionEntry
@@ -101,11 +104,12 @@ static const CArgumentCompletionEntry gs_aArgumentCompletionEntries[] = {
 	{EArgumentCompletionType::TUNE, "tune_zone", 1},
 	{EArgumentCompletionType::SETTING, "reset", 0},
 	{EArgumentCompletionType::SETTING, "toggle", 0},
-	{EArgumentCompletionType::SETTING, "access_level", 0},
 	{EArgumentCompletionType::SETTING, "+toggle", 0},
+	{EArgumentCompletionType::SETTING, "echo_config", 0},
 	{EArgumentCompletionType::KEY, "bind", 0},
 	{EArgumentCompletionType::KEY, "binds", 0},
 	{EArgumentCompletionType::KEY, "unbind", 0},
+	{EArgumentCompletionType::COMMAND, "access_level", 0},
 };
 
 static std::pair<EArgumentCompletionType, int> ArgumentCompletion(const char *pStr)
@@ -175,7 +179,7 @@ static int PossibleKeys(const char *pStr, IInput *pInput, IConsole::FPossibleCal
 			continue;
 		}
 		// Ignore unnamed keys starting with '&'
-		const char *pKeyName = pInput->KeyName(Key);
+		const char *pKeyName = KeyName(Key);
 		if(pKeyName[0] != '&' && str_find_nocase(pKeyName, pStr))
 		{
 			pfnCallback(Index, pKeyName, pUser);
@@ -183,6 +187,16 @@ static int PossibleKeys(const char *pStr, IInput *pInput, IConsole::FPossibleCal
 		}
 	}
 	return Index;
+}
+
+static void CollectPossibleSettingsCallback(const SConfigVariable *pVariable, void *pUser)
+{
+	((std::vector<const char *> *)pUser)->push_back(pVariable->m_pScriptName);
+}
+
+void CGameConsole::PossibleSettings(const char *pStr, int FlagMask, IConsole::FPossibleCallback pfnCallback, void *pUser)
+{
+	GameClient()->ConfigManager()->PossibleConfigVariables(pStr, FlagMask, CollectPossibleSettingsCallback, pUser);
 }
 
 static void CollectPossibleCommandsCallback(int Index, const char *pStr, void *pUser)
@@ -258,7 +272,12 @@ CGameConsole::CInstance::CInstance(int Type)
 		}
 	});
 
-	m_Input.SetClipboardLineCallback([this](const char *pStr) { ExecuteLine(pStr); });
+	m_Input.SetClipboardLineCallback([this](const char *pStr) {
+		if(pStr[0] != '\0')
+		{
+			ExecuteLine(pStr);
+		}
+	});
 
 	m_CurrentMatchIndex = -1;
 	m_aCurrentSearchString[0] = '\0';
@@ -379,9 +398,11 @@ void CGameConsole::CInstance::UpdateCompletionSuggestions()
 		else if(CompletionType == EArgumentCompletionType::TUNE)
 			PossibleTunings(m_aCompletionBufferArgument, CollectPossibleCommandsCallback, &m_vpArgumentSuggestions);
 		else if(CompletionType == EArgumentCompletionType::SETTING)
-			m_pGameConsole->m_pConsole->PossibleCommands(m_aCompletionBufferArgument, m_CompletionFlagmask, UseTempCommands, CollectPossibleCommandsCallback, &m_vpArgumentSuggestions);
+			m_pGameConsole->PossibleSettings(m_aCompletionBufferArgument, m_CompletionFlagmask, CollectPossibleCommandsCallback, &m_vpArgumentSuggestions);
 		else if(CompletionType == EArgumentCompletionType::KEY)
 			PossibleKeys(m_aCompletionBufferArgument, m_pGameConsole->Input(), CollectPossibleCommandsCallback, &m_vpArgumentSuggestions);
+		else if(CompletionType == EArgumentCompletionType::COMMAND)
+			m_pGameConsole->m_pConsole->PossibleCommands(m_aCompletionBufferArgument, m_CompletionFlagmask, UseTempCommands, CollectPossibleCommandsCallback, &m_vpArgumentSuggestions);
 		SortCompletions(m_vpArgumentSuggestions, m_aCompletionBufferArgument);
 	}
 
@@ -1137,6 +1158,20 @@ void CGameConsole::Prompt(char (&aPrompt)[32])
 	}
 }
 
+bool CGameConsole::DoButton(const CUIRect &Rect, const char *pIcon, vec2 MousePosition, bool Released)
+{
+	const bool PressedInside = Rect.Inside(m_ButtonPressPosition);
+	const bool MouseInside = Rect.Inside(MousePosition);
+	const bool Active = CurrentConsole()->m_MouseIsPress && PressedInside;
+	if(Active)
+		m_ButtonPressed = true;
+
+	const float ColorMul = Active ? Ui()->ButtonColorMulActive() : (MouseInside ? Ui()->ButtonColorMulHot() : Ui()->ButtonColorMulDefault());
+	Ui()->DrawButton_FontIcon(pIcon, &Rect, ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f * ColorMul), IGraphics::CORNER_B);
+
+	return m_ConsoleState == CONSOLE_OPEN && Released && PressedInside && MouseInside;
+}
+
 void CGameConsole::OnRender()
 {
 	CUIRect Screen = *Ui()->Screen();
@@ -1247,14 +1282,22 @@ void CGameConsole::OnRender()
 				return Input()->NativeMousePos() / WindowSize * ScreenSize;
 			}
 		};
+		bool ButtonReleased = false;
+		if(!pConsole->m_MouseIsPress)
+		{
+			// Keep the text selection suppressed until the frame after the buttons were released.
+			m_ButtonPressed = false;
+		}
 		if(!pConsole->m_MouseIsPress && (m_TouchState.m_PrimaryPressed || Input()->NativeMousePressed(1)))
 		{
 			pConsole->m_MouseIsPress = true;
 			pConsole->m_MousePress = GetMousePosition();
+			m_ButtonPressPosition = pConsole->m_MousePress;
 		}
 		if(pConsole->m_MouseIsPress && !m_TouchState.m_PrimaryPressed && !Input()->NativeMousePressed(1))
 		{
 			pConsole->m_MouseIsPress = false;
+			ButtonReleased = m_ButtonPressed;
 			if(m_ConsoleState == CONSOLE_OPEN && pConsole->m_MousePress.y > ConsoleHeight + 1.0f && pConsole->m_MouseRelease.y > ConsoleHeight + 1.0f) // for border
 				Toggle(m_ConsoleType);
 		}
@@ -1262,6 +1305,18 @@ void CGameConsole::OnRender()
 		{
 			pConsole->m_MouseRelease = GetMousePosition();
 		}
+		// The touch fingers are already gone when the buttons are released, so use the last position while pressed.
+		const vec2 ButtonMousePosition = ButtonReleased ? pConsole->m_MouseRelease : GetMousePosition();
+
+		// Buttons in the top row of the console, handled before the text selection below.
+		// Add another button by splitting one more rect from the button bar.
+		CUIRect ButtonBar, Button;
+		Screen.HSplitTop(RowHeight, &ButtonBar, nullptr);
+		ButtonBar.VSplitRight(10.0f, &ButtonBar, nullptr);
+		ButtonBar.VSplitRight(RowHeight, &ButtonBar, &Button);
+		if(DoButton(Button, FontIcon::XMARK, ButtonMousePosition, ButtonReleased))
+			Toggle(m_ConsoleType);
+
 		const float ScaledLineHeight = LineHeight / ScreenSize.y;
 		if(absolute(m_TouchState.m_ScrollAmount.y) >= ScaledLineHeight)
 		{
@@ -1282,7 +1337,7 @@ void CGameConsole::OnRender()
 
 		x = PromptCursor.m_X;
 
-		if(m_ConsoleState == CONSOLE_OPEN)
+		if(m_ConsoleState == CONSOLE_OPEN && !m_ButtonPressed)
 		{
 			if(pConsole->m_MousePress.y >= pConsole->m_BoundingBox.m_Y && pConsole->m_MousePress.y < pConsole->m_BoundingBox.m_Y + pConsole->m_BoundingBox.m_H)
 			{
@@ -1490,7 +1545,7 @@ void CGameConsole::OnRender()
 			EntryCursor.m_LineWidth = Screen.w - 10.0f;
 			EntryCursor.m_MaxLines = pEntry->m_LineCount;
 			EntryCursor.m_LineSpacing = LINE_SPACING;
-			EntryCursor.m_CalculateSelectionMode = (m_ConsoleState == CONSOLE_OPEN && pConsole->m_MousePress.y < pConsole->m_BoundingBox.m_Y && (pConsole->m_MouseIsPress || (pConsole->m_CurSelStart != pConsole->m_CurSelEnd) || pConsole->m_HasSelection)) ? TEXT_CURSOR_SELECTION_MODE_CALCULATE : TEXT_CURSOR_SELECTION_MODE_NONE;
+			EntryCursor.m_CalculateSelectionMode = (m_ConsoleState == CONSOLE_OPEN && !m_ButtonPressed && pConsole->m_MousePress.y < pConsole->m_BoundingBox.m_Y && (pConsole->m_MouseIsPress || (pConsole->m_CurSelStart != pConsole->m_CurSelEnd) || pConsole->m_HasSelection)) ? TEXT_CURSOR_SELECTION_MODE_CALCULATE : TEXT_CURSOR_SELECTION_MODE_NONE;
 			EntryCursor.m_PressMouse = pConsole->m_MousePress;
 			EntryCursor.m_ReleaseMouse = pConsole->m_MouseRelease;
 
@@ -1595,7 +1650,7 @@ void CGameConsole::OnRender()
 
 		// render version
 		str_copy(aBuf, "v" GAME_VERSION " on " CONF_PLATFORM_STRING " " CONF_ARCH_STRING);
-		TextRender()->Text(Screen.w - TextRender()->TextWidth(FONT_SIZE, aBuf) - 10.0f, FONT_SIZE / 2.f, FONT_SIZE, aBuf);
+		TextRender()->Text(ButtonBar.x + ButtonBar.w - TextRender()->TextWidth(FONT_SIZE, aBuf) - 10.0f, FONT_SIZE / 2.f, FONT_SIZE, aBuf);
 	}
 }
 

@@ -162,7 +162,6 @@ void CGameClient::OnConsoleInit()
 					      &m_Statboard,
 					      &m_Motd,
 					      &m_Menus,
-					      &m_Tooltips,
 					      &m_KeyBinder,
 					      &m_GameConsole,
 					      &m_MenuBackground});
@@ -300,7 +299,7 @@ void CGameClient::OnInit()
 
 	Client()->SetLoadingCallback([this](IClient::ELoadingCallbackDetail Detail) {
 		const char *pTitle;
-		if(Detail == IClient::LOADING_CALLBACK_DETAIL_DEMO || DemoPlayer()->IsPlaying())
+		if(Detail == IClient::ELoadingCallbackDetail::DEMO || DemoPlayer()->IsPlaying())
 		{
 			pTitle = Localize("Preparing demo playback");
 		}
@@ -312,10 +311,10 @@ void CGameClient::OnInit()
 		const char *pMessage;
 		switch(Detail)
 		{
-		case IClient::LOADING_CALLBACK_DETAIL_MAP:
+		case IClient::ELoadingCallbackDetail::MAP:
 			pMessage = Localize("Loading map file from storage");
 			break;
-		case IClient::LOADING_CALLBACK_DETAIL_DEMO:
+		case IClient::ELoadingCallbackDetail::DEMO:
 			pMessage = Localize("Loading demo file from storage");
 			break;
 		default:
@@ -399,11 +398,6 @@ void CGameClient::OnInit()
 		++CompCounter;
 	}
 
-	m_GameSkinLoaded = false;
-	m_ParticlesSkinLoaded = false;
-	m_EmoticonsSkinLoaded = false;
-	m_HudSkinLoaded = false;
-
 	// setup load amount, load textures
 	const char *pLoadingMessageAssets = Localize("Initializing assets");
 	for(int i = 0; i < g_pData->m_NumImages; i++)
@@ -480,21 +474,28 @@ void CGameClient::OnUpdate()
 		}
 	}
 
+	std::fill(std::begin(m_Controls.m_aMouseOnAction), std::end(m_Controls.m_aMouseOnAction), false);
+
 	// handle key presses
 	Input()->ConsumeEvents([&](const IInput::CEvent &Event) {
 		OnInput(Event);
 	});
 
-	if(g_Config.m_ClSubTickAiming && m_Binds.m_MouseOnAction)
+	if(g_Config.m_ClSubTickAiming)
 	{
-		m_Controls.m_aMousePosOnAction[g_Config.m_ClDummy] = m_Controls.m_aMousePos[g_Config.m_ClDummy];
-		m_Binds.m_MouseOnAction = false;
+		for(int Dummy = 0; Dummy < NUM_DUMMIES; Dummy++)
+		{
+			if(m_Controls.m_aMouseOnAction[Dummy])
+				m_Controls.m_aMousePosOnAction[Dummy] = m_Controls.m_aMousePos[Dummy];
+		}
 	}
 
 	for(auto &pComponent : m_vpAll)
 	{
 		pComponent->OnUpdate();
 	}
+
+	m_LocalServer.Update();
 }
 
 void CGameClient::OnInput(const IInput::CEvent &Event)
@@ -593,13 +594,14 @@ void CGameClient::OnConnected()
 		pComponent->OnMapLoad();
 		pComponent->OnReset();
 	}
+	Ui()->OnReset();
 
 	ConfigManager()->ResetGameSettings();
 	LoadMapSettings();
 
 	if(Client()->State() != IClient::STATE_DEMOPLAYBACK)
 	{
-		Client()->SetLoadingStateDetail(IClient::LOADING_STATE_DETAIL_GETTING_READY);
+		Client()->SetLoadingStateDetail(IClient::ELoadingStateDetail::GETTING_READY);
 		m_Menus.RenderLoading(pConnectCaption, Localize("Sending initial client info"), 0);
 
 		// send the initial info
@@ -717,6 +719,7 @@ void CGameClient::OnReset()
 
 	for(auto &pComponent : m_vpAll)
 		pComponent->OnReset();
+	Ui()->OnReset();
 
 	Editor()->ResetMentions();
 	Editor()->ResetIngameMoved();
@@ -814,6 +817,7 @@ void CGameClient::OnRender()
 	// render all systems
 	for(auto &pComponent : m_vpAll)
 		pComponent->OnRender();
+	Ui()->OnRenderTooltip();
 
 	// clear all events/input for this frame
 	Input()->Clear();
@@ -1706,7 +1710,10 @@ static CGameInfo GetGameInfo(const CNetObj_GameInfoEx *pInfoEx, int InfoExSize, 
 	{
 		Info.m_MinTeamSize = pInfoEx->m_MinTeamSize;
 		Info.m_MaxTeamSize = pInfoEx->m_MaxTeamSize;
-		Info.m_NumDDRaceTeams = pInfoEx->m_NumDDRaceTeams;
+		// Servers from before this field was added send 0, and this client cannot represent more
+		// teams than it was compiled with. Fall back to our own count for anything out of range.
+		const int NumDDRaceTeams = pInfoEx->m_NumDDRaceTeams;
+		Info.m_NumDDRaceTeams = NumDDRaceTeams > TEAM_FLOCK + 1 && NumDDRaceTeams <= NUM_DDRACE_TEAMS ? NumDDRaceTeams : NUM_DDRACE_TEAMS;
 		Info.m_OldLaser = Flags2 & GAMEINFOFLAG2_OLD_LASER;
 	}
 
@@ -1869,7 +1876,8 @@ void CGameClient::OnNewSnapshot(bool DummySwapped)
 
 					if(m_aClients[Item.m_Id].m_FinishTimeSeconds == FinishTime::UNSET)
 						HasUnsetDDNetFinishTimes = true;
-					else if(m_aClients[Item.m_Id].m_FinishTimeMillis % 10 != 0)
+					// Sub-second precision is only rendered for times under an hour in the scoreboard
+					else if(m_aClients[Item.m_Id].m_FinishTimeSeconds < 60 * 60 && m_aClients[Item.m_Id].m_FinishTimeMillis % 10 != 0)
 						HasTrueMillisecondFinishTimes = true;
 
 					if(Item.m_Id == m_Snap.m_LocalClientId && (m_aClients[Item.m_Id].m_Paused || m_aClients[Item.m_Id].m_Spec))
@@ -3552,8 +3560,7 @@ void CGameClient::UpdatePrediction()
 		if(m_Snap.m_aCharacters[m_Snap.m_LocalClientId].m_HasExtendedData)
 		{
 			int aIds[MAX_CLIENTS];
-			for(int &Id : aIds)
-				Id = -1;
+			std::fill(std::begin(aIds), std::end(aIds), -1);
 			for(int i = 0; i < MAX_CLIENTS; i++)
 				if(CCharacter *pChar = m_GameWorld.GetCharacterById(i))
 					aIds[pChar->GetStrongWeakId()] = i;
@@ -4054,503 +4061,6 @@ bool CGameClient::IsLocalCharSuper() const
 	return m_aClients[m_Snap.m_LocalClientId].m_Super;
 }
 
-CGameClient::CImageAsset CGameClient::LoadAssetFromPath(const char *pPath, bool AsDir, int AssetId, const char *pDirectory) const
-{
-	CImageAsset LoadedAsset;
-	LoadedAsset.m_IsDefault = str_comp(pPath, "default") == 0;
-	if(LoadedAsset.m_IsDefault)
-	{
-		str_copy(LoadedAsset.m_aPath, g_pData->m_aImages[AssetId].m_pFilename);
-	}
-	else if(AsDir)
-	{
-		str_format(LoadedAsset.m_aPath, sizeof(LoadedAsset.m_aPath), "assets/%s/%s/%s", pDirectory, pPath, g_pData->m_aImages[AssetId].m_pFilename);
-	}
-	else
-	{
-		str_format(LoadedAsset.m_aPath, sizeof(LoadedAsset.m_aPath), "assets/%s/%s.png", pDirectory, pPath);
-	}
-
-	Graphics()->LoadPng(LoadedAsset.m_ImageInfo, LoadedAsset.m_aPath, IStorage::TYPE_ALL);
-
-	if(!LoadedAsset.m_IsDefault && LoadedAsset.IsLoaded())
-	{
-		CImageInfo ImgDefaultInfo;
-		if(Graphics()->LoadPng(ImgDefaultInfo, g_pData->m_aImages[AssetId].m_pFilename, IStorage::TYPE_ALL))
-			LoadedAsset.m_FallbackImageInfo = std::move(ImgDefaultInfo);
-	}
-	return LoadedAsset;
-}
-
-void CGameClient::LoadGameSkin(const char *pPath, bool AsDir)
-{
-	if(m_GameSkinLoaded)
-	{
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteHealthFull);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteHealthEmpty);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteArmorFull);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteArmorEmpty);
-
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponHammerCursor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGunCursor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponShotgunCursor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGrenadeCursor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponNinjaCursor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponLaserCursor);
-
-		for(auto &SpriteWeaponCursor : m_GameSkin.m_aSpriteWeaponCursors)
-		{
-			SpriteWeaponCursor = IGraphics::CTextureHandle();
-		}
-
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteHookChain);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteHookHead);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponHammer);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGun);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponShotgun);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGrenade);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponNinja);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponLaser);
-
-		for(auto &SpriteWeapon : m_GameSkin.m_aSpriteWeapons)
-		{
-			SpriteWeapon = IGraphics::CTextureHandle();
-		}
-
-		for(auto &SpriteParticle : m_GameSkin.m_aSpriteParticles)
-		{
-			Graphics()->UnloadTexture(&SpriteParticle);
-		}
-
-		for(auto &SpriteStar : m_GameSkin.m_aSpriteStars)
-		{
-			Graphics()->UnloadTexture(&SpriteStar);
-		}
-
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGunProjectile);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponShotgunProjectile);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponGrenadeProjectile);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponHammerProjectile);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponNinjaProjectile);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteWeaponLaserProjectile);
-
-		for(auto &SpriteWeaponProjectile : m_GameSkin.m_aSpriteWeaponProjectiles)
-		{
-			SpriteWeaponProjectile = IGraphics::CTextureHandle();
-		}
-
-		for(int i = 0; i < 3; ++i)
-		{
-			Graphics()->UnloadTexture(&m_GameSkin.m_aSpriteWeaponGunMuzzles[i]);
-			Graphics()->UnloadTexture(&m_GameSkin.m_aSpriteWeaponShotgunMuzzles[i]);
-			Graphics()->UnloadTexture(&m_GameSkin.m_aaSpriteWeaponNinjaMuzzles[i]);
-
-			for(auto &SpriteWeaponsMuzzle : m_GameSkin.m_aaSpriteWeaponsMuzzles)
-			{
-				SpriteWeaponsMuzzle[i] = IGraphics::CTextureHandle();
-			}
-		}
-
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupHealth);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupArmor);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupArmorShotgun);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupArmorGrenade);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupArmorLaser);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupArmorNinja);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupGrenade);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupShotgun);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupLaser);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupNinja);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupGun);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpritePickupHammer);
-
-		for(auto &SpritePickupWeapon : m_GameSkin.m_aSpritePickupWeapons)
-		{
-			SpritePickupWeapon = IGraphics::CTextureHandle();
-		}
-
-		for(auto &SpritePickupWeaponArmor : m_GameSkin.m_aSpritePickupWeaponArmor)
-		{
-			SpritePickupWeaponArmor = IGraphics::CTextureHandle();
-		}
-
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteFlagBlue);
-		Graphics()->UnloadTexture(&m_GameSkin.m_SpriteFlagRed);
-
-		if(m_GameSkin.IsSixup())
-		{
-			Graphics()->UnloadTexture(&m_GameSkin.m_SpriteNinjaBarFullLeft);
-			Graphics()->UnloadTexture(&m_GameSkin.m_SpriteNinjaBarFull);
-			Graphics()->UnloadTexture(&m_GameSkin.m_SpriteNinjaBarEmpty);
-			Graphics()->UnloadTexture(&m_GameSkin.m_SpriteNinjaBarEmptyRight);
-		}
-
-		m_GameSkinLoaded = false;
-	}
-
-	CImageAsset LoadedAsset = LoadAssetFromPath(pPath, AsDir, IMAGE_GAME, "game");
-	CImageInfo &ImgInfo = LoadedAsset.m_ImageInfo;
-	std::optional<CImageInfo> &FallbackImgInfo = LoadedAsset.m_FallbackImageInfo;
-	if(!LoadedAsset.IsLoaded() && !LoadedAsset.m_IsDefault)
-	{
-		if(AsDir)
-			LoadGameSkin("default");
-		else
-			LoadGameSkin(pPath, true);
-	}
-	else if(LoadedAsset.IsLoaded() && Graphics()->CheckImageDivisibility(LoadedAsset.m_aPath, ImgInfo, g_pData->m_aSprites[SPRITE_HEALTH_FULL].m_pSet->m_Gridx, g_pData->m_aSprites[SPRITE_HEALTH_FULL].m_pSet->m_Gridy, true) && Graphics()->IsImageFormatRgba(LoadedAsset.m_aPath, ImgInfo))
-	{
-		m_GameSkin.m_SpriteHealthFull = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HEALTH_FULL]);
-		m_GameSkin.m_SpriteHealthEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HEALTH_EMPTY]);
-		m_GameSkin.m_SpriteArmorFull = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_ARMOR_FULL]);
-		m_GameSkin.m_SpriteArmorEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_ARMOR_EMPTY]);
-
-		m_GameSkin.m_SpriteWeaponHammerCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_HAMMER_CURSOR]);
-		m_GameSkin.m_SpriteWeaponGunCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GUN_CURSOR]);
-		m_GameSkin.m_SpriteWeaponShotgunCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_CURSOR]);
-		m_GameSkin.m_SpriteWeaponGrenadeCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GRENADE_CURSOR]);
-		m_GameSkin.m_SpriteWeaponNinjaCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_NINJA_CURSOR]);
-		m_GameSkin.m_SpriteWeaponLaserCursor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_LASER_CURSOR]);
-
-		m_GameSkin.m_aSpriteWeaponCursors[0] = m_GameSkin.m_SpriteWeaponHammerCursor;
-		m_GameSkin.m_aSpriteWeaponCursors[1] = m_GameSkin.m_SpriteWeaponGunCursor;
-		m_GameSkin.m_aSpriteWeaponCursors[2] = m_GameSkin.m_SpriteWeaponShotgunCursor;
-		m_GameSkin.m_aSpriteWeaponCursors[3] = m_GameSkin.m_SpriteWeaponGrenadeCursor;
-		m_GameSkin.m_aSpriteWeaponCursors[4] = m_GameSkin.m_SpriteWeaponLaserCursor;
-		m_GameSkin.m_aSpriteWeaponCursors[5] = m_GameSkin.m_SpriteWeaponNinjaCursor;
-
-		// weapons and hook
-		m_GameSkin.m_SpriteHookChain = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HOOK_CHAIN]);
-		m_GameSkin.m_SpriteHookHead = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HOOK_HEAD]);
-		m_GameSkin.m_SpriteWeaponHammer = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_HAMMER_BODY]);
-		m_GameSkin.m_SpriteWeaponGun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GUN_BODY]);
-		m_GameSkin.m_SpriteWeaponShotgun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_BODY]);
-		m_GameSkin.m_SpriteWeaponGrenade = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GRENADE_BODY]);
-		m_GameSkin.m_SpriteWeaponNinja = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_NINJA_BODY]);
-		m_GameSkin.m_SpriteWeaponLaser = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_LASER_BODY]);
-
-		m_GameSkin.m_aSpriteWeapons[0] = m_GameSkin.m_SpriteWeaponHammer;
-		m_GameSkin.m_aSpriteWeapons[1] = m_GameSkin.m_SpriteWeaponGun;
-		m_GameSkin.m_aSpriteWeapons[2] = m_GameSkin.m_SpriteWeaponShotgun;
-		m_GameSkin.m_aSpriteWeapons[3] = m_GameSkin.m_SpriteWeaponGrenade;
-		m_GameSkin.m_aSpriteWeapons[4] = m_GameSkin.m_SpriteWeaponLaser;
-		m_GameSkin.m_aSpriteWeapons[5] = m_GameSkin.m_SpriteWeaponNinja;
-
-		// particles
-		for(int i = 0; i < 9; ++i)
-		{
-			m_GameSkin.m_aSpriteParticles[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART1 + i]);
-		}
-
-		// stars
-		for(int i = 0; i < 3; ++i)
-		{
-			m_GameSkin.m_aSpriteStars[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_STAR1 + i]);
-		}
-
-		// projectiles
-		m_GameSkin.m_SpriteWeaponGunProjectile = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GUN_PROJ]);
-		m_GameSkin.m_SpriteWeaponShotgunProjectile = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_PROJ]);
-		m_GameSkin.m_SpriteWeaponGrenadeProjectile = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GRENADE_PROJ]);
-
-		// these weapons have no projectiles
-		m_GameSkin.m_SpriteWeaponHammerProjectile = IGraphics::CTextureHandle();
-		m_GameSkin.m_SpriteWeaponNinjaProjectile = IGraphics::CTextureHandle();
-
-		m_GameSkin.m_SpriteWeaponLaserProjectile = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_LASER_PROJ]);
-
-		m_GameSkin.m_aSpriteWeaponProjectiles[0] = m_GameSkin.m_SpriteWeaponHammerProjectile;
-		m_GameSkin.m_aSpriteWeaponProjectiles[1] = m_GameSkin.m_SpriteWeaponGunProjectile;
-		m_GameSkin.m_aSpriteWeaponProjectiles[2] = m_GameSkin.m_SpriteWeaponShotgunProjectile;
-		m_GameSkin.m_aSpriteWeaponProjectiles[3] = m_GameSkin.m_SpriteWeaponGrenadeProjectile;
-		m_GameSkin.m_aSpriteWeaponProjectiles[4] = m_GameSkin.m_SpriteWeaponLaserProjectile;
-		m_GameSkin.m_aSpriteWeaponProjectiles[5] = m_GameSkin.m_SpriteWeaponNinjaProjectile;
-
-		// muzzles
-		for(int i = 0; i < 3; ++i)
-		{
-			m_GameSkin.m_aSpriteWeaponGunMuzzles[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_GUN_MUZZLE1 + i]);
-			m_GameSkin.m_aSpriteWeaponShotgunMuzzles[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_MUZZLE1 + i]);
-			m_GameSkin.m_aaSpriteWeaponNinjaMuzzles[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_WEAPON_NINJA_MUZZLE1 + i]);
-
-			m_GameSkin.m_aaSpriteWeaponsMuzzles[1][i] = m_GameSkin.m_aSpriteWeaponGunMuzzles[i];
-			m_GameSkin.m_aaSpriteWeaponsMuzzles[2][i] = m_GameSkin.m_aSpriteWeaponShotgunMuzzles[i];
-			m_GameSkin.m_aaSpriteWeaponsMuzzles[5][i] = m_GameSkin.m_aaSpriteWeaponNinjaMuzzles[i];
-		}
-
-		// pickups
-		m_GameSkin.m_SpritePickupHealth = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_HEALTH]);
-		m_GameSkin.m_SpritePickupArmor = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_ARMOR]);
-		m_GameSkin.m_SpritePickupHammer = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_HAMMER]);
-		m_GameSkin.m_SpritePickupGun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_GUN]);
-		m_GameSkin.m_SpritePickupShotgun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_SHOTGUN]);
-		m_GameSkin.m_SpritePickupGrenade = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_GRENADE]);
-		m_GameSkin.m_SpritePickupLaser = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_LASER]);
-		m_GameSkin.m_SpritePickupNinja = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_NINJA]);
-		m_GameSkin.m_SpritePickupArmorShotgun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_ARMOR_SHOTGUN]);
-		m_GameSkin.m_SpritePickupArmorGrenade = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_ARMOR_GRENADE]);
-		m_GameSkin.m_SpritePickupArmorNinja = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_ARMOR_NINJA]);
-		m_GameSkin.m_SpritePickupArmorLaser = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PICKUP_ARMOR_LASER]);
-
-		m_GameSkin.m_aSpritePickupWeapons[0] = m_GameSkin.m_SpritePickupHammer;
-		m_GameSkin.m_aSpritePickupWeapons[1] = m_GameSkin.m_SpritePickupGun;
-		m_GameSkin.m_aSpritePickupWeapons[2] = m_GameSkin.m_SpritePickupShotgun;
-		m_GameSkin.m_aSpritePickupWeapons[3] = m_GameSkin.m_SpritePickupGrenade;
-		m_GameSkin.m_aSpritePickupWeapons[4] = m_GameSkin.m_SpritePickupLaser;
-		m_GameSkin.m_aSpritePickupWeapons[5] = m_GameSkin.m_SpritePickupNinja;
-
-		m_GameSkin.m_aSpritePickupWeaponArmor[0] = m_GameSkin.m_SpritePickupArmorShotgun;
-		m_GameSkin.m_aSpritePickupWeaponArmor[1] = m_GameSkin.m_SpritePickupArmorGrenade;
-		m_GameSkin.m_aSpritePickupWeaponArmor[2] = m_GameSkin.m_SpritePickupArmorNinja;
-		m_GameSkin.m_aSpritePickupWeaponArmor[3] = m_GameSkin.m_SpritePickupArmorLaser;
-
-		// flags
-		m_GameSkin.m_SpriteFlagBlue = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_FLAG_BLUE]);
-		m_GameSkin.m_SpriteFlagRed = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_FLAG_RED]);
-
-		// ninja bar (0.7)
-		if(!Graphics()->IsSpriteTextureFullyTransparent(ImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_FULL_LEFT]) ||
-			!Graphics()->IsSpriteTextureFullyTransparent(ImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_FULL]) ||
-			!Graphics()->IsSpriteTextureFullyTransparent(ImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_EMPTY]) ||
-			!Graphics()->IsSpriteTextureFullyTransparent(ImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_EMPTY_RIGHT]))
-		{
-			m_GameSkin.m_SpriteNinjaBarFullLeft = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_FULL_LEFT]);
-			m_GameSkin.m_SpriteNinjaBarFull = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_FULL]);
-			m_GameSkin.m_SpriteNinjaBarEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_EMPTY]);
-			m_GameSkin.m_SpriteNinjaBarEmptyRight = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &client_data7::g_pData->m_aSprites[client_data7::SPRITE_NINJA_BAR_EMPTY_RIGHT]);
-		}
-
-		m_GameSkinLoaded = true;
-	}
-	ImgInfo.Free();
-	if(FallbackImgInfo.has_value())
-		FallbackImgInfo.value().Free();
-}
-
-void CGameClient::LoadEmoticonsSkin(const char *pPath, bool AsDir)
-{
-	if(m_EmoticonsSkinLoaded)
-	{
-		for(auto &SpriteEmoticon : m_EmoticonsSkin.m_aSpriteEmoticons)
-			Graphics()->UnloadTexture(&SpriteEmoticon);
-
-		m_EmoticonsSkinLoaded = false;
-	}
-
-	CImageAsset LoadedAsset = LoadAssetFromPath(pPath, AsDir, IMAGE_EMOTICONS, "emoticons");
-	CImageInfo &ImgInfo = LoadedAsset.m_ImageInfo;
-	std::optional<CImageInfo> &FallbackImgInfo = LoadedAsset.m_FallbackImageInfo;
-	if(!LoadedAsset.IsLoaded() && !LoadedAsset.m_IsDefault)
-	{
-		if(AsDir)
-			LoadEmoticonsSkin("default");
-		else
-			LoadEmoticonsSkin(pPath, true);
-	}
-	else if(LoadedAsset.IsLoaded() && Graphics()->CheckImageDivisibility(LoadedAsset.m_aPath, ImgInfo, g_pData->m_aSprites[SPRITE_OOP].m_pSet->m_Gridx, g_pData->m_aSprites[SPRITE_OOP].m_pSet->m_Gridy, true) && Graphics()->IsImageFormatRgba(LoadedAsset.m_aPath, ImgInfo))
-	{
-		for(int i = 0; i < 16; ++i)
-			m_EmoticonsSkin.m_aSpriteEmoticons[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_OOP + i]);
-
-		m_EmoticonsSkinLoaded = true;
-	}
-	ImgInfo.Free();
-	if(FallbackImgInfo.has_value())
-		FallbackImgInfo.value().Free();
-}
-
-void CGameClient::LoadParticlesSkin(const char *pPath, bool AsDir)
-{
-	if(m_ParticlesSkinLoaded)
-	{
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleSlice);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleBall);
-		for(auto &SpriteParticleSplat : m_ParticlesSkin.m_aSpriteParticleSplat)
-			Graphics()->UnloadTexture(&SpriteParticleSplat);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleSmoke);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleShell);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleExpl);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleAirJump);
-		Graphics()->UnloadTexture(&m_ParticlesSkin.m_SpriteParticleHit);
-
-		for(auto &SpriteParticle : m_ParticlesSkin.m_aSpriteParticles)
-			SpriteParticle = IGraphics::CTextureHandle();
-
-		m_ParticlesSkinLoaded = false;
-	}
-
-	CImageAsset LoadedAsset = LoadAssetFromPath(pPath, AsDir, IMAGE_PARTICLES, "particles");
-	CImageInfo &ImgInfo = LoadedAsset.m_ImageInfo;
-	std::optional<CImageInfo> &FallbackImgInfo = LoadedAsset.m_FallbackImageInfo;
-	if(!LoadedAsset.IsLoaded() && !LoadedAsset.m_IsDefault)
-	{
-		if(AsDir)
-			LoadParticlesSkin("default");
-		else
-			LoadParticlesSkin(pPath, true);
-	}
-	else if(LoadedAsset.IsLoaded() && Graphics()->CheckImageDivisibility(LoadedAsset.m_aPath, ImgInfo, g_pData->m_aSprites[SPRITE_PART_SLICE].m_pSet->m_Gridx, g_pData->m_aSprites[SPRITE_PART_SLICE].m_pSet->m_Gridy, true) && Graphics()->IsImageFormatRgba(LoadedAsset.m_aPath, ImgInfo))
-	{
-		m_ParticlesSkin.m_SpriteParticleSlice = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SLICE]);
-		m_ParticlesSkin.m_SpriteParticleBall = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_BALL]);
-		for(int i = 0; i < 3; ++i)
-			m_ParticlesSkin.m_aSpriteParticleSplat[i] = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SPLAT01 + i]);
-		m_ParticlesSkin.m_SpriteParticleSmoke = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SMOKE]);
-		m_ParticlesSkin.m_SpriteParticleShell = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SHELL]);
-		m_ParticlesSkin.m_SpriteParticleExpl = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_EXPL01]);
-		m_ParticlesSkin.m_SpriteParticleAirJump = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_AIRJUMP]);
-		m_ParticlesSkin.m_SpriteParticleHit = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_HIT01]);
-
-		m_ParticlesSkin.m_aSpriteParticles[0] = m_ParticlesSkin.m_SpriteParticleSlice;
-		m_ParticlesSkin.m_aSpriteParticles[1] = m_ParticlesSkin.m_SpriteParticleBall;
-		for(int i = 0; i < 3; ++i)
-			m_ParticlesSkin.m_aSpriteParticles[2 + i] = m_ParticlesSkin.m_aSpriteParticleSplat[i];
-		m_ParticlesSkin.m_aSpriteParticles[5] = m_ParticlesSkin.m_SpriteParticleSmoke;
-		m_ParticlesSkin.m_aSpriteParticles[6] = m_ParticlesSkin.m_SpriteParticleShell;
-		m_ParticlesSkin.m_aSpriteParticles[7] = m_ParticlesSkin.m_SpriteParticleExpl;
-		m_ParticlesSkin.m_aSpriteParticles[8] = m_ParticlesSkin.m_SpriteParticleAirJump;
-		m_ParticlesSkin.m_aSpriteParticles[9] = m_ParticlesSkin.m_SpriteParticleHit;
-
-		m_ParticlesSkinLoaded = true;
-	}
-	ImgInfo.Free();
-	if(FallbackImgInfo.has_value())
-		FallbackImgInfo.value().Free();
-}
-
-void CGameClient::LoadHudSkin(const char *pPath, bool AsDir)
-{
-	if(m_HudSkinLoaded)
-	{
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudAirjump);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudAirjumpEmpty);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudSolo);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudCollisionDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudEndlessJump);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudEndlessHook);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudJetpack);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudFreezeBarFullLeft);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudFreezeBarFull);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudFreezeBarEmpty);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudFreezeBarEmptyRight);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudNinjaBarFullLeft);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudNinjaBarFull);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudNinjaBarEmpty);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudNinjaBarEmptyRight);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudHookHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudHammerHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudShotgunHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudGrenadeHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudLaserHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudGunHitDisabled);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudDeepFrozen);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudLiveFrozen);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudTeleportGrenade);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudTeleportGun);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudTeleportLaser);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudPracticeMode);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudLockMode);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudTeam0Mode);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudDummyHammer);
-		Graphics()->UnloadTexture(&m_HudSkin.m_SpriteHudDummyCopy);
-		m_HudSkinLoaded = false;
-	}
-
-	CImageAsset LoadedAsset = LoadAssetFromPath(pPath, AsDir, IMAGE_HUD, "hud");
-	CImageInfo &ImgInfo = LoadedAsset.m_ImageInfo;
-	std::optional<CImageInfo> &FallbackImgInfo = LoadedAsset.m_FallbackImageInfo;
-	if(!LoadedAsset.IsLoaded() && !LoadedAsset.m_IsDefault)
-	{
-		if(AsDir)
-			LoadHudSkin("default");
-		else
-			LoadHudSkin(pPath, true);
-	}
-	else if(LoadedAsset.IsLoaded() && Graphics()->CheckImageDivisibility(LoadedAsset.m_aPath, ImgInfo, g_pData->m_aSprites[SPRITE_HUD_AIRJUMP].m_pSet->m_Gridx, g_pData->m_aSprites[SPRITE_HUD_AIRJUMP].m_pSet->m_Gridy, true) && Graphics()->IsImageFormatRgba(LoadedAsset.m_aPath, ImgInfo))
-	{
-		m_HudSkin.m_SpriteHudAirjump = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_AIRJUMP]);
-		m_HudSkin.m_SpriteHudAirjumpEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_AIRJUMP_EMPTY]);
-		m_HudSkin.m_SpriteHudSolo = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_SOLO]);
-		m_HudSkin.m_SpriteHudCollisionDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_COLLISION_DISABLED]);
-		m_HudSkin.m_SpriteHudEndlessJump = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_ENDLESS_JUMP]);
-		m_HudSkin.m_SpriteHudEndlessHook = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_ENDLESS_HOOK]);
-		m_HudSkin.m_SpriteHudJetpack = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_JETPACK]);
-		m_HudSkin.m_SpriteHudFreezeBarFullLeft = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_FREEZE_BAR_FULL_LEFT]);
-		m_HudSkin.m_SpriteHudFreezeBarFull = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_FREEZE_BAR_FULL]);
-		m_HudSkin.m_SpriteHudFreezeBarEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_FREEZE_BAR_EMPTY]);
-		m_HudSkin.m_SpriteHudFreezeBarEmptyRight = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_FREEZE_BAR_EMPTY_RIGHT]);
-		m_HudSkin.m_SpriteHudNinjaBarFullLeft = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_NINJA_BAR_FULL_LEFT]);
-		m_HudSkin.m_SpriteHudNinjaBarFull = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_NINJA_BAR_FULL]);
-		m_HudSkin.m_SpriteHudNinjaBarEmpty = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_NINJA_BAR_EMPTY]);
-		m_HudSkin.m_SpriteHudNinjaBarEmptyRight = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_NINJA_BAR_EMPTY_RIGHT]);
-		m_HudSkin.m_SpriteHudHookHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_HOOK_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudHammerHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_HAMMER_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudShotgunHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_SHOTGUN_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudGrenadeHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_GRENADE_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudLaserHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_LASER_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudGunHitDisabled = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_GUN_HIT_DISABLED]);
-		m_HudSkin.m_SpriteHudDeepFrozen = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_DEEP_FROZEN]);
-		m_HudSkin.m_SpriteHudLiveFrozen = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_LIVE_FROZEN]);
-		m_HudSkin.m_SpriteHudTeleportGrenade = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_TELEPORT_GRENADE]);
-		m_HudSkin.m_SpriteHudTeleportGun = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_TELEPORT_GUN]);
-		m_HudSkin.m_SpriteHudTeleportLaser = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_TELEPORT_LASER]);
-		m_HudSkin.m_SpriteHudPracticeMode = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_PRACTICE_MODE]);
-		m_HudSkin.m_SpriteHudLockMode = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_LOCK_MODE]);
-		m_HudSkin.m_SpriteHudTeam0Mode = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_TEAM0_MODE]);
-		m_HudSkin.m_SpriteHudDummyHammer = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_DUMMY_HAMMER]);
-		m_HudSkin.m_SpriteHudDummyCopy = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_HUD_DUMMY_COPY]);
-
-		m_HudSkinLoaded = true;
-	}
-	ImgInfo.Free();
-	if(FallbackImgInfo.has_value())
-		FallbackImgInfo.value().Free();
-}
-
-void CGameClient::LoadExtrasSkin(const char *pPath, bool AsDir)
-{
-	if(m_ExtrasSkinLoaded)
-	{
-		Graphics()->UnloadTexture(&m_ExtrasSkin.m_SpriteParticleSnowflake);
-		Graphics()->UnloadTexture(&m_ExtrasSkin.m_SpriteParticleSparkle);
-		Graphics()->UnloadTexture(&m_ExtrasSkin.m_SpritePulley);
-		Graphics()->UnloadTexture(&m_ExtrasSkin.m_SpriteHectagon);
-
-		for(auto &SpriteParticle : m_ExtrasSkin.m_aSpriteParticles)
-			SpriteParticle = IGraphics::CTextureHandle();
-
-		m_ExtrasSkinLoaded = false;
-	}
-
-	CImageAsset LoadedAsset = LoadAssetFromPath(pPath, AsDir, IMAGE_EXTRAS, "extras");
-	CImageInfo &ImgInfo = LoadedAsset.m_ImageInfo;
-	std::optional<CImageInfo> &FallbackImgInfo = LoadedAsset.m_FallbackImageInfo;
-	if(!LoadedAsset.IsLoaded() && !LoadedAsset.m_IsDefault)
-	{
-		if(AsDir)
-			LoadExtrasSkin("default");
-		else
-			LoadExtrasSkin(pPath, true);
-	}
-	else if(LoadedAsset.IsLoaded() && Graphics()->CheckImageDivisibility(LoadedAsset.m_aPath, ImgInfo, g_pData->m_aSprites[SPRITE_PART_SNOWFLAKE].m_pSet->m_Gridx, g_pData->m_aSprites[SPRITE_PART_SNOWFLAKE].m_pSet->m_Gridy, true) && Graphics()->IsImageFormatRgba(LoadedAsset.m_aPath, ImgInfo))
-	{
-		m_ExtrasSkin.m_SpriteParticleSnowflake = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SNOWFLAKE]);
-		m_ExtrasSkin.m_SpriteParticleSparkle = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_SPARKLE]);
-		m_ExtrasSkin.m_SpritePulley = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_PULLEY]);
-		m_ExtrasSkin.m_SpriteHectagon = Graphics()->LoadSpriteTexture(ImgInfo, FallbackImgInfo, &g_pData->m_aSprites[SPRITE_PART_HECTAGON]);
-
-		m_ExtrasSkin.m_aSpriteParticles[0] = m_ExtrasSkin.m_SpriteParticleSnowflake;
-		m_ExtrasSkin.m_aSpriteParticles[1] = m_ExtrasSkin.m_SpriteParticleSparkle;
-		m_ExtrasSkin.m_aSpriteParticles[2] = m_ExtrasSkin.m_SpritePulley;
-		m_ExtrasSkin.m_aSpriteParticles[3] = m_ExtrasSkin.m_SpriteHectagon;
-
-		m_ExtrasSkinLoaded = true;
-	}
-	ImgInfo.Free();
-	if(FallbackImgInfo.has_value())
-		FallbackImgInfo.value().Free();
-}
-
 void CGameClient::RefreshSkin(const std::shared_ptr<CManagedTeeRenderInfo> &pManagedTeeRenderInfo)
 {
 	CTeeRenderInfo &TeeInfo = pManagedTeeRenderInfo->TeeRenderInfo();
@@ -4919,333 +4429,6 @@ void CGameClient::SnapCollectEntities()
 
 		m_vSnapEntities.push_back({Ent.m_Item, pDataEx});
 	}
-}
-
-void CGameClient::HandleMultiView()
-{
-	bool IsTeamZero = IsMultiViewIdSet();
-	bool Init = false;
-	vec2 MinPos, MaxPos;
-	float SumVel = 0.0f;
-	int AmountPlayers = 0;
-
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-	{
-		// look at players who are vanished
-		if(m_MultiView.m_aVanish[ClientId])
-		{
-			// not in freeze anymore and the delay is over
-			if(m_MultiView.m_aLastFreeze[ClientId] + 6.0f <= Client()->LocalTime() && m_aClients[ClientId].m_FreezeEnd == 0)
-			{
-				m_MultiView.m_aVanish[ClientId] = false;
-				m_MultiView.m_aLastFreeze[ClientId] = 0.0f;
-			}
-		}
-
-		// we look at team 0 and the player is not in the spec list
-		if(IsTeamZero && !m_aMultiViewId[ClientId])
-			continue;
-
-		// player is vanished
-		if(m_MultiView.m_aVanish[ClientId])
-			continue;
-
-		// the player is not in the team we are spectating
-		if(m_Teams.Team(ClientId) != m_MultiViewTeam)
-			continue;
-
-		vec2 PlayerPos;
-		if(m_Snap.m_aCharacters[ClientId].m_Active)
-			PlayerPos = m_aClients[ClientId].m_RenderPos;
-		else if(m_aClients[ClientId].m_Spec) // tee is in spec
-			PlayerPos = m_aClients[ClientId].m_SpecChar;
-		else
-			continue;
-
-		// player is far away and frozen
-		if(distance(m_MultiView.m_OldPos, PlayerPos) > 1100 && m_aClients[ClientId].m_FreezeEnd != 0)
-		{
-			// check if the player is frozen for more than 3 seconds, if so vanish them
-			if(m_MultiView.m_aLastFreeze[ClientId] == 0.0f)
-			{
-				m_MultiView.m_aLastFreeze[ClientId] = Client()->LocalTime();
-			}
-			else if(m_MultiView.m_aLastFreeze[ClientId] + 3.0f <= Client()->LocalTime())
-			{
-				m_MultiView.m_aVanish[ClientId] = true;
-				// player we want to be vanished is our "main" tee, so lets switch the tee
-				if(ClientId == m_Snap.m_SpecInfo.m_SpectatorId)
-					m_Spectator.Spectate(FindFirstMultiViewId());
-			}
-		}
-		else if(m_MultiView.m_aLastFreeze[ClientId] != 0)
-		{
-			m_MultiView.m_aLastFreeze[ClientId] = 0;
-		}
-
-		// set the minimum and maximum position
-		if(!Init)
-		{
-			MinPos = PlayerPos;
-			MaxPos = PlayerPos;
-			Init = true;
-		}
-		else
-		{
-			MinPos.x = std::min(MinPos.x, PlayerPos.x);
-			MaxPos.x = std::max(MaxPos.x, PlayerPos.x);
-			MinPos.y = std::min(MinPos.y, PlayerPos.y);
-			MaxPos.y = std::max(MaxPos.y, PlayerPos.y);
-		}
-
-		// sum up the velocity of all players we are spectating
-		const CNetObj_Character &CurrentCharacter = m_Snap.m_aCharacters[ClientId].m_Cur;
-		SumVel += length(vec2(CurrentCharacter.m_VelX / 256.0f, CurrentCharacter.m_VelY / 256.0f)) * 50.0f / 32.0f;
-		AmountPlayers++;
-	}
-
-	// if we have found no players, we disable multi view
-	if(AmountPlayers == 0)
-	{
-		if(m_MultiView.m_SecondChance == 0.0f)
-		{
-			m_MultiView.m_SecondChance = Client()->LocalTime() + 0.3f;
-		}
-		else if(m_MultiView.m_SecondChance < Client()->LocalTime())
-		{
-			ResetMultiView();
-		}
-		return;
-	}
-	else if(m_MultiView.m_SecondChance != 0.0f)
-	{
-		m_MultiView.m_SecondChance = 0.0f;
-	}
-
-	// if we only have one tee that's in the list, we activate solo-mode
-	m_MultiView.m_Solo = std::count(std::begin(m_aMultiViewId), std::end(m_aMultiViewId), true) == 1;
-
-	vec2 TargetPos = vec2((MinPos.x + MaxPos.x) / 2.0f, (MinPos.y + MaxPos.y) / 2.0f);
-	// dont hide the position hud if its only one player
-	m_MultiViewShowHud = AmountPlayers == 1;
-	// get the average velocity
-	float AvgVel = std::clamp(SumVel / AmountPlayers, 0.0f, 1000.0f);
-
-	if(m_MultiView.m_OldPersonalZoom == m_MultiViewPersonalZoom)
-		m_Camera.SetZoom(CalculateMultiViewZoom(MinPos, MaxPos, AvgVel), g_Config.m_ClMultiViewZoomSmoothness, false);
-	else
-		m_Camera.SetZoom(CalculateMultiViewZoom(MinPos, MaxPos, AvgVel), 50, false);
-
-	m_Snap.m_SpecInfo.m_Position = m_MultiView.m_OldPos + ((TargetPos - m_MultiView.m_OldPos) * CalculateMultiViewMultiplier(TargetPos));
-	m_MultiView.m_OldPos = m_Snap.m_SpecInfo.m_Position;
-	m_Snap.m_SpecInfo.m_UsePosition = true;
-}
-
-bool CGameClient::InitMultiView(int Team)
-{
-	float Width, Height;
-	CleanMultiViewIds();
-	m_MultiView.m_IsInit = true;
-
-	// get the current view coordinates
-	Graphics()->CalcScreenParams(Graphics()->ScreenAspect(), m_Camera.m_Zoom, &Width, &Height);
-	vec2 AxisX = vec2(m_Camera.m_Center.x - (Width / 2.0f), m_Camera.m_Center.x + (Width / 2.0f));
-	vec2 AxisY = vec2(m_Camera.m_Center.y - (Height / 2.0f), m_Camera.m_Center.y + (Height / 2.0f));
-
-	if(Team > 0)
-	{
-		m_MultiViewTeam = Team;
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-			m_aMultiViewId[ClientId] = m_Teams.Team(ClientId) == Team;
-	}
-	else
-	{
-		// we want to allow spectating players in teams directly if there is no other team on screen
-		// to do that, -1 is used temporarily for "we don't know which team to spectate yet"
-		m_MultiViewTeam = -1;
-
-		int Count = 0;
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-		{
-			vec2 PlayerPos;
-
-			// get the position of the player
-			if(m_Snap.m_aCharacters[ClientId].m_Active)
-				PlayerPos = vec2(m_Snap.m_aCharacters[ClientId].m_Cur.m_X, m_Snap.m_aCharacters[ClientId].m_Cur.m_Y);
-			else if(m_aClients[ClientId].m_Spec)
-				PlayerPos = m_aClients[ClientId].m_SpecChar;
-			else
-				continue;
-
-			if(PlayerPos.x == 0 || PlayerPos.y == 0)
-				continue;
-
-			// skip players that aren't in view
-			if(PlayerPos.x <= AxisX.x || PlayerPos.x >= AxisX.y || PlayerPos.y <= AxisY.x || PlayerPos.y >= AxisY.y)
-				continue;
-
-			if(m_MultiViewTeam == -1)
-			{
-				// use the current player's team for now, but it might switch to team 0 if any other team is found
-				m_MultiViewTeam = m_Teams.Team(ClientId);
-			}
-			else if(m_MultiViewTeam != 0 && m_Teams.Team(ClientId) != m_MultiViewTeam)
-			{
-				// mismatched teams; remove all previously added players again and switch to team 0 instead
-				std::fill_n(m_aMultiViewId, ClientId, false);
-				m_MultiViewTeam = 0;
-			}
-
-			m_aMultiViewId[ClientId] = true;
-			Count++;
-		}
-
-		// might still be -1 if not a single player was in view; fallback to team 0 in that case
-		if(m_MultiViewTeam == -1)
-			m_MultiViewTeam = 0;
-
-		// we are spectating only one player
-		m_MultiView.m_Solo = Count == 1;
-	}
-
-	if(IsMultiViewIdSet())
-	{
-		int SpectatorId = m_Snap.m_SpecInfo.m_SpectatorId;
-		int NewSpectatorId = -1;
-
-		vec2 CurPosition(m_Camera.m_Center);
-		if(SpectatorId != SPEC_FREEVIEW)
-		{
-			const CNetObj_Character &CurCharacter = m_Snap.m_aCharacters[SpectatorId].m_Cur;
-			CurPosition.x = CurCharacter.m_X;
-			CurPosition.y = CurCharacter.m_Y;
-		}
-
-		int ClosestDistance = std::numeric_limits<int>::max();
-		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
-		{
-			if(!m_Snap.m_apPlayerInfos[ClientId] || m_Snap.m_apPlayerInfos[ClientId]->m_Team == TEAM_SPECTATORS || m_Teams.Team(ClientId) != m_MultiViewTeam)
-				continue;
-
-			vec2 PlayerPos;
-			if(m_Snap.m_aCharacters[ClientId].m_Active)
-				PlayerPos = vec2(m_aClients[ClientId].m_RenderPos.x, m_aClients[ClientId].m_RenderPos.y);
-			else if(m_aClients[ClientId].m_Spec) // tee is in spec
-				PlayerPos = m_aClients[ClientId].m_SpecChar;
-			else
-				continue;
-
-			int Distance = distance(CurPosition, PlayerPos);
-			if(NewSpectatorId == -1 || Distance < ClosestDistance)
-			{
-				NewSpectatorId = ClientId;
-				ClosestDistance = Distance;
-			}
-		}
-
-		if(NewSpectatorId > -1)
-			m_Spectator.Spectate(NewSpectatorId);
-	}
-
-	return IsMultiViewIdSet();
-}
-
-float CGameClient::CalculateMultiViewMultiplier(vec2 TargetPos)
-{
-	float MaxCameraDist = 200.0f;
-	float MinCameraDist = 20.0f;
-	float MaxVel = g_Config.m_ClMultiViewSensitivity / 150.0f;
-	float MinVel = 0.007f;
-	float CurrentCameraDistance = distance(m_MultiView.m_OldPos, TargetPos);
-	float UpperLimit = 1.0f;
-
-	if(m_MultiView.m_Teleported && CurrentCameraDistance <= 100.0f)
-		m_MultiView.m_Teleported = false;
-
-	// somebody got teleported very likely
-	if((m_MultiView.m_Teleported || CurrentCameraDistance - m_MultiView.m_OldCameraDistance > 100.0f) && m_MultiView.m_OldCameraDistance != 0.0f)
-	{
-		UpperLimit = 0.1f; // dont try to compensate it by flickering
-		m_MultiView.m_Teleported = true;
-	}
-	m_MultiView.m_OldCameraDistance = CurrentCameraDistance;
-
-	return std::clamp(MapValue(MaxCameraDist, MinCameraDist, MaxVel, MinVel, CurrentCameraDistance), MinVel, UpperLimit);
-}
-
-float CGameClient::CalculateMultiViewZoom(vec2 MinPos, vec2 MaxPos, float Vel)
-{
-	float Ratio = Graphics()->ScreenAspect();
-	float ZoomX = 0.0f, ZoomY;
-
-	// only calc two axis if the aspect ratio is not 1:1
-	if(Ratio != 1.0f)
-		ZoomX = (0.001309f - 0.000328f * Ratio) * (MaxPos.x - MinPos.x) + (0.741413f - 0.032959f * Ratio);
-
-	// calculate the according zoom with linear function
-	ZoomY = 0.001309f * (MaxPos.y - MinPos.y) + 0.741413f;
-	// choose the highest zoom
-	float Zoom = std::max(ZoomX, ZoomY);
-	// zoom out to maximum 10 percent of the current zoom for 70 velocity
-	float Diff = std::clamp(MapValue(70.0f, 15.0f, Zoom * 0.10f, 0.0f, Vel), 0.0f, Zoom * 0.10f);
-	// zoom should stay between 1.1 and 20.0
-	Zoom = std::clamp(Zoom + Diff, 1.1f, 20.0f);
-	// dont go below default zoom
-	Zoom = std::max(CCamera::ZoomStepsToValue(g_Config.m_ClDefaultZoom - 10), Zoom);
-	// add the user preference
-	Zoom -= Zoom * 0.1f * m_MultiViewPersonalZoom;
-	m_MultiView.m_OldPersonalZoom = m_MultiViewPersonalZoom;
-
-	return Zoom;
-}
-
-float CGameClient::MapValue(float MaxValue, float MinValue, float MaxRange, float MinRange, float Value)
-{
-	return (MaxRange - MinRange) / (MaxValue - MinValue) * (Value - MinValue) + MinRange;
-}
-
-void CGameClient::ResetMultiView()
-{
-	m_Camera.SetZoom(CCamera::ZoomStepsToValue(g_Config.m_ClDefaultZoom - 10), g_Config.m_ClSmoothZoomTime, true);
-	m_MultiViewPersonalZoom = 0.0f;
-	m_MultiViewActivated = false;
-	m_MultiView.m_Solo = false;
-	m_MultiView.m_IsInit = false;
-	m_MultiView.m_Teleported = false;
-	m_MultiView.m_OldCameraDistance = 0.0f;
-}
-
-void CGameClient::CleanMultiViewIds()
-{
-	std::fill(std::begin(m_aMultiViewId), std::end(m_aMultiViewId), false);
-	std::fill(std::begin(m_MultiView.m_aLastFreeze), std::end(m_MultiView.m_aLastFreeze), 0.0f);
-	std::fill(std::begin(m_MultiView.m_aVanish), std::end(m_MultiView.m_aVanish), false);
-}
-
-void CGameClient::CleanMultiViewId(int ClientId)
-{
-	if(ClientId >= MAX_CLIENTS || ClientId < 0)
-		return;
-
-	m_aMultiViewId[ClientId] = false;
-	m_MultiView.m_aLastFreeze[ClientId] = 0.0f;
-	m_MultiView.m_aVanish[ClientId] = false;
-}
-
-bool CGameClient::IsMultiViewIdSet()
-{
-	return std::any_of(std::begin(m_aMultiViewId), std::end(m_aMultiViewId), [](bool IsSet) { return IsSet; });
-}
-
-int CGameClient::FindFirstMultiViewId()
-{
-	int ClientId = -1;
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(m_aMultiViewId[i] && !m_MultiView.m_aVanish[i])
-			return i;
-	}
-	return ClientId;
 }
 
 void CGameClient::OnSaveCodeNetMessage(const CNetMsg_Sv_SaveCode *pMsg)

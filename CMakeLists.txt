@@ -47,8 +47,6 @@ else()
 endif()
 
 set(ORIGINAL_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
-set(ORIGINAL_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
-set(ORIGINAL_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
 set(OWN_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_MODULE_PATH ${OWN_CMAKE_MODULE_PATH})
 
@@ -137,6 +135,7 @@ option(VULKAN "Enable the vulkan backend" ${AUTO_VULKAN_BACKEND})
 
 option(EXCEPTION_HANDLING "Enable crashdumps (only works with Windows)" OFF)
 option(IPO "Enable interprocedural optimizations" OFF)
+option(PRECOMPILE_HEADERS "Precompile commonly used headers to speed up compilation (requires CMake 3.16)" ON)
 set(FUSE_LD OFF CACHE STRING "Linker to use")
 option(SECURITY_COMPILER_FLAGS "Whether to set security-relevant compiler flags like -D_FORTIFY_SOURCE=2 and -fstack-protector-strong" ON)
 option(MACOS_CODESIGN "Whether to sign code when building the DMG on macOS" OFF)
@@ -144,6 +143,13 @@ set(EXTERNAL_STEAM_API_DYLIB "" CACHE FILEPATH "Path to an external libsteam_api
 
 if(EXTERNAL_STEAM_API_DYLIB AND NOT EXISTS "${EXTERNAL_STEAM_API_DYLIB}")
   message(FATAL_ERROR "EXTERNAL_STEAM_API_DYLIB does not exist: ${EXTERNAL_STEAM_API_DYLIB}")
+endif()
+
+list(LENGTH CMAKE_OSX_ARCHITECTURES NUM_OSX_ARCHITECTURES)
+if(PRECOMPILE_HEADERS AND NUM_OSX_ARCHITECTURES GREATER 1)
+  # Fat macOS builds with PCH break -mbranch-protection, since it's x86-64 only.
+  message(STATUS "Disabling precompiled headers for fat macOS build")
+  set(PRECOMPILE_HEADERS OFF)
 endif()
 
 if(TARGET_OS STREQUAL "mac" AND MACOS_CODESIGN)
@@ -304,7 +310,9 @@ if(NOT MSVC AND NOT HAIKU)
             endif()
           endif()
         endif()
-      else()
+      elseif(NOT TARGET_OS STREQUAL "windows")
+        # Windows: only the default linker handles GCC+LTO, gold can't produce
+        # PE binaries and lld ignores GCC's LTO plugin, leaving all objects empty.
         add_linker_flag_if_supported(OUR_FLAGS_LINK -fuse-ld=gold)
         if(FLAG_SUPPORTED_fuse_ld_gold)
           message(STATUS "Using gold linker")
@@ -348,7 +356,11 @@ if(NOT MSVC AND NOT HAIKU)
   add_cxx_compiler_flag_if_supported(OUR_FLAGS -fsigned-char)
 
   # Support more sections in object files, because the limit is exceeded for some files in debug mode.
-  add_cxx_compiler_flag_if_supported(OUR_FLAGS -Wa,-mbig-obj)
+  # Not with IPO, because GCC's LTO plugin cannot read big-obj COFF files, making
+  # the linker treat all LTO objects as empty. Stays far below the limit with LTO anyway.
+  if(NOT ENABLE_IPO)
+    add_cxx_compiler_flag_if_supported(OUR_FLAGS -Wa,-mbig-obj)
+  endif()
 
   # Don't insert timestamps into PEs to keep the build reproducible.
   if(TARGET_OS STREQUAL "windows")
@@ -395,6 +407,7 @@ if(NOT MSVC AND NOT HAIKU)
   add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wthread-safety)
   add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wthread-safety-negative)
   add_linker_flag_if_supported(OUR_FLAGS_LINK -Wno-alloc-size-larger-than) # save.cpp with LTO
+  add_linker_flag_if_supported(OUR_FLAGS_LINK -Wno-stringop-overflow) # str_copy with LTO
   # tidy-alphabetical-end
   # add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wdouble-promotion) # Many occurrences
   # add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wnull-dereference) # Many occurrences
@@ -591,6 +604,7 @@ endif()
 if(NOT(TARGET_OS STREQUAL "android" OR TARGET_OS STREQUAL "ios"))
   find_package(GLEW)
 endif()
+find_package(EGL QUIET)
 find_package(GTest)
 if(UPNP)
   find_package(Miniupnpc)
@@ -798,6 +812,16 @@ if(TARGET_OS STREQUAL "windows")
   list(APPEND PLATFORM_LIBS ntdll.lib) # https://github.com/ddnet/ddnet/issues/6725
   list(APPEND PLATFORM_LIBS uuid.lib) # FOLDERID_RoamingAppData
 elseif(TARGET_OS STREQUAL "mac")
+  if(NOT CMAKE_VERSION VERSION_LESS 3.16)
+    if(NOT CMAKE_OBJCXX_COMPILER)
+      set(CMAKE_OBJCXX_COMPILER "${CMAKE_CXX_COMPILER}")
+    endif()
+    if(NOT CMAKE_OBJCXX_COMPILER_LAUNCHER)
+      set(CMAKE_OBJCXX_COMPILER_LAUNCHER "${CMAKE_CXX_COMPILER_LAUNCHER}")
+    endif()
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_OBJCXX_FLAGS}")
+  endif()
   find_library(CARBON Carbon)
   find_library(COCOA Cocoa)
   find_library(OPENGL OpenGL)
@@ -827,7 +851,7 @@ elseif(TARGET_OS STREQUAL "ios")
   find_library(SECURITY Security)
   find_library(SYSTEMCONFIGURATION SystemConfiguration)
   set(PLATFORM_CLIENT
-    src/ios/ios_main.cpp
+    src/ios/ios_main.mm
   )
   set(PLATFORM_CLIENT_LIBS
     # tidy-alphabetical-start
@@ -885,6 +909,9 @@ else()
   else()
     set(PLATFORM_LIBS)
   endif()
+endif()
+if(TOOLS)
+  show_dependency_status("EGL" EGL) # egl also checks for OpenGL::EGL
 endif()
 
 ########################################################################
@@ -2064,6 +2091,7 @@ set(COPY_FILES
   ${SQLite3_COPY_FILES}
   ${SSP_COPY_FILES}
   ${VULKAN_COPY_FILES}
+  ${WAVPACK_COPY_FILES}
   ${WEBSOCKETS_COPY_FILES}
   # tidy-alphabetical-end
 )
@@ -2576,8 +2604,11 @@ if(CLIENT)
     backend/opengles/opengles_sl_program.cpp
     backend/vulkan/backend_vulkan.cpp
     backend/vulkan/backend_vulkan.h
+    backend_egl.cpp
+    backend_egl.h
     backend_sdl.cpp
     backend_sdl.h
+    backend_threaded.cpp
     blocklist_driver.cpp
     blocklist_driver.h
     checksum.h
@@ -2600,6 +2631,8 @@ if(CLIENT)
     graphics_threaded_sprites.cpp
     input.cpp
     input.h
+    keyboard.cpp
+    keyboard.h
     keynames.cpp
     keynames.h
     notifications.cpp
@@ -2629,6 +2662,7 @@ if(CLIENT)
     # tidy-alphabetical-start
     animstate.cpp
     animstate.h
+    assets.cpp
     component.cpp
     component.h
     components/background.cpp
@@ -2732,8 +2766,6 @@ if(CLIENT)
     components/spectator.h
     components/statboard.cpp
     components/statboard.h
-    components/tooltips.cpp
-    components/tooltips.h
     components/touch_controls.cpp
     components/touch_controls.h
     components/voting.cpp
@@ -2744,6 +2776,7 @@ if(CLIENT)
     laser_data.h
     lineinput.cpp
     lineinput.h
+    multiview.cpp
     pickup_data.cpp
     pickup_data.h
     prediction/entities/character.cpp
@@ -2775,6 +2808,8 @@ if(CLIENT)
     sixup_translate_snapshot.cpp
     skin.cpp
     skin.h
+    tooltips.cpp
+    tooltips.h
     ui.cpp
     ui.h
     ui_listbox.cpp
@@ -2905,7 +2940,7 @@ if(CLIENT)
   )
   set(CLIENT_SRC ${ENGINE_CLIENT} ${PLATFORM_CLIENT} ${GAME_CLIENT} ${GAME_EDITOR} ${GAME_MAP} ${GAME_GENERATED_CLIENT})
 
-  set(DEPS_CLIENT ${DEPS} ${GLEW_DEP} ${WAVPACK_DEP})
+  set(DEPS_CLIENT ${DEPS} ${GLEW_DEP})
 
   # Libraries
   set(LIBS_CLIENT
@@ -3056,27 +3091,6 @@ if(CLIENT)
 
   if(STEAMAPI_KIND STREQUAL SHARED OR DISCORD_DYNAMIC)
     set_own_rpath(game-client)
-  endif()
-
-  set(PARAMS "${WAVPACK_INCLUDE_DIRS};${WAVPACK_LIBRARIES}")
-  if(NOT(WAVPACK_OPEN_FILE_INPUT_EX_PARAMS STREQUAL PARAMS))
-    unset(WAVPACK_OPEN_FILE_INPUT_EX CACHE)
-  endif()
-  set(WAVPACK_OPEN_FILE_INPUT_EX_PARAMS "${PARAMS}" CACHE INTERNAL "")
-
-  set(CMAKE_REQUIRED_INCLUDES ${ORIGINAL_CMAKE_REQUIRED_INCLUDES} ${WAVPACK_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_LIBRARIES ${ORIGINAL_CMAKE_REQUIRED_LIBRARIES} ${WAVPACK_LIBRARIES})
-  check_symbol_exists(WavpackOpenFileInputEx wavpack.h WAVPACK_OPEN_FILE_INPUT_EX)
-  check_symbol_exists(WavpackCloseFile wavpack.h WAVPACK_CLOSE_FILE)
-  set(CMAKE_REQUIRED_INCLUDES ${ORIGINAL_CMAKE_REQUIRED_INCLUDES})
-  set(CMAKE_REQUIRED_LIBRARIES ${ORIGINAL_CMAKE_REQUIRED_LIBRARIES})
-
-  if(WAVPACK_OPEN_FILE_INPUT_EX)
-    target_compile_definitions(game-client PRIVATE CONF_WAVPACK_OPEN_FILE_INPUT_EX)
-  endif()
-
-  if(WAVPACK_CLOSE_FILE)
-    target_compile_definitions(game-client PRIVATE CONF_WAVPACK_CLOSE_FILE)
   endif()
 
   if(GLEW_BUNDLED)
@@ -3481,6 +3495,7 @@ if(TOOLS)
     map_extract.cpp
     map_find_env.cpp
     map_optimize.cpp
+    map_render.cpp
     map_replace_area.cpp
     map_replace_image.cpp
     map_resave.cpp
@@ -3496,6 +3511,9 @@ if(TOOLS)
     file(RELATIVE_PATH T "${PROJECT_SOURCE_DIR}/src/tools/" ${ABS_T})
     if(T MATCHES "\\.cpp$")
       string(REGEX REPLACE "\\.cpp$" "" TOOL "${T}")
+      if(TOOL MATCHES "^map_render$" AND NOT EGL_FOUND)
+        continue()
+      endif()
       set(TOOL_DEPS ${DEPS})
       set(TOOL_LIBS ${LIBS})
       unset(EXTRA_TOOL_SRC)
@@ -3506,6 +3524,11 @@ if(TOOLS)
       endif()
       if(TOOL MATCHES "^config_")
         list(APPEND EXTRA_TOOL_SRC "src/tools/config_common.h")
+      endif()
+      if(TOOL MATCHES "^map_render$")
+        list(APPEND TOOL_INCLUDE_DIRS ${PNG_INCLUDE_DIRS} ${FREETYPE_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS})
+        list(APPEND TOOL_DEPS $<TARGET_OBJECTS:engine-gfx> ${GLEW_DEP})
+        list(APPEND TOOL_LIBS ${PNG_LIBRARIES} ${FREETYPE_LIBRARIES} ${GLEW_LIBRARIES} ${CMAKE_DL_LIBS} ${EGL_LIBRARY} ${OPENGL_gl_LIBRARY})
       endif()
       set(EXCLUDE_FROM_ALL)
       if(DEV)
@@ -3522,6 +3545,32 @@ if(TOOLS)
       )
       target_include_directories(${TOOL} SYSTEM PRIVATE ${TOOL_INCLUDE_DIRS})
       target_link_libraries(${TOOL} ${TOOL_LIBS})
+      if(TOOL MATCHES "^map_render$")
+        target_sources(map_render PRIVATE
+          src/engine/client/graphics_threaded.cpp
+          src/engine/client/backend_egl.cpp
+          src/engine/client/backend/opengl/backend_opengl.cpp
+          src/engine/client/backend/opengl/backend_opengl3.cpp
+          src/engine/client/backend/opengl/opengl_sl.cpp
+          src/engine/client/backend/opengl/opengl_sl_program.cpp
+          src/engine/client/backend/glsl_shader_compiler.cpp
+          src/engine/client/backend/backend_base.cpp
+          src/engine/client/backend_threaded.cpp
+          src/engine/client/blocklist_driver.cpp
+          src/engine/client/warning.cpp
+          src/game/map/map_renderer.cpp
+          src/game/map/render_layer.cpp
+          src/game/map/render_map.cpp
+          src/game/map/render_component.cpp
+          src/game/map/envelope_extrema.cpp
+          ${PROJECT_BINARY_DIR}/src/generated/client_data.h
+        )
+        target_include_directories(map_render PRIVATE ${PROJECT_BINARY_DIR})
+        target_compile_definitions(map_render PRIVATE BACKEND_NO_SDL)
+        if(GLEW_BUNDLED)
+          target_compile_definitions(map_render PRIVATE CONF_GLEW_HAS_CONTEXT_INIT)
+        endif()
+      endif()
       list(APPEND TARGETS_TOOLS ${TOOL})
     endif()
   endforeach()
@@ -3662,13 +3711,22 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
   list(APPEND TARGETS_LINK ${TARGET_TESTRUNNER})
 
   add_custom_target(run_cxx_tests
-    COMMAND $<TARGET_FILE:${TARGET_TESTRUNNER}> ${TESTRUNNER_ARGS}
+    COMMAND $<TARGET_FILE:${TARGET_TESTRUNNER}> --gtest_brief=1 ${TESTRUNNER_ARGS}
     COMMENT Running unit tests
     DEPENDS ${TARGET_TESTRUNNER}
     USES_TERMINAL
   )
   add_custom_target(run_tests
     DEPENDS run_cxx_tests
+  )
+  add_custom_target(run_cxx_tests_verbose
+    COMMAND $<TARGET_FILE:${TARGET_TESTRUNNER}> --no-capture ${TESTRUNNER_ARGS}
+    COMMENT Running unit tests
+    DEPENDS ${TARGET_TESTRUNNER}
+    USES_TERMINAL
+  )
+  add_custom_target(run_tests_verbose
+    DEPENDS run_cxx_tests_verbose
   )
   if(NOT MSVC OR CMAKE_BUILD_TYPE STREQUAL Release OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo OR CMAKE_BUILD_TYPE STREQUAL MinSizeRel)
     # On MSVC, Rust tests only work in the release mode because we link our C++
@@ -3677,7 +3735,16 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     #
     # See also https://github.com/rust-lang/rust/issues/39016.
     add_dependencies(run_tests run_rust_tests)
+    add_dependencies(run_tests_verbose run_rust_tests)
   endif()
+endif()
+
+if(ENABLE_IPO AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  foreach(target engine-gfx engine-shared game-shared rust-bridge-shared json md5 zlib)
+    if(TARGET ${target})
+      target_compile_options(${target} PRIVATE -ffat-lto-objects)
+    endif()
+  endforeach()
 endif()
 
 add_library(rust_test STATIC EXCLUDE_FROM_ALL
@@ -3838,13 +3905,11 @@ set(CPACK_SOURCE_FILES
   datasrc/
   ddnet-libs/
   license.txt
-  lsan.supp
   memcheck.supp
   other/
   scripts/
   src/
   storage.cfg
-  ubsan.supp
   valgrind.supp
   # tidy-alphabetical-end
 )
@@ -3876,6 +3941,9 @@ if(TOOLS)
     map_extract
     # tidy-alphabetical-end
   )
+  if(EGL_FOUND)
+    list(APPEND TARGET_TOOLS map_render)
+  endif()
 else()
   set(TARGET_TOOLS)
 endif()
@@ -4232,7 +4300,7 @@ source_group_tree(src)
 
 if(ANTIBOT)
   # Allow the antibot library to use functions from the server binary.
-  add_cxx_compiler_flag_if_supported(OUR_FLAGS_LINK -rdynamic)
+  add_linker_flag_if_supported(OUR_FLAGS_LINK -rdynamic)
   set_own_rpath(game-server)
 endif()
 
@@ -4298,10 +4366,24 @@ foreach(target ${TARGETS_LINK})
   endif()
 endforeach()
 
+if(PRECOMPILE_HEADERS AND NOT CMAKE_VERSION VERSION_LESS 3.16)
+  foreach(target engine-shared game-client game-server-without-main game-shared testrunner)
+    if(TARGET ${target})
+      target_precompile_headers(${target} PRIVATE src/pch.h)
+    endif()
+  endforeach()
+  if(TARGET testrunner)
+    target_precompile_headers(testrunner PRIVATE <gtest/gtest.h>)
+  endif()
+endif()
+
 foreach(target ${TARGETS_OWN})
   set_property(TARGET ${target} PROPERTY CXX_STANDARD 20)
   set_property(TARGET ${target} PROPERTY CXX_STANDARD_REQUIRED ON)
   set_property(TARGET ${target} PROPERTY CXX_EXTENSIONS OFF)
+  set_property(TARGET ${target} PROPERTY OBJCXX_STANDARD 20)
+  set_property(TARGET ${target} PROPERTY OBJCXX_STANDARD_REQUIRED ON)
+  set_property(TARGET ${target} PROPERTY OBJCXX_EXTENSIONS OFF)
 
   if(MSVC)
     # tidy-alphabetical-start

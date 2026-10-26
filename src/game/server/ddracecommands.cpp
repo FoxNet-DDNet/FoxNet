@@ -6,6 +6,7 @@
 #include <base/time.h>
 
 #include <engine/antibot.h>
+#include <engine/server/authmanager.h>
 #include <engine/shared/config.h>
 
 #include <game/mapitems.h>
@@ -451,6 +452,22 @@ void CGameContext::Teleport(CCharacter *pChr, vec2 Pos)
 	pChr->m_DDRaceState = ERaceState::CHEATED;
 }
 
+void CGameContext::PracticeTeleport(CCharacter *pChr, vec2 Pos)
+{
+	CMapItemLayerTilemap *pGameLayer = m_vMultiMaps[pChr->MultiMapIdx()]->m_Layers.GameLayer();
+	constexpr float OuterKillTileBoundaryDistance = 201 * 32.f;
+	const float MapWidth = pGameLayer->m_Width * 32.f + OuterKillTileBoundaryDistance * 2.f;
+	const float MapHeight = pGameLayer->m_Height * 32.f + OuterKillTileBoundaryDistance * 2.f;
+	Pos.x = std::clamp(Pos.x, -OuterKillTileBoundaryDistance + 1.f, -OuterKillTileBoundaryDistance + MapWidth - 1.f);
+	Pos.y = std::clamp(Pos.y, -OuterKillTileBoundaryDistance + 1.f, -OuterKillTileBoundaryDistance + MapHeight - 1.f);
+
+	Teleport(pChr, Pos);
+	pChr->ResetJumps();
+	pChr->Unfreeze();
+	pChr->ResetVelocity();
+	pChr->GetPlayer()->m_LastTeleTee.Save(pChr);
+}
+
 void CGameContext::ConToTeleporter(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -496,15 +513,29 @@ void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 	int TeleTo = pResult->NumArguments() ? pResult->GetInteger(pResult->NumArguments() - 1) : pResult->m_ClientId;
 	const int AuthLevel = pSelf->Server()->GetAuthedState(pResult->m_ClientId);
 
-	if(pResult->GetInteger(pResult->NumArguments() - 1) == -1)
+	if(pResult->NumArguments() && pResult->GetInteger(pResult->NumArguments() - 1) == -1)
 		TeleTo = pResult->m_ClientId;
 	// FoxNet>
 
-	if(Tele != pResult->m_ClientId && AuthLevel < g_Config.m_SvTeleOthersAuthLevel)
+	auto MinTeleLevel = CAuthManager::RoleNameToAuthLevel(g_Config.m_SvTeleOthersAuthLevel);
+	if(!MinTeleLevel.has_value())
+	{
+		if(str_comp(g_Config.m_SvTeleOthersAuthLevel, "1") == 0)
+			MinTeleLevel = AUTHED_HELPER;
+		else if(str_comp(g_Config.m_SvTeleOthersAuthLevel, "2") == 0)
+			MinTeleLevel = AUTHED_MOD;
+		else if(str_comp(g_Config.m_SvTeleOthersAuthLevel, "3") == 0)
+			MinTeleLevel = AUTHED_ADMIN;
+	}
+	dbg_assert(MinTeleLevel.has_value(), "sv_tele_others_auth_level got unexpected value '%s'", g_Config.m_SvTeleOthersAuthLevel);
+
+	if(Tele != pResult->m_ClientId && AuthLevel < MinTeleLevel.value())
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tele", "you aren't allowed to tele others");
 		return;
 	}
+	if(!CheckClientId(TeleTo))
+		return;
 
 	CCharacter *pChr = pSelf->GetPlayerChar(Tele);
 	CPlayer *pPlayer = pSelf->m_apPlayers[TeleTo];

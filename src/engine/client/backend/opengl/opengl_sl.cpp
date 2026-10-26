@@ -83,7 +83,7 @@ bool CGLSL::LoadShader(CGLSLCompiler *pCompiler, IStorage *pStorage, const char 
 		}
 	}
 
-	for(const CGLSLCompiler::SGLSLCompilerDefine &Define : pCompiler->m_vDefines)
+	for(const CGLSLCompiler::CDefine &Define : pCompiler->m_vDefines)
 	{
 		vLines.push_back(std::string("#define ") + Define.m_DefineName + std::string(" ") + Define.m_DefineValue + std::string("\r\n"));
 	}
@@ -96,24 +96,22 @@ bool CGLSL::LoadShader(CGLSLCompiler *pCompiler, IStorage *pStorage, const char 
 	while(const char *pReadLine = LineReader.Get())
 	{
 		std::string Line;
-		pCompiler->ParseLine(Line, pReadLine, Type == GL_FRAGMENT_SHADER ? GLSL_SHADER_COMPILER_TYPE_FRAGMENT : GLSL_SHADER_COMPILER_TYPE_VERTEX);
+		pCompiler->ParseLine(Line, pReadLine, Type == GL_FRAGMENT_SHADER ? CGLSLCompiler::EShaderType::FRAGMENT : CGLSLCompiler::EShaderType::VERTEX);
 		Line.append("\r\n");
 		vLines.push_back(Line);
 	}
 
-	const char **ShaderCode = new const char *[vLines.size()];
-
-	for(size_t i = 0; i < vLines.size(); ++i)
+	std::vector<const char *> vpShaderCode;
+	vpShaderCode.reserve(vLines.size());
+	for(const auto &Line : vLines)
 	{
-		ShaderCode[i] = vLines[i].c_str();
+		vpShaderCode.push_back(Line.c_str());
 	}
 
 	const TWGLuint ShaderId = glCreateShader(Type);
 
-	glShaderSource(ShaderId, vLines.size(), ShaderCode, nullptr);
+	glShaderSource(ShaderId, vpShaderCode.size(), vpShaderCode.data(), nullptr);
 	glCompileShader(ShaderId);
-
-	delete[] ShaderCode;
 
 	TWGLint CompilationStatus;
 	glGetShaderiv(ShaderId, GL_COMPILE_STATUS, &CompilationStatus);

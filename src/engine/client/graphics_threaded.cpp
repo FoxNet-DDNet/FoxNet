@@ -216,7 +216,7 @@ void CGraphics_Threaded::LinesBegin()
 {
 	dbg_assert(m_Drawing == EDrawing::NONE, "called Graphics()->LinesBegin twice");
 	m_Drawing = EDrawing::LINES;
-	SetColor(1, 1, 1, 1);
+	SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void CGraphics_Threaded::LinesEnd()
@@ -236,13 +236,13 @@ void CGraphics_Threaded::LinesDraw(const CLineItem *pArray, size_t Num)
 		m_aVertices[VertexIndex].m_Pos.x = pArray[i].m_X0;
 		m_aVertices[VertexIndex].m_Pos.y = pArray[i].m_Y0;
 		m_aVertices[VertexIndex].m_Tex = m_aTexture[0];
-		SetColor(&m_aVertices[VertexIndex], 0);
+		m_aVertices[VertexIndex].m_Color = m_aColor[0];
 		++VertexIndex;
 
 		m_aVertices[VertexIndex].m_Pos.x = pArray[i].m_X1;
 		m_aVertices[VertexIndex].m_Pos.y = pArray[i].m_Y1;
 		m_aVertices[VertexIndex].m_Tex = m_aTexture[1];
-		SetColor(&m_aVertices[VertexIndex], 1);
+		m_aVertices[VertexIndex].m_Color = m_aColor[1];
 		++VertexIndex;
 	}
 
@@ -751,7 +751,7 @@ void CGraphics_Threaded::QuadsBegin()
 
 	QuadsSetSubset(0, 0, 1, 1);
 	QuadsSetRotation(0);
-	SetColor(1, 1, 1, 1);
+	SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void CGraphics_Threaded::QuadsEnd()
@@ -780,7 +780,7 @@ void CGraphics_Threaded::TrianglesBegin()
 
 	QuadsSetSubset(0, 0, 1, 1);
 	QuadsSetRotation(0);
-	SetColor(1, 1, 1, 1);
+	SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void CGraphics_Threaded::TrianglesEnd()
@@ -809,62 +809,47 @@ void CGraphics_Threaded::QuadsSetRotation(float Angle)
 	m_Rotation = Angle;
 }
 
-static unsigned char NormalizeColorComponent(float ColorComponent)
+constexpr static unsigned char NormalizeColorComponent(float ColorComponent)
 {
 	return (unsigned char)(std::clamp(ColorComponent, 0.0f, 1.0f) * 255.0f + 0.5f); // +0.5f to round to nearest
 }
 
-void CGraphics_Threaded::SetColorVertex(const CColorVertex *pArray, size_t Num)
+constexpr static CCommandBuffer::SColor NormalizeColor(ColorRGBA Color)
 {
-	dbg_assert(m_Drawing != EDrawing::NONE, "called Graphics()->SetColorVertex without begin");
-
-	for(size_t i = 0; i < Num; ++i)
-	{
-		const CColorVertex &Vertex = pArray[i];
-		CCommandBuffer::SColor &Color = m_aColor[Vertex.m_Index];
-		Color.r = NormalizeColorComponent(Vertex.m_R);
-		Color.g = NormalizeColorComponent(Vertex.m_G);
-		Color.b = NormalizeColorComponent(Vertex.m_B);
-		Color.a = NormalizeColorComponent(Vertex.m_A);
-	}
+	CCommandBuffer::SColor NormalizedColor;
+	NormalizedColor.r = NormalizeColorComponent(Color.r);
+	NormalizedColor.g = NormalizeColorComponent(Color.g);
+	NormalizedColor.b = NormalizeColorComponent(Color.b);
+	NormalizedColor.a = NormalizeColorComponent(Color.a);
+	return NormalizedColor;
 }
 
 void CGraphics_Threaded::SetColor(float r, float g, float b, float a)
 {
-	CCommandBuffer::SColor NewColor;
-	NewColor.r = NormalizeColorComponent(r);
-	NewColor.g = NormalizeColorComponent(g);
-	NewColor.b = NormalizeColorComponent(b);
-	NewColor.a = NormalizeColorComponent(a);
-	std::fill(std::begin(m_aColor), std::end(m_aColor), NewColor);
+	SetColor(ColorRGBA(r, g, b, a));
 }
 
 void CGraphics_Threaded::SetColor(ColorRGBA Color)
 {
-	SetColor(Color.r, Color.g, Color.b, Color.a);
+	std::fill(std::begin(m_aColor), std::end(m_aColor), NormalizeColor(Color));
+}
+
+void CGraphics_Threaded::SetColor2(ColorRGBA First, ColorRGBA Second)
+{
+	dbg_assert(m_Drawing == EDrawing::LINES, "Called Graphics()->SetColor2 while not drawing lines");
+
+	m_aColor[0] = NormalizeColor(First);
+	m_aColor[1] = NormalizeColor(Second);
 }
 
 void CGraphics_Threaded::SetColor4(ColorRGBA TopLeft, ColorRGBA TopRight, ColorRGBA BottomLeft, ColorRGBA BottomRight)
 {
-	CColorVertex aArray[] = {
-		CColorVertex(0, TopLeft),
-		CColorVertex(1, TopRight),
-		CColorVertex(2, BottomRight),
-		CColorVertex(3, BottomLeft)};
-	SetColorVertex(aArray, std::size(aArray));
-}
+	dbg_assert(m_Drawing == EDrawing::QUADS || m_Drawing == EDrawing::TRIANGLES, "Called Graphics()->SetColor4 while not drawing quads or triangles");
 
-void CGraphics_Threaded::ChangeColorOfCurrentQuadVertices(float r, float g, float b, float a)
-{
-	m_aColor[0].r = NormalizeColorComponent(r);
-	m_aColor[0].g = NormalizeColorComponent(g);
-	m_aColor[0].b = NormalizeColorComponent(b);
-	m_aColor[0].a = NormalizeColorComponent(a);
-
-	for(int i = 0; i < m_NumVertices; ++i)
-	{
-		SetColor(&m_aVertices[i], 0);
-	}
+	m_aColor[0] = NormalizeColor(TopLeft);
+	m_aColor[1] = NormalizeColor(TopRight);
+	m_aColor[2] = NormalizeColor(BottomRight);
+	m_aColor[3] = NormalizeColor(BottomLeft);
 }
 
 void CGraphics_Threaded::ChangeColorOfQuadVertices(size_t QuadOffset, unsigned char r, unsigned char g, unsigned char b, unsigned char a)
@@ -948,32 +933,32 @@ void CGraphics_Threaded::QuadsDrawFreeform(const CFreeformItem *pArray, int Num)
 			m_aVertices[m_NumVertices + 6 * i].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 6 * i].m_Pos.y = pArray[i].m_Y0;
 			m_aVertices[m_NumVertices + 6 * i].m_Tex = m_aTexture[0];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i], 0);
+			m_aVertices[m_NumVertices + 6 * i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6 * i + 1].m_Pos.x = pArray[i].m_X1;
 			m_aVertices[m_NumVertices + 6 * i + 1].m_Pos.y = pArray[i].m_Y1;
 			m_aVertices[m_NumVertices + 6 * i + 1].m_Tex = m_aTexture[1];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i + 1], 1);
+			m_aVertices[m_NumVertices + 6 * i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 6 * i + 2].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 6 * i + 2].m_Pos.y = pArray[i].m_Y3;
 			m_aVertices[m_NumVertices + 6 * i + 2].m_Tex = m_aTexture[3];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i + 2], 3);
+			m_aVertices[m_NumVertices + 6 * i + 2].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 6 * i + 3].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 6 * i + 3].m_Pos.y = pArray[i].m_Y0;
 			m_aVertices[m_NumVertices + 6 * i + 3].m_Tex = m_aTexture[0];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i + 3], 0);
+			m_aVertices[m_NumVertices + 6 * i + 3].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6 * i + 4].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 6 * i + 4].m_Pos.y = pArray[i].m_Y3;
 			m_aVertices[m_NumVertices + 6 * i + 4].m_Tex = m_aTexture[3];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i + 4], 3);
+			m_aVertices[m_NumVertices + 6 * i + 4].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 6 * i + 5].m_Pos.x = pArray[i].m_X2;
 			m_aVertices[m_NumVertices + 6 * i + 5].m_Pos.y = pArray[i].m_Y2;
 			m_aVertices[m_NumVertices + 6 * i + 5].m_Tex = m_aTexture[2];
-			SetColor(&m_aVertices[m_NumVertices + 6 * i + 5], 2);
+			m_aVertices[m_NumVertices + 6 * i + 5].m_Color = m_aColor[2];
 		}
 
 		AddVertices(3 * 2 * Num);
@@ -985,22 +970,22 @@ void CGraphics_Threaded::QuadsDrawFreeform(const CFreeformItem *pArray, int Num)
 			m_aVertices[m_NumVertices + 4 * i].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 4 * i].m_Pos.y = pArray[i].m_Y0;
 			m_aVertices[m_NumVertices + 4 * i].m_Tex = m_aTexture[0];
-			SetColor(&m_aVertices[m_NumVertices + 4 * i], 0);
+			m_aVertices[m_NumVertices + 4 * i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 4 * i + 1].m_Pos.x = pArray[i].m_X1;
 			m_aVertices[m_NumVertices + 4 * i + 1].m_Pos.y = pArray[i].m_Y1;
 			m_aVertices[m_NumVertices + 4 * i + 1].m_Tex = m_aTexture[1];
-			SetColor(&m_aVertices[m_NumVertices + 4 * i + 1], 1);
+			m_aVertices[m_NumVertices + 4 * i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 4 * i + 2].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 4 * i + 2].m_Pos.y = pArray[i].m_Y3;
 			m_aVertices[m_NumVertices + 4 * i + 2].m_Tex = m_aTexture[3];
-			SetColor(&m_aVertices[m_NumVertices + 4 * i + 2], 3);
+			m_aVertices[m_NumVertices + 4 * i + 2].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 4 * i + 3].m_Pos.x = pArray[i].m_X2;
 			m_aVertices[m_NumVertices + 4 * i + 3].m_Pos.y = pArray[i].m_Y2;
 			m_aVertices[m_NumVertices + 4 * i + 3].m_Tex = m_aTexture[2];
-			SetColor(&m_aVertices[m_NumVertices + 4 * i + 3], 2);
+			m_aVertices[m_NumVertices + 4 * i + 3].m_Color = m_aColor[2];
 		}
 
 		AddVertices(4 * Num);
@@ -1036,14 +1021,24 @@ void CGraphics_Threaded::QuadsText(float x, float y, float Size, const char *pTe
 	}
 }
 
-void CGraphics_Threaded::DrawRectExt(float x, float y, float w, float h, float r, int Corners)
+class CRoundedRect
 {
-	const int NumSegments = 8;
-	const float SegmentsAngle = pi / 2 / NumSegments;
-	IGraphics::CFreeformItem aFreeform[NumSegments * 4];
-	size_t NumItems = 0;
+public:
+	static constexpr int NUM_SEGMENTS = 8;
 
-	for(int i = 0; i < NumSegments; i += 2)
+	IGraphics::CFreeformItem m_aFreeform[NUM_SEGMENTS * 4];
+	int m_aFreeformCorners[NUM_SEGMENTS * 4]; // corner each freeform item belongs to
+	int m_NumFreeform = 0;
+	IGraphics::CQuadItem m_aQuads[9];
+	int m_NumQuads = 0;
+};
+
+static CRoundedRect GetRoundedRect(float x, float y, float w, float h, float r, int Corners)
+{
+	CRoundedRect Rect;
+	const float SegmentsAngle = pi / 2 / CRoundedRect::NUM_SEGMENTS;
+
+	for(int i = 0; i < CRoundedRect::NUM_SEGMENTS; i += 2)
 	{
 		float a1 = i * SegmentsAngle;
 		float a2 = (i + 1) * SegmentsAngle;
@@ -1055,54 +1050,70 @@ void CGraphics_Threaded::DrawRectExt(float x, float y, float w, float h, float r
 		float Sa2 = std::sin(a2);
 		float Sa3 = std::sin(a3);
 
-		if(Corners & CORNER_TL)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
+		if(Corners & IGraphics::CORNER_TL)
+		{
+			Rect.m_aFreeformCorners[Rect.m_NumFreeform] = IGraphics::CORNER_TL;
+			Rect.m_aFreeform[Rect.m_NumFreeform++] = IGraphics::CFreeformItem(
 				x + r, y + r,
 				x + (1 - Ca1) * r, y + (1 - Sa1) * r,
 				x + (1 - Ca3) * r, y + (1 - Sa3) * r,
 				x + (1 - Ca2) * r, y + (1 - Sa2) * r);
+		}
 
-		if(Corners & CORNER_TR)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
+		if(Corners & IGraphics::CORNER_TR)
+		{
+			Rect.m_aFreeformCorners[Rect.m_NumFreeform] = IGraphics::CORNER_TR;
+			Rect.m_aFreeform[Rect.m_NumFreeform++] = IGraphics::CFreeformItem(
 				x + w - r, y + r,
 				x + w - r + Ca1 * r, y + (1 - Sa1) * r,
 				x + w - r + Ca3 * r, y + (1 - Sa3) * r,
 				x + w - r + Ca2 * r, y + (1 - Sa2) * r);
+		}
 
-		if(Corners & CORNER_BL)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
+		if(Corners & IGraphics::CORNER_BL)
+		{
+			Rect.m_aFreeformCorners[Rect.m_NumFreeform] = IGraphics::CORNER_BL;
+			Rect.m_aFreeform[Rect.m_NumFreeform++] = IGraphics::CFreeformItem(
 				x + r, y + h - r,
 				x + (1 - Ca1) * r, y + h - r + Sa1 * r,
 				x + (1 - Ca3) * r, y + h - r + Sa3 * r,
 				x + (1 - Ca2) * r, y + h - r + Sa2 * r);
+		}
 
-		if(Corners & CORNER_BR)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
+		if(Corners & IGraphics::CORNER_BR)
+		{
+			Rect.m_aFreeformCorners[Rect.m_NumFreeform] = IGraphics::CORNER_BR;
+			Rect.m_aFreeform[Rect.m_NumFreeform++] = IGraphics::CFreeformItem(
 				x + w - r, y + h - r,
 				x + w - r + Ca1 * r, y + h - r + Sa1 * r,
 				x + w - r + Ca3 * r, y + h - r + Sa3 * r,
 				x + w - r + Ca2 * r, y + h - r + Sa2 * r);
+		}
 	}
-	QuadsDrawFreeform(aFreeform, NumItems);
 
-	CQuadItem aQuads[9];
-	NumItems = 0;
-	aQuads[NumItems++] = CQuadItem(x + r, y + r, w - r * 2, h - r * 2); // center
-	aQuads[NumItems++] = CQuadItem(x + r, y, w - r * 2, r); // top
-	aQuads[NumItems++] = CQuadItem(x + r, y + h - r, w - r * 2, r); // bottom
-	aQuads[NumItems++] = CQuadItem(x, y + r, r, h - r * 2); // left
-	aQuads[NumItems++] = CQuadItem(x + w - r, y + r, r, h - r * 2); // right
+	Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + r, y + r, w - r * 2, h - r * 2); // center
+	Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + r, y, w - r * 2, r); // top
+	Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + r, y + h - r, w - r * 2, r); // bottom
+	Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x, y + r, r, h - r * 2); // left
+	Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + w - r, y + r, r, h - r * 2); // right
 
-	if(!(Corners & CORNER_TL))
-		aQuads[NumItems++] = CQuadItem(x, y, r, r);
-	if(!(Corners & CORNER_TR))
-		aQuads[NumItems++] = CQuadItem(x + w, y, -r, r);
-	if(!(Corners & CORNER_BL))
-		aQuads[NumItems++] = CQuadItem(x, y + h, r, -r);
-	if(!(Corners & CORNER_BR))
-		aQuads[NumItems++] = CQuadItem(x + w, y + h, -r, -r);
+	if(!(Corners & IGraphics::CORNER_TL))
+		Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x, y, r, r);
+	if(!(Corners & IGraphics::CORNER_TR))
+		Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + w, y, -r, r);
+	if(!(Corners & IGraphics::CORNER_BL))
+		Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x, y + h, r, -r);
+	if(!(Corners & IGraphics::CORNER_BR))
+		Rect.m_aQuads[Rect.m_NumQuads++] = IGraphics::CQuadItem(x + w, y + h, -r, -r);
 
-	QuadsDrawTL(aQuads, NumItems);
+	return Rect;
+}
+
+void CGraphics_Threaded::DrawRectExt(float x, float y, float w, float h, float r, int Corners)
+{
+	const CRoundedRect Rect = GetRoundedRect(x, y, w, h, r, Corners);
+	QuadsDrawFreeform(Rect.m_aFreeform, Rect.m_NumFreeform);
+	QuadsDrawTL(Rect.m_aQuads, Rect.m_NumQuads);
 }
 
 void CGraphics_Threaded::DrawRectExt4(float x, float y, float w, float h, ColorRGBA ColorTopLeft, ColorRGBA ColorTopRight, ColorRGBA ColorBottomLeft, ColorRGBA ColorBottomRight, float r, int Corners)
@@ -1115,111 +1126,59 @@ void CGraphics_Threaded::DrawRectExt4(float x, float y, float w, float h, ColorR
 		return;
 	}
 
-	const int NumSegments = 8;
-	const float SegmentsAngle = pi / 2 / NumSegments;
-	for(int i = 0; i < NumSegments; i += 2)
+	const CRoundedRect Rect = GetRoundedRect(x, y, w, h, r, Corners);
+
+	for(int i = 0; i < Rect.m_NumFreeform; i++)
 	{
-		float a1 = i * SegmentsAngle;
-		float a2 = (i + 1) * SegmentsAngle;
-		float a3 = (i + 2) * SegmentsAngle;
-		float Ca1 = std::cos(a1);
-		float Ca2 = std::cos(a2);
-		float Ca3 = std::cos(a3);
-		float Sa1 = std::sin(a1);
-		float Sa2 = std::sin(a2);
-		float Sa3 = std::sin(a3);
-
-		if(Corners & CORNER_TL)
+		switch(Rect.m_aFreeformCorners[i])
 		{
-			SetColor(ColorTopLeft);
-			IGraphics::CFreeformItem ItemF = IGraphics::CFreeformItem(
-				x + r, y + r,
-				x + (1 - Ca1) * r, y + (1 - Sa1) * r,
-				x + (1 - Ca3) * r, y + (1 - Sa3) * r,
-				x + (1 - Ca2) * r, y + (1 - Sa2) * r);
-			QuadsDrawFreeform(&ItemF, 1);
+		case IGraphics::CORNER_TL: SetColor(ColorTopLeft); break;
+		case IGraphics::CORNER_TR: SetColor(ColorTopRight); break;
+		case IGraphics::CORNER_BL: SetColor(ColorBottomLeft); break;
+		case IGraphics::CORNER_BR: SetColor(ColorBottomRight); break;
+		default: dbg_assert_failed("unknown corner type %d", Corners);
 		}
-
-		if(Corners & CORNER_TR)
-		{
-			SetColor(ColorTopRight);
-			IGraphics::CFreeformItem ItemF = IGraphics::CFreeformItem(
-				x + w - r, y + r,
-				x + w - r + Ca1 * r, y + (1 - Sa1) * r,
-				x + w - r + Ca3 * r, y + (1 - Sa3) * r,
-				x + w - r + Ca2 * r, y + (1 - Sa2) * r);
-			QuadsDrawFreeform(&ItemF, 1);
-		}
-
-		if(Corners & CORNER_BL)
-		{
-			SetColor(ColorBottomLeft);
-			IGraphics::CFreeformItem ItemF = IGraphics::CFreeformItem(
-				x + r, y + h - r,
-				x + (1 - Ca1) * r, y + h - r + Sa1 * r,
-				x + (1 - Ca3) * r, y + h - r + Sa3 * r,
-				x + (1 - Ca2) * r, y + h - r + Sa2 * r);
-			QuadsDrawFreeform(&ItemF, 1);
-		}
-
-		if(Corners & CORNER_BR)
-		{
-			SetColor(ColorBottomRight);
-			IGraphics::CFreeformItem ItemF = IGraphics::CFreeformItem(
-				x + w - r, y + h - r,
-				x + w - r + Ca1 * r, y + h - r + Sa1 * r,
-				x + w - r + Ca3 * r, y + h - r + Sa3 * r,
-				x + w - r + Ca2 * r, y + h - r + Sa2 * r);
-			QuadsDrawFreeform(&ItemF, 1);
-		}
+		QuadsDrawFreeform(&Rect.m_aFreeform[i], 1);
 	}
 
 	SetColor4(ColorTopLeft, ColorTopRight, ColorBottomLeft, ColorBottomRight);
-	CQuadItem ItemQ = CQuadItem(x + r, y + r, w - r * 2, h - r * 2); // center
-	QuadsDrawTL(&ItemQ, 1);
+	QuadsDrawTL(&Rect.m_aQuads[0], 1); // center
 
 	SetColor4(ColorTopLeft, ColorTopRight, ColorTopLeft, ColorTopRight);
-	ItemQ = CQuadItem(x + r, y, w - r * 2, r); // top
-	QuadsDrawTL(&ItemQ, 1);
+	QuadsDrawTL(&Rect.m_aQuads[1], 1); // top
 
 	SetColor4(ColorBottomLeft, ColorBottomRight, ColorBottomLeft, ColorBottomRight);
-	ItemQ = CQuadItem(x + r, y + h - r, w - r * 2, r); // bottom
-	QuadsDrawTL(&ItemQ, 1);
+	QuadsDrawTL(&Rect.m_aQuads[2], 1); // bottom
 
 	SetColor4(ColorTopLeft, ColorTopLeft, ColorBottomLeft, ColorBottomLeft);
-	ItemQ = CQuadItem(x, y + r, r, h - r * 2); // left
-	QuadsDrawTL(&ItemQ, 1);
+	QuadsDrawTL(&Rect.m_aQuads[3], 1); // left
 
 	SetColor4(ColorTopRight, ColorTopRight, ColorBottomRight, ColorBottomRight);
-	ItemQ = CQuadItem(x + w - r, y + r, r, h - r * 2); // right
-	QuadsDrawTL(&ItemQ, 1);
+	QuadsDrawTL(&Rect.m_aQuads[4], 1); // right
 
-	if(!(Corners & CORNER_TL))
+	int QuadIndex = 5;
+	if(!(Corners & IGraphics::CORNER_TL))
 	{
 		SetColor(ColorTopLeft);
-		ItemQ = CQuadItem(x, y, r, r);
-		QuadsDrawTL(&ItemQ, 1);
+		QuadsDrawTL(&Rect.m_aQuads[QuadIndex++], 1);
 	}
 
-	if(!(Corners & CORNER_TR))
+	if(!(Corners & IGraphics::CORNER_TR))
 	{
 		SetColor(ColorTopRight);
-		ItemQ = CQuadItem(x + w, y, -r, r);
-		QuadsDrawTL(&ItemQ, 1);
+		QuadsDrawTL(&Rect.m_aQuads[QuadIndex++], 1);
 	}
 
-	if(!(Corners & CORNER_BL))
+	if(!(Corners & IGraphics::CORNER_BL))
 	{
 		SetColor(ColorBottomLeft);
-		ItemQ = CQuadItem(x, y + h, r, -r);
-		QuadsDrawTL(&ItemQ, 1);
+		QuadsDrawTL(&Rect.m_aQuads[QuadIndex++], 1);
 	}
 
-	if(!(Corners & CORNER_BR))
+	if(!(Corners & IGraphics::CORNER_BR))
 	{
 		SetColor(ColorBottomRight);
-		ItemQ = CQuadItem(x + w, y + h, -r, -r);
-		QuadsDrawTL(&ItemQ, 1);
+		QuadsDrawTL(&Rect.m_aQuads[QuadIndex++], 1);
 	}
 }
 
@@ -1236,74 +1195,12 @@ int CGraphics_Threaded::CreateRectQuadContainer(float x, float y, float w, float
 		return ContainerIndex;
 	}
 
-	const int NumSegments = 8;
-	const float SegmentsAngle = pi / 2 / NumSegments;
-	IGraphics::CFreeformItem aFreeform[NumSegments * 4];
-	size_t NumItems = 0;
+	const CRoundedRect Rect = GetRoundedRect(x, y, w, h, r, Corners);
 
-	for(int i = 0; i < NumSegments; i += 2)
-	{
-		float a1 = i * SegmentsAngle;
-		float a2 = (i + 1) * SegmentsAngle;
-		float a3 = (i + 2) * SegmentsAngle;
-		float Ca1 = std::cos(a1);
-		float Ca2 = std::cos(a2);
-		float Ca3 = std::cos(a3);
-		float Sa1 = std::sin(a1);
-		float Sa2 = std::sin(a2);
-		float Sa3 = std::sin(a3);
-
-		if(Corners & CORNER_TL)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
-				x + r, y + r,
-				x + (1 - Ca1) * r, y + (1 - Sa1) * r,
-				x + (1 - Ca3) * r, y + (1 - Sa3) * r,
-				x + (1 - Ca2) * r, y + (1 - Sa2) * r);
-
-		if(Corners & CORNER_TR)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
-				x + w - r, y + r,
-				x + w - r + Ca1 * r, y + (1 - Sa1) * r,
-				x + w - r + Ca3 * r, y + (1 - Sa3) * r,
-				x + w - r + Ca2 * r, y + (1 - Sa2) * r);
-
-		if(Corners & CORNER_BL)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
-				x + r, y + h - r,
-				x + (1 - Ca1) * r, y + h - r + Sa1 * r,
-				x + (1 - Ca3) * r, y + h - r + Sa3 * r,
-				x + (1 - Ca2) * r, y + h - r + Sa2 * r);
-
-		if(Corners & CORNER_BR)
-			aFreeform[NumItems++] = IGraphics::CFreeformItem(
-				x + w - r, y + h - r,
-				x + w - r + Ca1 * r, y + h - r + Sa1 * r,
-				x + w - r + Ca3 * r, y + h - r + Sa3 * r,
-				x + w - r + Ca2 * r, y + h - r + Sa2 * r);
-	}
-
-	if(NumItems > 0)
-		QuadContainerAddQuads(ContainerIndex, aFreeform, NumItems);
-
-	CQuadItem aQuads[9];
-	NumItems = 0;
-	aQuads[NumItems++] = CQuadItem(x + r, y + r, w - r * 2, h - r * 2); // center
-	aQuads[NumItems++] = CQuadItem(x + r, y, w - r * 2, r); // top
-	aQuads[NumItems++] = CQuadItem(x + r, y + h - r, w - r * 2, r); // bottom
-	aQuads[NumItems++] = CQuadItem(x, y + r, r, h - r * 2); // left
-	aQuads[NumItems++] = CQuadItem(x + w - r, y + r, r, h - r * 2); // right
-
-	if(!(Corners & CORNER_TL))
-		aQuads[NumItems++] = CQuadItem(x, y, r, r);
-	if(!(Corners & CORNER_TR))
-		aQuads[NumItems++] = CQuadItem(x + w, y, -r, r);
-	if(!(Corners & CORNER_BL))
-		aQuads[NumItems++] = CQuadItem(x, y + h, r, -r);
-	if(!(Corners & CORNER_BR))
-		aQuads[NumItems++] = CQuadItem(x + w, y + h, -r, -r);
-
-	if(NumItems > 0)
-		QuadContainerAddQuads(ContainerIndex, aQuads, NumItems);
+	if(Rect.m_NumFreeform > 0)
+		QuadContainerAddQuads(ContainerIndex, Rect.m_aFreeform, Rect.m_NumFreeform);
+	if(Rect.m_NumQuads > 0)
+		QuadContainerAddQuads(ContainerIndex, Rect.m_aQuads, Rect.m_NumQuads);
 
 	QuadContainerUpload(ContainerIndex);
 	QuadContainerChangeAutomaticUpload(ContainerIndex, true);
@@ -1549,7 +1446,7 @@ void CGraphics_Threaded::QuadContainerUpload(int ContainerIndex)
 	}
 }
 
-int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, CQuadItem *pArray, int Num)
+int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, const CQuadItem *pArray, int Num)
 {
 	SQuadContainer &Container = m_vQuadContainers[ContainerIndex];
 
@@ -1566,22 +1463,22 @@ int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, CQuadItem *pAr
 		Quad.m_aVertices[0].m_Pos.x = pArray[i].m_X;
 		Quad.m_aVertices[0].m_Pos.y = pArray[i].m_Y;
 		Quad.m_aVertices[0].m_Tex = m_aTexture[0];
-		SetColor(&Quad.m_aVertices[0], 0);
+		Quad.m_aVertices[0].m_Color = m_aColor[0];
 
 		Quad.m_aVertices[1].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 		Quad.m_aVertices[1].m_Pos.y = pArray[i].m_Y;
 		Quad.m_aVertices[1].m_Tex = m_aTexture[1];
-		SetColor(&Quad.m_aVertices[1], 1);
+		Quad.m_aVertices[1].m_Color = m_aColor[1];
 
 		Quad.m_aVertices[2].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 		Quad.m_aVertices[2].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
 		Quad.m_aVertices[2].m_Tex = m_aTexture[2];
-		SetColor(&Quad.m_aVertices[2], 2);
+		Quad.m_aVertices[2].m_Color = m_aColor[2];
 
 		Quad.m_aVertices[3].m_Pos.x = pArray[i].m_X;
 		Quad.m_aVertices[3].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
 		Quad.m_aVertices[3].m_Tex = m_aTexture[3];
-		SetColor(&Quad.m_aVertices[3], 3);
+		Quad.m_aVertices[3].m_Color = m_aColor[3];
 
 		if(m_Rotation != 0)
 		{
@@ -1599,7 +1496,7 @@ int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, CQuadItem *pAr
 	return RetOff;
 }
 
-int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, CFreeformItem *pArray, int Num)
+int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, const CFreeformItem *pArray, int Num)
 {
 	SQuadContainer &Container = m_vQuadContainers[ContainerIndex];
 
@@ -1616,22 +1513,22 @@ int CGraphics_Threaded::QuadContainerAddQuads(int ContainerIndex, CFreeformItem 
 		Quad.m_aVertices[0].m_Pos.x = pArray[i].m_X0;
 		Quad.m_aVertices[0].m_Pos.y = pArray[i].m_Y0;
 		Quad.m_aVertices[0].m_Tex = m_aTexture[0];
-		SetColor(&Quad.m_aVertices[0], 0);
+		Quad.m_aVertices[0].m_Color = m_aColor[0];
 
 		Quad.m_aVertices[1].m_Pos.x = pArray[i].m_X1;
 		Quad.m_aVertices[1].m_Pos.y = pArray[i].m_Y1;
 		Quad.m_aVertices[1].m_Tex = m_aTexture[1];
-		SetColor(&Quad.m_aVertices[1], 1);
+		Quad.m_aVertices[1].m_Color = m_aColor[1];
 
 		Quad.m_aVertices[2].m_Pos.x = pArray[i].m_X3;
 		Quad.m_aVertices[2].m_Pos.y = pArray[i].m_Y3;
 		Quad.m_aVertices[2].m_Tex = m_aTexture[3];
-		SetColor(&Quad.m_aVertices[2], 3);
+		Quad.m_aVertices[2].m_Color = m_aColor[3];
 
 		Quad.m_aVertices[3].m_Pos.x = pArray[i].m_X2;
 		Quad.m_aVertices[3].m_Pos.y = pArray[i].m_Y2;
 		Quad.m_aVertices[3].m_Tex = m_aTexture[2];
-		SetColor(&Quad.m_aVertices[3], 2);
+		Quad.m_aVertices[3].m_Color = m_aColor[2];
 	}
 
 	if(Container.m_AutomaticUpload)
@@ -1791,8 +1688,7 @@ void CGraphics_Threaded::RenderQuadContainerEx(int ContainerIndex, int QuadOffse
 				{
 					m_aVertices[i * 6 + n].m_Pos.x *= ScaleX;
 					m_aVertices[i * 6 + n].m_Pos.y *= ScaleY;
-
-					SetColor(&m_aVertices[i * 6 + n], 0);
+					m_aVertices[i * 6 + n].m_Color = m_aColor[0];
 				}
 
 				if(m_Rotation != 0)
@@ -1821,7 +1717,7 @@ void CGraphics_Threaded::RenderQuadContainerEx(int ContainerIndex, int QuadOffse
 				{
 					m_aVertices[i * 4 + n].m_Pos.x *= ScaleX;
 					m_aVertices[i * 4 + n].m_Pos.y *= ScaleY;
-					SetColor(&m_aVertices[i * 4 + n], 0);
+					m_aVertices[i * 4 + n].m_Color = m_aColor[0];
 				}
 
 				if(m_Rotation != 0)
@@ -2242,21 +2138,27 @@ int CGraphics_Threaded::IssueInit()
 
 void CGraphics_Threaded::AdjustViewport(bool SendViewportChangeToBackend)
 {
+	// exclude the area covered by the display cutout, as nothing rendered there is visible
+	int InsetLeft, InsetRight;
+	m_pBackend->GetDisplayCutoutInsets(InsetLeft, InsetRight);
+	m_ViewportX = InsetLeft;
+	m_ScreenWidth = m_DrawableWidth - InsetLeft - InsetRight;
+
 	// adjust the viewport to only allow certain aspect ratios
 	// keep this in sync with backend_vulkan GetSwapImageSize's check
 	if(m_ScreenHeight > 4 * m_ScreenWidth / 5)
 	{
 		m_IsForcedViewport = true;
 		m_ScreenHeight = 4 * m_ScreenWidth / 5;
-
-		if(SendViewportChangeToBackend)
-		{
-			UpdateViewport(0, 0, m_ScreenWidth, m_ScreenHeight, true);
-		}
 	}
 	else
 	{
 		m_IsForcedViewport = false;
+	}
+
+	if(SendViewportChangeToBackend && (m_ScreenWidth != m_DrawableWidth || m_ScreenHeight != m_DrawableHeight))
+	{
+		UpdateViewport(m_ViewportX, 0, m_ScreenWidth, m_ScreenHeight, true);
 	}
 }
 
@@ -2610,6 +2512,13 @@ void CGraphics_Threaded::Move(int x, int y)
 		PropChangedListener();
 }
 
+void CGraphics_Threaded::SetScreenSize(int Width, int Height)
+{
+	m_ScreenWidth = Width;
+	m_ScreenHeight = Height;
+	UpdateViewport(0, 0, m_ScreenWidth, m_ScreenHeight, true);
+}
+
 bool CGraphics_Threaded::Resize(int w, int h, int RefreshRate)
 {
 #if defined(CONF_VIDEORECORDER)
@@ -2669,7 +2578,7 @@ void CGraphics_Threaded::GotResized(int w, int h, int RefreshRate)
 	g_Config.m_GfxScreenRefreshRate = m_ScreenRefreshRate;
 
 	auto OldDpi = m_ScreenHiDPIScale;
-	m_ScreenHiDPIScale = m_ScreenWidth / (float)g_Config.m_GfxScreenWidth;
+	m_ScreenHiDPIScale = m_DrawableWidth / (float)g_Config.m_GfxScreenWidth;
 
 	// A DPI change must notify the listeners, since e.g. video modes
 	// currently depend on it.
@@ -2679,7 +2588,7 @@ void CGraphics_Threaded::GotResized(int w, int h, int RefreshRate)
 			PropChangedListener();
 	}
 
-	UpdateViewport(0, 0, m_ScreenWidth, m_ScreenHeight, true);
+	UpdateViewport(m_ViewportX, 0, m_ScreenWidth, m_ScreenHeight, true);
 
 	// kick the command buffer and wait
 	KickCommandBuffer();
@@ -2799,8 +2708,30 @@ void CGraphics_Threaded::TakeCustomScreenshot(const char *pFilename)
 	m_DoScreenshot = true;
 }
 
+void CGraphics_Threaded::ReadFramebuffer(CImageInfo &Image)
+{
+	CCommandBuffer::SCommand_TrySwapAndScreenshot Cmd;
+	Cmd.m_pImage = &Image;
+	bool Swapped = false;
+	Cmd.m_pSwapped = &Swapped;
+	AddCmd(Cmd);
+	KickCommandBuffer();
+	WaitForIdle();
+}
+
 void CGraphics_Threaded::Swap()
 {
+#if defined(CONF_PLATFORM_IOS)
+	// Rotating the device by 180 degrees moves the cutout to the other side without
+	// changing the window size, which would not cause a resize event.
+	int InsetLeft, InsetRight;
+	m_pBackend->GetDisplayCutoutInsets(InsetLeft, InsetRight);
+	if(InsetLeft != m_ViewportX || m_DrawableWidth - InsetLeft - InsetRight != m_ScreenWidth)
+	{
+		GotResized(g_Config.m_GfxScreenWidth, g_Config.m_GfxScreenHeight, -1);
+	}
+#endif
+
 	bool Swapped = false;
 	ScreenshotDirect(&Swapped);
 	ReadPixelDirect(&Swapped);
@@ -2812,11 +2743,6 @@ void CGraphics_Threaded::Swap()
 	}
 
 	KickCommandBuffer();
-	// TODO: Remove when https://github.com/libsdl-org/SDL/issues/5203 is fixed
-#ifdef CONF_PLATFORM_MACOS
-	if(str_find(GetVersionString(), "Metal"))
-		WaitForIdle();
-#endif
 }
 
 bool CGraphics_Threaded::SetVSync(bool State)

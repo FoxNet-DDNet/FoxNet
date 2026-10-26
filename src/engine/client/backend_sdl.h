@@ -7,7 +7,12 @@
 #include <engine/client/graphics_threaded.h>
 #include <engine/graphics.h>
 
+#ifndef BACKEND_NO_SDL
 #include <SDL_video.h>
+#else
+struct SDL_Window;
+typedef void *SDL_GLContext;
+#endif
 
 #include <atomic>
 #include <condition_variable>
@@ -259,6 +264,7 @@ public:
 	void SetWindowGrab(bool Grab) override;
 	bool ResizeWindow(int w, int h, int RefreshRate) override;
 	void GetViewportSize(int &w, int &h) override;
+	void GetDisplayCutoutInsets(int &Left, int &Right) override;
 	void NotifyWindow() override;
 	bool IsScreenKeyboardShown() override;
 

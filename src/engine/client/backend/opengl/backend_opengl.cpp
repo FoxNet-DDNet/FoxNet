@@ -6,7 +6,9 @@
 #include <base/mem.h>
 #include <base/str.h>
 
+#ifndef BACKEND_NO_SDL
 #include <engine/client/backend_sdl.h>
+#endif
 #include <engine/graphics.h>
 
 #include <cstdint>
@@ -50,6 +52,7 @@ void CCommandProcessorFragment_OpenGL::Cmd_Update_Viewport(const CCommandBuffer:
 	{
 		m_CanvasWidth = (uint32_t)pCommand->m_Width;
 		m_CanvasHeight = (uint32_t)pCommand->m_Height;
+		m_HasDisplayCutout = pCommand->m_Width != pCommand->m_DrawableWidth;
 	}
 	glViewport(m_ViewportX, m_ViewportY, pCommand->m_Width, pCommand->m_Height);
 }
@@ -959,11 +962,22 @@ void CCommandProcessorFragment_OpenGL::Cmd_Clear(const CCommandBuffer::SCommand_
 	{
 		glDisable(GL_SCISSOR_TEST);
 	}
+	if(m_HasDisplayCutout)
+	{
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glScissor(m_ViewportX, m_ViewportY, m_CanvasWidth, m_CanvasHeight);
+		glEnable(GL_SCISSOR_TEST);
+	}
 	glClearColor(pCommand->m_Color.r, pCommand->m_Color.g, pCommand->m_Color.b, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if(ClipWasEnabled)
 	{
 		glEnable(GL_SCISSOR_TEST);
+	}
+	else if(m_HasDisplayCutout)
+	{
+		glDisable(GL_SCISSOR_TEST);
 	}
 }
 
@@ -1050,7 +1064,8 @@ void CCommandProcessorFragment_OpenGL::Cmd_Screenshot(const CCommandBuffer::SCom
 	glPixelStorei(GL_PACK_ALIGNMENT, Alignment);
 
 	// flip the pixel because opengl works from bottom left corner
-	for(int y = 0; y < h / 2; y++)
+	// with an odd height also flip the middle row (with itself) so it forces alpha = 255
+	for(int y = 0; y < (h + 1) / 2; y++)
 	{
 		mem_copy(pTempRow, pPixelData + y * w * 4, w * 4);
 		mem_copy(pPixelData + y * w * 4, pPixelData + (h - y - 1) * w * 4, w * 4);
@@ -1581,6 +1596,8 @@ bool CCommandProcessorFragment_OpenGL2::Cmd_Init(const SCommand_Init *pCommand)
 
 	m_pTileProgram = nullptr;
 	m_pTileProgramTextured = nullptr;
+	m_pBorderTileProgram = nullptr;
+	m_pBorderTileProgramTextured = nullptr;
 	m_pPrimitive3DProgram = nullptr;
 	m_pPrimitive3DProgramTextured = nullptr;
 
@@ -1629,9 +1646,9 @@ bool CCommandProcessorFragment_OpenGL2::Cmd_Init(const SCommand_Init *pCommand)
 			ShaderCompiler.SetHasTextureArray(pCommand->m_pCapabilities->m_2DArrayTextures);
 
 			if(pCommand->m_pCapabilities->m_2DArrayTextures)
-				ShaderCompiler.SetTextureReplaceType(CGLSLCompiler::GLSL_COMPILER_TEXTURE_REPLACE_TYPE_2D_ARRAY);
+				ShaderCompiler.SetTextureReplaceType(CGLSLCompiler::ETextureReplaceType::TEXTURE_2D_ARRAY);
 			else
-				ShaderCompiler.SetTextureReplaceType(CGLSLCompiler::GLSL_COMPILER_TEXTURE_REPLACE_TYPE_3D);
+				ShaderCompiler.SetTextureReplaceType(CGLSLCompiler::ETextureReplaceType::TEXTURE_3D);
 
 			{
 				CGLSL PrimitiveVertexShader;
@@ -1801,21 +1818,21 @@ void CCommandProcessorFragment_OpenGL2::Cmd_Shutdown(const SCommand_Shutdown *pC
 	if(m_HasShaders)
 	{
 		glUseProgram(0);
+
+		m_pTileProgram->DeleteProgram();
+		m_pTileProgramTextured->DeleteProgram();
+		m_pBorderTileProgram->DeleteProgram();
+		m_pBorderTileProgramTextured->DeleteProgram();
+		m_pPrimitive3DProgram->DeleteProgram();
+		m_pPrimitive3DProgramTextured->DeleteProgram();
+
+		delete m_pTileProgram;
+		delete m_pTileProgramTextured;
+		delete m_pBorderTileProgram;
+		delete m_pBorderTileProgramTextured;
+		delete m_pPrimitive3DProgram;
+		delete m_pPrimitive3DProgramTextured;
 	}
-
-	m_pTileProgram->DeleteProgram();
-	m_pTileProgramTextured->DeleteProgram();
-	m_pBorderTileProgram->DeleteProgram();
-	m_pBorderTileProgramTextured->DeleteProgram();
-	m_pPrimitive3DProgram->DeleteProgram();
-	m_pPrimitive3DProgramTextured->DeleteProgram();
-
-	delete m_pTileProgram;
-	delete m_pTileProgramTextured;
-	delete m_pBorderTileProgram;
-	delete m_pBorderTileProgramTextured;
-	delete m_pPrimitive3DProgram;
-	delete m_pPrimitive3DProgramTextured;
 
 	for(int i = 0; i < (int)m_vTextures.size(); ++i)
 	{

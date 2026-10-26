@@ -13,6 +13,7 @@
 #include <base/dbg.h>
 
 #include <engine/client/backend/backend_base.h>
+#include <engine/client/backend_sdl.h>
 #include <engine/client/graphics_defines.h>
 
 class CGLSLTWProgram;
@@ -58,6 +59,7 @@ protected:
 	int m_ViewportY = 0;
 	uint32_t m_CanvasWidth = 0;
 	uint32_t m_CanvasHeight = 0;
+	bool m_HasDisplayCutout = false;
 
 	TWGLint m_MaxTexSize;
 
