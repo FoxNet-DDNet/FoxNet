@@ -659,7 +659,7 @@ void CGameContext::ConSetAbility(IConsole::IResult *pResult, void *pUserData)
 
 	const EAbility Ability = (EAbility)pResult->GetInteger(0);
 	pPlayer->SetAbility(Ability);
-	log_info("server", "Set ability to %d for player '%s'", Ability, pSelf->Server()->ClientName(Victim));
+	log_info("server", "Set ability to %d for player '%s'", (int)Ability, pSelf->Server()->ClientName(Victim));
 }
 
 void CGameContext::ConIgnoreGameLayer(IConsole::IResult *pResult, void *pUserData)

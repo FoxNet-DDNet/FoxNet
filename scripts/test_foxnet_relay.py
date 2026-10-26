@@ -155,10 +155,10 @@ def main():
                 until(lambda: request(ports[0], f"/api/commands/{event}", "admin0")[1]
                       .get("peer_ack"))
                 return event
-            fpr_expiry = int(time.time()) + 30
-            send_fingerprint(f"antibot fingerprint_add {fingerprint_id} {fpr_expiry} c2VjcmV0")
+            fingerprint_expiry = int(time.time()) + 30
+            send_fingerprint(f"antibot fingerprint_add {fingerprint_id} {fingerprint_expiry} c2VjcmV0")
             update_event = send_fingerprint(
-                f"antibot fingerprint_add {fingerprint_id} {fpr_expiry} bmV3LXNlY3JldA==")
+                f"antibot fingerprint_add {fingerprint_id} {fingerprint_expiry} bmV3LXNlY3JldA==")
             for index in range(2):
                 with closing(sqlite3.connect(Path(root) / f"relay{index}.sqlite3")) as db:
                     row = db.execute("SELECT command FROM ban_state WHERE kind='fingerprint' AND target=?",

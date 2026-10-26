@@ -87,8 +87,8 @@ void CHeadItem::Tick()
 
 	const float CurSpeed = length(Vel);
 
-	bool XStopped = abs(Vel.x) < 0.6f && abs(PrevVel.x) > 2.0f;
-	bool YStopped = abs(Vel.y) < 0.6f && abs(PrevVel.y) > 2.0f;
+	bool XStopped = std::abs(Vel.x) < 0.6f && std::abs(PrevVel.x) > 2.0f;
+	bool YStopped = std::abs(Vel.y) < 0.6f && std::abs(PrevVel.y) > 2.0f;
 
 	constexpr float StopStrength = 0.08f;
 	if(XStopped)
