@@ -3391,7 +3391,6 @@ void CGameContext::ConTuneZone(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int List = pResult->GetInteger(0);
 	const char *pParamName = pResult->GetString(1);
-	float NewValue = pResult->GetFloat(2);
 	// <FoxNet
 	int MultiMapIndex = pResult->GetMultiMapIndex();
 	if(MultiMapIndex < 0)
@@ -3401,11 +3400,25 @@ void CGameContext::ConTuneZone(IConsole::IResult *pResult, void *pUserData)
 	if(List >= 0 && List < TuneZone::NUM)
 	{
 		char aBuf[256];
-		if(pSelf->TuningList(MultiMapIndex)[List].Set(pParamName, NewValue) && pSelf->TuningList(MultiMapIndex)[List].Get(pParamName, &NewValue))
+		float Value;
+		if(pResult->NumArguments() == 3)
 		{
-			str_format(aBuf, sizeof(aBuf), "%s in zone %d changed to %.2f (MapIdx=%d)", pParamName, List, NewValue, MultiMapIndex);
+			Value = pResult->GetFloat(2);
+			if(pSelf->TuningList(MultiMapIndex)[List].Set(pParamName, Value) && pSelf->TuningList(MultiMapIndex)[List].Get(pParamName, &Value))
+			{
+				str_format(aBuf, sizeof(aBuf), "%s in zone %d changed to %.2f (MapIdx=%d)", pParamName, List, Value, MultiMapIndex);
+				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
+				pSelf->SendTuningParams(-1, List);
+			}
+			else
+			{
+				log_error("tuning", "No such tuning parameter: %s", pParamName);
+			}
+		}
+		else if(pSelf->TuningList(MultiMapIndex)[List].Get(pParamName, &Value))
+		{
+			str_format(aBuf, sizeof(aBuf), "zone %d: %s %.2f (MapIdx=%d)", List, pParamName, Value, MultiMapIndex);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
-			pSelf->SendTuningParams(-1, List);
 		}
 		else
 		{
@@ -4371,7 +4384,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("toggle_tune", "s[tuning] f[value 1] f[value 2]", CFGFLAG_SERVER, ConToggleTuneParam, this, "Toggle tune variable");
 	Console()->Register("tune_reset", "?s[tuning]", CFGFLAG_SERVER, ConTuneReset, this, "Reset all or one tuning variable to default");
 	Console()->Register("tunes", "", CFGFLAG_SERVER, ConTunes, this, "List all tuning variables and their values");
-	Console()->Register("tune_zone", "i[zone] s[tuning] f[value]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneZone, this, "Tune in zone a variable to value");
+	Console()->Register("tune_zone", "i[zone] s[tuning] ?f[value]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneZone, this, "Tune a variable in a zone to a value or show its current value");
 	Console()->Register("tune_zone_dump", "i[zone]", CFGFLAG_SERVER, ConTuneDumpZone, this, "Dump zone tuning in zone x");
 	Console()->Register("tune_zone_reset", "?i[zone]", CFGFLAG_SERVER, ConTuneResetZone, this, "Reset zone tuning in zone x or in all zones");
 	Console()->Register("tune_zone_enter", "i[zone] r[message]", CFGFLAG_SERVER | CFGFLAG_GAME, ConTuneSetZoneMsgEnter, this, "Which message to display on zone enter; use 0 for normal area");
