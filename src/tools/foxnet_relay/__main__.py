@@ -143,13 +143,21 @@ def open_peer(peer_request, timeout):
 def valid_command(value):
     return (isinstance(value, str) and value and value == value.strip()
             and not any(c in value for c in "\r\n\0")
-            and len(value.encode("utf-8")) <= 900)
+            and len(value.encode("utf-8")) <=
+            (1400 if value.startswith("antibot fingerprint_") else 900))
 
 
 def delivery_expiry(command, now, ttl, replay):
     expires = now + ttl
     if replay:
         parts = command.split(" ", 4)
+        if len(parts) >= 4 and parts[:2] == ["antibot", "fingerprint_add"]:
+            try:
+                timestamp = int(parts[3])
+                if timestamp > 0:
+                    return min(expires, timestamp)
+            except ValueError:
+                pass
         index = 2 if parts[0] == "ban_timestamp" else 3 if parts[0] == "ban_range_timestamp" else -1
         if index >= 0 and len(parts) > index:
             try:
@@ -163,6 +171,13 @@ def delivery_expiry(command, now, ttl, replay):
 
 def ban_change(command):
     parts = command.split(" ")
+    fingerprint_id = (len(parts) >= 3 and 1 <= len(parts[2]) <= 64
+                      and all(c.isascii() and (c.isalnum() or c in "_-") for c in parts[2]))
+    if (len(parts) == 5 and parts[:2] == ["antibot", "fingerprint_add"]
+            and fingerprint_id and (parts[3].isdigit() or parts[3] == "-1")):
+        return "fingerprint", parts[2], command
+    if len(parts) == 3 and parts[:2] == ["antibot", "fingerprint_delete"] and fingerprint_id:
+        return "fingerprint", parts[2], ""
     if len(parts) >= 3 and parts[0] == "ban_timestamp":
         return "addr", parts[1], command
     if len(parts) >= 4 and parts[0] == "ban_range_timestamp":
@@ -205,6 +220,12 @@ def apply_ban_change(db, event):
     db.executemany("""UPDATE deliveries SET state='superseded'
                       WHERE command_id=? AND state IN ('pending','awaiting_ack')""",
                    ((event_id,) for event_id in previous))
+    if kind in ("fingerprint", "all") and previous:
+        db.executemany("""DELETE FROM deliveries WHERE command_id IN
+                          (SELECT id FROM commands WHERE id=? AND command LIKE 'antibot fingerprint_%')""",
+                       ((event_id,) for event_id in previous))
+        db.executemany("DELETE FROM commands WHERE id=? AND command LIKE 'antibot fingerprint_%'",
+                       ((event_id,) for event_id in previous))
     return kind != "all"
 
 
@@ -494,8 +515,13 @@ def replicate():
 
 
 def prune_expired():
+    now = int(time.time())
     cutoff = int(time.time()) - 7 * 86400
     with database() as db:
+        db.execute("DELETE FROM ban_state WHERE kind='fingerprint' AND expires<=?", (now,))
+        db.execute("""DELETE FROM deliveries WHERE command_id IN
+                      (SELECT id FROM commands WHERE command LIKE 'antibot fingerprint_add %' AND expires<=?)""", (now,))
+        db.execute("DELETE FROM commands WHERE command LIKE 'antibot fingerprint_add %' AND expires<=?", (now,))
         db.execute("""DELETE FROM deliveries WHERE command_id IN
                       (SELECT id FROM commands WHERE expires<? AND peer_ack=1 AND logged=1)""",
                    (cutoff,))
@@ -504,6 +530,8 @@ def prune_expired():
 
 def command_for_log(command):
     name = command.split(" ", 1)[0].lower()
+    if command.startswith("antibot fingerprint_"):
+        return "antibot fingerprint_ <redacted>"
     if name.startswith("auth_") or any(word in name for word in ("password", "token", "secret")):
         return name + " <redacted>"
     return "".join(char if char.isprintable() else " " for char in command)
@@ -535,7 +563,7 @@ def worker():
     while True:
         try:
             replicate()
-            if time.monotonic() - last_prune >= 3600:
+            if time.monotonic() - last_prune >= 5:
                 prune_expired()
                 last_prune = time.monotonic()
         except Exception:

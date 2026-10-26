@@ -5,6 +5,8 @@
 
 #include <base/dynamic.h>
 
+#include <cstdint>
+
 class IConsole;
 class CGameContext;
 
@@ -41,6 +43,13 @@ public:
 
 extern CAntibobContext g_AntibobContext;
 
+using FAntibobBanHook = void (*)(int ClientId, int64_t Expires, const char *pReason, const char *pTarget, bool Range, int ActorClientId, bool VerbatimReason);
+using FAntibobUnbanHook = void (*)(const char *pTarget, bool Range);
+using FAntibobClearBansHook = void (*)();
+void AntibobNotifyBan(int ClientId, int64_t Expires, const char *pReason, const char *pTarget, bool Range, int ActorClientId, bool VerbatimReason);
+void AntibobNotifyUnban(const char *pTarget, bool Range);
+void AntibobNotifyClearBans();
+
 #ifndef ANTIBOBAPI
 #define ANTIBOBAPI DYNAMIC_EXPORT
 #endif
@@ -59,6 +68,8 @@ ANTIBOBAPI unsigned int AntibobPlayerFlags(int ClientId);
 // just this. These resolve to null on an older server and the port is simply omitted.
 ANTIBOBAPI int AntibobServerPort();
 ANTIBOBAPI void AntibobServerInstance(char *pBuf, int BufSize);
+ANTIBOBAPI bool AntibobPublishFingerprint(const char *pCommand);
+ANTIBOBAPI void AntibobRegisterBanHooks(FAntibobBanHook pBanHook, FAntibobUnbanHook pUnbanHook, FAntibobClearBansHook pClearHook);
 }
 
 #endif

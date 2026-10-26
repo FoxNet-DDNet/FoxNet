@@ -15,7 +15,36 @@
 #include <game/server/teams.h>
 
 CAntibobContext g_AntibobContext;
+static FAntibobBanHook s_pBanHook = nullptr;
+static FAntibobUnbanHook s_pUnbanHook = nullptr;
+static FAntibobClearBansHook s_pClearBansHook = nullptr;
+
+void AntibobNotifyBan(int ClientId, int64_t Expires, const char *pReason, const char *pTarget, bool Range, int ActorClientId, bool VerbatimReason)
+{
+	if(s_pBanHook)
+		s_pBanHook(ClientId, Expires, pReason, pTarget, Range, ActorClientId, VerbatimReason);
+}
+
+void AntibobNotifyUnban(const char *pTarget, bool Range)
+{
+	if(s_pUnbanHook)
+		s_pUnbanHook(pTarget, Range);
+}
+
+void AntibobNotifyClearBans()
+{
+	if(s_pClearBansHook)
+		s_pClearBansHook();
+}
+
 extern "C" {
+
+void AntibobRegisterBanHooks(FAntibobBanHook pBanHook, FAntibobUnbanHook pUnbanHook, FAntibobClearBansHook pClearHook)
+{
+	s_pBanHook = pBanHook;
+	s_pUnbanHook = pUnbanHook;
+	s_pClearBansHook = pClearHook;
+}
 
 int AntibobVersion()
 {
@@ -41,6 +70,16 @@ bool AntibobBanIp(const char *pIp, int Seconds, const char *pReason)
 	if(net_addr_from_str(&Addr, pIp) != 0)
 		return false;
 	return g_AntibobContext.m_pGameServer->Server()->BanAddr(&Addr, Seconds, pReason, false) >= 0;
+}
+
+bool AntibobPublishFingerprint(const char *pCommand)
+{
+	if(!g_AntibobContext.m_pGameServer || !pCommand || !str_startswith(pCommand, "antibot fingerprint_"))
+		return false;
+	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0])
+		return false;
+	g_AntibobContext.m_pGameServer->Server()->PublishConsoleCommand(pCommand);
+	return true;
 }
 
 static int AntibobMultiMapIndex(CGameContext *pGameServer, int ClientId)

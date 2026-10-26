@@ -330,6 +330,8 @@ std::optional<std::vector<int>> CGameContext::ClientsForVictim(int ClientId, con
 void CGameContext::CommandCallback(int ClientId, int FlagMask, const char *pCmd, IConsole::IResult *pResult, void *pUser)
 {
 	CGameContext *pSelf = (CGameContext *)pUser;
+	if(str_comp(pCmd, "antibot") == 0 && str_startswith(pResult->GetString(0), "fingerprint_"))
+		return;
 	if(pSelf->m_TeeHistorianActive)
 	{
 		pSelf->m_TeeHistorian.RecordConsoleCommand(ClientId, FlagMask, pCmd, pResult);

@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 
@@ -116,6 +117,66 @@ def main():
             _, acknowledged = request(ports[1], "/api/instances/8304/poll", "instance1",
                                       {"started": False, "reset_ack": clear_id, "acks": []})
             assert acknowledged["reset_bans"] is False
+            fingerprint_id = "sample_8303_1"
+            fingerprint_events = []
+            def send_fingerprint(command):
+                event = str(uuid.uuid4())
+                fingerprint_events.append(event)
+                request(ports[0], "/api/commands/batch", "instance0", {
+                    "commands": [{"id": event, "command": command,
+                                  "ttl_seconds": 2000000000, "retry_uncertain": True,
+                                  "replay_on_start": True, "scope": "global"}]})
+                until(lambda: request(ports[0], f"/api/commands/{event}", "admin0")[1]
+                      .get("peer_ack"))
+                return event
+            fpr_expiry = int(time.time()) + 30
+            send_fingerprint(f"antibot fingerprint_add {fingerprint_id} {fpr_expiry} c2VjcmV0")
+            update_event = send_fingerprint(
+                f"antibot fingerprint_add {fingerprint_id} {fpr_expiry} bmV3LXNlY3JldA==")
+            for index in range(2):
+                with closing(sqlite3.connect(Path(root) / f"relay{index}.sqlite3")) as db:
+                    row = db.execute("SELECT command FROM ban_state WHERE kind='fingerprint' AND target=?",
+                                     (fingerprint_id,)).fetchone()
+                    assert row and "bmV3LXNlY3JldA==" in row[0]
+                    assert db.execute("SELECT 1 FROM commands WHERE id=?",
+                                      (fingerprint_events[0],)).fetchone() is None
+            send_fingerprint(f"antibot fingerprint_delete {fingerprint_id}")
+            for index in range(2):
+                with closing(sqlite3.connect(Path(root) / f"relay{index}.sqlite3")) as db:
+                    row = db.execute("SELECT command FROM ban_state WHERE kind='fingerprint' AND target=?",
+                                     (fingerprint_id,)).fetchone()
+                    assert row == ("",)
+                    assert db.execute("SELECT 1 FROM commands WHERE id=?",
+                                      (update_event,)).fetchone() is None
+            expiry_id = "sample_8303_2"
+            expiry_event = send_fingerprint(
+                f"antibot fingerprint_add {expiry_id} {int(time.time()) + 3} " + "Y" * 1000)
+            def expired_on_both():
+                for index in range(2):
+                    with closing(sqlite3.connect(Path(root) / f"relay{index}.sqlite3")) as db:
+                        if db.execute("SELECT 1 FROM commands WHERE id=?", (expiry_event,)).fetchone():
+                            return False
+                        if db.execute("SELECT 1 FROM ban_state WHERE kind='fingerprint' AND target=?",
+                                      (expiry_id,)).fetchone():
+                            return False
+                return True
+            until(expired_on_both, timeout=12)
+            clear_fingerprint_id = "sample_8303_3"
+            clear_fingerprint_event = send_fingerprint(
+                f"antibot fingerprint_add {clear_fingerprint_id} {int(time.time()) + 600} c2Vuc2l0aXZl")
+            clear_fingerprint_all = str(uuid.uuid4())
+            request(ports[0], "/api/commands/batch", "instance0", {
+                "commands": [{"id": clear_fingerprint_all, "command": "unban_all",
+                              "ttl_seconds": 2000000000, "retry_uncertain": True,
+                              "replay_on_start": True, "scope": "global"}]})
+            until(lambda: request(ports[0], f"/api/commands/{clear_fingerprint_all}", "admin0")[1]
+                  .get("peer_ack"))
+            for index in range(2):
+                with closing(sqlite3.connect(Path(root) / f"relay{index}.sqlite3")) as db:
+                    assert db.execute("SELECT 1 FROM ban_state WHERE kind='fingerprint' AND target=?",
+                                      (clear_fingerprint_id,)).fetchone() is None
+                    assert db.execute("SELECT 1 FROM commands WHERE id=?",
+                                      (clear_fingerprint_event,)).fetchone() is None
             _, local = request(ports[0], "/api/commands", "admin0",
                                {"command": "echo local-only", "scope": "local"})
             local_id = local["id"]

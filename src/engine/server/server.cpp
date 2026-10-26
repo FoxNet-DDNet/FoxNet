@@ -9,6 +9,8 @@
 #include "run_demo_recorder.h"
 #include "webhook_format.h"
 
+#include <game/server/foxnet/integration/antibob.h>
+
 #include <base/bytes.h>
 #include <base/fs.h>
 #include <base/io.h>
@@ -264,6 +266,18 @@ static std::string RelaySafeReason(const char *pReason)
 
 void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 {
+	char aTarget[NETADDR_MAXSTRSIZE];
+	net_addr_str(pAddr, aTarget, sizeof(aTarget), false);
+	if(!m_pServer->RelayApplying())
+	{
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		{
+			if(m_pServer->m_aClients[ClientId].m_State != CServer::CClient::STATE_EMPTY &&
+				NetMatch(pAddr, m_pServer->ClientAddr(ClientId)))
+				AntibobNotifyBan(ClientId, Info.m_Expires, Info.m_aReason, aTarget, false,
+					m_pServer->m_RconClientId, Info.m_VerbatimReason);
+		}
+	}
 	if(m_pServer->m_RconClientId != IServer::RCON_CID_VOTE)
 	{
 		char aAddr[NETADDR_MAXSTRSIZE];
@@ -289,6 +303,21 @@ void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 
 void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 {
+	char aTargetLower[NETADDR_MAXSTRSIZE], aTargetUpper[NETADDR_MAXSTRSIZE];
+	net_addr_str(&pRange->m_LB, aTargetLower, sizeof(aTargetLower), false);
+	net_addr_str(&pRange->m_UB, aTargetUpper, sizeof(aTargetUpper), false);
+	char aTarget[2 * NETADDR_MAXSTRSIZE + 2];
+	str_format(aTarget, sizeof(aTarget), "%s %s", aTargetLower, aTargetUpper);
+	if(!m_pServer->RelayApplying())
+	{
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		{
+			if(m_pServer->m_aClients[ClientId].m_State != CServer::CClient::STATE_EMPTY &&
+				NetMatch(pRange, m_pServer->ClientAddr(ClientId)))
+				AntibobNotifyBan(ClientId, Info.m_Expires, Info.m_aReason, aTarget, true,
+					m_pServer->m_RconClientId, Info.m_VerbatimReason);
+		}
+	}
 	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[512];
 	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
 	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
@@ -315,6 +344,8 @@ void CServerBan::OnBanRemoved(const NETADDR *pAddr)
 {
 	char aAddr[NETADDR_MAXSTRSIZE];
 	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
+	if(!m_pServer->RelayApplying())
+		AntibobNotifyUnban(aAddr, false);
 	IServer::CModerationEvent Event;
 	Event.m_pAction = "Unban";
 	Event.m_pAddress = aAddr;
@@ -334,6 +365,12 @@ void CServerBan::OnBanRemoved(const CNetRange *pRange)
 	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
 	char aRange[2 * NETADDR_MAXSTRSIZE + 4];
 	str_format(aRange, sizeof(aRange), "%s - %s", aLower, aUpper);
+	if(!m_pServer->RelayApplying())
+	{
+		char aTarget[2 * NETADDR_MAXSTRSIZE + 2];
+		str_format(aTarget, sizeof(aTarget), "%s %s", aLower, aUpper);
+		AntibobNotifyUnban(aTarget, true);
+	}
 	IServer::CModerationEvent Event;
 	Event.m_pAction = "Unban range";
 	Event.m_pAddress = aRange;
@@ -347,6 +384,7 @@ void CServerBan::OnBanRemoved(const CNetRange *pRange)
 
 void CServerBan::OnBansCleared()
 {
+	AntibobNotifyClearBans();
 	IServer::CModerationEvent Event;
 	Event.m_pAction = "Clear all bans";
 	Event.m_ActorClientId = m_pServer->m_RconClientId;
@@ -6201,7 +6239,8 @@ void CServer::PublishConsoleCommand(const char *pCommand, bool Global, bool Retr
 {
 	if(!g_Config.m_SvCommandRelayUrl[0] || !g_Config.m_SvCommandRelayToken[0] || !pCommand || !pCommand[0])
 		return;
-	if(str_length(pCommand) > 900 || str_find(pCommand, "\n") || str_find(pCommand, "\r"))
+	const int MaxLength = str_startswith(pCommand, "antibot fingerprint_") ? 1400 : 900;
+	if(str_length(pCommand) > MaxLength || str_find(pCommand, "\n") || str_find(pCommand, "\r"))
 	{
 		log_error("command-relay", "command is too long or contains a newline");
 		return;
@@ -6332,7 +6371,8 @@ void CServer::UpdateCommandRelayPoll()
 					if(pId->type != json_string || pCommand->type != json_string)
 						continue;
 					const char *pCommandText = json_string_get(pCommand);
-					if(str_length(pCommandText) > 900 || str_find(pCommandText, "\n") || str_find(pCommandText, "\r"))
+					const int MaxLength = str_startswith(pCommandText, "antibot fingerprint_") ? 1400 : 900;
+					if(str_length(pCommandText) > MaxLength || str_find(pCommandText, "\n") || str_find(pCommandText, "\r"))
 						continue;
 					m_RelayApplying = true;
 					Console()->ExecuteLineFlag(pCommandText, CFGFLAG_SERVER, IConsole::CLIENT_ID_ECON, false);
