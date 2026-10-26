@@ -3262,7 +3262,7 @@ void CCharacter::FoxNetTick()
 		vec2 CursorPos = GetCursorPos();
 		vec2 HookPos = m_Core.m_HookPos;
 
-		float HookLength = abs(GetCurrentTuning()->m_HookLength - 20.0f);
+		float HookLength = std::abs(GetCurrentTuning()->m_HookLength - 20.0f);
 		HookLength = std::clamp(distance(CursorPos, Pos), -HookLength, HookLength);
 
 		bool NoHit = m_Core.m_HookState == HOOK_RETRACT_START || (HookLength < distance(HookPos, Pos) && m_Core.m_HookState == HOOK_FLYING);
@@ -3351,13 +3351,13 @@ bool CCharacter::InSpawnSoloOverlap()
 		if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pOther->MultiMapIdx())
 			continue;
 		if(!Super && (OwnCore.m_CollisionDisabled || OtherCore.m_CollisionDisabled ||
-			OwnCore.m_Passive || OtherCore.m_Passive || !OwnCore.m_Collidable ||
-			!GetCurrentTuning()->m_PlayerCollision || !pOther->GetCurrentTuning()->m_PlayerCollision))
+				     OwnCore.m_Passive || OtherCore.m_Passive || !OwnCore.m_Collidable ||
+				     !GetCurrentTuning()->m_PlayerCollision || !pOther->GetCurrentTuning()->m_PlayerCollision))
 			continue;
 
 		const vec2 OtherPos = pOther->GetPos();
-		if(abs(PredictedPos.x - OtherPos.x) < BoxSize &&
-			abs(PredictedPos.y - OtherPos.y) < BoxSize)
+		if(std::abs(PredictedPos.x - OtherPos.x) < BoxSize &&
+			std::abs(PredictedPos.y - OtherPos.y) < BoxSize)
 			return true;
 	}
 	return false;

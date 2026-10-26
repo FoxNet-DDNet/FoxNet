@@ -145,7 +145,7 @@ public:
 
 TEST_F(GameWorld, DebugDummiesConnectAndDrop)
 {
-	g_Config.m_DbgDummies = 2;
+	g_Config.m_SvAddDummies = 2;
 	m_pServer->UpdateDebugDummies(false);
 
 	const int FirstDummy = m_pServer->MaxClients() - 1;
@@ -153,7 +153,7 @@ TEST_F(GameWorld, DebugDummiesConnectAndDrop)
 	EXPECT_TRUE(m_pServer->ClientIngame(FirstDummy));
 	EXPECT_TRUE(m_pServer->ClientIngame(SecondDummy));
 
-	g_Config.m_DbgDummies = 1;
+	g_Config.m_SvAddDummies = 1;
 	m_pServer->UpdateDebugDummies(false);
 
 	EXPECT_TRUE(m_pServer->ClientIngame(FirstDummy));
@@ -308,7 +308,7 @@ TEST_F(GameWorld, LaserOfPlayerWithoutCharacterHitsOthers)
 	ASSERT_TRUE(FindFreeHorizontalSegment(GameServer()->Collision(), 200.0f, From));
 	g_Config.m_SvHit = 1;
 
-	g_Config.m_DbgDummies = 1;
+	g_Config.m_SvAddDummies = 1;
 	m_pServer->UpdateDebugDummies(false);
 	GameServer()->OnTick();
 	CCharacter *pTarget = GameServer()->GetPlayerChar(m_pServer->MaxClients() - 1);
@@ -317,12 +317,12 @@ TEST_F(GameWorld, LaserOfPlayerWithoutCharacterHitsOthers)
 	pTarget->Freeze(10);
 	ASSERT_NE(pTarget->m_FreezeTime, 0);
 
-	g_Config.m_DbgDummies = 2;
+	g_Config.m_SvAddDummies = 2;
 	m_pServer->UpdateDebugDummies(false);
 	const int OwnerId = m_pServer->MaxClients() - 2;
 	ASSERT_EQ(GameServer()->GetPlayerChar(OwnerId), nullptr);
 
-	new CLaser(&GameServer()->m_World, From, vec2(1.0f, 0.0f), 800.0f, OwnerId, WEAPON_LASER);
+	new CLaser(&GameServer()->m_World, pTarget->MultiMapIdx(), From, vec2(1.0f, 0.0f), 800.0f, OwnerId, WEAPON_LASER);
 
 	EXPECT_EQ(pTarget->m_FreezeTime, 0); // NOLINT(clang-analyzer-unix.Malloc)
 }

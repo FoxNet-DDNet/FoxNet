@@ -6,10 +6,10 @@
 
 #include <engine/shared/protocol.h>
 
+#include <game/server/entity.h>
 #include <game/server/gameworld.h>
 
 #include <optional>
-#include <game/server/entity.h>
 
 enum class EWormTargetType
 {
@@ -61,7 +61,6 @@ class CWorm : public CEntity
 	bool CanSnapTo(int SnappingClient);
 
 	int m_LastEffectTick;
-	int m_StartTeam; // DDRace Team
 
 public:
 	CWorm(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, CWormConfig WormConfig);
