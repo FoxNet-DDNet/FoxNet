@@ -6468,8 +6468,9 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 {
 	if(!m_ModerationEventsReady || m_RelayApplying || m_ServerBan.m_QuietBan || !g_Config.m_DcModerationWebhookUrl[0])
 		return;
-	if(Event.m_ActorClientId == RCON_CID_SERV &&
-		(!Event.m_pActorName || !Event.m_pActorName[0]) && m_RconClientId != RCON_CID_VOTE)
+	const bool NamedActor = Event.m_pActorName && Event.m_pActorName[0];
+	const bool ConnectedActor = Event.m_ActorClientId >= 0 && Event.m_ActorClientId < MAX_CLIENTS && !ClientSlotEmpty(Event.m_ActorClientId);
+	if(!NamedActor && !ConnectedActor && m_RconClientId != RCON_CID_VOTE)
 		return;
 	NETADDR Addr;
 	const bool HasAddress = Event.m_pAddress && net_addr_from_str(&Addr, Event.m_pAddress) == 0;
@@ -6501,12 +6502,12 @@ void CServer::SendModerationEvent(const CModerationEvent &Event)
 		Target += " (" + std::to_string(TargetClientId) + ")";
 	if(Event.m_pAddress && Event.m_pAddress[0])
 		Target += " [||" + WebhookFormat::EscapeText(Event.m_pAddress) + "||]";
-	std::string Actor = Event.m_pActorName && Event.m_pActorName[0] ? WebhookFormat::Name(Event.m_pActorName) :
+	std::string Actor = NamedActor ? WebhookFormat::Name(Event.m_pActorName) :
 			    m_RconClientId == IServer::RCON_CID_VOTE    ? "vote" :
 									  "server";
-	if(Event.m_ActorClientId >= 0 && Event.m_ActorClientId < MAX_CLIENTS && !ClientSlotEmpty(Event.m_ActorClientId))
+	if(ConnectedActor)
 	{
-		if(!Event.m_pActorName || !Event.m_pActorName[0])
+		if(!NamedActor)
 			Actor = WebhookFormat::Name(ClientName(Event.m_ActorClientId));
 		Actor += " (" + std::to_string(Event.m_ActorClientId) + ")";
 		if(IsRconAuthed(Event.m_ActorClientId))
