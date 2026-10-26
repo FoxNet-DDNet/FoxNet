@@ -745,7 +745,13 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 bool CConsole::CanUseCommand(int ClientId, const IConsole::ICommandInfo *pCommand) const
 {
 	// config files, econ, fifo and passed votes have full access
-	if(ClientId == IConsole::CLIENT_ID_UNSPECIFIED || ClientId == IConsole::CLIENT_ID_GAME || ClientId == IConsole::CLIENT_ID_NO_GAME)
+	if(ClientId == IConsole::CLIENT_ID_UNSPECIFIED ||
+		ClientId == IConsole::CLIENT_ID_GAME ||
+		ClientId == IConsole::CLIENT_ID_NO_GAME ||
+		ClientId == IConsole::CLIENT_ID_FOXNET ||
+		ClientId == IConsole::CLIENT_ID_FIFO ||
+		ClientId == IConsole::CLIENT_ID_ECON ||
+		ClientId == IConsole::CLIENT_ID_SCRIPTING)
 		return true;
 	dbg_assert(ClientId >= 0, "Invalid ClientId: %d", ClientId);
 	// the fallback is needed for the client and rust tests
