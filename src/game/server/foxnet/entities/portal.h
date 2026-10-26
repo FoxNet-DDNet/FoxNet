@@ -45,18 +45,17 @@ class CPortal : public CEntityOwned
 
 	CPortalData m_aData[NUM_PORTALS];
 
-	int m_State;
 	int m_Lifetime; // In ticks
 
 	bool m_aCanTeleport[MAX_CLIENTS];
 	int m_aBlockedPortal[MAX_CLIENTS];
 
-	enum States
+	enum class EState
 	{
-		STATE_NONE = 0,
-		STATE_FIRST_SET,
-		STATE_BOTH_SET,
-	};
+		None = 0,
+		FirstSet,
+		BothSet,
+	} m_State;
 
 	void RemovePortals();
 	bool TrySetPortal();

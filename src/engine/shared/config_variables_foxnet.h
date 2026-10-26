@@ -164,8 +164,13 @@ MACRO_CONFIG_INT(SvHideSeekSeekersHammerDelay, sv_hide_seek_seekers_hammer_delay
 MACRO_CONFIG_INT(SvHideSeekHidersGhostDuration, sv_hide_seek_hiders_ghost_duration, 35, 1, 1000, CFGFLAG_SERVER, "How long hiders remain in ghost mode in second Seconds (30 -> 3 seconds)")
 MACRO_CONFIG_INT(SvHideSeekHidersGhostCooldown, sv_hide_seek_hiders_ghost_cooldown, 55, 1, 1000, CFGFLAG_SERVER, "Cooldown time for hiders' ghost mode in second Seconds (30 -> 3 seconds)")
 
-// Scripting
+// Weapon configs
+MACRO_CONFIG_INT(SvPortalMaxDistance, sv_portal_max_distance, 50, 0, 1000, CFGFLAG_SERVER, "Max distance from player to portal")
+MACRO_CONFIG_INT(SvPortalCheckLineOfSight, sv_portal_check_line_of_sight, 1, 0, 1, CFGFLAG_SERVER, "Whether to check line of sight with portal placement")
 
+MACRO_CONFIG_INT(SvMeteorMaxDistance, sv_meteor_max_distance, 50, 0, 1000, CFGFLAG_SERVER, "Max distance from player to meteor")
+
+// Scripting
 MACRO_CONFIG_STR(SvScriptStartup, sv_script_startup, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server start")
 MACRO_CONFIG_STR(SvScriptShutdown, sv_script_shutdown, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server shutdown")
 MACRO_CONFIG_STR(SvScriptPlayerConnect, sv_script_player_connect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player connects")

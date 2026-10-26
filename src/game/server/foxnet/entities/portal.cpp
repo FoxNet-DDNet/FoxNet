@@ -35,14 +35,13 @@ constexpr float MaxPortalRad = 56.0f;
 constexpr float MinPortalRad = 15.0f;
 constexpr int FadeOutTicks = SERVER_TICK_SPEED;
 constexpr int GrowTicks = SERVER_TICK_SPEED / 4;
-constexpr float MaxDistanceFromPlayer = 1500.0f;
 constexpr int Lifetime = 12.5 * (float)SERVER_TICK_SPEED;
 
 CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	CEntityOwned(pGameWorld, Owner, CGameWorld::ENTTYPE_PORTALS, Pos)
 {
 	m_Pos = Pos;
-	m_State = STATE_NONE;
+	m_State = EState::None;
 	std::fill(std::begin(m_aCanTeleport), std::end(m_aCanTeleport), true);
 	std::fill(std::begin(m_aBlockedPortal), std::end(m_aBlockedPortal), -1);
 
@@ -104,7 +103,7 @@ void CPortal::Tick()
 		return;
 	}
 
-	if(m_Lifetime > 0 && (m_State == STATE_FIRST_SET || m_State == STATE_BOTH_SET))
+	if(m_Lifetime > 0 && (m_State == EState::FirstSet || m_State == EState::BothSet))
 	{
 		for(int p = 0; p < NUM_PORTALS; p++)
 		{
@@ -145,7 +144,7 @@ void CPortal::Tick()
 		return;
 	}
 
-	if(m_State == STATE_FIRST_SET)
+	if(m_State == EState::FirstSet)
 	{
 		if(!pOwnerChr)
 		{
@@ -159,7 +158,7 @@ void CPortal::Tick()
 			return;
 		}
 	}
-	else if(m_State == STATE_BOTH_SET)
+	else if(m_State == EState::BothSet)
 	{
 		if(m_aData[0].m_Team != m_aData[1].m_Team)
 		{
@@ -303,42 +302,48 @@ bool CPortal::TrySetPortal()
 {
 	CCharacter *pOwnerChr = GameServer()->GetPlayerChar(m_Owner);
 	const vec2 CursorPos = pOwnerChr->GetCursorPos();
+	const bool Authed = Server()->IsRconAuthed(m_Owner);
 
 	if(Collision()->TestBox(CursorPos, CCharacterCore::PhysicalSizeVec2()))
 		return false; // teleport position is inside a block
-	if(!pOwnerChr->HasLineOfSight(CursorPos))
-		return false; // Theres blocks in the way
-	if(distance(pOwnerChr->m_Pos, CursorPos) > MaxDistanceFromPlayer)
-		return false; // Too far away
-	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	if(!Authed)
 	{
-		CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-		if(!pChr || !pChr->IsAlive())
-			continue;
-		if(pChr->Team() != pOwnerChr->Team())
-			continue;
-		if(ClientId == m_Owner)
-			continue;
-		if(PointInCircle(pChr->m_Pos, CursorPos, MaxPortalRad + CCharacterCore::PhysicalSize() - 6))
-			return false; // Don't place portal on players
+		if(!pOwnerChr->HasLineOfSight(CursorPos) && g_Config.m_SvPortalCheckLineOfSight)
+			return false; // Theres blocks in the way
+		if(g_Config.m_SvPortalMaxDistance != 0 && distance(pOwnerChr->m_Pos, CursorPos) > g_Config.m_SvPortalMaxDistance * 32.0f)
+			return false; // Too far away
+
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		{
+			CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+			if(!pChr || !pChr->IsAlive())
+				continue;
+			if(pChr->Team() != pOwnerChr->Team())
+				continue;
+			if(ClientId == m_Owner)
+				continue;
+			if(PointInCircle(pChr->m_Pos, CursorPos, MaxPortalRad + CCharacterCore::PhysicalSize() - 6))
+				return false; // Don't place portal on players
+		}
 	}
-	if(m_State == STATE_NONE)
+
+	if(m_State == EState::None)
 	{
 		m_aData[0].m_Active = true;
 		m_aData[0].m_Pos = CursorPos;
 		m_aData[0].m_Team = pOwnerChr->Team();
 		m_Lifetime = Lifetime;
-		m_State = STATE_FIRST_SET;
+		m_State = EState::FirstSet;
 	}
-	else if(m_State == STATE_FIRST_SET)
+	else if(m_State == EState::FirstSet)
 	{
 		m_aData[1].m_Active = true;
 		m_aData[1].m_Pos = CursorPos;
 		m_aData[1].m_Team = pOwnerChr->Team();
 		m_Lifetime = Lifetime;
-		m_State = STATE_BOTH_SET;
+		m_State = EState::BothSet;
 	}
-	else if(m_State == STATE_BOTH_SET)
+	else if(m_State == EState::BothSet)
 		return false;
 	return true;
 }
@@ -352,7 +357,7 @@ void CPortal::RemovePortals()
 			GameServer()->CreateDeath(m_aData[i].m_Pos, m_Owner, m_StartTeamMask);
 			m_aData[i].m_Active = false;
 			m_aData[i].m_Pos = vec2(0, 0);
-			m_State = STATE_NONE;
+			m_State = EState::None;
 		}
 	}
 }
@@ -411,7 +416,7 @@ void CPortal::Snap(int SnappingClient)
 					m_Snap[p].m_aIds[i].value(), To, From, StartTick);
 		}
 
-		if(m_State == STATE_BOTH_SET)
+		if(m_State == EState::BothSet)
 		{
 			for(size_t i = 0; i < NUM_PRTCL; i++)
 			{

@@ -36,8 +36,6 @@ constexpr float MovementSpeed = 48.0f;
 
 constexpr float TargetSearchDepth = TileSize * 50.0f;
 
-constexpr float MaxDistanceFromPlayer = TileSize * 35.0f;
-
 vec2 CMeteor::FindTargetBlock(vec2 InitialPos)
 {
 	auto IsTopSurface = [this](vec2 Pos, int *pTargetQuadId) {
@@ -118,10 +116,11 @@ CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosme
 	const vec2 CharPos = GetCharacter()->GetPos();
 	if(!m_IsCosmetic && !Server()->IsRconAuthed(Owner))
 	{
-		if(distance(CharPos, TargetPos) > MaxDistanceFromPlayer)
+		const float MaxDist = g_Config.m_SvMeteorMaxDistance * TileSize;
+		if(g_Config.m_SvMeteorMaxDistance != 0 && distance(CharPos, TargetPos) > MaxDist)
 		{
 			const vec2 Dir = normalize(TargetPos - CharPos);
-			TargetPos = CharPos + Dir * MaxDistanceFromPlayer;
+			TargetPos = CharPos + Dir * MaxDist;
 		}
 		m_TargetPos = FindTargetBlock(TargetPos);
 	}
