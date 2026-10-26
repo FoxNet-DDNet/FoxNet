@@ -6313,6 +6313,8 @@ void CServer::UpdateCommandRelay()
 			"\",\"ttl_seconds\":" + (Command.m_Replay ? "2000000000" : "3600") +
 			",\"retry_uncertain\":" + (Command.m_Retry ? "true" : "false") +
 			",\"replay_on_start\":" + (Command.m_Replay ? "true" : "false") +
+			",\"source_instance\":\"" + (Command.m_Replay ? std::to_string(Port()) : "") +
+			"\"" +
 			",\"scope\":\"" + (Command.m_Global ? "global" : "local") + "\"}";
 		BatchSize++;
 	}

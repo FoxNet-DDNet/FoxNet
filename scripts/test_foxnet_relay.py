@@ -78,43 +78,69 @@ def main():
             for _ in range(256):
                 assert request(ports[0], "/")[1]["status"] == "ok"
 
+            request(ports[0], "/api/instances/8303/poll", "instance0",
+                    {"started": True, "started_at": int(time.time()), "acks": []})
+
             event_id = str(uuid.uuid4())
             expiry = int(time.time()) + 600
             _, accepted = request(ports[0], "/api/commands/batch", "instance0", {
                 "commands": [{"id": event_id,
                               "command": f"ban_timestamp 192.0.2.10 {expiry} test",
                               "ttl_seconds": 2000000000, "retry_uncertain": True,
-                              "replay_on_start": True, "scope": "global"}]})
+                              "replay_on_start": True, "scope": "global",
+                              "source_instance": "8303"}]})
             assert accepted["accepted"] == 1
             _, duplicate = request(ports[0], "/api/commands/batch", "instance0", {
                 "commands": [{"id": event_id,
                               "command": f"ban_timestamp 192.0.2.10 {expiry} test",
                               "ttl_seconds": 2000000000, "retry_uncertain": True,
-                              "replay_on_start": True, "scope": "global"}]})
+                              "replay_on_start": True, "scope": "global",
+                              "source_instance": "8303"}]})
             assert duplicate["accepted"] == 1
+            _, origin_poll = request(ports[0], "/api/instances/8303/poll", "instance0",
+                                     {"started": False, "acks": []})
+            assert all(item["id"] != event_id for item in origin_poll["commands"])
             until(lambda: request(ports[1], f"/api/commands/{event_id}", "admin1")[1])
-            _, polled = request(ports[1], "/api/instances/8304/poll", "instance1",
+            _, polled = request(ports[1], "/api/instances/8303/poll", "instance1",
                                 {"started": True, "started_at": int(time.time()), "acks": []})
             assert polled["reset_bans"] is True
             assert any(item["id"] == event_id for item in polled["commands"])
-            request(ports[1], "/api/instances/8304/poll", "instance1",
+            request(ports[1], "/api/instances/8303/poll", "instance1",
                     {"started": False, "acks": [event_id]})
             _, state = request(ports[0], f"/api/commands/{event_id}", "admin0")
             assert state["peer_ack"] is True
             assert any(item["state"] == "delivered" for item in state["peer_instances"])
 
+            unban_id = str(uuid.uuid4())
+            request(ports[0], "/api/commands/batch", "instance0", {
+                "commands": [{"id": unban_id, "command": "unban 192.0.2.10",
+                              "ttl_seconds": 2000000000, "retry_uncertain": True,
+                              "replay_on_start": True, "scope": "global",
+                              "source_instance": "8303"}]})
+            _, origin_poll = request(ports[0], "/api/instances/8303/poll", "instance0",
+                                     {"started": False, "acks": []})
+            assert all(item["id"] != unban_id for item in origin_poll["commands"])
+            until(lambda: request(ports[1], f"/api/commands/{unban_id}", "admin1")[1])
+            _, peer_poll = request(ports[1], "/api/instances/8303/poll", "instance1",
+                                   {"started": False, "acks": []})
+            assert any(item["id"] == unban_id for item in peer_poll["commands"])
+
             clear_id = str(uuid.uuid4())
             request(ports[0], "/api/commands/batch", "instance0", {
                 "commands": [{"id": clear_id, "command": "unban_all",
                               "ttl_seconds": 2000000000, "retry_uncertain": True,
-                              "replay_on_start": True, "scope": "global"}]})
+                              "replay_on_start": True, "scope": "global",
+                              "source_instance": "8303"}]})
+            _, origin_clear = request(ports[0], "/api/instances/8303/poll", "instance0",
+                                      {"started": False, "acks": []})
+            assert origin_clear["reset_bans"] is False
             until(lambda: request(ports[0], f"/api/commands/{clear_id}", "admin0")[1]
                   .get("peer_ack"))
-            _, cleared = request(ports[1], "/api/instances/8304/poll", "instance1",
+            _, cleared = request(ports[1], "/api/instances/8303/poll", "instance1",
                                  {"started": False, "acks": []})
             assert cleared["reset_bans"] is True and cleared["reset_id"] == clear_id
             assert all(item["id"] != event_id for item in cleared["commands"])
-            _, acknowledged = request(ports[1], "/api/instances/8304/poll", "instance1",
+            _, acknowledged = request(ports[1], "/api/instances/8303/poll", "instance1",
                                       {"started": False, "reset_ack": clear_id, "acks": []})
             assert acknowledged["reset_bans"] is False
             fingerprint_id = "sample_8303_1"
@@ -180,8 +206,9 @@ def main():
             _, local = request(ports[0], "/api/commands", "admin0",
                                {"command": "echo local-only", "scope": "local"})
             local_id = local["id"]
-            request(ports[0], "/api/instances/8303/poll", "instance0",
-                    {"started": True, "started_at": int(time.time()) - 2, "acks": []})
+            _, manual_poll = request(ports[0], "/api/instances/8303/poll", "instance0",
+                                     {"started": True, "started_at": int(time.time()) - 2, "acks": []})
+            assert any(item["id"] == local_id for item in manual_poll["commands"])
             _, state = request(ports[0], f"/api/commands/{local_id}", "admin0")
             assert state["scope"] == "local" and state["peer_ack"] is True
             try:

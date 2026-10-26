@@ -71,7 +71,8 @@ def initialize():
                 created INTEGER NOT NULL, expires INTEGER NOT NULL,
                 retry_uncertain INTEGER NOT NULL, replay_on_start INTEGER NOT NULL,
                 peer_ack INTEGER NOT NULL, scope TEXT NOT NULL DEFAULT 'global',
-                logged INTEGER NOT NULL DEFAULT 1);
+                logged INTEGER NOT NULL DEFAULT 1,
+                source_instance TEXT NOT NULL DEFAULT '');
             CREATE TABLE IF NOT EXISTS deliveries (
                 command_id TEXT NOT NULL, instance_id TEXT NOT NULL,
                 state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
@@ -93,6 +94,8 @@ def initialize():
             db.execute("ALTER TABLE commands ADD COLUMN scope TEXT NOT NULL DEFAULT 'global'")
         if "logged" not in columns:
             db.execute("ALTER TABLE commands ADD COLUMN logged INTEGER NOT NULL DEFAULT 1")
+        if "source_instance" not in columns:
+            db.execute("ALTER TABLE commands ADD COLUMN source_instance TEXT NOT NULL DEFAULT ''")
         instance_columns = {row[1] for row in db.execute("PRAGMA table_info(instances)")}
         if "reset_id" not in instance_columns:
             db.execute("ALTER TABLE instances ADD COLUMN reset_id TEXT NOT NULL DEFAULT ''")
@@ -207,7 +210,8 @@ def apply_ban_change(db, event):
         previous = [row[0] for row in db.execute(
             "SELECT event_id FROM ban_state WHERE version<=?", (version,))]
         db.execute("DELETE FROM ban_state WHERE version<=?", (version,))
-        db.execute("UPDATE instances SET reset_id=?", (event["id"],))
+        db.execute("UPDATE instances SET reset_id=? WHERE id!=?",
+                   (event["id"], event.get("source_instance", "")))
     else:
         old = db.execute("SELECT version,event_id FROM ban_state WHERE kind=? AND target=?",
                          (kind, target)).fetchone()
@@ -234,17 +238,18 @@ def insert_events(events):
         instances = [row[0] for row in db.execute("SELECT id FROM instances")]
         for event in events:
             result = db.execute("""INSERT OR IGNORE INTO commands
-                (id,origin,command,created,expires,retry_uncertain,replay_on_start,peer_ack,scope,logged)
-                VALUES(?,?,?,?,?,?,?,?,?,0)""",
+                (id,origin,command,created,expires,retry_uncertain,replay_on_start,peer_ack,scope,logged,source_instance)
+                VALUES(?,?,?,?,?,?,?,?,?,0,?)""",
                                 (event["id"], event["origin"], event["command"],
                                  event["created"], event["expires"], event["retry_uncertain"],
                                  event["replay_on_start"],
                                  int(event["origin"] != NODE or event["scope"] == "local"),
-                                 event["scope"]))
+                                 event["scope"], event.get("source_instance", "")))
             if result.rowcount:
                 if apply_ban_change(db, event):
                     db.executemany("INSERT INTO deliveries(command_id,instance_id) VALUES(?,?)",
-                                   ((event["id"], name) for name in instances))
+                                   ((event["id"], name) for name in instances
+                                    if name != event.get("source_instance", "")))
 
 
 @app.route("/api/commands", methods=["POST"])
@@ -302,16 +307,23 @@ def submit_batch():
         retry = item.get("retry_uncertain", False)
         replay = item.get("replay_on_start", False)
         scope = item.get("scope", "global")
+        source_instance = item.get("source_instance", "")
         if (not valid_command(command) or type(ttl) is not int
                 or not 1 <= ttl <= 3153600000 or type(retry) is not bool
                 or type(replay) is not bool or scope not in ("local", "global")
+                or not isinstance(source_instance, str)
+                or (source_instance and
+                    (not source_instance.isascii() or not source_instance.isdigit()
+                     or not 1 <= int(source_instance) <= 65535))
+                or (source_instance and not replay)
                 or (scope == "local" and replay)
                 or (replay and ban_change(command) is None)):
             return jsonify(error="invalid command, ttl_seconds or retry flags"), 400
         events.append(dict(id=event_id, origin=NODE, command=command, created=next_created(),
                            expires=delivery_expiry(command, now, ttl, replay),
                            retry_uncertain=int(retry),
-                           replay_on_start=int(replay), scope=scope))
+                           replay_on_start=int(replay), scope=scope,
+                           source_instance=source_instance))
     with database() as db:
         for event in events:
             existing = db.execute("SELECT command,origin,scope FROM commands WHERE id=?",
@@ -441,8 +453,9 @@ def poll_instance(instance_id):
                               SELECT id,? FROM commands
                               WHERE replay_on_start=0 AND
                               (created>=? OR (created<1000000000000 AND created>=?))
-                              AND expires>?""",
-                           (instance_id, started_at * 1000000000, started_at, now))
+                              AND expires>? AND source_instance!=?""",
+                           (instance_id, started_at * 1000000000, started_at, now,
+                            instance_id))
             db.execute("""UPDATE deliveries SET state='superseded'
                           WHERE instance_id=? AND state IN ('pending','awaiting_ack')
                           AND command_id IN (SELECT id FROM commands WHERE replay_on_start=1)""",
