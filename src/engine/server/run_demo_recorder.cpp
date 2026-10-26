@@ -552,7 +552,7 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 				Message += "Parts " + std::to_string(vPartNumbers.front()) + "-" + std::to_string(vPartNumbers.back()) + " of " + std::to_string(PartCount);
 		}
 		const std::string ServerTitle = "server: " + std::to_string(m_Port) + (m_ServerInstance.empty() ? "" : " | " + WebhookFormat::EscapeText(m_ServerInstance.c_str()));
-		const std::string Payload = "{\"username\":\"FoxNet Runs\",\"embeds\":[{\"title\":\"" + JsonEscape(ServerTitle) +
+		const std::string Payload = "{\"username\":\"Records\",\"embeds\":[{\"title\":\"" + JsonEscape(ServerTitle) +
 			"\",\"description\":\"" + JsonEscape(Message) + "\",\"color\":5763719}],\"allowed_mentions\":{\"parse\":[]}}";
 		const std::string Boundary = "FoxNetRunDemo" + ShortRunId(Upload.m_Base);
 		std::string Body;

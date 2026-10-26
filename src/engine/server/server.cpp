@@ -6384,7 +6384,7 @@ void CServer::SendWebhookMessage(EWebhookCategory Category, const char *pUrl, co
 	if(pUrl == nullptr || pUrl[0] == '\0' || pMessage == nullptr || pMessage[0] == '\0')
 		return;
 	constexpr size_t MAX_MESSAGE_BYTES = 3800;
-	std::string Title = pUsername ? pUsername : "FoxNet event";
+	std::string Title = pUsername ? pUsername : "Event";
 	TruncateUtf8(Title, 160);
 	const std::string Message = pMessage;
 	auto &Queue = Category == EWebhookCategory::REPORTS ? m_ReportWebhookQueue :
