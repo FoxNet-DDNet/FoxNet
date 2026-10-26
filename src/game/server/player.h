@@ -39,6 +39,15 @@ struct CScorePlayerResult;
 constexpr int LootBoxOpeningTicks = SERVER_TICK_SPEED * 6;
 constexpr int DefaultMapIndex = 0;
 
+enum class EAbility
+{
+	None = 0,
+	Telekinesis,
+	Firework,
+	Meteor,
+	NUM
+};
+
 enum class EVoteAction
 {
 	No = -1,
@@ -124,7 +133,6 @@ enum class ENameEffect
 class CCosmetics
 {
 public:
-	int m_Ability = 0;
 	bool m_EpicCircle = false;
 	bool m_Lovely = false;
 	bool m_RotatingBall = false;
@@ -567,7 +575,10 @@ public:
 	void SetObfuscated(bool Active);
 	void SetInvisible(bool Active);
 	void SetTelekinesisImmunity(bool Active);
-	void SetAbility(int Type);
+
+
+	EAbility m_Ability = EAbility::None;
+	void SetAbility(EAbility Type);
 
 	// Player Settings
 	// void SetHideCosmetics(bool Active);

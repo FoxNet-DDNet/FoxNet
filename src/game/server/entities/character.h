@@ -33,14 +33,6 @@ enum
 	FAKETUNE_NOHAMMER = 1 << 6,
 };
 
-enum
-{
-	ABILITY_NONE = 0,
-	ABILITY_FIREWORK,
-	ABILITY_TELEKINESIS,
-	NUM_ABILITY
-};
-
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()

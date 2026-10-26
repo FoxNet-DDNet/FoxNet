@@ -29,6 +29,7 @@
 #include <game/server/foxnet/components/accounts/accounts.h>
 #include <game/server/foxnet/components/shop.h>
 #include <game/server/foxnet/cosmetics/firework.h>
+#include <game/server/foxnet/entities/meteor.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
@@ -1185,29 +1186,35 @@ void CPlayer::SetHidePowerUps(bool Active)
 	Acc()->m_Configs.m_HidePowerUps = Active;
 }
 
-static const char *GetAbilityName(int Type)
+static const char *GetAbilityName(EAbility Type)
 {
 	switch(Type)
 	{
-	case ABILITY_FIREWORK:
-		return "Firework";
-	case ABILITY_TELEKINESIS:
+	case EAbility::None:
+		return "None";
+	case EAbility::Telekinesis:
 		return "Telekinesis";
+	case EAbility::Firework:
+		return "Firework";
+	case EAbility::Meteor:
+		return "Meteor";
+	default:
+		return "Unknown";
 	}
 	return "Unknown";
 }
 
-void CPlayer::SetAbility(int Type)
+void CPlayer::SetAbility(EAbility Type)
 {
-	if(Cosmetics()->m_Ability == Type)
+	if(m_Ability == Type)
 		return;
 
-	Cosmetics()->m_Ability = Type;
+	m_Ability = Type;
 
-	if(Cosmetics()->m_Ability <= ABILITY_NONE)
+	if(m_Ability <= EAbility::None)
 		return;
 
-	SendChatFmt("Ability set to %s", GetAbilityName(Cosmetics()->m_Ability));
+	SendChatFmt("Ability set to %s", GetAbilityName(m_Ability));
 	SendChat("Use f3 (Vote Yes) to use your Ability");
 }
 
@@ -1530,7 +1537,7 @@ void CPlayer::HandleTelekinesis()
 
 		const bool TelekinesisWeapoin = pChr && pChr->GetActiveWeapon() == WEAPON_TELEKINESIS;
 
-		if(TelekinesisWeapoin || Cosmetics()->m_Ability == ABILITY_TELEKINESIS)
+		if(TelekinesisWeapoin || m_Ability == EAbility::Telekinesis)
 		{
 			pTeleChr->SetPosition(GetCursorPos(m_GrabbedWhileSpec));
 			pTeleChr->ResetVelocity();
@@ -1598,7 +1605,7 @@ void CPlayer::VoteAction(EVoteAction Action)
 	if(GameServer()->m_VoteCloseTime && (m_Vote == 0 || (m_Vote != 0 && (m_PlayerFlags & PLAYERFLAG_SCOREBOARD))))
 		return;
 
-	const int Ability = Cosmetics()->m_Ability;
+	const EAbility Ability = m_Ability;
 
 	const bool NoCooldown = Server()->GetAuthedState(GetCid());
 
@@ -1606,16 +1613,26 @@ void CPlayer::VoteAction(EVoteAction Action)
 	const bool F4 = Action == EVoteAction::No;
 
 	CCharacter *pChr = GetCharacter();
-
 	if(F3 && (m_VoteActionDelay <= 0 || NoCooldown))
 	{
-		if(pChr && Ability == ABILITY_FIREWORK)
+		if(Ability == EAbility::Telekinesis)
 		{
-			new CFirework(pChr->GameWorld(), GetCid(), pChr->GetPos());
-			m_VoteActionDelay = Server()->TickSpeed() * 3;
-		}
-		else if(Ability == ABILITY_TELEKINESIS)
 			DoTelekinesis();
+		}
+		else if(pChr && Ability == EAbility::Firework)
+		{
+			new CFirework(&GameServer()->m_World, GetCid(), pChr->GetPos());
+			m_VoteActionDelay = Server()->TickSpeed() * 2.5f;
+		}
+		if(pChr && Ability == EAbility::Meteor)
+		{
+			const vec2 Pos = GetCursorPos(true);
+			new CMeteor(&GameServer()->m_World, GetCid(), Pos);
+			GameServer()->CreateSound(Pos, SOUND_LASER_BOUNCE, pChr->TeamMask());
+
+			float FireDelay = GameServer()->GlobalTuning(MultiMapIdx())->GetCustomWeaponFireDelay(WEAPON_METEOR);
+			m_VoteActionDelay = FireDelay * Server()->TickSpeed() / 1000;
+		}
 	}
 
 	if(IsPaused())
@@ -1637,7 +1654,7 @@ vec2 CPlayer::GetCursorPos(bool UseSpecPosIfPaused)
 {
 	CCharacter *pChr = GetCharacter();
 	const vec2 ViewPos = m_ViewPos;
-	vec2 CursorPos = m_ViewPos;
+	vec2 CursorPos = ViewPos;
 	if(pChr)
 		CursorPos = pChr->GetCursorPos();
 	if(UseSpecPosIfPaused && IsPaused())

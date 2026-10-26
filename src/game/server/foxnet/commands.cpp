@@ -657,7 +657,7 @@ void CGameContext::ConSetAbility(IConsole::IResult *pResult, void *pUserData)
 	if(!pPlayer)
 		return;
 
-	const int Ability = pResult->GetInteger(0);
+	const EAbility Ability = (EAbility)pResult->GetInteger(0);
 	pPlayer->SetAbility(Ability);
 	log_info("server", "Set ability to %d for player '%s'", Ability, pSelf->Server()->ClientName(Victim));
 }

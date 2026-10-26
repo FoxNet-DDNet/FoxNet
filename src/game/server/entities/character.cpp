@@ -849,8 +849,7 @@ void CCharacter::FireWeapon()
 	if(!m_ReloadTimer && m_Core.m_ActiveWeapon != -1)
 	{
 		// <FoxNet
-		float FireDelay;
-		FireDelay = GetFireDelay(Core()->m_ActiveWeapon);
+		float FireDelay = GetFireDelay(Core()->m_ActiveWeapon);
 		// m_ReloadTimer = GetTuning(m_TuneZone)->GetWeaponFireDelay(m_Core.m_ActiveWeapon) * Server()->TickSpeed();
 		m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
 		// FoxNet>

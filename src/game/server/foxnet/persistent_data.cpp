@@ -13,8 +13,12 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 	else
 		m_aUsername[0] = '\0';
 
+	m_AccLoginAttempts = pPlayer->m_AccLoginAttempts;
+	m_AccRegisters = pPlayer->m_AccRegisters;
+
 	m_Invisible = pPlayer->m_Invisible;
 	m_Vanish = pPlayer->m_Vanish;
+	m_ExtraPing = pPlayer->m_ExtraPing;
 	m_IgnoreGamelayer = pPlayer->m_IgnoreGamelayer;
 	m_TelekinesisImmunity = pPlayer->m_TelekinesisImmunity;
 	m_IncludeServerInfo = pPlayer->m_IncludeServerInfo;
@@ -22,9 +26,6 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 	m_Obfuscated = pPlayer->m_Obfuscated;
 	m_SpiderHook = pPlayer->m_SpiderHook;
 	m_Spazzing = pPlayer->m_Spazzing;
-
-	m_AccLoginAttempts = pPlayer->m_AccLoginAttempts;
-	m_AccRegisters = pPlayer->m_AccRegisters;
 
 	m_Page = pPlayer->GetPage();
 	m_SubPage = pPlayer->GetSubPage();
@@ -40,8 +41,12 @@ bool CSavePlayerData::Load(CPlayer *pPlayer) const
 	else
 		pPlayer->Acc()->m_aUsername[0] = '\0';
 
+	pPlayer->m_AccLoginAttempts = m_AccLoginAttempts;
+	pPlayer->m_AccRegisters = m_AccRegisters;
+
 	pPlayer->m_Invisible = m_Invisible;
 	pPlayer->m_Vanish = m_Vanish;
+	pPlayer->m_ExtraPing = m_ExtraPing;
 	pPlayer->m_IgnoreGamelayer = m_IgnoreGamelayer;
 	pPlayer->m_TelekinesisImmunity = m_TelekinesisImmunity;
 	pPlayer->m_IncludeServerInfo = m_IncludeServerInfo;
@@ -49,9 +54,6 @@ bool CSavePlayerData::Load(CPlayer *pPlayer) const
 	pPlayer->m_Obfuscated = m_Obfuscated;
 	pPlayer->m_SpiderHook = m_SpiderHook;
 	pPlayer->m_Spazzing = m_Spazzing;
-
-	pPlayer->m_AccLoginAttempts = m_AccLoginAttempts;
-	pPlayer->m_AccRegisters = m_AccRegisters;
 
 	pPlayer->SetPage(m_Page);
 	pPlayer->SetSubPage(m_SubPage);
