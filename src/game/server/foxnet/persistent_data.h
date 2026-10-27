@@ -21,6 +21,8 @@ private:
 	CAccConfigs m_Configs;
 	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
 
+	EAbility m_Ability = EAbility::None;
+
 	int m_AccLoginAttempts = 0;
 	int m_AccRegisters = 0;
 

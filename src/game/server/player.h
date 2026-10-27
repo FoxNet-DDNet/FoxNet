@@ -576,7 +576,6 @@ public:
 	void SetInvisible(bool Active);
 	void SetTelekinesisImmunity(bool Active);
 
-
 	EAbility m_Ability = EAbility::None;
 	void SetAbility(EAbility Type);
 

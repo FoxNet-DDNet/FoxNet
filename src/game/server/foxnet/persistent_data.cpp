@@ -13,6 +13,8 @@ void CSavePlayerData::Save(CPlayer *pPlayer)
 	else
 		m_aUsername[0] = '\0';
 
+	m_Ability = pPlayer->m_Ability;
+
 	m_AccLoginAttempts = pPlayer->m_AccLoginAttempts;
 	m_AccRegisters = pPlayer->m_AccRegisters;
 
@@ -40,6 +42,8 @@ bool CSavePlayerData::Load(CPlayer *pPlayer) const
 		str_copy(pPlayer->Acc()->m_aUsername, m_aUsername, sizeof(pPlayer->Acc()->m_aUsername));
 	else
 		pPlayer->Acc()->m_aUsername[0] = '\0';
+
+	pPlayer->m_Ability = m_Ability;
 
 	pPlayer->m_AccLoginAttempts = m_AccLoginAttempts;
 	pPlayer->m_AccRegisters = m_AccRegisters;
