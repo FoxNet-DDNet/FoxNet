@@ -583,11 +583,6 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 			pCommand = FindCommand(Result.m_pCommand, m_FlagMask | CFGFLAG_GAME);
 		else
 			pCommand = FindCommand(Result.m_pCommand, m_FlagMask);
-		if(Stroke && m_pfnCommandAuditCallback)
-		{
-			const std::string RawCommand(pStr, pEnd - pStr);
-			m_pfnCommandAuditCallback(ClientId, m_FlagMask, Result.m_pCommand, RawCommand.c_str(), pCommand ? pCommand->m_Flags : 0, m_pCommandAuditUserData);
-		}
 
 		if(pCommand)
 		{
@@ -697,6 +692,12 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 								}
 							}
 
+							// Unknown, denied, invalid, and deferred commands never reach this dispatch point.
+							if(Stroke && m_pfnCommandAuditCallback && (FanOutSlot < 0 || !vFanOutIds.empty()))
+							{
+								const std::string RawCommand(pStr, pEnd - pStr);
+								m_pfnCommandAuditCallback(ClientId, m_FlagMask, Result.m_pCommand, RawCommand.c_str(), pCommand->m_Flags, m_pCommandAuditUserData);
+							}
 							if(FanOutSlot < 0)
 							{
 								pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);

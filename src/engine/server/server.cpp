@@ -6662,13 +6662,13 @@ void CServer::UpdateWebhooks()
 					   vFields.back().m_Value.size() + 1 + Entry.m_Message.size() <= MAX_FIELD_BYTES;
 		if(!AppendCommand && vFields.size() >= MAX_FIELDS)
 			break;
-		const size_t AddedBytes = Entry.m_Message.size() + (AppendCommand ? 1 : FieldTitle.size());
+		const size_t AddedBytes = Entry.m_Message.size() + (AppendCommand ? 1 : FieldTitle.size() + (IsCommands ? 8 : 0));
 		if(EmbedBytes + AddedBytes > MAX_EMBED_BYTES)
 			break;
 		if(AppendCommand)
-			vFields.back().m_Value += "\n" + Entry.m_Message;
+			vFields.back().m_Value.insert(vFields.back().m_Value.size() - 4, "\n" + Entry.m_Message);
 		else
-			vFields.push_back({FieldTitle, Entry.m_Message});
+			vFields.push_back({FieldTitle, IsCommands ? "```\n" + Entry.m_Message + "\n```" : Entry.m_Message});
 		EmbedBytes += AddedBytes;
 		++m_WebhookInFlightCount;
 	}
@@ -6683,7 +6683,8 @@ void CServer::UpdateWebhooks()
 	if(m_WebhookInFlightCount == 0)
 	{
 		m_WebhookInFlightCount = 1;
-		const std::string Description = "**" + WebhookTitle(First.m_Title) + "**\n" + First.m_Message;
+		const std::string Description = "**" + WebhookTitle(First.m_Title) + "**\n" +
+			(IsCommands ? "```\n" + First.m_Message + "\n```" : First.m_Message);
 		Embed = "{" + TitleJson + "\"description\":\"" + EscapeJsonString(Description.c_str()) + "\",\"color\":" + std::to_string(EmbedColor) + "}";
 	}
 	else
@@ -6742,8 +6743,8 @@ void CServer::AuditCommand(int ClientId, int FlagMask, const char *pCommand, con
 		std::string Title = Actor;
 		if(Offset > 0 || Offset + Take < Command.size())
 			Title += " | part " + std::to_string(Part);
-		const std::string Block = "```\n" + Command.substr(Offset, Take) + "\n```";
-		SendWebhookMessage(EWebhookCategory::COMMANDS, g_Config.m_DcCommandsWebhookUrl, Block.c_str(), Title.c_str());
+		const std::string PartCommand = Command.substr(Offset, Take);
+		SendWebhookMessage(EWebhookCategory::COMMANDS, g_Config.m_DcCommandsWebhookUrl, PartCommand.c_str(), Title.c_str());
 		Offset += Take;
 	}
 }
