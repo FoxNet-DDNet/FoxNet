@@ -114,13 +114,16 @@ CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosme
 		m_StartTeamMask = CosmeticMask(EItemType::Death);
 
 	const vec2 CharPos = GetCharacter()->GetPos();
-	if(!m_IsCosmetic && !Server()->IsRconAuthed(Owner))
+	if(!m_IsCosmetic)
 	{
-		const float MaxDist = g_Config.m_SvMeteorMaxDistance * TileSize;
-		if(g_Config.m_SvMeteorMaxDistance != 0 && distance(CharPos, TargetPos) > MaxDist)
+		if(!Server()->IsRconAuthed(Owner))
 		{
-			const vec2 Dir = normalize(TargetPos - CharPos);
-			TargetPos = CharPos + Dir * MaxDist;
+			const float MaxDist = g_Config.m_SvMeteorMaxDistance * TileSize;
+			if(g_Config.m_SvMeteorMaxDistance != 0 && distance(CharPos, TargetPos) > MaxDist)
+			{
+				const vec2 Dir = normalize(TargetPos - CharPos);
+				TargetPos = CharPos + Dir * MaxDist;
+			}
 		}
 		m_TargetPos = FindTargetBlock(TargetPos);
 	}
