@@ -40,7 +40,7 @@ public:
 	vec2 m_From;
 	vec2 m_To;
 
-	int m_Id; // SnapId
+	std::optional<int> m_Id; // SnapId
 };
 
 class CWorm : public CEntity

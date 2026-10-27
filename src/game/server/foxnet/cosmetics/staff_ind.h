@@ -25,6 +25,7 @@ class CStaffInd : public CEntityOwned
 
 public:
 	CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CStaffInd() override;
 
 	void Reset() override;
 	void Tick() override;

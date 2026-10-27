@@ -14,11 +14,12 @@ class CEpicCircle : public CEntityOwned
 		MAX_PARTICLES = 9
 	};
 
-	int m_aIds[MAX_PARTICLES];
+	std::optional<int> m_aIds[MAX_PARTICLES];
 	vec2 m_RotatePos[MAX_PARTICLES];
 
 public:
 	CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CEpicCircle() override;
 
 	void Reset() override;
 	void Tick() override;

@@ -100,6 +100,7 @@ public:
 	int TuneZone() const override { return m_TuneZone; }
 
 	CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwner, vec2 Pos, int Team, int TeleCheckpoint, vec2 Dir, int Lifetime /*Seconds*/, int Type);
+	~CPickupDrop() override;
 
 	void RemoveFromOwner();
 	void Reset(bool PickedUp);

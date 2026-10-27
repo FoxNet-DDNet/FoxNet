@@ -18,8 +18,8 @@ constexpr int NumLasers = 3;
 
 class CMeteor : public CEntityOwned
 {
-	int m_aIds[6];
-	int m_aOtherIds[2];
+	std::optional<int> m_aIds[6];
+	std::optional<int> m_aOtherIds[2];
 
 	enum class EState
 	{
@@ -45,6 +45,7 @@ class CMeteor : public CEntityOwned
 
 public:
 	CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosmetic = false);
+	~CMeteor() override;
 
 	void Reset() override;
 	void Tick() override;

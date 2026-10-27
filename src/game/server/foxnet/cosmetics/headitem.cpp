@@ -38,8 +38,15 @@ CHeadItem::CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Offset) :
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 		m_aIds[i] = Server()->SnapNewId();
-	std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
+	std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.has_value() && (!b.has_value() || a.value() < b.value()); });
 	GameWorld()->InsertEntity(this);
+}
+
+CHeadItem::~CHeadItem()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CHeadItem::Reset()
@@ -49,12 +56,6 @@ void CHeadItem::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("headitem", "Reset");
-
-	for(size_t i = 0; i < std::size(m_aIds); i++)
-	{
-		if(m_aIds[i].has_value())
-			Server()->SnapFreeId(m_aIds[i].value());
-	}
 
 	m_MarkedForDestroy = true;
 }
@@ -195,7 +196,8 @@ void CHeadItem::Snap(int SnappingClient)
 
 	Flags |= PICKUPFLAG_NO_PREDICT;
 
-	SnapCosmeticPickup(SnappingClient, GetId().value(), Flags, m_Owner, m_Offset, Type, SubType, Rotation, -1, COSMETIC_FLAG_ANCHORED);
+	if(GetId().has_value())
+		SnapCosmeticPickup(SnappingClient, GetId().value(), Flags, m_Owner, m_Offset, Type, SubType, Rotation, -1, COSMETIC_FLAG_ANCHORED);
 }
 
 void CHeadItem::SnapPartyHat(int SnappingClient)

@@ -1174,7 +1174,7 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 	const int Team = pChr->Team();
 	const int Type = pResult->GetInteger(0);
 
-	const int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
+	const int Lifetime = 300; // Seconds
 
 	new CPickupDrop(&pSelf->m_World, pPlayer->MultiMapIdx(), pResult->m_ClientId, Pos, Team, TeleCheck, Dir, Lifetime, Type); // NOLINT(clang-analyzer-unix.Malloc)
 }
@@ -1200,7 +1200,7 @@ void CGameContext::ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUser
 	if(Amount <= 0) // Division by 0
 		return;
 
-	const int Lifetime = pSelf->Server()->TickSpeed() * 300; // 5 minutes
+	const int Lifetime = 300; // Seconds
 	const int CurTick = pSelf->Server()->Tick();
 	for(int i = 0; i < Amount; i++)
 	{

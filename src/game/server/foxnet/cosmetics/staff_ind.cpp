@@ -28,8 +28,15 @@ CStaffInd::CStaffInd(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 	for(int i = 0; i < NUM_IDS; i++)
 		m_aIds[i] = Server()->SnapNewId();
-	std::sort(std::begin(m_aIds), std::end(m_aIds));
+	std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.has_value() && (!b.has_value() || a.value() < b.value()); });
 	GameWorld()->InsertEntity(this);
+}
+
+CStaffInd::~CStaffInd()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CStaffInd::Reset()
@@ -39,12 +46,6 @@ void CStaffInd::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("staffind", "Reset");
-
-	for(int i = 0; i < NUM_IDS; i++)
-	{
-		if(m_aIds[i].has_value())
-			Server()->SnapFreeId(m_aIds[i].value());
-	}
 
 	m_MarkedForDestroy = true;
 }

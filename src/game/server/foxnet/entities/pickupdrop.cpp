@@ -188,10 +188,19 @@ CPickupDrop::CPickupDrop(CGameWorld *pGameWorld, int MultiMapIndex, int LastOwne
 	m_RestTicks = 0;
 	m_SleepRecheck = 0;
 
-	for(size_t i = 0; i < std::size(m_aIds); i++)
+	const size_t NumExtraIds = m_Type == WEAPON_PORTALGUN ? 2 :
+		(m_Type == WEAPON_HEARTGUN || m_Type == WEAPON_LIGHTSABER || m_Type == WEAPON_METEOR ? 1 : 0);
+	for(size_t i = 0; i < NumExtraIds; i++)
 		m_aIds[i] = Server()->SnapNewId();
 
 	GameWorld()->InsertEntity(this);
+}
+
+CPickupDrop::~CPickupDrop()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CPickupDrop::RemoveFromOwner()
@@ -212,12 +221,6 @@ void CPickupDrop::Reset(bool PickedUp)
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("pickupdrop", "Reset");
-
-	for(size_t i = 0; i < std::size(m_aIds); i++)
-	{
-		if(m_aIds[i].has_value())
-			Server()->SnapFreeId(m_aIds[i].value());
-	}
 
 	RemoveFromOwner();
 
@@ -782,13 +785,15 @@ void CPickupDrop::Snap(int SnappingClient)
 		const vec2 Spin = vec2(cos(Tick / 5.0f), sin(Tick / 5.0f)) * 17.0f + Offset;
 
 
-		SnapPickupDropProjectile(m_aIds[1].value(), SnappingClient, WEAPON_HAMMER, m_Pos + Spin, vec2(0, 0));
+		if(m_aIds[1].has_value())
+			SnapPickupDropProjectile(m_aIds[1].value(), SnappingClient, WEAPON_HAMMER, m_Pos + Spin, vec2(0, 0));
 	}
 	else if(m_Type == WEAPON_METEOR)
 	{
 		const float Time = Tick * 0.25f;
 		const vec2 Spin = normalize(vec2(cos(Time), sin(Time)));
 
-		SnapPickupDropProjectile(m_aIds[0].value(), SnappingClient, WEAPON_GRENADE, m_Pos + Offset, Spin);
+		if(m_aIds[0].has_value())
+			SnapPickupDropProjectile(m_aIds[0].value(), SnappingClient, WEAPON_GRENADE, m_Pos + Offset, Spin);
 	}
 }

@@ -37,6 +37,12 @@ CRotatingBall::CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	GameWorld()->InsertEntity(this);
 }
 
+CRotatingBall::~CRotatingBall()
+{
+	if(m_Id1.has_value())
+		Server()->SnapFreeId(m_Id1.value());
+}
+
 void CRotatingBall::Reset()
 {
 	if(m_MarkedForDestroy)
@@ -44,9 +50,6 @@ void CRotatingBall::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("rotatingball", "Reset");
-
-	if(m_Id1.has_value())
-		Server()->SnapFreeId(m_Id1.value());
 
 	m_MarkedForDestroy = true;
 }

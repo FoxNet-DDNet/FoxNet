@@ -35,6 +35,7 @@ class CFirework : public CEntityOwned
 
 public:
 	CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CFirework() override;
 
 	void Reset() override;
 	void Tick() override;

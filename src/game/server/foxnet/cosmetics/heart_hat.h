@@ -20,6 +20,7 @@ class CHeartHat : public CEntityOwned
 
 public:
 	CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CHeartHat() override;
 
 	void Reset() override;
 	void Tick() override;

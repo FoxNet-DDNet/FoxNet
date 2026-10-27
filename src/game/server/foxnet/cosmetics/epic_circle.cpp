@@ -16,6 +16,7 @@
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
 
+#include <algorithm>
 #include <cmath>
 
 CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
@@ -25,11 +26,17 @@ CEpicCircle::CEpicCircle(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
-		std::optional<int> Id = Server()->SnapNewId();
-		if(Id.has_value())
-			m_aIds[i] = Id.value();
+		m_aIds[i] = Server()->SnapNewId();
 	}
+	std::sort(std::begin(m_aIds), std::end(m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.has_value() && (!b.has_value() || a.value() < b.value()); });
 	GameWorld()->InsertEntity(this);
+}
+
+CEpicCircle::~CEpicCircle()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CEpicCircle::Reset()
@@ -39,9 +46,6 @@ void CEpicCircle::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("epiccircle", "Reset");
-
-	for(int i = 0; i < MAX_PARTICLES; i++)
-		Server()->SnapFreeId(m_aIds[i]);
 
 	m_MarkedForDestroy = true;
 }
@@ -84,6 +88,7 @@ void CEpicCircle::Snap(int SnappingClient)
 
 	for(int i = 0; i < MAX_PARTICLES; i++)
 	{
-		SnapCosmeticProjectile(SnappingClient, m_aIds[i], m_Owner, m_RotatePos[i], vec2(0, 0), 0, WEAPON_HAMMER);
+		if(m_aIds[i].has_value())
+			SnapCosmeticProjectile(SnappingClient, m_aIds[i].value(), m_Owner, m_RotatePos[i], vec2(0, 0), 0, WEAPON_HAMMER);
 	}
 }

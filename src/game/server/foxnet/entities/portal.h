@@ -63,6 +63,7 @@ class CPortal : public CEntityOwned
 
 public:
 	CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CPortal() override;
 
 	void OnFire();
 

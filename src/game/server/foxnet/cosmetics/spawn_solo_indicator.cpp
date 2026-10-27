@@ -35,7 +35,7 @@ void CSpawnSoloIndicator::Snap(int SnappingClient)
 {
 	if(SnappingClient < 0 || SnappingClient >= MAX_CLIENTS || NetworkClipped(SnappingClient))
 		return;
-	if(!GetCharacter() || !GetCharacter()->m_SpawnSolo || !CanSnapEntity(SnappingClient))
+	if(!GetCharacter() || !GetCharacter()->m_SpawnSolo || !CanSnapEntity(SnappingClient) || !GetId().has_value())
 		return;
 
 	SnapCosmeticPickup(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, m_Owner,

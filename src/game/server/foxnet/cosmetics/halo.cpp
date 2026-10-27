@@ -31,9 +31,16 @@ CHalo::CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 		m_aSnap[Idx].m_Id = Server()->SnapNewId();
 
 	// Sort based on m_Id
-	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id.value() < b.m_Id.value(); });
+	std::sort(std::begin(m_aSnap), std::end(m_aSnap), [](const CSnapData &a, const CSnapData &b) { return a.m_Id.has_value() && (!b.m_Id.has_value() || a.m_Id.value() < b.m_Id.value()); });
 
 	GameWorld()->InsertEntity(this);
+}
+
+CHalo::~CHalo()
+{
+	for(const auto &Snap : m_aSnap)
+		if(Snap.m_Id.has_value())
+			Server()->SnapFreeId(Snap.m_Id.value());
 }
 
 void CHalo::Reset()
@@ -43,11 +50,6 @@ void CHalo::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("halo", "Reset");
-	for(size_t Idx = 0; Idx < std::size(m_aSnap); Idx++)
-	{
-		if(m_aSnap[Idx].m_Id.has_value())
-			Server()->SnapFreeId(m_aSnap[Idx].m_Id.value());
-	}
 	m_MarkedForDestroy = true;
 }
 

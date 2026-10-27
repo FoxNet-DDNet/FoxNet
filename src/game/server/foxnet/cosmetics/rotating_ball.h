@@ -23,6 +23,7 @@ class CRotatingBall : public CEntityOwned
 
 public:
 	CRotatingBall(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CRotatingBall() override;
 
 	void Reset() override;
 	void Tick() override;

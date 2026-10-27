@@ -48,6 +48,13 @@ CFirework::CFirework(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	GameWorld()->InsertEntity(this);
 }
 
+CFirework::~CFirework()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
+}
+
 void CFirework::Reset()
 {
 	if(m_MarkedForDestroy)
@@ -55,12 +62,6 @@ void CFirework::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("firework", "Reset");
-	for(int i = 0; i < MAX_FIREWORKS; i++)
-	{
-		if(m_aIds[i].has_value())
-			Server()->SnapFreeId(m_aIds[i].value());
-	}
-
 	m_MarkedForDestroy = true;
 }
 
@@ -128,7 +129,8 @@ void CFirework::Snap(int SnappingClient)
 		Proj.m_Type = WEAPON_GRENADE;
 		Proj.m_StartTick = Server()->Tick();
 		Proj.m_Owner = m_Owner;
-      Server()->SnapNewItem(GetId().value(), Proj);
+		if(GetId().has_value())
+			Server()->SnapNewItem(GetId().value(), Proj);
 	}
 	else if(m_State == State::EXPLOSION)
 	{

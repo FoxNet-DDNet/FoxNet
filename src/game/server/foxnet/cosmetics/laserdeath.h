@@ -33,6 +33,7 @@ class CLaserDeath : public CEntityOwned
 
 public:
 	CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMask Mask);
+	~CLaserDeath() override;
 	void Reset() override;
 	void Tick() override;
 	void Snap(int SnappingClient) override;

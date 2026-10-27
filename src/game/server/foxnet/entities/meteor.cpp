@@ -131,29 +131,40 @@ CMeteor::CMeteor(CGameWorld *pGameWorld, int Owner, vec2 TargetPos, bool IsCosme
 		m_TargetPos = TargetPos;
 	m_CurrentPos = m_SummonPos = GetRandomStartPos();
 
+	auto IdLess = [](const std::optional<int> &Left, const std::optional<int> &Right) {
+		if(!Left.has_value())
+			return false;
+		if(!Right.has_value())
+			return true;
+		return Left.value() < Right.value();
+	};
+
 	for(size_t i = 0; i < std::size(m_aIds); i++)
-		m_aIds[i] = Server()->SnapNewId().value();
-	std::sort(std::begin(m_aIds), std::end(m_aIds));
+		m_aIds[i] = Server()->SnapNewId();
+	std::sort(std::begin(m_aIds), std::end(m_aIds), IdLess);
 
 	for(size_t i = 0; i < std::size(m_aOtherIds); i++)
-		m_aOtherIds[i] = Server()->SnapNewId().value();
-	std::sort(std::begin(m_aOtherIds), std::end(m_aOtherIds));
+		m_aOtherIds[i] = Server()->SnapNewId();
+	std::sort(std::begin(m_aOtherIds), std::end(m_aOtherIds), IdLess);
 
 	GameWorld()->InsertEntity(this);
+}
+
+CMeteor::~CMeteor()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
+	for(const auto &Id : m_aOtherIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CMeteor::Reset()
 {
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("meteor", "Reset");
-
-	if(GetId().has_value())
-		Server()->SnapFreeId(GetId().value());
-
-	for(size_t i = 0; i < std::size(m_aIds); i++)
-		Server()->SnapFreeId(m_aIds[i]);
-
-	GameWorld()->RemoveEntity(this);
+	m_MarkedForDestroy = true;
 }
 
 void CMeteor::Tick()
@@ -273,7 +284,9 @@ void CMeteor::Snap(int SnappingClient)
 
 	for(size_t i = 0; i < std::size(m_aIds); i++)
 	{
-		const int Id = m_aIds[i];
+		if(!m_aIds[i].has_value())
+			continue;
+		const int Id = m_aIds[i].value();
 
 		const int Tick = Server()->Tick() - m_StartTick;
 		const float Spin = Tick * 0.35f;
@@ -300,7 +313,9 @@ void CMeteor::Snap(int SnappingClient)
 	}
 	for(size_t i = 0; i < std::size(m_aOtherIds); i++)
 	{
-		const int Id = m_aOtherIds[i];
+		if(!m_aOtherIds[i].has_value())
+			continue;
+		const int Id = m_aOtherIds[i].value();
 		const vec2 Dir = normalize(m_TargetPos - m_SummonPos);
 
 		if(i == 0)

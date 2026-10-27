@@ -27,6 +27,7 @@ class CHalo : public CEntityOwned
 
 public:
 	CHalo(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CHalo() override;
 
 	void Reset() override;
 	void Tick() override;

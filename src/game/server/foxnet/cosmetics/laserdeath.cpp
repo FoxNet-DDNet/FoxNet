@@ -39,9 +39,16 @@ CLaserDeath::CLaserDeath(CGameWorld *pGameWorld, int Owner, vec2 Pos, CClientMas
 		m_SnapData.m_aPos[i] = m_Pos + random_direction() * Random;
 	}
 	m_EndTick = Server()->Tick() + TICKDELAY * MAX_PARTICLES;
-	std::sort(std::begin(m_SnapData.m_aIds), std::end(m_SnapData.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.value() < b.value(); });
+	std::sort(std::begin(m_SnapData.m_aIds), std::end(m_SnapData.m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.has_value() && (!b.has_value() || a.value() < b.value()); });
 
 	GameWorld()->InsertEntity(this);
+}
+
+CLaserDeath::~CLaserDeath()
+{
+	for(const auto &Id : m_SnapData.m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
 }
 
 void CLaserDeath::Reset()
@@ -51,12 +58,6 @@ void CLaserDeath::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("laserdeath", "Reset");
-	for(int i = 0; i < MAX_PARTICLES; i++)
-	{
-		if(m_SnapData.m_aIds[i].has_value())
-			Server()->SnapFreeId(m_SnapData.m_aIds[i].value());
-	}
-
 	m_MarkedForDestroy = true;
 }
 

@@ -24,6 +24,13 @@ CLovely::CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	GameWorld()->InsertEntity(this);
 }
 
+CLovely::~CLovely()
+{
+	for(const auto &Data : m_aData)
+		if(Data.m_Id.has_value())
+			Server()->SnapFreeId(Data.m_Id.value());
+}
+
 void CLovely::Reset()
 {
 	if(m_MarkedForDestroy)
@@ -31,12 +38,6 @@ void CLovely::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("lovely", "Reset");
-
-	for(int i = 0; i < MAX_HEARTS; i++)
-	{
-		if(m_aData[i].m_Id.has_value())
-			Server()->SnapFreeId(m_aData[i].m_Id.value());
-	}
 
 	m_MarkedForDestroy = true;
 }

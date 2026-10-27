@@ -81,16 +81,16 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	GameWorld()->InsertEntity(this);
 }
 
+CGunProjectile::~CGunProjectile()
+{
+	if(m_ExtraId.has_value())
+		Server()->SnapFreeId(m_ExtraId.value());
+}
+
 void CGunProjectile::Reset()
 {
 	if(m_MarkedForDestroy)
 		return;
-
-	if(m_ExtraId.has_value())
-	{
-		Server()->SnapFreeId(m_ExtraId.value());
-		m_ExtraId.reset();
-	}
 
 	m_MarkedForDestroy = true;
 }
@@ -445,7 +445,8 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 		};
 
 		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, Direction), Direction);
-		SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, Direction), Direction);
+		if(m_ExtraId.has_value())
+			SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, Direction), Direction);
 		return;
 	}
 
@@ -461,6 +462,11 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 		}
 		else
 		{
+			if(!m_ExtraId.has_value())
+			{
+				SnapCosmeticLaserPos(SnappingClient, GetId().value(), Owner, PrevSnapPos, SnapPos, 0, LASERTYPE_DOOR, -1, 0);
+				return;
+			}
 			std::array<int, 2> LaserIds = {m_ExtraId.value(), GetId().value()};
 			if(LaserIds[0] > LaserIds[1])
 				std::swap(LaserIds[0], LaserIds[1]);

@@ -47,12 +47,12 @@ CWorm::CWorm(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, CWormConfig Worm
 	{
 		Segment.m_From = Pos;
 		Segment.m_To = Pos;
-		Segment.m_Id = Server()->SnapNewId().value();
+		Segment.m_Id = Server()->SnapNewId();
 	}
 
 	std::sort(m_vSegments.begin(), m_vSegments.end(),
 		[](const WormSegment &a, const WormSegment &b) {
-			return a.m_Id < b.m_Id;
+			return a.m_Id.has_value() && (!b.m_Id.has_value() || a.m_Id.value() < b.m_Id.value());
 		});
 
 	GameWorld()->InsertEntity(this);
@@ -61,7 +61,8 @@ CWorm::CWorm(CGameWorld *pGameWorld, int MultiMapIdx, vec2 Pos, CWormConfig Worm
 CWorm::~CWorm()
 {
 	for(const auto &Segment : m_vSegments)
-		Server()->SnapFreeId(Segment.m_Id);
+		if(Segment.m_Id.has_value())
+			Server()->SnapFreeId(Segment.m_Id.value());
 }
 
 vec2 CWorm::FindTargetPos()
@@ -321,6 +322,8 @@ void CWorm::Snap(int SnappingClient)
 
 	for(const auto &Segment : m_vSegments)
 	{
+		if(!Segment.m_Id.has_value())
+			continue;
 		if(NetworkClippedLine(SnappingClient, Segment.m_From, Segment.m_To))
 			continue;
 
@@ -336,12 +339,12 @@ void CWorm::Snap(int SnappingClient)
 			Laser.m_Owner = -1;
 			Laser.m_Alpha = 100;
 			Laser.m_Flags = COSMETIC_LASER_FLAG_TO_HEAD;
-			Server()->SnapNewItem(Segment.m_Id, Laser);
+			Server()->SnapNewItem(Segment.m_Id.value(), Laser);
 		}
 		else
 		{
 			const CSnapContext Context(Server()->GetClientVersion(SnappingClient), Server()->IsSixup(SnappingClient), SnappingClient);
-			GameServer()->SnapLaserObject(Context, Segment.m_Id, Segment.m_To, Segment.m_From,
+			GameServer()->SnapLaserObject(Context, Segment.m_Id.value(), Segment.m_To, Segment.m_From,
 				Server()->Tick(), -1, LASERTYPE_GUN, -1, -1, LASERFLAG_NO_PREDICT);
 		}
 	}

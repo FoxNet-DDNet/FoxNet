@@ -37,6 +37,7 @@ class CHeadItem : public CEntityOwned
 
 public:
 	CHeadItem(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Offset);
+	~CHeadItem() override;
 	void Reset() override;
 	void Tick() override;
 	void Snap(int SnappingClient) override;

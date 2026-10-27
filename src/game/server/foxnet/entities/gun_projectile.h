@@ -20,6 +20,7 @@ class CGunProjectile : public CEntityOwned
 {
 public:
 	CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2 Dir, vec2 MouseTarget, int Span);
+	~CGunProjectile() override;
 
 	void Reset() override;
 	void Tick() override;

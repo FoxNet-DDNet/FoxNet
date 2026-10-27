@@ -311,6 +311,7 @@ public:
 	void ClearData(bool FreeSnapIds);
 
 	CText(CGameWorld *pGameWorld, int MultiMapIdx, int Owner, vec2 Pos, int AliveTicks, const char *pText, int EntType);
+	~CText() override { ClearData(true); }
 
 	void Reset() override;
 	void Tick() override;

@@ -30,6 +30,13 @@ CHeartHat::CHeartHat(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 	GameWorld()->InsertEntity(this);
 }
 
+CHeartHat::~CHeartHat()
+{
+	for(const auto &Id : m_aIds)
+		if(Id.has_value())
+			Server()->SnapFreeId(Id.value());
+}
+
 void CHeartHat::Reset()
 {
 	if(m_MarkedForDestroy)
@@ -37,12 +44,6 @@ void CHeartHat::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("hearthat", "Reset");
-
-	for(size_t i = 0; i < NUM_HEARTS; i++)
-	{
-		if(m_aIds[i])
-			Server()->SnapFreeId(m_aIds[i].value());
-	}
 
 	m_MarkedForDestroy = true;
 }

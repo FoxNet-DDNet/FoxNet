@@ -29,6 +29,7 @@ class CLovely : public CEntityOwned
 
 public:
 	CLovely(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CLovely() override;
 
 	void Reset() override;
 	void Tick() override;

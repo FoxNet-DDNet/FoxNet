@@ -51,12 +51,25 @@ CPortal::CPortal(CGameWorld *pGameWorld, int Owner, vec2 Pos) :
 
 		for(int i = 0; i < NUM_IDS; i++)
 			m_Snap[p].m_aIds[i] = Server()->SnapNewId();
-		std::sort(std::begin(m_Snap[p].m_aIds), std::end(m_Snap[p].m_aIds)); // Ensures lasers dont overlap weirdly
+		std::sort(std::begin(m_Snap[p].m_aIds), std::end(m_Snap[p].m_aIds), [](const std::optional<int> &a, const std::optional<int> &b) { return a.has_value() && (!b.has_value() || a.value() < b.value()); }); // Ensures lasers dont overlap weirdly
 		for(int i = 0; i < NUM_PRTCL; i++)
 			m_Snap[p].m_aParticleIds[i] = Server()->SnapNewId();
 	}
 
 	GameWorld()->InsertEntity(this);
+}
+
+CPortal::~CPortal()
+{
+	for(int p = 0; p < NUM_PORTALS; p++)
+	{
+		for(const auto &Id : m_Snap[p].m_aIds)
+			if(Id.has_value())
+				Server()->SnapFreeId(Id.value());
+		for(const auto &Id : m_Snap[p].m_aParticleIds)
+			if(Id.has_value())
+				Server()->SnapFreeId(Id.value());
+	}
 }
 
 void CPortal::Reset()
@@ -66,16 +79,6 @@ void CPortal::Reset()
 
 	if(g_Config.m_SvLogExtra >= 2)
 		log_info("portal", "Reset");
-
-	for(int p = 0; p < NUM_PORTALS; p++)
-	{
-		for(int i = 0; i < NUM_IDS; i++)
-			if(m_Snap[p].m_aIds[i].has_value())
-				Server()->SnapFreeId(m_Snap[p].m_aIds[i].value());
-		for(int i = 0; i < NUM_PRTCL; i++)
-			if(m_Snap[p].m_aParticleIds[i].has_value())
-				Server()->SnapFreeId(m_Snap[p].m_aParticleIds[i].value());
-	}
 
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	if(pOwnerChar)

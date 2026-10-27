@@ -31,6 +31,7 @@ class CLissajous : public CEntityOwned
 
 public:
 	CLissajous(CGameWorld *pGameWorld, int Owner, vec2 Pos);
+	~CLissajous() override;
 
 	void Reset() override;
 	void Tick() override;
