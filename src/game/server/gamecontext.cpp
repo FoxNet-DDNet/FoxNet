@@ -1112,6 +1112,44 @@ void CGameContext::EndVote()
 {
 	m_VoteCloseTime = 0;
 	SendVoteSet(-1);
+
+	const auto SendToAuthed = [this](const std::string &Message) {
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		{
+			if(m_apPlayers[ClientId] && Server()->GetAuthedState(ClientId) != AUTHED_NO)
+				SendChatTarget(ClientId, Message.c_str());
+		}
+	};
+
+	const auto SendVoters = [this, &SendToAuthed](int Vote, const char *pLabel, const char *pContinuationLabel) {
+		std::string Line = pLabel;
+		bool HasVoters = false;
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+		{
+			if(!m_apPlayers[ClientId] || !Server()->ClientIngame(ClientId) || m_apPlayers[ClientId]->m_Vote != Vote)
+				continue;
+
+			char aVoter[MAX_NAME_LENGTH + 16];
+			str_format(aVoter, sizeof(aVoter), "%s (%d)", Server()->ClientName(ClientId), ClientId);
+			bool HasEntryOnLine = Line != pLabel && Line != pContinuationLabel;
+			if(Line.size() + str_length(aVoter) + (HasEntryOnLine ? 2 : 0) > 220)
+			{
+				SendToAuthed(Line);
+				Line = pContinuationLabel;
+				HasEntryOnLine = false;
+			}
+			if(HasEntryOnLine)
+				Line += ", ";
+			Line += aVoter;
+			HasVoters = true;
+		}
+		if(!HasVoters)
+			Line += "none";
+		SendToAuthed(Line);
+	};
+
+	SendVoters(1, "Yes voters: ", "Yes voters (cont.): ");
+	SendVoters(-1, "No voters: ", "No voters (cont.): ");
 }
 
 void CGameContext::SendVoteSet(int ClientId)
@@ -1548,11 +1586,10 @@ void CGameContext::OnTick()
 			}
 			if(NormalVotePasses)
 			{
-
+				EndVote();
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
 				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
-				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed", -1, FLAG_SIX);
 
 				if(m_VoteCreator != -1 && m_apPlayers[m_VoteCreator] && !IsKickVote() && !IsSpecVote())
@@ -1560,10 +1597,10 @@ void CGameContext::OnTick()
 			}
 			else if(m_VoteEnforce == VOTE_ENFORCE_YES_ADMIN)
 			{
+				EndVote();
 				Server()->SetRconCid(IServer::RCON_CID_VOTE);
 				Console()->ExecuteLine(m_aVoteCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 				Server()->SetRconCid(IServer::RCON_CID_SERV);
-				EndVote();
 				SendChat(-1, TEAM_ALL, "Vote passed enforced by authorized player", -1, FLAG_SIX);
 
 				if(m_VoteCreator != -1 && m_apPlayers[m_VoteCreator])
