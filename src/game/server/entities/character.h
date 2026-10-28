@@ -42,7 +42,7 @@ class CCharacter : public CEntity
 	friend class CSaveHotReloadTee;
 
 public:
-	CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput);
+	CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput) noexcept;
 	~CCharacter() override;
 
 	void Reset() override;

@@ -68,7 +68,7 @@
 MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS)
 
 // Character, "physical" player's part
-CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput) :
+CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastInput) noexcept :
 	CEntity(pWorld, MapIdx, CGameWorld::ENTTYPE_CHARACTER, false, vec2(0, 0), CCharacterCore::PhysicalSize())
 {
 	m_Health = 0;

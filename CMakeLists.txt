@@ -407,7 +407,6 @@ if(NOT MSVC AND NOT HAIKU)
   add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wthread-safety)
   add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wthread-safety-negative)
   add_linker_flag_if_supported(OUR_FLAGS_LINK -Wno-alloc-size-larger-than) # save.cpp with LTO
-  add_linker_flag_if_supported(OUR_FLAGS_LINK -Wno-free-nonheap-object) # GCC LTO falsely flags the character pool and libstdc++ discrete_distribution
   add_linker_flag_if_supported(OUR_FLAGS_LINK -Wno-stringop-overflow) # str_copy with LTO
   # tidy-alphabetical-end
   # add_cxx_compiler_flag_if_supported(OUR_FLAGS_OWN -Wdouble-promotion) # Many occurrences
