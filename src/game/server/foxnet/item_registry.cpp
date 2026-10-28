@@ -91,7 +91,7 @@ void CItemRegistry::Init()
 	// Guns (value-based + types)
 	Add({EItemId::EmoticonGun, EItemType::Gun, "Emoticon Gun", "G_E", EItemFlag::Equippable,
 		EExclusiveGroup::None, // can be combined with type guns in original
-		16500, 10, "Shoot emotions at people",
+		UnbuyablePrice, 10, "Shoot emotions at people",
 		[](CPlayer &pl, const CItemConfig &, int OverrideValue) {
 			if(OverrideValue < 0) // toggle
 			{
