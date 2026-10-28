@@ -109,7 +109,7 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MultiMapId
 	// solo part
 	if((TileIndex == TILE_SOLO_ENABLE) || (TileFIndex == TILE_SOLO_ENABLE))
 	{
-		pChr->UnSpawnSolo(false);
+		pChr->SetSpawnSolo(false);
 		if(!Teams().m_Core.GetSolo(ClientId))
 		{
 			GameServer()->SendChatTarget(ClientId, "You are now in a solo part");
@@ -118,7 +118,7 @@ void CGameControllerDDNet::HandleCharacterTiles(CCharacter *pChr, int MultiMapId
 	}
 	else if((TileIndex == TILE_SOLO_DISABLE) || (TileFIndex == TILE_SOLO_DISABLE))
 	{
-		pChr->UnSpawnSolo(false);
+		pChr->SetSpawnSolo(false);
 		if(Teams().m_Core.GetSolo(ClientId))
 		{
 			GameServer()->SendChatTarget(ClientId, "You are now out of the solo part");

@@ -177,6 +177,7 @@ void CCharacterCore::Reset()
 
 	// DDNet Character
 	m_Solo = false;
+	m_SpawnSolo = false;
 	m_Jetpack = false;
 	m_CollisionDisabled = false;
 	m_EndlessHook = false;
@@ -380,7 +381,7 @@ void CCharacterCore::Tick(bool UseInput, bool DoDeferredTick)
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-				if(!pCharCore || pCharCore == this || (!(m_Super || pCharCore->m_Super) && ((m_Id != -1 && !m_pTeams->CanCollide(i, m_Id)) || pCharCore->m_Solo || m_Solo)))
+				if(!pCharCore || pCharCore == this || (!(m_Super || pCharCore->m_Super) && ((m_Id != -1 && !m_pTeams->CanCollide(i, m_Id)) || pCharCore->m_Solo || m_Solo || pCharCore->m_SpawnSolo || m_SpawnSolo)))
 					continue;
 				// <FoxNet
 				if(m_Passive || pCharCore->m_Passive)
@@ -552,7 +553,7 @@ void CCharacterCore::TickDeferred()
 			if(pCharCore == this || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, i)))
 				continue; // make sure that we don't nudge our self
 
-			if(!(m_Super || pCharCore->m_Super) && (m_Solo || pCharCore->m_Solo))
+			if(!(m_Super || pCharCore->m_Super) && (m_Solo || pCharCore->m_Solo || m_SpawnSolo || pCharCore->m_SpawnSolo))
 				continue;
 			// <FoxNet
 			if(m_Passive || pCharCore->m_Passive)
@@ -664,7 +665,7 @@ void CCharacterCore::Move()
 
 	m_Vel.x = m_Vel.x * (1.0f / RampValue);
 
-	if(m_pWorld && (m_Super || (Tuning.m_PlayerCollision && !m_CollisionDisabled && !m_Solo)))
+	if(m_pWorld && (m_Super || (Tuning.m_PlayerCollision && !m_CollisionDisabled && !m_Solo && !m_SpawnSolo)))
 	{
 		// check player collision
 		float Distance = distance(m_Pos, NewPos);
@@ -677,7 +678,7 @@ void CCharacterCore::Move()
 				const CCharacterCore *pCharCore = m_pWorld->m_apCharacters[ClientId];
 				if(!pCharCore || pCharCore == this)
 					continue;
-				if((!(pCharCore->m_Super || m_Super) && (m_Solo || pCharCore->m_Solo || pCharCore->m_CollisionDisabled || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, ClientId)))))
+				if((!(pCharCore->m_Super || m_Super) && (m_Solo || m_SpawnSolo || pCharCore->m_Solo || pCharCore->m_SpawnSolo || pCharCore->m_CollisionDisabled || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, ClientId)))))
 					continue;
 				if(m_Passive || pCharCore->m_Passive || !m_Collidable || !pCharCore->m_Tuning.m_PlayerCollision)
 					continue;

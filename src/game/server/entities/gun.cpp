@@ -78,7 +78,7 @@ void CGun::Fire()
 
 		// Turrets can only shoot at a speed of sv_plasma_per_sec
 		const int &TargetClientId = pTarget->GetPlayer()->GetCid();
-		const bool &TargetIsSolo = pTarget->Teams()->m_Core.GetSolo(TargetClientId);
+		const bool TargetIsSolo = pTarget->Teams()->m_Core.GetSolo(TargetClientId) || pTarget->Core()->m_SpawnSolo;
 		if((TargetIsSolo &&
 			   m_aLastFireSolo[TargetClientId] + Server()->TickSpeed() / g_Config.m_SvPlasmaPerSec > Server()->Tick()) ||
 			(!TargetIsSolo &&

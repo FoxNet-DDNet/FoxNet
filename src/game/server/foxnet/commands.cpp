@@ -1975,8 +1975,8 @@ void CGameContext::ConchainSoloOnSpawn(IConsole::IResult *pResult, void *pUserDa
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{
 		CCharacter *pChr = pSelf->GetPlayerChar(ClientId);
-		if(pChr && pChr->m_SpawnSolo)
-			pChr->UnSpawnSolo();
+		if(pChr && pChr->Core()->m_SpawnSolo)
+			pChr->SetSpawnSolo(false);
 	}
 }
 

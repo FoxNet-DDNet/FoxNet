@@ -35,12 +35,25 @@ bool CTeamsCore::CanKeepHook(int ClientId1, int ClientId2) const
 
 bool CTeamsCore::CanCollide(int ClientId1, int ClientId2) const
 {
+	// <FoxNet
+	if(!CanCollideAfterSpawnSolo(ClientId1, ClientId2))
+		return false;
+	// FoxNet>
+	if(m_aTeam[ClientId1] == TeamSuper() || m_aTeam[ClientId2] == TeamSuper() || ClientId1 == ClientId2)
+		return true;
+	return !m_aIsSpawnSolo[ClientId1] && !m_aIsSpawnSolo[ClientId2];
+}
+
+// <FoxNet
+bool CTeamsCore::CanCollideAfterSpawnSolo(int ClientId1, int ClientId2) const
+{
 	if(m_aTeam[ClientId1] == TeamSuper() || m_aTeam[ClientId2] == TeamSuper() || ClientId1 == ClientId2)
 		return true;
 	if(m_aIsSolo[ClientId1] || m_aIsSolo[ClientId2])
 		return false;
 	return m_aTeam[ClientId1] == m_aTeam[ClientId2];
 }
+// FoxNet>
 
 void CTeamsCore::Reset()
 {
@@ -53,6 +66,7 @@ void CTeamsCore::Reset()
 		else
 			m_aTeam[i] = TEAM_FLOCK;
 		m_aIsSolo[i] = false;
+		m_aIsSpawnSolo[i] = false; // FoxNet
 	}
 }
 
@@ -67,4 +81,10 @@ bool CTeamsCore::GetSolo(int ClientId) const
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 		return false;
 	return m_aIsSolo[ClientId];
+}
+
+void CTeamsCore::SetSpawnSolo(int ClientId, bool Value)
+{
+	dbg_assert(ClientId >= 0 && ClientId < MAX_CLIENTS, "Invalid client id");
+	m_aIsSpawnSolo[ClientId] = Value; // FoxNet
 }

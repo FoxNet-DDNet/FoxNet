@@ -200,6 +200,7 @@ void CCharacter::Destroy()
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCid()] = nullptr;
 	m_Alive = false;
 	SetSolo(false);
+	SetSpawnSolo(false); // FoxNet
 }
 
 void CCharacter::SetWeapon(int W)
@@ -404,6 +405,10 @@ void CCharacter::HandleNinja()
 			// check that we're not in solo part
 			if(Teams()->m_Core.GetSolo(m_pPlayer->GetCid()))
 				return;
+			// <FoxNet
+			if(m_Core.m_SpawnSolo)
+				return;
+			// FoxNet>
 
 			for(int i = 0; i < Num; ++i)
 			{
@@ -418,7 +423,7 @@ void CCharacter::HandleNinja()
 				const int ClientId = pChr->m_pPlayer->GetCid();
 
 				// Don't hit players in solo parts
-				if(Teams()->m_Core.GetSolo(ClientId))
+				if(Teams()->m_Core.GetSolo(ClientId) || pChr->m_Core.m_SpawnSolo)
 					continue;
 				// <FoxNet
 				if(Core()->m_Passive)
@@ -1324,6 +1329,7 @@ void CCharacter::Die(int Killer, int Weapon, bool SendKillMsg)
 	CancelSwapRequests();
 
 	// <FoxNet
+	SetSpawnSolo(false);
 	OnDie(Killer, Weapon, SendKillMsg);
 	// FoxNet>
 }
@@ -1408,6 +1414,8 @@ void CCharacter::SnapCharacter(int SnappingClient, int MapId)
 			if(!m_Core.m_EndlessJump && m_Core.m_Jumps == 0)
 				Faketuning |= FAKETUNE_NOJUMP;
 			// <FoxNet
+			if(m_Core.m_SpawnSolo)
+				Faketuning |= FAKETUNE_SOLO;
 			if(m_InSnake || m_Ufo.Active())
 				Faketuning |= FAKETUNE_NOCOLL | FAKETUNE_NOHOOK | FAKETUNE_NOJUMP;
 			if(m_Core.m_Passive)
@@ -1536,18 +1544,28 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 
 	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
 	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	const auto CanCollideAfterSpawnSolo = [this](int ClientId) {
+		CPlayer *pOtherPlayer = GameServer()->m_apPlayers[ClientId];
+		return pOtherPlayer &&
+			(g_Config.m_SvMultimapAllowInteraction || pOtherPlayer->MultiMapIdx() == MultiMapIdx()) &&
+			Teams()->m_Core.CanCollideAfterSpawnSolo(GetPlayer()->GetCid(), ClientId);
+	};
 
-	if(!pSnapPlayer->IsPaused())
+	// Keep characters visible while temporary solo prevents a collision that
+	// would become possible as soon as SpawnSolo expires.
+	if(pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused())
 	{
-		if(((pSnapChar && pSnapChar->m_SpawnSolo) || m_SpawnSolo) && SameTeam(SnappingClient))
-			return true;
+		if(pSnapPlayer->SpectatorId() >= 0)
+		{
+			CCharacter *pSpecChar = GameServer()->GetPlayerChar(pSnapPlayer->SpectatorId());
+			if(pSpecChar && (m_Core.m_SpawnSolo || pSpecChar->Core()->m_SpawnSolo) &&
+				CanCollideAfterSpawnSolo(pSnapPlayer->SpectatorId()))
+				return true;
+		}
 	}
-	else if(pSnapPlayer->SpectatorId() >= 0)
-	{
-		CCharacter *pSpecChar = GameServer()->GetPlayerChar(pSnapPlayer->SpectatorId());
-		if(((pSpecChar && pSpecChar->m_SpawnSolo) || (pSnapChar && pSnapChar->m_SpawnSolo) || m_SpawnSolo) && SameTeam(pSnapPlayer->SpectatorId()))
-			return true;
-	}
+	else if(pSnapChar && (m_Core.m_SpawnSolo || pSnapChar->Core()->m_SpawnSolo) &&
+		CanCollideAfterSpawnSolo(SnappingClient))
+		return true;
 
 	if(pSnapPlayer->GetTeam() == TEAM_SPECTATORS || pSnapPlayer->IsPaused())
 	{
@@ -1720,6 +1738,9 @@ void CCharacter::Snap(int SnappingClient)
 	DDNetCharacter.m_TuneZoneOverride = TuneZone::OVERRIDE_NONE;
 
 	// <FoxNet
+	if(m_Core.m_SpawnSolo)
+		DDNetCharacter.m_Flags |= CHARACTERFLAG_SOLO;
+
 	DDNetCharacter.m_TuneZoneOverride = m_TuneZoneOverride;
 	CPlayer *SnapPlayer = (SnappingClient >= 0 && SnappingClient < Server()->MaxClients()) ? GameServer()->m_apPlayers[SnappingClient] : nullptr;
 
@@ -3293,8 +3314,7 @@ void CCharacter::FoxNetSpawn()
 
 	if(g_Config.m_SvSoloOnSpawn > 0 && ShouldSolo)
 	{
-		m_SpawnSolo = true;
-		SetSolo(true);
+		SetSpawnSolo(true);
 		new CSpawnSoloIndicator(GameWorld(), GetPlayer()->GetCid(), m_Pos);
 	}
 }
@@ -3314,7 +3334,7 @@ void CCharacter::HandleSpawnSolo()
 		return;
 	if(Team() == TEAM_SPECTATORS)
 		return;
-	if(!m_SpawnSolo)
+	if(!m_Core.m_SpawnSolo)
 		return;
 	const int ElapsedTicks = Server()->Tick() - m_SpawnTick;
 	const int NormalTicks = Server()->TickSpeed() * g_Config.m_SvSoloOnSpawn;
@@ -3323,7 +3343,7 @@ void CCharacter::HandleSpawnSolo()
 	if(ElapsedTicks < NormalTicks * 2 && InSpawnSoloOverlap())
 		return;
 
-	UnSpawnSolo();
+	SetSpawnSolo(false);
 }
 
 bool CCharacter::InSpawnSoloOverlap()
@@ -3332,22 +3352,23 @@ bool CCharacter::InSpawnSoloOverlap()
 	// The overlap check needs one server position, so it uses a fixed 0.25 s lead.
 	const vec2 PredictedPos = m_Pos + (m_Pos - m_PrevPos) * (Server()->TickSpeed() * 0.25f);
 
-	// Both players have a 128x128 box. Compare the projected box against
+	// Both players have a 192x192 box. Compare the projected box against
 	// each other player's box at their current server position.
-	constexpr float BoxSize = 128.0f;
+	constexpr float BoxSize = 32.0f * 6.0f;
 	const CCharacterCore &OwnCore = *Core();
 	for(int ClientId = 0; ClientId < Server()->MaxClients(); ClientId++)
 	{
 		if(ClientId == GetPlayer()->GetCid())
 			continue;
 		CCharacter *pOther = GameServer()->GetPlayerChar(ClientId);
-		if(!pOther || !pOther->IsAlive() || pOther->Team() == TEAM_SPECTATORS)
+		if(!pOther || !pOther->IsAlive() || pOther->IsPaused() || pOther->GetPlayer()->GetTeam() == TEAM_SPECTATORS ||
+			GameWorld()->m_Core.m_apCharacters[ClientId] != pOther->Core())
 			continue;
 		const CCharacterCore &OtherCore = *pOther->Core();
 		const bool Super = OwnCore.m_Super || OtherCore.m_Super;
-		if(!Super && (Team() != pOther->Team() || (OtherCore.m_Solo && !pOther->m_SpawnSolo)))
-			continue;
 		if(!g_Config.m_SvMultimapAllowInteraction && MultiMapIdx() != pOther->MultiMapIdx())
+			continue;
+		if(!Super && (Team() != pOther->Team() || OtherCore.m_Solo))
 			continue;
 		if(!Super && (OwnCore.m_CollisionDisabled || OtherCore.m_CollisionDisabled ||
 				     OwnCore.m_Passive || OtherCore.m_Passive || !OwnCore.m_Collidable ||
@@ -3361,11 +3382,10 @@ bool CCharacter::InSpawnSoloOverlap()
 	}
 	return false;
 }
-void CCharacter::UnSpawnSolo(bool Unsolo)
+void CCharacter::SetSpawnSolo(bool Set)
 {
-	if(Unsolo)
-		SetSolo(false);
-	m_SpawnSolo = false;
+	m_Core.m_SpawnSolo = Set;
+	Teams()->m_Core.SetSpawnSolo(GetPlayer()->GetCid(), Set);
 }
 
 void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
@@ -3395,8 +3415,6 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, OppositeCosmeticMask(EItemType::Gun));
 	}
 }
-
-// ToDo: @qxdFox: Allow Telekinesis in Spectator team
 
 vec2 CCharacter::GetCursorPos()
 {

@@ -396,8 +396,7 @@ public:
 	vec2 m_QuadCarryVel = vec2(0, 0);
 	int m_QuadCarryTick = -1;
 
-	bool m_SpawnSolo = false;
-	void UnSpawnSolo(bool Unsolo = true);
+	void SetSpawnSolo(bool Set);
 
 	bool m_MixedShield = false; // for Mixed Gun cosmetic
 

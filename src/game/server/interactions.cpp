@@ -20,7 +20,7 @@ const CCharacter *CInteractions::Character(const CGameContext *pGameServer, int 
 bool CInteractions::IsSolo(const CGameContext *pGameServer, int ClientId) const
 {
 	const CCharacter *pChr = Character(pGameServer, ClientId);
-	return pChr && pChr->Core()->m_Solo;
+	return pChr && (pChr->Core()->m_Solo || pChr->Core()->m_SpawnSolo);
 }
 
 int CInteractions::GetDDRaceTeam(const CGameContext *pGameServer, int ClientId) const
@@ -61,15 +61,11 @@ bool CInteractions::CanSee(const CGameContext *pGameServer, int ClientId, int Fl
 	if(!pPlayer)
 		return false; // Player doesn't exist
 
-	const CCharacter *pOwnerChar = OwnerCharacter(pGameServer);
-
 	if(!(pPlayer->GetTeam() == TEAM_SPECTATORS || pPlayer->IsPaused()))
 	{ // Not spectator
 		if(ClientId != m_OwnerId)
 		{ // Actions of other players
-			const CCharacter *pCharacter = Character(pGameServer, ClientId);
-			const bool SpawnSolo = (pCharacter && pCharacter->m_SpawnSolo) || (pOwnerChar && pOwnerChar->m_SpawnSolo);
-			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM)
 			{
 				if(GetDDRaceTeam(pGameServer, ClientId) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, ClientId) != TEAM_SUPER)
 					return false; // In different teams
@@ -95,8 +91,7 @@ bool CInteractions::CanSee(const CGameContext *pGameServer, int ClientId, int Fl
 			const CCharacter *pSpectatedCharacter = Character(pGameServer, pPlayer->SpectatorId());
 			if(!pSpectatedCharacter)
 				return false; // Player is currently dead
-			const bool SpawnSolo = pSpectatedCharacter->m_SpawnSolo || (pOwnerChar && pOwnerChar->m_SpawnSolo);
-			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM || SpawnSolo)
+			if(pPlayer->m_ShowOthers == SHOW_OTHERS_ONLY_TEAM)
 			{
 				if(GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != m_DDRaceTeam && GetDDRaceTeam(pGameServer, pPlayer->SpectatorId()) != TEAM_SUPER)
 					return false; // In different teams

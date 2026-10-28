@@ -15,6 +15,7 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gameworld.h>
 #include <game/server/player.h>
+#include <game/server/teams.h>
 #include <base/math.h>
 
 CEntityOwned::CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos, int ProximityRadius) :
@@ -49,7 +50,7 @@ bool CEntityOwned::CanSnapEntityMask(int SnappingClient, CClientMask Mask, CPlay
 	return true;
 }
 
-bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer)
+bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer, bool IgnoreSolo)
 {
 	if(m_MarkedForDestroy)
 		return false;
@@ -65,10 +66,19 @@ bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlaye
 	// for every cosmetic times every viewer, so asking over and over is what showed up in the profile.
 	CCharacter *pOwnerChar = GetCharacter();
 
-	if(!(pOwnerChar ? pOwnerChar->TeamMask() : CClientMask().set()).test(SnappingClient))
-		return false;
+	if(pOwnerChar)
+	{
+		if(IgnoreSolo)
+		{
+			if(!pOwnerChar->Teams()->SetMask(SnappingClient, pOwnerChar->MultiMapIdx(), pOwnerChar->Team(),
+					-1, m_Owner, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, CGameTeams::IGNORE_SOLO))
+				return false;
+		}
+		else if(!pOwnerChar->TeamMask().test(SnappingClient))
+			return false;
+	}
 
-	if(pSnapPlayer->GetCharacter() && pOwnerChar)
+	if(pOwnerChar && (pSnapPlayer->GetCharacter() || IgnoreSolo))
 		if(!pOwnerChar->CanSnapCharacter(SnappingClient))
 			return false;
 
@@ -83,7 +93,7 @@ bool CEntityOwned::CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlaye
 	return true;
 }
 
-bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
+bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer, bool IgnoreSolo)
 {
 	const CCharacter *pOwnerChar = GetCharacter();
 	if(!pOwnerChar)
@@ -92,7 +102,7 @@ bool CEntityOwned::CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer)
 	if(pOwnerChar->IsPaused())
 		return false;
 
-	return CanSnapEntityNoChar(SnappingClient, ppSnapPlayer);
+	return CanSnapEntityNoChar(SnappingClient, ppSnapPlayer, IgnoreSolo);
 }
 
 CPlayer *CEntityOwned::GetPlayer()

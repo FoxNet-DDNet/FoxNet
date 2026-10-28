@@ -1349,6 +1349,7 @@ void CGameTeams::ProcessSaveTeam()
 void CGameTeams::OnCharacterSpawn(int ClientId)
 {
 	m_Core.SetSolo(ClientId, false);
+	m_Core.SetSpawnSolo(ClientId, false); // FoxNet
 	int Team = m_Core.Team(ClientId);
 
 	if(GetSaving(Team))
@@ -1369,6 +1370,7 @@ void CGameTeams::OnCharacterSpawn(int ClientId)
 void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 {
 	m_Core.SetSolo(ClientId, false);
+	m_Core.SetSpawnSolo(ClientId, false); // FoxNet
 
 	int Team = m_Core.Team(ClientId);
 	if(GetSaving(Team))

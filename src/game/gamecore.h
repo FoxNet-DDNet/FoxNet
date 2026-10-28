@@ -293,6 +293,7 @@ public:
 	void SetTeamsCore(CTeamsCore *pTeams);
 	void ReadDDNet(const CNetObj_DDNetCharacter *pObjDDNet);
 	bool m_Solo;
+	bool m_SpawnSolo;
 	bool m_Jetpack;
 	bool m_CollisionDisabled;
 	bool m_EndlessHook;

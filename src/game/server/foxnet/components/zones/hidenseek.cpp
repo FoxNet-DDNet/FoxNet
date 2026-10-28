@@ -1301,7 +1301,7 @@ void CHideAndSeekZone::SetForcedSolo(int ClientId, bool Solo)
 		if(pChr->Core()->m_Solo)
 			return; // never claim a solo the player got from somewhere else
 
-		pChr->UnSpawnSolo(false);
+		pChr->SetSpawnSolo(false);
 		pChr->SetSolo(true);
 		Data.m_ForcedSolo = true;
 	}

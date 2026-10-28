@@ -26,6 +26,7 @@ class CTeamsCore
 {
 	int m_aTeam[MAX_CLIENTS];
 	bool m_aIsSolo[MAX_CLIENTS];
+	bool m_aIsSpawnSolo[MAX_CLIENTS]; // FoxNet
 
 public:
 	int m_NumDDRaceTeams;
@@ -41,6 +42,7 @@ public:
 
 	bool CanKeepHook(int ClientId1, int ClientId2) const;
 	bool CanCollide(int ClientId1, int ClientId2) const;
+	bool CanCollideAfterSpawnSolo(int ClientId1, int ClientId2) const; // FoxNet
 
 	int Team(int ClientId) const;
 	void Team(int ClientId, int Team);
@@ -48,6 +50,7 @@ public:
 	void Reset();
 	void SetSolo(int ClientId, bool Value);
 	bool GetSolo(int ClientId) const;
+	void SetSpawnSolo(int ClientId, bool Value); // FoxNet
 };
 
 #endif

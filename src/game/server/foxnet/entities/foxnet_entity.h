@@ -24,8 +24,8 @@ public:
 	CEntityOwned(CGameWorld *pGameWorld, int Owner, int Objtype, vec2 Pos = vec2(0, 0), int ProximityRadius = 0);
 
 	bool CanSnapEntityMask(int SnappingClient, CClientMask Mask, CPlayer **ppSnapPlayer = nullptr);
-	bool CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer = nullptr);
-	bool CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer = nullptr);
+	bool CanSnapEntityNoChar(int SnappingClient, CPlayer **ppSnapPlayer = nullptr, bool IgnoreSolo = false);
+	bool CanSnapEntity(int SnappingClient, CPlayer **ppSnapPlayer = nullptr, bool IgnoreSolo = false);
 
 	CPlayer *GetPlayer();
 	CCharacter *GetCharacter();

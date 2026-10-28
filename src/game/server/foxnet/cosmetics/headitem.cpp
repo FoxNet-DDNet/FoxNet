@@ -179,7 +179,7 @@ void CHeadItem::Snap(int SnappingClient)
 	default:
 		return;
 	}
-	if(GetCharacter()->m_SpawnSolo)
+	if(GetCharacter()->Core()->m_SpawnSolo)
 		return;
 
 	const int Type = POWERUP_WEAPON;

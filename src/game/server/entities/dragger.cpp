@@ -100,7 +100,7 @@ void CDragger::LookForPlayersToDrag()
 		{
 			const int &TargetClientId = pTarget->GetPlayer()->GetCid();
 			// Solo players are dragged independently from the rest of the team
-			if(pTarget->Teams()->m_Core.GetSolo(TargetClientId))
+			if(pTarget->Teams()->m_Core.GetSolo(TargetClientId) || pTarget->Core()->m_SpawnSolo)
 			{
 				aIsTarget[TargetClientId] = true;
 			}
@@ -166,7 +166,7 @@ std::optional<int> CDragger::DraggerBeamUsingDraggerId(int SnappingClientId)
 	if(SnapTeam >= MAX_CLIENTS)
 		return std::nullopt;
 
-	const int TargetClientId = pSnapChar->Teams()->m_Core.GetSolo(SnappingClientId) || m_aTargetIdInTeam[SnapTeam] < 0 ?
+	const int TargetClientId = pSnapChar->Teams()->m_Core.GetSolo(SnappingClientId) || pSnapChar->Core()->m_SpawnSolo || m_aTargetIdInTeam[SnapTeam] < 0 ?
 					   SnappingClientId :
 					   m_aTargetIdInTeam[SnapTeam];
 	if(m_apDraggerBeam[TargetClientId] == nullptr)

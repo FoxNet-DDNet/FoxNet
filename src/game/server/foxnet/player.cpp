@@ -1238,7 +1238,7 @@ int CPlayer::NumDDraceHudRows()
 	int Rows = 0;
 	if(pChr->Core()->m_EndlessJump || pChr->Core()->m_EndlessHook || pChr->Core()->m_Jetpack || pChr->Core()->m_HasTelegunGrenade || pChr->Core()->m_HasTelegunGun || pChr->Core()->m_HasTelegunLaser)
 		Rows++;
-	if(pChr->Core()->m_Solo || pChr->Core()->m_CollisionDisabled || pChr->Core()->m_Passive ||
+	if(pChr->Core()->m_Solo || pChr->Core()->m_SpawnSolo || pChr->Core()->m_CollisionDisabled || pChr->Core()->m_Passive ||
 		pChr->Core()->m_HookHitDisabled || pChr->Core()->m_HammerHitDisabled || pChr->Core()->m_ShotgunHitDisabled ||
 		pChr->Core()->m_GrenadeHitDisabled || pChr->Core()->m_LaserHitDisabled ||
 		!pChr->GetCurrentTuning()->m_PlayerHammering ||

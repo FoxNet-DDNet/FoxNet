@@ -343,7 +343,7 @@ void CLaser::SyncInteractState()
 		m_InteractState.FillOwnerConnected(
 			pOwnerChar && pOwnerChar->IsAlive(),
 			pOwnerPlayer ? GameServer()->GetDDRaceTeam(m_Owner) : 0,
-			pOwnerChar && pOwnerChar->Core()->m_Solo,
+			pOwnerChar && (pOwnerChar->Core()->m_Solo || pOwnerChar->Core()->m_SpawnSolo),
 			NoHitOthers,
 			NoHitSelf);
 	}
