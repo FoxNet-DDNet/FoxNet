@@ -28,11 +28,11 @@ public:
 	void SwapClients(int Client1, int Client2) override;
 
 private:
-	enum EWallBehavior
+	enum class EWallBehavior
 	{
-		WALL_DIE = 0,
-		WALL_BOUNCE,
-		WALL_PHASE,
+		Die = 0,
+		Bounce,
+		Phase,
 	};
 
 	vec2 m_Direction;
@@ -57,6 +57,8 @@ private:
 	int m_DamageIndEffect;
 	bool m_MixedShield;
 
+	int m_DeathEffectTick;
+
 	vec2 m_WantedDirection = vec2(0, 0);
 
 	CClientMask m_MaskGun;
@@ -66,6 +68,8 @@ private:
 
 	std::optional<int> m_ExtraId;
 
+	bool m_Phasing;
+	EWallBehavior m_WallBehavior;
 	EWallBehavior WallBehavior() const;
 
 	vec2 RealPos(float Time);
@@ -73,7 +77,7 @@ private:
 	vec2 VanillaPos(int Tick);
 	float GunSpeed();
 	float GunCurvature();
-	float SpeedFactor();
+	float SpeedFactor() const;
 
 	void TickVanillaPhantom();
 	void TickSway();

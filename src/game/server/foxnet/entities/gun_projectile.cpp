@@ -41,6 +41,8 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	m_VanillaPrevPos = Pos;
 	m_VanillaDead = false;
 	m_CosmeticDead = false;
+	m_Phasing = false;
+	m_DeathEffectTick = 0;
 
 	CCharacter *pOwnerChar = GetCharacter();
 	m_TuneZone = pOwnerChar ? pOwnerChar->GetOverriddenTuneZone() : Collision()->IsTune(Collision()->GetMapIndex(m_Pos));
@@ -55,7 +57,6 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	// The vanilla bullet dies at the normal gun range; special gun types (which visibly
 	// travel differently) live a little longer, matching the previous behaviour.
 	m_VanillaLifeTicks = Span;
-	m_LifeSpan = m_GunType != EGunType::None ? (int)(Span * 1.25f) : Span;
 
 	m_MaskGun = m_MaskInd = CClientMask().set();
 	m_MaskGunOpp = m_MaskIndOpp = CClientMask();
@@ -72,11 +73,34 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	else
 		m_MixedShield = false;
 
-	bool ExtraIdNeeded = m_GunType == EGunType::Laser ||
-			     m_GunType == EGunType::Intertwine;
+	const bool ExtraIdNeeded = m_GunType == EGunType::Laser || m_GunType == EGunType::Intertwine;
 
 	if(ExtraIdNeeded)
 		m_ExtraId = Server()->SnapNewId();
+
+	if(pOwnerChar && m_GunType == EGunType::Spooky)
+	{
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(m_MaskGun.test(i))
+			{
+				GameServer()->SendEmote(Owner, EMOTICON_GHOST, i);
+			}
+		}
+	}
+
+	m_LifeSpan = Span;
+	m_WallBehavior = EWallBehavior::Die;
+
+	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+		m_LifeSpan = Span * 1.25f;
+	else if(m_GunType == EGunType::Intertwine || m_GunType == EGunType::Spooky)
+		m_LifeSpan = Span * 1.2f;
+
+	if(m_GunType == EGunType::Snowflake)
+		m_WallBehavior = EWallBehavior::Bounce;
+	else if(m_PhaseGun || m_GunType == EGunType::Spooky)
+		m_WallBehavior = EWallBehavior::Phase;
 
 	GameWorld()->InsertEntity(this);
 }
@@ -97,11 +121,7 @@ void CGunProjectile::Reset()
 
 CGunProjectile::EWallBehavior CGunProjectile::WallBehavior() const
 {
-	if(m_GunType == EGunType::Snowflake)
-		return WALL_BOUNCE;
-	if(m_PhaseGun)
-		return WALL_PHASE;
-	return WALL_DIE;
+	return m_WallBehavior;
 }
 
 float CGunProjectile::GunSpeed()
@@ -114,12 +134,15 @@ float CGunProjectile::GunCurvature()
 	return GetTuning(m_TuneZone)->m_GunCurvature;
 }
 
-float CGunProjectile::SpeedFactor()
+float CGunProjectile::SpeedFactor() const
 {
 	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
 		return 0.7f;
 	if(m_GunType == EGunType::Intertwine)
 		return 0.8f;
+	if(m_GunType == EGunType::Spooky)
+		return 0.3f; // very slow
+
 	return 1.0f;
 }
 
@@ -130,6 +153,10 @@ vec2 CGunProjectile::RealPos(float Time)
 		return m_Pos + m_Direction * (GunSpeed() * SpeedFactor() * Time);
 	}
 	else if(m_GunType == EGunType::Intertwine)
+	{
+		return CalcPos(m_Pos, m_Direction, GunCurvature(), GunSpeed() * SpeedFactor(), Time);
+	}
+	else if(m_GunType == EGunType::Spooky)
 	{
 		return CalcPos(m_Pos, m_Direction, GunCurvature(), GunSpeed() * SpeedFactor(), Time);
 	}
@@ -188,7 +215,9 @@ void CGunProjectile::EmitHitEffect(bool HitPlayer, vec2 NewPos, vec2 CurPos, vec
 
 	GameServer()->CreateDamageInd(CurPos, -std::atan2(Direction.x, Direction.y), 10, PlainMask);
 
-	if(m_EmoteGun && HitPlayer)
+	const bool NoDamageInd = m_EmoteGun || m_GunType == EGunType::Spooky;
+
+	if(NoDamageInd && HitPlayer)
 		return;
 
 	if(m_ConfettiGun)
@@ -312,7 +341,9 @@ void CGunProjectile::Tick()
 		return;
 	}
 
-	bool IsWeaponCollide = pTargetChr && pTargetChr->IsAlive() && !pTargetChr->CanCollide(m_Owner);
+	const bool IsWeaponCollide = pTargetChr && pTargetChr->IsAlive() && !pTargetChr->CanCollide(m_Owner);
+
+	const EWallBehavior &Behavior = WallBehavior();
 
 	if((pTargetChr || Collide || GLClipped) && !IsWeaponCollide)
 	{
@@ -353,10 +384,9 @@ void CGunProjectile::Tick()
 			}
 		}
 
-		EWallBehavior Behavior = WallBehavior();
 		bool WallOnly = Collide && !pTargetChr;
 
-		if(WallOnly && Behavior == WALL_BOUNCE)
+		if(WallOnly && Behavior == EWallBehavior::Bounce)
 		{
 			vec2 Vel = CurPos - PrevPos;
 			const float MaxStep = 16.0f;
@@ -371,19 +401,49 @@ void CGunProjectile::Tick()
 			return;
 		}
 
-		if(WallOnly && Behavior == WALL_PHASE)
+		if(WallOnly && Behavior == EWallBehavior::Phase)
+		{
+			m_Phasing = true;
+			if(m_GunType == EGunType::Spooky && m_DeathEffectTick <= Server()->Tick())
+			{
+				// This calculates a position for CreateDeath which will not splatter all over
+				// The death effect will be contained inside the solid block and not spill out
+				const vec2 IdxPos = vec2(round_to_int(ColPos.x) / 32 * 32.0f + 16, round_to_int(ColPos.y) / 32 * 32.0f + 16);
+				constexpr float DeadZone = 14.8f;
+				vec2 DeathPos = vec2(IdxPos.x - std::clamp((IdxPos.x - ColPos.x), -DeadZone, DeadZone), IdxPos.y - std::clamp((IdxPos.y - CurPos.y), -DeadZone, DeadZone));
+
+				GameServer()->CreateDeath(DeathPos, m_Owner, m_MaskGun);
+
+				m_DeathEffectTick = Server()->Tick() + Server()->TickSpeed() * 0.16f;
+			}
+
 			return;
+		}
 
 		vec2 Direction = normalize(NewPos - PrevPos);
 		if(Direction == vec2(0, 0))
 			Direction = m_Direction;
 
-		if(m_EmoteGun && pTargetChr)
+		int EmoteType = -1;
+
+		if(pTargetChr)
 		{
+			if(m_EmoteGun)
+				EmoteType = m_EmoteGun - 1;
+			else if(m_GunType == EGunType::Spooky)
+				EmoteType = EMOTICON_GHOST;
+
 			const int TargetId = pTargetChr->GetPlayer()->GetCid();
-			for(int i = 0; i < MAX_CLIENTS; i++)
-				if(m_MaskGun.test(i))
-					GameServer()->SendEmote(TargetId, m_EmoteGun - 1, i);
+			if(EmoteType != -1)
+			{
+				for(int i = 0; i < MAX_CLIENTS; i++)
+				{
+					if(m_MaskGun.test(i))
+					{
+						GameServer()->SendEmote(TargetId, EmoteType, i);
+					}
+				}
+			}
 		}
 
 		// Cosmetic viewers see the bullet die here. On a wall/game-layer death, cosmetics-off
@@ -399,6 +459,13 @@ void CGunProjectile::Tick()
 			Reset();
 		return;
 	}
+
+	if(!Collide && Behavior == EWallBehavior::Phase && m_Phasing)
+	{
+		m_WallBehavior = EWallBehavior::Die;
+	}
+
+	m_Phasing = false;
 
 	int x = Collision()->GetIndex(PrevPos, CurPos);
 	int z;
@@ -428,29 +495,21 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 
 	const int Owner = m_Owner;
 
-	if(m_GunType == EGunType::Sway || m_GunType == EGunType::Control)
+	switch(m_GunType)
 	{
-		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos, m_Direction);
-		return;
-	}
-	if(m_GunType == EGunType::Intertwine)
+
+	case EGunType::Heart:
+	case EGunType::Mixed:
 	{
-		const vec2 Direction = RealDirection(Time);
-		auto GetIntertwineOffset = [](float T, float Phase, vec2 Dir) -> vec2 {
-			float Amplitude = 20.0f;
-			float Frequency = 0.5f;
+		int Type = POWERUP_HEALTH;
+		if(m_GunType == EGunType::Mixed)
+			Type = m_MixedShield;
 
-			vec2 PerpDir = vec2(-Dir.y, Dir.x);
-			return PerpDir * Amplitude * std::sin(Frequency * T + Phase);
-		};
-
-		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, Direction), Direction);
-		if(m_ExtraId.has_value())
-			SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, Direction), Direction);
+		SnapCosmeticPickupPos(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, Owner, SnapPos, Type, 0, 0, -1, 0);
 		return;
 	}
 
-	if(m_GunType == EGunType::Laser)
+	case EGunType::Laser:
 	{
 		float Pt = (Server()->Tick() - m_StartTick - 1.5f) / (float)Server()->TickSpeed();
 		vec2 PrevSnapPos = RealPos(Pt);
@@ -477,20 +536,44 @@ void CGunProjectile::SnapCosmeticBullet(int SnappingClient)
 		return;
 	}
 
-	if(m_GunType == EGunType::Snowflake)
+	case EGunType::Snowflake:
 	{
 		SnapCosmeticLaserPos(SnappingClient, GetId().value(), Owner, SnapPos, SnapPos, 0, LASERTYPE_FREEZE, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
 		return;
 	}
 
-	if(m_GunType == EGunType::Heart || m_GunType == EGunType::Mixed)
+	case EGunType::Intertwine:
 	{
-		int Type = POWERUP_HEALTH;
-		if(m_GunType == EGunType::Mixed)
-			Type = m_MixedShield;
+		const vec2 Direction = RealDirection(Time);
+		auto GetIntertwineOffset = [](float T, float Phase, vec2 Dir) -> vec2 {
+			float Amplitude = 20.0f;
+			float Frequency = 0.5f;
 
-		SnapCosmeticPickupPos(SnappingClient, GetId().value(), PICKUPFLAG_NO_PREDICT, Owner, SnapPos, Type, 0, 0, -1, 0);
+			vec2 PerpDir = vec2(-Dir.y, Dir.x);
+			return PerpDir * Amplitude * std::sin(Frequency * T + Phase);
+		};
+
+		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, 0, Direction), Direction);
+		if(m_ExtraId.has_value())
+			SnapGunProjectile(m_ExtraId.value(), SnappingClient, m_Owner, SnapPos + GetIntertwineOffset(Ct, pi, Direction), Direction);
 		return;
+	}
+
+	case EGunType::Sway:
+	case EGunType::Control:
+	{
+		SnapGunProjectile(GetId().value(), SnappingClient, m_Owner, SnapPos, m_Direction);
+		return;
+	}
+
+	case EGunType::Spooky:
+	{
+		SnapCosmeticLaserPos(SnappingClient, GetId().value(), Owner, SnapPos, SnapPos, 0, LASERTYPE_RIFLE, -1, COSMETIC_LASER_FLAG_FROM_HEAD);
+		return;
+	}
+
+	default:
+		break;
 	}
 
 	SnapProjectileNetObj(SnappingClient);

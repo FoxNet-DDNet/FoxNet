@@ -101,9 +101,10 @@ enum class EGunType
 	Mixed,
 	Laser,
 	Snowflake,
-	Sway,
 	Intertwine,
+	Sway,
 	Control,
+	Spooky,
 	COUNT
 };
 

@@ -3406,7 +3406,7 @@ void CCharacter::DoGunFire(vec2 ProjStartPos, vec2 Direction, vec2 MouseTarget)
 			MouseTarget, // InitDir
 			Lifetime); // Span
 
-		if(GunType == EGunType::Heart || GunType == EGunType::Mixed)
+		if(GunType == EGunType::Heart || GunType == EGunType::Mixed || GunType == EGunType::Spooky)
 			GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, CosmeticMask(EItemType::Gun));
 		else if(GunType == EGunType::Laser || GunType == EGunType::Snowflake)
 			GameServer()->CreateSound(m_Pos, SOUND_HOOK_LOOP, CosmeticMask(EItemType::Gun));
