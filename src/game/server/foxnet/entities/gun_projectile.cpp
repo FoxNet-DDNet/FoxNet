@@ -194,14 +194,26 @@ void CGunProjectile::TickVanillaPhantom()
 
 	vec2 CurPos = VanillaPos(Server()->Tick());
 	vec2 ColPos, BeforePos;
-	if(Collision()->IntersectLine(m_VanillaPrevPos, CurPos, &ColPos, &BeforePos))
+	const int Collide = Collision()->IntersectLine(m_VanillaPrevPos, CurPos, &ColPos, &BeforePos);
+	CCharacter *pOwnerChar = GetCharacter();
+	CCharacter *pTargetChr = nullptr;
+	if(pOwnerChar && !pOwnerChar->GrenadeHitDisabled())
+		pTargetChr = GameWorld()->IntersectCharacter(m_VanillaPrevPos, ColPos, 6.0f, ColPos, pOwnerChar, m_Owner);
+
+	if((pTargetChr && pTargetChr->Core()->m_Passive) || (pOwnerChar && pOwnerChar->Core()->m_Passive))
+		pTargetChr = nullptr;
+	if(pTargetChr && !pTargetChr->Core()->m_Hittable)
+		pTargetChr = nullptr;
+
+	const bool IsWeaponCollide = pTargetChr && pTargetChr->IsAlive() && !pTargetChr->CanCollide(m_Owner);
+	if((pTargetChr || Collide) && !IsWeaponCollide)
 	{
 		m_VanillaDead = true;
 
 		vec2 Direction = normalize(CurPos - m_VanillaPrevPos);
 		if(Direction == vec2(0, 0))
 			Direction = m_SpawnDir;
-		EmitHitEffect(false, BeforePos, ColPos, Direction, m_MaskGunOpp);
+		EmitHitEffect(pTargetChr != nullptr, BeforePos, ColPos, Direction, m_MaskGunOpp);
 		return;
 	}
 
@@ -446,14 +458,8 @@ void CGunProjectile::Tick()
 			}
 		}
 
-		// Cosmetic viewers see the bullet die here. On a wall/game-layer death, cosmetics-off
-		// viewers instead get their effect from the vanilla phantom (at the wall a plain
-		// bullet would hit). But a player hit is real damage landing on the target for
-		// everyone, and the phantom only tracks walls and lifetime - so include cosmetics-off
-		// viewers too, otherwise the target sees no damage indicator.
-		CClientMask Audience = pTargetChr ? (m_MaskGun | m_MaskGunOpp) : m_MaskGun;
-
-		EmitHitEffect(pTargetChr != nullptr, NewPos, CurPos, Direction, Audience);
+		// Each audience gets its impact effect when the projectile it sees hits.
+		EmitHitEffect(pTargetChr != nullptr, NewPos, CurPos, Direction, m_MaskGun);
 		m_CosmeticDead = true;
 		if(m_VanillaDead)
 			Reset();
