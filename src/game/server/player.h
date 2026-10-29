@@ -105,6 +105,7 @@ enum class EGunType
 	Sway,
 	Control,
 	Spooky,
+	Randomizer, // This should always be the last gun type
 	COUNT
 };
 

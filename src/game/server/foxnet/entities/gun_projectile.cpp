@@ -49,6 +49,14 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 
 	CCosmetics *pCosmetics = GetPlayer() ? GetPlayer()->Cosmetics() : nullptr;
 	m_GunType = pCosmetics ? pCosmetics->m_GunType : EGunType::None;
+
+	if(pOwnerChar && m_GunType == EGunType::Randomizer)
+	{
+		constexpr size_t MaxGunType = (size_t)EGunType::Randomizer;
+		int RandomGunType = rand() % MaxGunType;
+		m_GunType = (EGunType)RandomGunType;
+	}
+
 	m_PhaseGun = pCosmetics && pCosmetics->m_PhaseGun;
 	m_ConfettiGun = pCosmetics && pCosmetics->m_ConfettiGun;
 	m_EmoteGun = pCosmetics ? pCosmetics->m_EmoticonGun : 0;
