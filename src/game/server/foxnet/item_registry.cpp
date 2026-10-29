@@ -141,13 +141,13 @@ void CItemRegistry::Init()
 				pl.SetGunType(EGunType::None);
 		}});
 
-	Add({EItemId::SnowflakeGun, EItemType::Gun, "Snowflake Gun", "G_S", EItemFlag::Equippable,
-		EExclusiveGroup::Gun, UnbuyablePrice /*550000*/, 45, "Launch no gravity, bouncing Snowflakes",
+	Add({EItemSeason::Winter, EItemId::SnowflakeGun, EItemType::Gun, "Snowflake Gun", "G_S", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, 450000, 45, "Snowball launcher",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Snowflake); },
 		[](CPlayer &pl, const CItemConfig &, int) {
 			if(pl.Cosmetics()->m_GunType == EGunType::Snowflake)
 				pl.SetGunType(EGunType::None);
-		}});
+		}, 60});
 
 	Add({EItemId::SwayingGun, EItemType::Gun, "Sway Gun", "G_Sw", EItemFlag::Equippable,
 		EExclusiveGroup::Gun, 350000, 55, "Shoot bullets that curve randomly",

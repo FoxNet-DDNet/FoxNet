@@ -97,9 +97,7 @@ CGunProjectile::CGunProjectile(CGameWorld *pGameWorld, int Owner, vec2 Pos, vec2
 	else if(m_GunType == EGunType::Intertwine || m_GunType == EGunType::Spooky)
 		m_LifeSpan = Span * 1.2f;
 
-	if(m_GunType == EGunType::Snowflake)
-		m_WallBehavior = EWallBehavior::Bounce;
-	else if(m_PhaseGun || m_GunType == EGunType::Spooky)
+	if(m_PhaseGun || m_GunType == EGunType::Spooky)
 		m_WallBehavior = EWallBehavior::Phase;
 
 	GameWorld()->InsertEntity(this);
@@ -131,6 +129,9 @@ float CGunProjectile::GunSpeed()
 
 float CGunProjectile::GunCurvature()
 {
+	if(m_GunType == EGunType::Snowflake)
+		return 5.0f;
+
 	return GetTuning(m_TuneZone)->m_GunCurvature;
 }
 
@@ -466,7 +467,7 @@ void CGunProjectile::Tick()
 		return;
 	}
 
-	if(!Collide && Behavior == EWallBehavior::Phase && m_Phasing)
+	if(!Collide && Behavior == EWallBehavior::Phase && m_Phasing && m_GunType == EGunType::Spooky)
 	{
 		m_WallBehavior = EWallBehavior::Die;
 	}
