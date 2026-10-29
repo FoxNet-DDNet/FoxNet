@@ -398,7 +398,7 @@ bool CShop::SeasonalItem(const CItemConfig &Item)
 	if(!pTime)
 		return false;
 
-	const int Year = pTime->tm_year + 1900;
+	// const int Year = pTime->tm_year + 1900;
 	const int Month = pTime->tm_mon + 1;
 	const int Day = pTime->tm_mday;
 
