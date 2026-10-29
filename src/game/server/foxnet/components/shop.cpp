@@ -147,11 +147,22 @@ void CShop::ListItems()
 	for(int Length = 0; Length < 56; Length++)
 		str_append(Separator, "-");
 
+	std::vector<const CItemConfig *> vSortedMap;
+	vSortedMap.reserve(m_Registry.Map().size());
+
+	for(const auto &Item : m_Registry.Map())
+		vSortedMap.push_back(&Item.second);
+
+	std::sort(vSortedMap.begin(), vSortedMap.end(),
+		[](const CItemConfig *pA, const CItemConfig *pB) {
+
+			return pA->m_Price < pB->m_Price;
+		});
+
 	log_info("shop", "%s", Separator);
-	for(const auto &kv : m_Registry.Map())
+	for(const auto *pItem : vSortedMap)
 	{
-		const CItemConfig &item = kv.second;
-		log_info("shop", "%s | Price: %ld | MinLevel: %d", item.m_pName, item.m_Price, item.m_MinLevel);
+		log_info("shop", "Price: %ld | MinLevel: %d | %s", pItem->m_Price, pItem->m_MinLevel, pItem->m_pName);
 	}
 	log_info("shop", "%s", Separator);
 }

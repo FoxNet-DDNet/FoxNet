@@ -289,7 +289,7 @@ void CItemRegistry::Init()
 
 	// Trails
 	Add({EItemId::TrailStar, EItemType::Trail, "Star Trail", "T_S", EItemFlag::Equippable,
-		EExclusiveGroup::Trail, 8000, 7,
+		EExclusiveGroup::Trail, 18000, 15,
 		"The Stars shall follow you",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetTrail(TRAILTYPE_STAR); },
 		[](CPlayer &pl, const CItemConfig &, int) {
@@ -298,7 +298,7 @@ void CItemRegistry::Init()
 		}});
 
 	Add({EItemId::TrailDot, EItemType::Trail, "Dot Trail", "T_D", EItemFlag::Equippable,
-		EExclusiveGroup::Trail, 8000, 7,
+		EExclusiveGroup::Trail, 18000, 15,
 		"A trail made out of small dots",
 		[](CPlayer &pl, const CItemConfig &, int) { pl.SetTrail(TRAILTYPE_DOT); },
 		[](CPlayer &pl, const CItemConfig &, int) {
