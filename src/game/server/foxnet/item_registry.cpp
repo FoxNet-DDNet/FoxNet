@@ -173,6 +173,14 @@ void CItemRegistry::Init()
 				pl.SetGunType(EGunType::None);
 		}});
 
+	Add({EItemSeason::Halloween, EItemId::SpookyGun, EItemType::Gun, "Spooky Gun", "G_Sp", EItemFlag::Equippable,
+		EExclusiveGroup::Gun, 450000, 45, "Shoot mysterious spooky bullets",
+		[](CPlayer &pl, const CItemConfig &, int) { pl.SetGunType(EGunType::Spooky); },
+		[](CPlayer &pl, const CItemConfig &, int) {
+			if(pl.Cosmetics()->m_GunType == EGunType::Spooky)
+				pl.SetGunType(EGunType::None);
+		}, 60});
+
 	// Indicators
 	Add({EItemId::IndicatorClockwise, EItemType::Indicator, "Clockwise Indicator", "I_C",
 		EItemFlag::Equippable, EExclusiveGroup::DamageIndicator, 12500, 5, "Gun Hit -> turns Clockwise",
@@ -456,6 +464,13 @@ std::vector<const CItemConfig *> CItemRegistry::SortedMap() const
 		[](const CItemConfig *pA, const CItemConfig *pB) {
 			if(pA->m_Type != pB->m_Type)
 				return pA->m_Type < pB->m_Type;
+
+			const bool ASeasonal = pA->m_Season != EItemSeason::None;
+			const bool BSeasonal = pB->m_Season != EItemSeason::None;
+
+			if(ASeasonal != BSeasonal)
+				return ASeasonal;
+
 			return pA->m_Id < pB->m_Id;
 		});
 

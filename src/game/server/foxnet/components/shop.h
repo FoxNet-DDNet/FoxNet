@@ -46,6 +46,9 @@ public:
 
 	const char *GetItemName(EItemId Id) const;
 
+	bool SeasonalItem(const CItemConfig &Item);
+	bool ItemBuyable(const CItemConfig &Item);
+
 	void OnInit() override;
 	void OnConsoleInit() override;
 };

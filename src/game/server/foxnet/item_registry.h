@@ -29,6 +29,7 @@ enum class EItemId
 	SwayingGun,
 	IntertwiningGun,
 	ControllableGun,
+	SpookyGun,
 	IndicatorClockwise,
 	IndicatorCounterclockwise,
 	IndicatorInwardTurning,
@@ -102,6 +103,15 @@ enum class EItemFlag
 	Upgrade = 1 << 3,
 	Role = 1 << 4,
 	Stackable = 1 << 5,
+};
+
+enum class EItemSeason
+{
+	None = 0, // always
+	Halloween, // october 20 - november 7
+	Winter, // december-february
+	Christmas, // 0-24 december
+	Summer, // june-august
 };
 
 constexpr EItemFlag operator|(EItemFlag a, EItemFlag b)
@@ -267,6 +277,7 @@ public:
 	std::function<void(class CPlayer &, const CItemConfig &, int)> m_Remove;
 	int m_DefaultDays = 30;
 	int m_MaxOfThisType = NoMaxOfThisType;
+	EItemSeason m_Season = EItemSeason::None;
 
 	CItemConfig(EItemId Id,
 		EItemType Type,
@@ -315,6 +326,37 @@ public:
 		int DefaultDays = 30,
 		int MaxOfThisType = NoMaxOfThisType)
 	{
+		m_Id = Id;
+		m_Type = Type;
+		m_pName = pName;
+		m_pShortcut = pShortcut;
+		m_Flags = Flags;
+		m_Group = Group;
+		m_Price = Price;
+		m_MinLevel = MinLevel;
+		m_pDescription = pDescription;
+		m_Apply = Apply;
+		m_Remove = Remove;
+		m_DefaultDays = DefaultDays;
+		m_MaxOfThisType = MaxOfThisType;
+	}
+
+	CItemConfig(EItemSeason Season, 
+		EItemId Id,
+		EItemType Type,
+		const char *pName,
+		const char *pShortcut,
+		EItemFlag Flags,
+		EExclusiveGroup Group,
+		int Price,
+		int MinLevel,
+		const char *pDescription,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Apply,
+		std::function<void(class CPlayer &, const CItemConfig &, int)> Remove,
+		int DefaultDays = 30,
+		int MaxOfThisType = NoMaxOfThisType)
+	{
+		m_Season = Season,
 		m_Id = Id;
 		m_Type = Type;
 		m_pName = pName;

@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <ctime>
 #include <vector>
 
 void CShop::ConListItems(IConsole::IResult *pResult, void *pUserData)
@@ -211,9 +212,9 @@ bool CShop::BuyItem(CPlayer *pPlayer, const char *pName)
 		return false;
 	}
 
-	if(pCfg->m_Price <= 0)
+	if(!ItemBuyable(*pCfg))
 	{
-		pPlayer->SendChat("Invalid Item.");
+		pPlayer->SendChat("This item can't be bough right now.");
 		return false;
 	}
 
@@ -376,6 +377,50 @@ const char *CShop::GetItemName(EItemId Id) const
 	if(pItem)
 		return pItem->m_pName;
 	return "Unknown";
+}
+
+bool CShop::SeasonalItem(const CItemConfig &Item)
+{
+	const std::time_t Now = std::time(nullptr);
+	const std::tm *pTime = std::localtime(&Now);
+
+	if(!pTime)
+		return false;
+
+	const int Year = pTime->tm_year + 1900;
+	const int Month = pTime->tm_mon + 1;
+	const int Day = pTime->tm_mday;
+
+	switch(Item.m_Season)
+	{
+	case EItemSeason::Halloween:
+		return (Month == 10 && Day >= 20) ||
+		       (Month == 11 && Day <= 7);
+
+	case EItemSeason::Winter:
+		return Month == 12 || Month <= 2;
+
+	case EItemSeason::Christmas:
+		return (Month == 12 && Day >= 0 && Day <= 25);
+
+	case EItemSeason::Summer:
+		return Month >= 6 && Month <= 8;
+
+	case EItemSeason::None:
+		return false;
+	}
+
+	return false;
+}
+bool CShop::ItemBuyable(const CItemConfig &Item)
+{
+	if(Item.m_Price == UnbuyablePrice)
+		return false;
+
+	if(Item.m_Season != EItemSeason::None && !SeasonalItem(Item))
+		return false;
+
+	return true;
 }
 
 void CShop::OnInit()

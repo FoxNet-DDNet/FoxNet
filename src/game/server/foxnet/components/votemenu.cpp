@@ -513,7 +513,7 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			{
 				EItemType Type = static_cast<EItemType>(i);
 				const char *pTypeName = ItemTypeToName(Type);
-				if(IsOption(pVote, pTypeName))
+				if(IsOptionWithSuffix(pVote, pTypeName))
 				{
 					str_copy(Data.m_aMetaData, pTypeName);
 					SetSubPage(ClientId, SUB_SHOP_SELECT);
@@ -1428,26 +1428,41 @@ void CVoteMenu::PrepareShop(int ClientId)
 		AddVoteSeparator();
 	}
 
-	auto HasAnyItemOfType = [this](EItemType Type) -> bool {
+	auto TypeHasSeasonalItem = [this](const EItemType &Type) -> bool {
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
 			if(Item.m_Type != Type)
 				continue;
-			if(Item.m_Price == UnbuyablePrice)
+			if(!GameServer()->m_Shop.ItemBuyable(Item))
+				continue;
+			if(Item.m_Season == EItemSeason::None)
 				continue;
 			return true;
 		}
 		return false;
 	};
 
-	auto CanBuyAnyOfType = [this, pAcc, pPlayer](EItemType Type) -> bool {
+	auto HasAnyItemOfType = [this](const EItemType &Type) -> bool {
 		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
 		{
 			const CItemConfig &Item = kv.second;
 			if(Item.m_Type != Type)
 				continue;
-			if(Item.m_Price == UnbuyablePrice)
+			if(!GameServer()->m_Shop.ItemBuyable(Item))
+				continue;
+			return true;
+		}
+		return false;
+	};
+
+	auto CanBuyAnyOfType = [this, pAcc, pPlayer](const EItemType &Type) -> bool {
+		for(const auto &kv : GameServer()->m_Shop.Registry().Map())
+		{
+			const CItemConfig &Item = kv.second;
+			if(Item.m_Type != Type)
+				continue;
+			if(!GameServer()->m_Shop.ItemBuyable(Item))
 				continue;
 			if(pPlayer->GetDiscountedPrice(Item.m_Price) <= pAcc->m_Money)
 				return true;
@@ -1464,18 +1479,21 @@ void CVoteMenu::PrepareShop(int ClientId)
 		for(int i = 0; i < (int)EItemType::COUNT; i++)
 		{
 			EItemType Type = static_cast<EItemType>(i);
-			const char *pTypeName = ItemTypeToName(Type);
 
 			if(!HasAnyItemOfType(Type))
 				continue;
 
+			std::string TypeName = ItemTypeToName(Type);
+			if(TypeHasSeasonalItem(Type))
+				TypeName += " ⟳";
+
 			if(Data.m_OnlyAffordable)
 			{
 				if(CanBuyAnyOfType(Type))
-					AvailableCategories.push_back(pTypeName);
+					AvailableCategories.push_back(TypeName);
 			}
 			else
-				AvailableCategories.push_back(pTypeName);
+				AvailableCategories.push_back(TypeName);
 		}
 		if(AvailableCategories.empty())
 		{
@@ -1497,17 +1515,18 @@ void CVoteMenu::PrepareShop(int ClientId)
 		}
 		int AmountShown = 0;
 
+		bool HasSeasonalItem = false;
 		for(const auto *pItem : GameServer()->m_Shop.Registry().SortedMap())
 		{
 			if(str_comp(ItemTypeToName(pItem->m_Type), pMeta) != 0)
 				continue;
-
-			if(pItem->m_Price == UnbuyablePrice)
+			
+			if(!GameServer()->m_Shop.ItemBuyable(*pItem))
 				continue;
 
 			if(Data.m_OnlyAffordable && pPlayer->GetDiscountedPrice(pItem->m_Price) > pAcc->m_Money)
 				continue;
-			AmountShown++;
+
 			char aName[VOTE_DESC_LENGTH];
 			const int MaxOfThisType = pItem->m_MaxOfThisType;
 			const auto Entry = pAcc->m_Inventory.m_Map.find(pItem->m_pName);
@@ -1517,7 +1536,23 @@ void CVoteMenu::PrepareShop(int ClientId)
 			else
 				str_format(aName, sizeof(aName), "%s (%" PRId64 "%s) [lvl %d]", pItem->m_pName, pPlayer->GetDiscountedPrice(pItem->m_Price), g_Config.m_SvCurrencyName, pItem->m_MinLevel);
 
+			if(pItem->m_Season != EItemSeason::None)
+			{
+				if(!HasSeasonalItem)
+				{
+					AddVoteSubheader(ConvertToSmallCaps("Seasonal"));
+				}
+				HasSeasonalItem = true;
+			}
+			else if(HasSeasonalItem)
+			{
+				AddVoteSeparator();
+				HasSeasonalItem = false; // Seasonal Items all appear at the top
+			}
+
 			AddVoteText(aName, EPrefix::SMALL_GREATER_THAN);
+
+			AmountShown++;
 		}
 		if(AmountShown == 0)
 		{
