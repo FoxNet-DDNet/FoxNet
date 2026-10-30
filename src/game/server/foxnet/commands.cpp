@@ -32,6 +32,43 @@
 #include <cmath>
 #include <cstdint>
 #include <ctime>
+#include <limits>
+
+static bool ParseRecordTimeCentiseconds(const char *pTime, int64_t &TimeCentiseconds)
+{
+	// Record times are stored with two decimal places. Parse those digits directly
+	// so large times do not lose centiseconds through a float conversion.
+	if(!*pTime)
+		return false;
+	int64_t Seconds = 0;
+	bool HasSeconds = false;
+	while(*pTime >= '0' && *pTime <= '9')
+	{
+		HasSeconds = true;
+		const int Digit = *pTime++ - '0';
+		if(Seconds > (std::numeric_limits<int64_t>::max() / 100 - Digit) / 10)
+			return false;
+		Seconds = Seconds * 10 + Digit;
+	}
+	if(!HasSeconds)
+		return false;
+	int Centiseconds = 0;
+	if(*pTime == '.')
+	{
+		++pTime;
+		if(*pTime < '0' || *pTime > '9')
+			return false;
+		Centiseconds = (*pTime++ - '0') * 10;
+		if(*pTime >= '0' && *pTime <= '9')
+			Centiseconds += *pTime++ - '0';
+	}
+	if(*pTime)
+		return false;
+	if(Seconds > (std::numeric_limits<int64_t>::max() - Centiseconds) / 100)
+		return false;
+	TimeCentiseconds = Seconds * 100 + Centiseconds;
+	return true;
+}
 
 void CGameContext::ConToggleItem(IConsole::IResult *pResult, void *pUserData)
 {
@@ -1049,9 +1086,14 @@ void CGameContext::ConRemoveRecordWithTime(IConsole::IResult *pResult, void *pUs
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pName = pResult->GetString(0);
-	float Time = pResult->GetFloat(1);
+	int64_t TimeCentiseconds;
+	if(!ParseRecordTimeCentiseconds(pResult->GetString(1), TimeCentiseconds))
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "score", "Invalid time: use seconds with at most two decimal places");
+		return;
+	}
 	const char *pMap = pResult->NumArguments() > 2 ? pResult->GetString(2) : pSelf->Map()->BaseName();
-	pSelf->Score()->RemovePlayerRecordWithTime(pName, pMap, Time);
+	pSelf->Score()->RemovePlayerRecordWithTime(pName, pMap, TimeCentiseconds);
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
@@ -1102,9 +1144,14 @@ void CGameContext::ConRestoreRecordWithTime(IConsole::IResult *pResult, void *pU
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pName = pResult->GetString(0);
-	const float Time = pResult->GetFloat(1);
+	int64_t TimeCentiseconds;
+	if(!ParseRecordTimeCentiseconds(pResult->GetString(1), TimeCentiseconds))
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "score", "Invalid time: use seconds with at most two decimal places");
+		return;
+	}
 	const char *pMap = pResult->NumArguments() > 2 ? pResult->GetString(2) : pSelf->Map()->BaseName();
-	pSelf->Score()->RestorePlayerRecordWithTime(pName, pMap, Time);
+	pSelf->Score()->RestorePlayerRecordWithTime(pName, pMap, TimeCentiseconds);
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
 		if(pSelf->Server()->ClientIngame(ClientId) && !str_comp(pName, pSelf->Server()->ClientName(ClientId)))
@@ -1910,10 +1957,10 @@ void CGameContext::RegisterFoxNetCommands()
 
 	Console()->Register("record_insert", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConInsertRecord, this, "Insert a new record for that name on the given map with given time");
 	Console()->Register("record_remove", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecord, this, "Archive all records a name has on the given map");
-	Console()->Register("record_remove_time", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecordWithTime, this, "Archive records a name has on given map with given time");
+	Console()->Register("record_remove_time", "s[name] s[time] ?r[mapname]", CFGFLAG_SERVER, ConRemoveRecordWithTime, this, "Archive records a name has on given map with given time");
 	Console()->Register("record_remove_all", "r[name]", CFGFLAG_SERVER, ConRemoveAllRecords, this, "Archive all records a name has");
 	Console()->Register("record_restore", "s[name] ?r[mapname]", CFGFLAG_SERVER, ConRestoreRecord, this, "Restore archived records for a name on the given map");
-	Console()->Register("record_restore_time", "s[name] f[time] ?r[mapname]", CFGFLAG_SERVER, ConRestoreRecordWithTime, this, "Restore archived records for a name with the given time");
+	Console()->Register("record_restore_time", "s[name] s[time] ?r[mapname]", CFGFLAG_SERVER, ConRestoreRecordWithTime, this, "Restore archived records for a name with the given time");
 	Console()->Register("record_restore_all", "r[name]", CFGFLAG_SERVER, ConRestoreAllRecords, this, "Restore all archived records for a name");
 
 	// Casino/Multi-Map related

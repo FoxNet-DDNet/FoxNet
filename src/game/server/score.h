@@ -79,10 +79,10 @@ public:
 	void RemoveMapEntry(const char *pMapName);
 	void InsertPlayerRecord(int ClientId, const char *pName, const char *pMap, float Time);
 	void RemovePlayerRecords(const char *pName, const char *pMap);
-	void RemovePlayerRecordWithTime(const char *pName, const char *pMap, float Time);
+	void RemovePlayerRecordWithTime(const char *pName, const char *pMap, int64_t TimeCentiseconds);
 	void RemoveAllPlayerRecords(const char *pName);
 	void RestorePlayerRecords(const char *pName, const char *pMap);
-	void RestorePlayerRecordWithTime(const char *pName, const char *pMap, float Time);
+	void RestorePlayerRecordWithTime(const char *pName, const char *pMap, int64_t TimeCentiseconds);
 	void RestoreAllPlayerRecords(const char *pName);
 	void CacheMapInfo();
 	// FoxNet>

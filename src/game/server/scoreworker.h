@@ -150,6 +150,7 @@ struct CSqlScoreData : ISqlData
 
 	int m_ClientId;
 	float m_Time;
+	int64_t m_RecordTimeCentiseconds;
 	char m_aTimestamp[TIMESTAMP_STR_LENGTH];
 	float m_aCurrentTimeCp[NUM_CHECKPOINTS];
 	int m_Num;
