@@ -1066,6 +1066,9 @@ public:
 
 	void Explosion(vec2 Pos, CClientMask Mask);
 
+	// Clients that did not opt out of distracting effects
+	CClientMask DistractionMask();
+
 	int GetWeaponType(int Weapon);
 
 	int RandGeometric(std::mt19937 &Rng, int Min, int Max, double P);

@@ -814,6 +814,18 @@ bool CGameContext::ResetFakeTunes(int ClientId, int Zone)
 	return true;
 }
 
+CClientMask CGameContext::DistractionMask()
+{
+	CClientMask Mask = CClientMask().set();
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
+	{
+		CPlayer *pPlayer = m_apPlayers[ClientId];
+		if(pPlayer && pPlayer->Acc()->m_Configs.m_HideDistractingEffects)
+			Mask.set(ClientId, false);
+	}
+	return Mask;
+}
+
 void CGameContext::Explosion(vec2 Pos, CClientMask Mask)
 {
 	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);

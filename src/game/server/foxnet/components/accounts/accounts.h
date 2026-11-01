@@ -37,6 +37,7 @@ enum Configs
 	CONFIG_FASTINPUTS,
 
 	CONFIG_HIDEPOWERUPS,
+	CONFIG_HIDEDISTRACTINGEFFECTS,
 	CONFIG_HATITEMFLAGS,
 
 	CONFIG_SHOWWEAPONDROPS,
@@ -57,6 +58,7 @@ constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
 	"FastInputs",
 
 	"HidePowerUps",
+	"HideDistractingEffects",
 	"HatItemFlags",
 
 	"ShowWeaponDrops",
@@ -105,6 +107,8 @@ public:
 	bool m_SentFastInput = false;
 
 	bool m_HidePowerUps = false;
+	// Hides progression effects that are not cosmetic snapped (level ups, case opening, money text)
+	bool m_HideDistractingEffects = true;
 	int m_HatItemFlags = 0;
 
 	bool m_ShowWeaponDrops = true;

@@ -361,6 +361,8 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDEPOWERUPS]))
 			Configs.m_HidePowerUps = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HIDEDISTRACTINGEFFECTS]))
+			Configs.m_HideDistractingEffects = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_HATITEMFLAGS]))
 			Configs.m_HatItemFlags = Value;
 
@@ -398,6 +400,8 @@ static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccCo
 		return false;
 
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEPOWERUPS], Configs.m_HidePowerUps, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_HIDEDISTRACTINGEFFECTS], Configs.m_HideDistractingEffects, pError, ErrorSize))
 		return false;
 	if(!UpserConfigInteger(pSql, pUsername, g_apAccConfigNames[CONFIG_HATITEMFLAGS], Configs.m_HatItemFlags, pError, ErrorSize))
 		return false;

@@ -152,8 +152,9 @@ void CPlayer::LootBoxTick()
 
 	if(CCharacter *pChr = GetCharacter())
 	{
-		GameServer()->CreateDeath(pChr->GetPos(), m_ClientId, pChr->TeamMask());
-		GameServer()->CreateSound(pChr->GetPos(), SOUND_WEAPON_SWITCH);
+		const CClientMask Mask = pChr->TeamMask() & GameServer()->DistractionMask();
+		GameServer()->CreateDeath(pChr->GetPos(), m_ClientId, Mask);
+		GameServer()->CreateSound(pChr->GetPos(), SOUND_WEAPON_SWITCH, Mask);
 	}
 
 	SendBroadcast(aBuf);
@@ -441,7 +442,7 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
 
 		if(GetCharacter())
-			GameServer()->CreateBirthdayEffect(GetCharacter()->GetPos(), GetCharacter()->TeamMask());
+			GameServer()->CreateBirthdayEffect(GetCharacter()->GetPos(), GetCharacter()->TeamMask() & GameServer()->DistractionMask());
 	}
 
 	return LeveledUp;
@@ -473,7 +474,8 @@ void CPlayer::GiveMoney(int64_t Amount, bool Multiplier, bool Silent)
 		const vec2 Pos = pChr->m_Pos + vec2(0, -74);
 		char aText[24];
 		str_format(aText, sizeof(aText), "%c%" PRId64, PlusMinus, AppliedAmount >= 0 ? AppliedAmount : -AppliedAmount);
-		new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER); // NOLINT(clang-analyzer-unix.Malloc)
+		CProjectileText *pText = new CProjectileText(pChr->GameWorld(), MultiMapIdx(), GetCid(), Pos, 100, aText, WEAPON_HAMMER); // NOLINT(clang-analyzer-unix.Malloc)
+		pText->m_Mask &= GameServer()->DistractionMask();
 		pChr->SetEmote(AppliedAmount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
 
