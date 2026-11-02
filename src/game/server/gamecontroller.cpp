@@ -805,16 +805,16 @@ void IGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 	if(Team == pPlayer->GetTeam())
 		return;
 
-	if(g_Config.m_SvAccountsForced && !pPlayer->Acc()->m_LoggedIn)
+	if(!GameServer()->PlayerAccountEligible(pPlayer->GetCid()) && !pPlayer->Acc()->m_LoggedIn)
 	{
-		GameServer()->SendChatTarget(pPlayer->GetCid(), "In order to play you need to login");
-		GameServer()->SendChatTarget(pPlayer->GetCid(), "Use /register if you don't have an account");
+		pPlayer->SendChat("In order to play you need to login");
+		pPlayer->SendChat("Use /register if you don't have an account");
 		return;
 	}
 
 	if(pPlayer->OpeningLootBox())
 	{
-		GameServer()->SendChatTarget(pPlayer->GetCid(), "You can't change team while opening a loot box");
+		pPlayer->SendChat("You can't change team while opening a loot box");
 		return;
 	}
 

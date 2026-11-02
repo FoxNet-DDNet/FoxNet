@@ -1999,7 +1999,9 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 	// <FoxNet
 	// 	const int StartTeam = (Spec || g_Config.m_SvTournamentMode) ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientId);
 	int StartTeam = m_pController->GetAutoTeam(ClientId);
-	if(Spec || g_Config.m_SvTournamentMode || g_Config.m_SvAccountsForced)
+	if(Spec || g_Config.m_SvTournamentMode)
+		StartTeam = TEAM_SPECTATORS;
+	if(g_Config.m_SvAccountsForced)
 		StartTeam = TEAM_SPECTATORS;
 	// FoxNet>
 

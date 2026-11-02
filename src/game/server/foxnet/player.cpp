@@ -72,8 +72,7 @@ void CPlayer::FoxNetTick()
 	if(m_VoteActionDelay >= 0)
 		m_VoteActionDelay--;
 
-	if(m_LootBoxData.m_Opening)
-		LootBoxTick();
+	LootBoxTick();
 
 	RainbowTick();
 	if(Server()->Tick() % (Server()->TickSpeed() * 5) == 0)
@@ -96,16 +95,15 @@ void CPlayer::FoxNetTick()
 void CPlayer::LootBoxTick()
 {
 	// The item that the player will get is already in the inventory, this is just the animation
-
 	if(!Acc()->m_LoggedIn)
 		return;
-	if(!m_LootBoxData.m_Opening)
+	if(m_LootBoxData.m_Ticks == -1)
 		return;
 	if(!m_LootBoxData.m_pLootBox || !m_LootBoxData.m_pGotItem)
 		return;
 
 	char aBuf[256];
-	if(m_LootBoxData.m_Ticks > 1)
+	if(m_LootBoxData.m_Ticks > 0)
 	{
 		m_LootBoxData.m_Ticks--;
 	}
@@ -128,8 +126,7 @@ void CPlayer::LootBoxTick()
 
 		GameServer()->SendChat(-1, TEAM_ALL, aBuf);
 
-		m_LootBoxData.m_Opening = false;
-		m_LootBoxData.m_Ticks = 0;
+		m_LootBoxData.m_Ticks = -1;
 		return;
 	}
 
@@ -681,7 +678,7 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 {
 	if(!Acc()->m_LoggedIn)
 		return false;
-	if(m_LootBoxData.m_Opening)
+	if(m_LootBoxData.m_Ticks > 0)
 	{
 		SendChat("You are already opening a loot case!");
 		return false;
@@ -816,7 +813,6 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 
 	m_LootBoxData.m_pLootBox = &CaseCfg;
 	m_LootBoxData.m_pGotItem = pSelectedItem;
-	m_LootBoxData.m_Opening = true;
 	m_LootBoxData.m_Ticks = LootBoxOpeningTicks;
 	m_LootBoxData.m_Days = RewardDays;
 
@@ -1256,7 +1252,7 @@ int CPlayer::NumDDraceHudRows()
 // Broadcasts like opening a lootcase or having a bot client are more important than area broadcasts or stuff like that
 bool CPlayer::HasImportantBroadcast() const
 {
-	return m_LootBoxData.m_Opening;
+	return m_LootBoxData.m_Ticks > 0;
 }
 
 void CPlayer::SendBroadcast(const char *pText)

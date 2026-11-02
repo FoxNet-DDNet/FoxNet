@@ -500,12 +500,11 @@ private:
 	public:
 		CLootBoxData() = default;
 
-		bool m_Opening = false;
 		const CItemConfig *m_pGotItem = nullptr;
 		const CItemConfig *m_pLootBox = nullptr;
 		int m_Days = 0;
 
-		int m_Ticks = 0;
+		int m_Ticks = -1;
 
 	} m_LootBoxData;
 
@@ -514,7 +513,8 @@ private:
 	bool HasImportantBroadcast() const;
 
 public:
-	bool OpeningLootBox() const { return m_LootBoxData.m_Opening; }
+	void ForceStopLootBoxOpening() { m_LootBoxData.m_Ticks = -1; }
+	bool OpeningLootBox() const { return m_LootBoxData.m_Ticks > 0; }
 
 	// Rate limits motds so walking through several areas cannot spam one player
 	int64_t m_LastMotd = 0;

@@ -563,7 +563,7 @@ void CGameContext::OnLogin(int ClientId)
 		return;
 	pPlayer->m_LastReport = Server()->Tick();
 
-	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() == TEAM_SPECTATORS)
+	if(PlayerAccountEligible(ClientId) && pPlayer->GetTeam() == TEAM_SPECTATORS)
 	{
 		SendMovingTilesInfo(ClientId);
 		pPlayer->SetTeam(TEAM_GAME, false);
@@ -608,14 +608,40 @@ void CGameContext::OnLogout(int ClientId)
 	if(!pPlayer)
 		return;
 
-	// Stakes are settled in CAccounts::Logout, before the account is written out. Doing it here would
-	// be too late: by this point m_Money has already been copied into the save.
+	pPlayer->ForceStopLootBoxOpening();
 
 	if(g_Config.m_SvAccountsForced && pPlayer->GetTeam() != TEAM_SPECTATORS)
 		pPlayer->SetTeam(TEAM_SPECTATORS, false);
 
 	pPlayer->DisableAllCosmetics();
 	ClearVotes(ClientId);
+}
+
+bool CGameContext::PlayerAccountEligible(int ClientId) const
+{
+	CPlayer *pPlayer = m_apPlayers[ClientId];
+	if(!pPlayer)
+		return false;
+
+	CAccountSession *pAcc = pPlayer->Acc();
+
+	if(g_Config.m_SvAccountsForced)
+	{
+		if(!pAcc->m_LoggedIn)
+			return false;
+
+		const int MinPlaytime = g_Config.m_SvAccountsForcedMinPlaytime;
+		if(MinPlaytime > 0)
+		{
+			if(pAcc->m_Playtime < MinPlaytime)
+			{
+				pPlayer->SendChatFmt("You need atleast %d minutes of playtime", MinPlaytime);
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 void CGameContext::SendEmote(int ClientId, int Type, int TargetId)

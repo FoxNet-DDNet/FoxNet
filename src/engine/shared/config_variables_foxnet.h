@@ -25,6 +25,7 @@ MACRO_CONFIG_INT(SvCustomVoteMenu, sv_custom_vote_menu, 1, 0, 1, CFGFLAG_SERVER,
 // Accounts & Currency
 MACRO_CONFIG_INT(SvAccounts, sv_accounts, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Enable player accounts")
 MACRO_CONFIG_INT(SvAccountsForced, sv_accounts_forced, 0, 0, 1, CFGFLAG_SERVER, "Whether an account is necessary to play or not")
+MACRO_CONFIG_INT(SvAccountsForcedMinPlaytime, sv_accounts_forced_min_playtime, 0, 0, 2097152, CFGFLAG_SERVER, "Whether an account is necessary to play or not")
 MACRO_CONFIG_INT(SvAccountsAllowRegister, sv_accounts_allow_register, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Whether to allow new account registrations")
 MACRO_CONFIG_INT(SvAccountsMaxLoginAttempts, sv_accounts_max_login_attempts, 5, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of login attempts before a ban")
 MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of accounts that can be registered per IP address")

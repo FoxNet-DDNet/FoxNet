@@ -1064,6 +1064,8 @@ public:
 	void OnLogin(int ClientId);
 	void OnLogout(int ClientId);
 
+	bool PlayerAccountEligible(int Client) const;
+
 	void Explosion(vec2 Pos, CClientMask Mask);
 
 	// Clients that did not opt out of distracting effects
