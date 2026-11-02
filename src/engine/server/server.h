@@ -537,7 +537,7 @@ public:
 	int LoadMap(const char *pMapName);
 	void WritePortFile();
 
-	void SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank = nullptr, bool RankUnchanged = false, const char *pAccountUsername = nullptr) override;
+	void SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank = nullptr, bool RankUnchanged = false, const char *pAccountUsername = nullptr, bool TeamSaved = false) override;
 	void StartRecord(int ClientId) override;
 	void StopRecord(int ClientId) override;
 	bool IsRecording(int ClientId) override;

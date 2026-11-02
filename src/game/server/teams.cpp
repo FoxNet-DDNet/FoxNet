@@ -1268,6 +1268,19 @@ void CGameTeams::ProcessSaveTeam()
 		case CScoreSaveResult::SAVE_WARNING:
 		case CScoreSaveResult::SAVE_SUCCESS:
 		{
+			if(g_Config.m_DcRecordsWebhookUrl[0])
+			{
+				for(int i = 0; i < Size; ++i)
+				{
+					const CSaveTee &SavedTee = m_apSaveTeamResult[Team]->m_SavedTeam.m_pSavedTees[i];
+					const int ClientId = SavedTee.GetClientId();
+					CPlayer *pPlayer = GetPlayer(ClientId);
+					if(!pPlayer || str_comp(Server()->ClientName(ClientId), SavedTee.GetName()) != 0 || !Server()->IsRecording(ClientId))
+						continue;
+					const char *pAccountUsername = pPlayer->Acc()->m_LoggedIn ? pPlayer->Acc()->m_aUsername : nullptr;
+					Server()->SaveDemo(ClientId, SavedTee.GetTimeTicks() / (float)Server()->TickSpeed(), nullptr, false, pAccountUsername, true);
+				}
+			}
 			if(GameServer()->TeeHistorianActive())
 			{
 				const char *pSaveState = m_apSaveTeamResult[Team]->m_SavedTeam.GetString();
@@ -1328,6 +1341,15 @@ void CGameTeams::ProcessSaveTeam()
 			{
 				GameServer()->SendChatTeam(Team, "Your team has been killed because it contains an invalid tee state");
 				KillTeam(Team, -1);
+			}
+			else if(g_Config.m_DcRecordsWebhookUrl[0])
+			{
+				for(int i = 0; i < Size; ++i)
+				{
+					const int ClientId = m_apSaveTeamResult[Team]->m_SavedTeam.m_pSavedTees[i].GetClientId();
+					if(GetPlayer(ClientId) && Character(ClientId))
+						Server()->StartRecord(ClientId);
+				}
 			}
 
 			char aSaveId[UUID_MAXSTRSIZE];

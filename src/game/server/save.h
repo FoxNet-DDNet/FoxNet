@@ -57,6 +57,7 @@ public:
 	vec2 GetPos() const { return m_Pos; }
 	const char *GetName() const { return m_aName; }
 	int GetClientId() const { return m_ClientId; }
+	int GetTimeTicks() const { return m_Time; }
 	void SetClientId(int ClientId) { m_ClientId = ClientId; }
 
 	enum

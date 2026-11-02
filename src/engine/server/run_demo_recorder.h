@@ -59,6 +59,7 @@ class CRunDemoRecorder
 		std::string m_AccountUsername;
 		std::shared_ptr<std::atomic<int>> m_pRank;
 		bool m_RankUnchanged = false;
+		bool m_TeamSaved = false;
 		std::vector<unsigned char> m_Data;
 	};
 
@@ -132,7 +133,7 @@ public:
 	void Start(int ClientId, const char *pNetVersion, const char *pMap, const SHA256_DIGEST &MapSha256, unsigned MapCrc);
 	void Snapshot(int ClientId, int Tick, const void *pData, int Size);
 	void Message(int ClientId, const void *pData, int Size);
-	void Finish(int ClientId, float Time, const char *pPlayer, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername);
+	void Finish(int ClientId, float Time, const char *pPlayer, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername, bool TeamSaved = false);
 	void Abort(int ClientId);
 	bool IsRecording(int ClientId);
 	void AbortAll();

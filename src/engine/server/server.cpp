@@ -1674,6 +1674,8 @@ int CServer::DelClientCallback(int ClientId, const char *pReason, void *pUser)
 		pThis->GameServer()->OnClientDrop(ClientId, pReason);
 	else if(pThis->m_aClients[ClientId].m_HasPersistentData)
 		pThis->GameServer()->OnClientDataDrop(ClientId, pThis->m_aClients[ClientId].m_pPersistentData);
+	if(pThis->m_pRunDemoRecorder)
+		pThis->m_pRunDemoRecorder->Abort(ClientId);
 
 	pThis->m_aClients[ClientId].m_State = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientId].m_aName[0] = 0;
@@ -4653,11 +4655,11 @@ void CServer::DemoRecorder_HandleAutoStart()
 	}
 }
 
-void CServer::SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername)
+void CServer::SaveDemo(int ClientId, float Time, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername, bool TeamSaved)
 {
 	if(m_pRunDemoRecorder)
 	{
-		m_pRunDemoRecorder->Finish(ClientId, Time, ClientName(ClientId), std::move(pRank), RankUnchanged, pAccountUsername);
+		m_pRunDemoRecorder->Finish(ClientId, Time, ClientName(ClientId), std::move(pRank), RankUnchanged, pAccountUsername, TeamSaved);
 		return;
 	}
 	if(IsRecording(ClientId))

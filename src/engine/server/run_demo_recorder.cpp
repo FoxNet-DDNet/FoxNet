@@ -185,7 +185,7 @@ void CRunDemoRecorder::Message(int ClientId, const void *pData, int Size)
 		Cancel(ClientId);
 }
 
-void CRunDemoRecorder::Finish(int ClientId, float Time, const char *pPlayer, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername)
+void CRunDemoRecorder::Finish(int ClientId, float Time, const char *pPlayer, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername, bool TeamSaved)
 {
 	if(!IsRecording(ClientId))
 		return;
@@ -195,6 +195,7 @@ void CRunDemoRecorder::Finish(int ClientId, float Time, const char *pPlayer, std
 	Event.m_AccountUsername = pAccountUsername ? pAccountUsername : "";
 	Event.m_pRank = std::move(pRank);
 	Event.m_RankUnchanged = RankUnchanged;
+	Event.m_TeamSaved = TeamSaved;
 	if(!TryQueue(std::move(Event)))
 		Cancel(ClientId);
 	else
@@ -340,7 +341,7 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 			str_format(aFilenameTime, sizeof(aFilenameTime), "%02lldm%02lld.%02llds", Minutes, Seconds, Hundredths);
 		}
 		const size_t Count = Run.m_vParts.size();
-		const std::string NameBase = When + "_" + FilenameComponent(Run.m_Map.c_str(), "map") + "_" + FilenameComponent(Event.m_Player.c_str(), "player") + "_" + aFilenameTime + "_" + ShortRunId(Run.m_Base);
+		const std::string NameBase = When + "_" + FilenameComponent(Run.m_Map.c_str(), "map") + "_" + FilenameComponent(Event.m_Player.c_str(), "player") + "_" + aFilenameTime + "_" + ShortRunId(Run.m_Base) + (Event.m_TeamSaved ? "_saved" : "");
 		std::string FinalBase = NameBase;
 		for(unsigned Collision = 1;; ++Collision)
 		{
@@ -382,13 +383,15 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 			bool MetaWritten = false;
 			{
 				std::ofstream Meta(TempMetaPath, std::ios::binary);
-				Meta << "FOXNET_RUN_DEMO_V2\n"
+				Meta << (Event.m_TeamSaved ? "FOXNET_RUN_DEMO_SAVE_V1\n" : "FOXNET_RUN_DEMO_V2\n")
 				     << Count << '\n'
 				     << Event.m_RankUnchanged << '\n';
 				Meta << "Player: " << SafeDiscordName(Event.m_Player.c_str()) << " (" << Event.m_ClientId;
 				if(!Event.m_AccountUsername.empty())
 					Meta << ", acc: " << SafeDiscordName(Event.m_AccountUsername.c_str());
-				Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str()) << "\nTime: " << aDisplayTime << "\nRank: ";
+				Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str()) << (Event.m_TeamSaved ? "\nSaved at: " : "\nTime: ") << aDisplayTime;
+				if(!Event.m_TeamSaved)
+					Meta << "\nRank: ";
 				Meta.flush();
 				MetaWritten = Meta.good();
 			}
@@ -468,7 +471,8 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 	std::istringstream Parsed(Content);
 	std::string Magic;
 	std::getline(Parsed, Magic);
-	if(Magic == "FOXNET_RUN_DEMO_V2")
+	const bool TeamSaved = Magic == "FOXNET_RUN_DEMO_SAVE_V1";
+	if(Magic == "FOXNET_RUN_DEMO_V2" || TeamSaved)
 	{
 		Grouped = true;
 		if(!(Parsed >> PartCount >> RankUnchanged) || PartCount < 1 || PartCount > MAX_PARTS)
@@ -478,14 +482,17 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 		}
 		Parsed.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		Content.assign(std::istreambuf_iterator<char>(Parsed), std::istreambuf_iterator<char>());
-		if(Upload.m_pRank)
+		if(!TeamSaved && Upload.m_pRank)
 		{
 			const auto Deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 			while(Upload.m_pRank->load(std::memory_order_acquire) < 0 && std::chrono::steady_clock::now() < Deadline)
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
-		const int Rank = Upload.m_pRank ? Upload.m_pRank->load(std::memory_order_acquire) : 0;
-		Content += Rank > 0 ? "#" + std::to_string(Rank) + (RankUnchanged ? " (unchanged)" : "") : "unavailable";
+		if(!TeamSaved)
+		{
+			const int Rank = Upload.m_pRank ? Upload.m_pRank->load(std::memory_order_acquire) : 0;
+			Content += Rank > 0 ? "#" + std::to_string(Rank) + (RankUnchanged ? " (unchanged)" : "") : "unavailable";
+		}
 	}
 	while(true)
 	{

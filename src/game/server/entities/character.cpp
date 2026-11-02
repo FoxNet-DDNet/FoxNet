@@ -1244,6 +1244,10 @@ bool CCharacter::IncreaseArmor(int Amount)
 
 void CCharacter::StopRecording()
 {
+	// A team save removes the character while the database result is pending.
+	// Keep the run demo until ProcessSaveTeam knows whether the save succeeded.
+	if(g_Config.m_DcRecordsWebhookUrl[0] && GameServer()->m_pController->Teams().GetSaving(Team()))
+		return;
 	if(Server()->IsRecording(m_pPlayer->GetCid()))
 	{
 		CPlayerData *pData = GameServer()->Score()->PlayerData(m_pPlayer->GetCid());
