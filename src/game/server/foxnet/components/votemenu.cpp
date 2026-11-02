@@ -107,12 +107,12 @@ constexpr const char *BACKPAGE = "↩ Back ↩";
 // Stable suffix of the profile multiplier line; clicking it opens the Boosters page
 constexpr const char *MULTIPLIER_LABEL = "XP & Money";
 
-// Server Info Page
-constexpr const char *SERVER_INFO_DISCORD = "Discord:";
-constexpr const char *SERVER_INFO_CONTRIBUTE = "Contribute:";
+// Info Page
+constexpr const char *INFO_DISCORD = "Discord:";
+constexpr const char *INFO_CONTRIBUTE = "Contribute:";
 
-constexpr const char *SERVER_INFO_ACCOUNTS = "Accounts";
-constexpr const char *SERVER_INFO_LEVELING = "Leveling";
+constexpr const char *INFO_ACCOUNTS = "Accounts";
+constexpr const char *INFO_LEVELING = "Leveling";
 
 template<size_t N, size_t M>
 constexpr auto concat(
@@ -172,7 +172,7 @@ void CVoteMenu::OnConsoleInit()
 	str_copy(m_aPages[PAGE_MAIN], ConvertToSmallCaps("Main Menu")); // Not shown
 
 	str_copy(m_aPages[PAGE_BOOSTERS], ConvertToSmallCaps("Boosters"));
-	str_copy(m_aPages[PAGE_SERVERINFO], ConvertToSmallCaps("Server Info"));
+	str_copy(m_aPages[PAGE_SERVERINFO], ConvertToSmallCaps("Info"));
 	str_copy(m_aPages[PAGE_VOTES], ConvertToSmallCaps("Votes"));
 	str_copy(m_aPages[PAGE_SHOP], ConvertToSmallCaps("Shop"));
 	str_copy(m_aPages[PAGE_INVENTORY], ConvertToSmallCaps("Inventory"));
@@ -266,9 +266,9 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 
 		if(Page == PAGE_SERVERINFO)
 		{
-			if(SubPage == SUB_SERVERINFO_MAIN)
+			if(SubPage == SUB_INFO_MAIN)
 				SetPage(ClientId, PAGE_MAIN);
-			SetSubPage(ClientId, SUB_SERVERINFO_MAIN);
+			SetSubPage(ClientId, SUB_INFO_MAIN);
 			return true;
 		}
 
@@ -596,23 +596,23 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 	{
 		if(g_Config.m_SvAccounts)
 		{
-			if(IsOption(pVote, SERVER_INFO_ACCOUNTS))
+			if(IsOption(pVote, INFO_ACCOUNTS))
 			{
-				SetSubPage(ClientId, SUB_SERVERINFO_ACCOUNTS);
+				SetSubPage(ClientId, SUB_INFO_ACCOUNTS);
 				return true;
 			}
-			if(IsOption(pVote, SERVER_INFO_LEVELING))
+			if(IsOption(pVote, INFO_LEVELING))
 			{
-				SetSubPage(ClientId, SUB_SERVERINFO_LEVELING);
+				SetSubPage(ClientId, SUB_INFO_LEVELING);
 				return true;
 			}
 		}
-		if(IsOptionWithSuffix(pVote, SERVER_INFO_CONTRIBUTE))
+		if(IsOptionWithSuffix(pVote, INFO_CONTRIBUTE))
 		{
 			GameServer()->SendChatTarget(ClientId, g_Config.m_SvGithubRepo);
 			return true;
 		}
-		else if(IsOptionWithSuffix(pVote, SERVER_INFO_DISCORD))
+		else if(IsOptionWithSuffix(pVote, INFO_DISCORD))
 		{
 			GameServer()->SendChatTarget(ClientId, g_Config.m_SvDiscordLink);
 			return true;
@@ -1826,20 +1826,20 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		g_Config.m_SvRulesLine10,
 	};
 
-	if(SubPage == SUB_SERVERINFO_MAIN)
+	if(SubPage == SUB_INFO_MAIN)
 	{
 		AddVoteText(ConvertToSmallCaps("╭───────    Info"));
 		AddVoteText("Version: " FOXNET_VERSION, EPrefix::LONG_LINE);
 		char aBuf[VOTE_DESC_LENGTH] = "";
 		if(g_Config.m_SvDiscordLink[0])
-			str_format(aBuf, sizeof(aBuf), "%s %s", SERVER_INFO_DISCORD, g_Config.m_SvDiscordLink);
+			str_format(aBuf, sizeof(aBuf), "%s %s", INFO_DISCORD, g_Config.m_SvDiscordLink);
 		else
-			str_format(aBuf, sizeof(aBuf), "%s Not set up", SERVER_INFO_DISCORD);
+			str_format(aBuf, sizeof(aBuf), "%s Not set up", INFO_DISCORD);
 		AddVoteText(aBuf, EPrefix::LONG_LINE);
 		if(g_Config.m_SvGithubRepo[0])
-			str_format(aBuf, sizeof(aBuf), "%s %s", SERVER_INFO_CONTRIBUTE, g_Config.m_SvGithubRepo);
+			str_format(aBuf, sizeof(aBuf), "%s %s", INFO_CONTRIBUTE, g_Config.m_SvGithubRepo);
 		else
-			str_format(aBuf, sizeof(aBuf), "%s Not set up", SERVER_INFO_CONTRIBUTE);
+			str_format(aBuf, sizeof(aBuf), "%s Not set up", INFO_CONTRIBUTE);
 		AddVoteText(aBuf, EPrefix::LONG_LINE);
 		AddVoteText(ConvertToSmallCaps("├───────    Rules"));
 		if(g_Config.m_SvDDRaceRules)
@@ -1872,11 +1872,11 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		if(g_Config.m_SvAccounts)
 		{
 			AddVoteSeparator();
-			AddVoteText(SERVER_INFO_ACCOUNTS, EPrefix::SMALL_GREATER_THAN);
-			AddVoteText(SERVER_INFO_LEVELING, EPrefix::SMALL_GREATER_THAN);
+			AddVoteText(INFO_ACCOUNTS, EPrefix::SMALL_GREATER_THAN);
+			AddVoteText(INFO_LEVELING, EPrefix::SMALL_GREATER_THAN);
 		}
 	}
-	else if(SubPage == SUB_SERVERINFO_ACCOUNTS)
+	else if(SubPage == SUB_INFO_ACCOUNTS)
 	{
 		AddVoteText(ConvertToSmallCaps("╭───────    Accounts"));
 		AddVoteText("│ Accounts are used to save your");
@@ -1890,7 +1890,7 @@ void CVoteMenu::PrepareServerInfo(int ClientId)
 		AddVoteText("│ elses by using '/profile <name>' in the chat");
 		AddVoteText("╰────────────────────");
 	}
-	else if(SubPage == SUB_SERVERINFO_LEVELING)
+	else if(SubPage == SUB_INFO_LEVELING)
 	{
 		AddVoteText(ConvertToSmallCaps("╭───────    Leveling"));
 		AddVoteText("│ 1. You Earn XP passively every minute you're playing");
