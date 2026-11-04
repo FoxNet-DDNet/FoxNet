@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -107,6 +108,10 @@ class CPowerUps : public CServerComponent
 	};
 
 	std::shared_ptr<SSharedState> m_pShared = std::make_shared<SSharedState>();
+
+	// Only one rebuild runs at a time, see m_RebuildBusy. Kept so shutdown can wait for it:
+	// a detached worker outlives the runtime it logs and allocates through.
+	std::thread m_RebuildThread;
 
 	void QueueRebuildSnapshot(size_t MapIdx);
 	void RebuildAsync(size_t MapIdx);

@@ -872,6 +872,12 @@ CPowerUps::~CPowerUps()
 
 void CPowerUps::QueueRebuildSnapshot(size_t MapIdx)
 {
+	// The last worker cleared m_RebuildBusy before we got here, so this does not wait on real work.
+	// It still has to happen: assigning over a joinable thread terminates. Before any lock, the
+	// worker takes m_CacheLock on its way out.
+	if(m_RebuildThread.joinable())
+		m_RebuildThread.join();
+
 	auto pShared = m_pShared;
 	CMultiMaps *pMultiMap = MultiMaps(MapIdx);
 	CZoneManager *pZoneManager = &GameServer()->m_ZoneManager;
@@ -907,7 +913,7 @@ void CPowerUps::QueueRebuildSnapshot(size_t MapIdx)
 		}
 	}
 
-	std::thread([pShared, pMultiMapKey, MapIdx, Generation, pData]() {
+	m_RebuildThread = std::thread([pShared, pMultiMapKey, MapIdx, Generation, pData]() {
 		std::vector<vec2> vSpawnCandidates = BuildSpawnCandidates(*pData, MapIdx);
 
 		CLockScope Lock(pShared->m_CacheLock);
@@ -915,7 +921,7 @@ void CPowerUps::QueueRebuildSnapshot(size_t MapIdx)
 		if(It != pShared->m_RebuildGenerations.end() && It->second == Generation)
 			pShared->m_CachedCandidates[pMultiMapKey] = std::move(vSpawnCandidates);
 		pShared->m_RebuildBusy = false;
-	}).detach();
+	});
 }
 
 void CPowerUps::RebuildAsync(size_t MapIdx)
@@ -968,6 +974,10 @@ void CPowerUps::OnMapUnload(size_t MapIdx)
 
 void CPowerUps::OnShutdown(void *pPersistentData)
 {
+	// Has to come before the lock below, the worker needs m_CacheLock to finish
+	if(m_RebuildThread.joinable())
+		m_RebuildThread.join();
+
 	auto pOldShared = std::move(m_pShared);
 	m_pShared = std::make_shared<SSharedState>();
 
