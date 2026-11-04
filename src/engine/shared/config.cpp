@@ -13,6 +13,8 @@
 #include <engine/shared/protocol.h>
 #include <engine/storage.h>
 
+#include <cinttypes>
+
 CConfig g_Config;
 
 // ----------------------- Config Variables
@@ -107,6 +109,82 @@ void SIntConfigVariable::ResetToDefault()
 }
 
 void SIntConfigVariable::ResetToOld()
+{
+	*m_pVariable = m_OldValue;
+}
+
+// -----
+
+void SInt64ConfigVariable::CommandCallback(IConsole::IResult *pResult, void *pUserData)
+{
+	SInt64ConfigVariable *pData = static_cast<SInt64ConfigVariable *>(pUserData);
+
+	if(pResult->NumArguments())
+	{
+		if(pData->CheckReadOnly())
+			return;
+
+		int64_t Value = pResult->GetInteger64(0);
+
+		// do clamping
+		if(pData->m_Min != pData->m_Max)
+		{
+			if(Value < pData->m_Min)
+				Value = pData->m_Min;
+			if(pData->m_Max != 0 && Value > pData->m_Max)
+				Value = pData->m_Max;
+		}
+
+		*pData->m_pVariable = Value;
+		if(pResult->m_ClientId != IConsole::CLIENT_ID_GAME)
+			pData->m_OldValue = Value;
+	}
+	else
+	{
+		log_info("config", "Value: %" PRId64, *pData->m_pVariable);
+	}
+}
+
+void SInt64ConfigVariable::Register()
+{
+	m_pConsole->Register(m_pScriptName, "?l", m_Flags, CommandCallback, this, m_pHelp);
+}
+
+bool SInt64ConfigVariable::IsDefault() const
+{
+	return *m_pVariable == m_Default;
+}
+
+void SInt64ConfigVariable::Serialize(char *pOut, size_t Size, int64_t Value) const
+{
+	str_format(pOut, Size, "%s %" PRId64, m_pScriptName, Value);
+}
+
+void SInt64ConfigVariable::Serialize(char *pOut, size_t Size) const
+{
+	Serialize(pOut, Size, *m_pVariable);
+}
+
+void SInt64ConfigVariable::SerializeHumanReadable(char *pOut, size_t Size) const
+{
+	Serialize(pOut, Size);
+}
+
+void SInt64ConfigVariable::SetValue(int64_t Value)
+{
+	if(CheckReadOnly())
+		return;
+	char aBuf[IConsole::CMDLINE_LENGTH];
+	Serialize(aBuf, sizeof(aBuf), Value);
+	ExecuteLine(aBuf);
+}
+
+void SInt64ConfigVariable::ResetToDefault()
+{
+	SetValue(m_Default);
+}
+
+void SInt64ConfigVariable::ResetToOld()
 {
 	*m_pVariable = m_OldValue;
 }
@@ -311,6 +389,24 @@ void CConfigManager::Init()
 			m_pConsole, pScriptName, SConfigVariable::VAR_INT, Flags, m_ConfigHeap.StoreString(aHelp), pVariable, Default, Min, Max));
 	};
 
+	const auto &&AddInt64Variable = [this, AddVariable](const char *pScriptName, int Flags, const char *pDesc, int64_t *pVariable, int64_t Default, int64_t Min, int64_t Max) {
+		dbg_assert(Min == 0 || Max == 0 || Min < Max, "MACRO_CONFIG_INT64(%s): minimum (%" PRId64 ") must be less than maximum (%" PRId64 ")", pScriptName, Min, Max);
+		dbg_assert((Min == 0 || Default >= Min) && (Max == 0 || Default <= Max), "MACRO_CONFIG_INT64(%s): default (%" PRId64 ") must be in range of minimum (%" PRId64 ") and maximum (%" PRId64 ")", pScriptName, Default, Min, Max);
+
+		char aHelp[512];
+		size_t HelpSize;
+		if(Min == 0 && Max == 0)
+			HelpSize = str_format(aHelp, sizeof(aHelp), "%s (default: %" PRId64 ")", pDesc, Default);
+		else if(Max == 0)
+			HelpSize = str_format(aHelp, sizeof(aHelp), "%s (default: %" PRId64 ", min: %" PRId64 ")", pDesc, Default, Min);
+		else
+			HelpSize = str_format(aHelp, sizeof(aHelp), "%s (default: %" PRId64 ", min: %" PRId64 ", max: %" PRId64 ")", pDesc, Default, Min, Max);
+		dbg_assert(HelpSize < sizeof(aHelp) - UTF8_BYTE_LENGTH - 1, "MACRO_CONFIG_INT64(%s): help text possibly truncated. Increase size of aHelp.", pScriptName);
+
+		AddVariable(m_ConfigHeap.Allocate<SInt64ConfigVariable>(
+			m_pConsole, pScriptName, SConfigVariable::VAR_INT64, Flags, m_ConfigHeap.StoreString(aHelp), pVariable, Default, Min, Max));
+	};
+
 	const auto &&AddColorVariable = [this, AddVariable](const char *pScriptName, int Flags, const char *pDesc, unsigned *pVariable, unsigned Default) {
 		const bool Alpha = (Flags & CFGFLAG_COLALPHA) != 0;
 
@@ -336,12 +432,14 @@ void CConfigManager::Init()
 	};
 
 #define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Flags, Desc) AddIntVariable(#ScriptName, Flags, Desc, &g_Config.m_##Name, Def, Min, Max);
+#define MACRO_CONFIG_INT64(Name, ScriptName, Def, Min, Max, Flags, Desc) AddInt64Variable(#ScriptName, Flags, Desc, &g_Config.m_##Name, Def, Min, Max);
 #define MACRO_CONFIG_COL(Name, ScriptName, Def, Flags, Desc) AddColorVariable(#ScriptName, Flags, Desc, &g_Config.m_##Name, Def);
 #define MACRO_CONFIG_STR(Name, ScriptName, Len, Def, Flags, Desc) AddStringVariable(#ScriptName, Flags, Desc, g_Config.m_##Name, Len, Def);
 
 #include "config_variables.h"
 
 #undef MACRO_CONFIG_INT
+#undef MACRO_CONFIG_INT64
 #undef MACRO_CONFIG_COL
 #undef MACRO_CONFIG_STR
 
@@ -524,6 +622,12 @@ void CConfigManager::Con_Toggle(IConsole::IResult *pResult, void *pUserData)
 			SIntConfigVariable *pIntVariable = static_cast<SIntConfigVariable *>(pVariable);
 			const bool EqualToFirst = *pIntVariable->m_pVariable == pResult->GetInteger(1);
 			pIntVariable->SetValue(pResult->GetInteger(EqualToFirst ? 2 : 1));
+		}
+		else if(pVariable->m_Type == SConfigVariable::VAR_INT64)
+		{
+			SInt64ConfigVariable *pInt64Variable = static_cast<SInt64ConfigVariable *>(pVariable);
+			const bool EqualToFirst = *pInt64Variable->m_pVariable == pResult->GetInteger64(1);
+			pInt64Variable->SetValue(pResult->GetInteger64(EqualToFirst ? 2 : 1));
 		}
 		else if(pVariable->m_Type == SConfigVariable::VAR_COLOR)
 		{

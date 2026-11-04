@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <concepts>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 
@@ -149,6 +150,28 @@ template<Numeric T>
 constexpr bool in_range(T a, T upper)
 {
 	return in_range(a, 0, upper);
+}
+
+// Clamps instead of wrapping, for money where an overflow would wipe an account
+constexpr int64_t saturating_mul(int64_t a, int64_t b)
+{
+	constexpr int64_t Max = std::numeric_limits<int64_t>::max();
+	constexpr int64_t Min = std::numeric_limits<int64_t>::lowest();
+
+	if(a == 0 || b == 0)
+		return 0;
+
+	const bool Positive = (a > 0) == (b > 0);
+	// Magnitudes in unsigned space, so Min negates without overflowing
+	const uint64_t A = a < 0 ? 0 - (uint64_t)a : (uint64_t)a;
+	const uint64_t B = b < 0 ? 0 - (uint64_t)b : (uint64_t)b;
+	const uint64_t Bound = Positive ? (uint64_t)Max : (uint64_t)Max + 1;
+
+	if(A > Bound / B)
+		return Positive ? Max : Min;
+
+	const uint64_t Result = A * B;
+	return Positive ? (int64_t)Result : (int64_t)(0 - Result);
 }
 
 #endif // BASE_MATH_H

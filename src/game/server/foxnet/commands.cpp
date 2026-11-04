@@ -1432,6 +1432,13 @@ void CGameContext::ConSetBet(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
+	const int64_t MaxBet = g_Config.m_SvMaxBet;
+	if(MaxBet > 0 && Amount.value() > MaxBet)
+	{
+		Amount = MaxBet;
+		pPlayer->SendChatFmt("The maximum bet is %" PRId64 "%s", MaxBet, g_Config.m_SvCurrencyName);
+	}
+
 	if(Amount.value() <= 0)
 		return;
 	if(pPlayer->m_Wager == Amount.value())

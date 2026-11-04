@@ -26,6 +26,7 @@ Standalone command relay build and deployment: [docs/command-relay.md](docs/comm
 |sv_accounts|Whether accounts are enabled or not|
 |sv_currency_name|What name the currency should be|
 |sv_levelup_money|How much money a player gets on level up|
+|sv_max_bet|Largest wager allowed in a gambling zone, 0 for no limit|
 |sv_playtime_money|How much money a player gets as playtime bonus|
 |sv_prediction_test|Used for ufos visuals so the lasers are ontop of the player|
 |sv_snake_auto_move|Whether the snake can stand still or not|

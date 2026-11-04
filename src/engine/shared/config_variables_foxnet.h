@@ -7,6 +7,7 @@
 #error "The config macros must be defined"
 // This helps IDEs properly syntax highlight the uses of the macro below.
 #define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Save, Desc)
+#define MACRO_CONFIG_INT64(Name, ScriptName, Def, Min, Max, Save, Desc)
 #define MACRO_CONFIG_COL(Name, ScriptName, Def, Save, Desc)
 #define MACRO_CONFIG_STR(Name, ScriptName, Len, Def, Save, Desc)
 #endif
@@ -33,6 +34,7 @@ MACRO_CONFIG_STR(SvAccountsInstance, sv_accounts_instance, 16, "", CFGFLAG_SERVE
 
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER, "How much money a player should get if they level up")
+MACRO_CONFIG_INT64(SvMaxBet, sv_max_bet, 0, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Largest wager allowed in a gambling zone (0 = no limit)")
 
 // Bot Detection
 MACRO_CONFIG_INT(SvSetupDestroyer, sv_setup_destroyer, 0, 0, 1, CFGFLAG_SERVER, "Nudges players")

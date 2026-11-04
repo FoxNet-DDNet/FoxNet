@@ -633,6 +633,7 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientId, bo
 
 						const bool IsConfigVariable =
 							pfnResolvedCallback == SIntConfigVariable::CommandCallback ||
+							pfnResolvedCallback == SInt64ConfigVariable::CommandCallback ||
 							pfnResolvedCallback == SColorConfigVariable::CommandCallback ||
 							pfnResolvedCallback == SStringConfigVariable::CommandCallback;
 

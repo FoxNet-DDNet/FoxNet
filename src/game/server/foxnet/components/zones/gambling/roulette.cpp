@@ -145,9 +145,9 @@ const char *CRouletteZone::Motd() const
 	       "To start, write '/bet <amount>', after that you can select your bet type by hovering your mouse over any of the options below and hammering\n"
 	       "\n"
 	       "Pᴀʏᴏᴜᴛs:\n"
-	       "Black | Red: 2x\n"
+	       "Black | Red | Even | Odd: 2x\n"
 	       "3x dozens: 3x\n"
-	       "Green [Zero]: 14x\n"
+	       "Green [Zero]: 36x\n"
 	       "\n"
 	       "[Press Tab to hide]";
 }
@@ -293,6 +293,12 @@ bool CRouletteZone::AddClient(int ClientId, const char *pBetOption)
 		return false;
 	}
 
+	if(g_Config.m_SvMaxBet > 0 && BetAmount > g_Config.m_SvMaxBet)
+	{
+		GameServer()->SendChatTarget(ClientId, "Your wager is above the maximum bet, use /bet <Amount>");
+		return false;
+	}
+
 	bool ValidOption = false;
 	for(const char *pOptions : RouletteOptions)
 	{
@@ -393,13 +399,13 @@ void CRouletteZone::EvaluateBet(int ClientId, bool Silent)
 	const int Number = s_aFields[WinningField].m_Number;
 	const int64_t Amount = m_aClients[ClientId].m_UsedWager;
 
-	float PayoutMultiplier = 0;
+	int PayoutMultiplier = 0;
 	if(str_comp(m_aClients[ClientId].m_aBetOption, "Black") == 0 && Color == COLOR_BLACK)
 		PayoutMultiplier = 2;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Red") == 0 && Color == COLOR_RED)
 		PayoutMultiplier = 2;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Green") == 0 && Color == COLOR_GREEN)
-		PayoutMultiplier = 14;
+		PayoutMultiplier = 36;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Even") == 0 && Number != 0 && Number % 2 == 0)
 		PayoutMultiplier = 2;
 	else if(str_comp(m_aClients[ClientId].m_aBetOption, "Odd") == 0 && Number % 2 == 1)
@@ -415,7 +421,7 @@ void CRouletteZone::EvaluateBet(int ClientId, bool Silent)
 	if(pPlayer && pPlayer->Acc()->m_LoggedIn)
 	{
 		if(PayoutMultiplier > 0)
-			pPlayer->GiveMoney((int64_t)(Amount * PayoutMultiplier), false, Silent);
+			pPlayer->GiveMoney(saturating_mul(Amount, PayoutMultiplier), false, Silent);
 	}
 
 	ClearClientBet(ClientId);

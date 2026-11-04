@@ -411,6 +411,12 @@ bool CMoneyWheelZone::AddClient(int ClientId, const char *pBetOption)
 		return false;
 	}
 
+	if(g_Config.m_SvMaxBet > 0 && BetAmount > g_Config.m_SvMaxBet)
+	{
+		GameServer()->SendChatTarget(ClientId, "Your wager is above the maximum bet, use /bet <Amount>");
+		return false;
+	}
+
 	int Option = -1;
 	for(size_t i = 0; i < std::size(s_aOptions); i++)
 	{
@@ -481,7 +487,7 @@ void CMoneyWheelZone::EvaluateBet(int ClientId, bool Silent)
 	{
 		CPlayer *pPlayer = GameServer()->m_apPlayers[ClientId];
 		if(pPlayer && pPlayer->Acc()->m_LoggedIn)
-			pPlayer->GiveMoney(m_aClients[ClientId].m_UsedWager * s_aOptions[WinningOption].m_Multiplier, false, Silent);
+			pPlayer->GiveMoney(saturating_mul(m_aClients[ClientId].m_UsedWager, s_aOptions[WinningOption].m_Multiplier), false, Silent);
 	}
 
 	ClearClientBet(ClientId);

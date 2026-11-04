@@ -9,6 +9,7 @@
 #include <engine/console.h>
 #include <engine/shared/memheap.h>
 
+#include <cstdint>
 #include <vector>
 
 // include protocol for MAX_CLIENT used in config_variables
@@ -37,6 +38,14 @@ public:
 		Maximum: Max\n \
 		Description: Desc */ \
 	int m_##Name;
+#define MACRO_CONFIG_INT64(Name, ScriptName, Def, Min, Max, Flags, Desc) \
+	/** Config variable: ScriptName\n \
+		Type: Integer (64 bit)\n \
+		Default: Def\n \
+		Minimum: Min\n \
+		Maximum: Max\n \
+		Description: Desc */ \
+	int64_t m_##Name;
 #define MACRO_CONFIG_COL(Name, ScriptName, Def, Flags, Desc) \
 	/** Config variable: ScriptName\n \
 		Type: Color\n \
@@ -52,6 +61,7 @@ public:
 	char m_##Name[Len]; // Flawfinder: ignore
 #include "config_variables.h"
 #undef MACRO_CONFIG_INT
+#undef MACRO_CONFIG_INT64
 #undef MACRO_CONFIG_COL
 #undef MACRO_CONFIG_STR
 };
@@ -66,6 +76,9 @@ namespace DefaultConfig
 #define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Flags, Desc) \
 	/** Default value of the integer config variable 'ScriptName' (see CConfig::m_##Name). */ \
 	static constexpr int Name = Def;
+#define MACRO_CONFIG_INT64(Name, ScriptName, Def, Min, Max, Flags, Desc) \
+	/** Default value of the 64 bit integer config variable 'ScriptName' (see CConfig::m_##Name). */ \
+	static constexpr int64_t Name = Def;
 #define MACRO_CONFIG_COL(Name, ScriptName, Def, Flags, Desc) \
 	/** Default value of the color config variable 'ScriptName' (see CConfig::m_##Name). */ \
 	static constexpr unsigned Name = Def;
@@ -74,6 +87,7 @@ namespace DefaultConfig
 	static constexpr const char *const Name = Def;
 #include "config_variables.h"
 #undef MACRO_CONFIG_INT
+#undef MACRO_CONFIG_INT64
 #undef MACRO_CONFIG_COL
 #undef MACRO_CONFIG_STR
 }
@@ -115,6 +129,7 @@ struct SConfigVariable
 	enum EVariableType
 	{
 		VAR_INT,
+		VAR_INT64,
 		VAR_COLOR,
 		VAR_STRING,
 	};
@@ -178,6 +193,38 @@ struct SIntConfigVariable : public SConfigVariable
 	void Serialize(char *pOut, size_t Size) const override;
 	void SerializeHumanReadable(char *pOut, size_t Size) const override;
 	void SetValue(int Value);
+	void ResetToDefault() override;
+	void ResetToOld() override;
+};
+
+struct SInt64ConfigVariable : public SConfigVariable
+{
+	int64_t *m_pVariable;
+	int64_t m_Default;
+	int64_t m_Min;
+	int64_t m_Max;
+	int64_t m_OldValue;
+
+	SInt64ConfigVariable(IConsole *pConsole, const char *pScriptName, EVariableType Type, int Flags, const char *pHelp, int64_t *pVariable, int64_t Default, int64_t Min, int64_t Max) :
+		SConfigVariable(pConsole, pScriptName, Type, Flags, pHelp),
+		m_pVariable(pVariable),
+		m_Default(Default),
+		m_Min(Min),
+		m_Max(Max),
+		m_OldValue(Default)
+	{
+		*m_pVariable = m_Default;
+	}
+
+	~SInt64ConfigVariable() override = default;
+
+	static void CommandCallback(IConsole::IResult *pResult, void *pUserData);
+	void Register() override;
+	bool IsDefault() const override;
+	void Serialize(char *pOut, size_t Size, int64_t Value) const;
+	void Serialize(char *pOut, size_t Size) const override;
+	void SerializeHumanReadable(char *pOut, size_t Size) const override;
+	void SetValue(int64_t Value);
 	void ResetToDefault() override;
 	void ResetToOld() override;
 };
