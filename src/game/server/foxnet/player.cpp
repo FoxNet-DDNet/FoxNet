@@ -130,7 +130,8 @@ void CPlayer::LootBoxTick()
 		return;
 	}
 
-	int Speed = std::clamp(LootBoxOpeningTicks / m_LootBoxData.m_Ticks * 3, 1, 25); // The higher the ticks the slower the speed
+	const int TicksLeft = std::max(m_LootBoxData.m_Ticks, 1);
+	int Speed = std::clamp(LootBoxOpeningTicks / TicksLeft * 3, 1, 25); // The higher the ticks the slower the speed
 
 	if(m_LootBoxData.m_Ticks % Speed != 0)
 		return;
@@ -140,6 +141,8 @@ void CPlayer::LootBoxTick()
 	bool IsExotic = ItemId == EItemId::LootCaseExotic;
 
 	const CItemConfig *pItem = GameServer()->m_Shop.RandomItemByRarity(Rarity, IsExotic);
+	if(!pItem)
+		return;
 
 	str_format(aBuf, sizeof(aBuf), "Opening %s\n[%s %s] %s",
 		m_LootBoxData.m_pLootBox->m_pName,
