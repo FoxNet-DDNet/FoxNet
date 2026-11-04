@@ -108,7 +108,7 @@ public:
 
 	bool m_HidePowerUps = false;
 	// Hides progression effects that are not cosmetic snapped (level ups, case opening, money text)
-	bool m_HideDistractingEffects = true;
+	bool m_HideDistractingEffects = false;
 	int m_HatItemFlags = 0;
 
 	bool m_ShowWeaponDrops = true;
