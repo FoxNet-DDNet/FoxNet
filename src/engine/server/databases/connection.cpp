@@ -97,12 +97,17 @@ void IDbConnection::FormatCreateVisibleRace(char *aBuf, unsigned int BufferSize,
 
 void IDbConnection::FormatCreateVisibleTeamrace(char *aBuf, unsigned int BufferSize, bool Mysql) const
 {
+	// A team is hidden when any member's account is disabled, or when a member's
+	// race record for this finish was removed (it moves to _race_deleted while the
+	// teamrace rows stay, so without this the removed team would keep its rank).
 	str_format(aBuf, BufferSize,
 		"%s %s_teamrace_visible AS SELECT r.* FROM %s_teamrace r WHERE NOT EXISTS ("
 		"SELECT 1 FROM %s_teamrace member LEFT JOIN foxnet_accounts a "
-		"ON a.Username = member.AccountUsername WHERE member.Id = r.Id "
-		"AND member.AccountUsername IS NOT NULL AND (a.Username IS NULL OR a.Disabled <> 0))",
-		Mysql ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS", GetPrefix(), GetPrefix(), GetPrefix());
+		"ON a.Username = member.AccountUsername WHERE member.Id = r.Id AND ("
+		"(member.AccountUsername IS NOT NULL AND (a.Username IS NULL OR a.Disabled <> 0)) "
+		"OR NOT EXISTS (SELECT 1 FROM %s_race rr "
+		"WHERE rr.Map = member.Map AND rr.Name = member.Name AND rr.Time = member.Time)))",
+		Mysql ? "CREATE OR REPLACE VIEW" : "CREATE VIEW", GetPrefix(), GetPrefix(), GetPrefix(), GetPrefix());
 }
 
 void IDbConnection::FormatCreateMaps(char *aBuf, unsigned int BufferSize) const

@@ -208,6 +208,10 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateVisibleRace(aBuf, sizeof(aBuf), false);
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+		// SQLite has no CREATE OR REPLACE VIEW, so drop it to pick up definition changes
+		str_format(aBuf, sizeof(aBuf), "DROP VIEW IF EXISTS %s_teamrace_visible", GetPrefix());
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 		FormatCreateVisibleTeamrace(aBuf, sizeof(aBuf), false);
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
