@@ -150,6 +150,11 @@ public:
 		IGNORE_SOLO = 1 << 0,
 	};
 
+	// Whether a player in this DDRace team may take part in minigames and gambling. Shared teams are
+	// out: they can be locked, saved and practiced, which is a way around every cost. Forced solo
+	// gives everyone a team of their own, so that one counts as the flock, practice aside.
+	bool MinigamesAllowed(int Team);
+
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId = -1, int Asker = -1, int VersionFlags = CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, int Flags = 0);
 	bool SetMaskWithFlags(int ClientId, int MultiMapIdx, int Team, int Flags = 0) { return SetMask(ClientId, MultiMapIdx, Team, -1, -1, CGameContext::FLAG_SIX | CGameContext::FLAG_SIXUP, Flags); }
 	CClientMask CosmeticMask(int Team, int MultiMapIdx, int Asker, EItemType Type, bool Opposite);

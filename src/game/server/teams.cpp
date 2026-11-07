@@ -1655,6 +1655,16 @@ bool CGameTeams::IsValidTeamNumber(int Team) const
 }
 
 // <FoxNet
+bool CGameTeams::MinigamesAllowed(int Team)
+{
+	if(!IsValidTeamNumber(Team))
+		return false;
+	if(IsPractice(Team))
+		return false;
+
+	return Team == TEAM_FLOCK || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO;
+}
+
 bool CGameTeams::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags)
 {
 	if(Team == TEAM_SUPER)

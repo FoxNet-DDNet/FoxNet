@@ -5317,6 +5317,17 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	int Start, Num;
 	pMap->GetType(MAPITEMTYPE_INFO, &Start, &Num);
 	Console()->SetMultiMapIndex(MultiMapIdx); // set map index for config execution
+
+	// <FoxNet
+	/*
+	 * Map settings are plain console lines, so they land in the one global config no matter which map
+	 * they came from. sv_solo_server is the one setting a map can flip that changes how players
+	 * interact, so a secondary map must not be able to turn the whole server solo: it starts from the
+	 * server's value, keeps whatever its own settings make of it, and hands the global back untouched.
+	 */
+	const int ServerSoloServer = g_Config.m_SvSoloServer;
+	// FoxNet>
+
 	for(int i = Start; i < Start + Num; i++)
 	{
 		int ItemId;
@@ -5357,6 +5368,10 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 
 	// <FoxNet
 	m_vMultiMaps[MultiMapIdx]->m_HookFireSpeed = m_vMultiMaps[MultiMapIdx]->m_aTuningList[0].m_HookFireSpeed;
+
+	m_vMultiMaps[MultiMapIdx]->m_SoloServer = g_Config.m_SvSoloServer != 0;
+	if(MultiMapIdx != (size_t)DefaultMapIndex)
+		g_Config.m_SvSoloServer = ServerSoloServer;
 	// FoxNet>
 }
 

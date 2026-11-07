@@ -22,6 +22,7 @@
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/player.h>
+#include <game/server/teams.h>
 #include <game/teamscore.h>
 
 #include <algorithm>
@@ -289,7 +290,7 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 			pChr->ReleaseHook();
 	}
 
-	// Nothing below here may touch players that arent inside the area (or arent on TEAM_FLOCK),
+	// Nothing below here may touch players that arent inside the area (or are in a shared DDRace team),
 	// CZoneManager owns that decision
 	if(!InArea)
 	{
@@ -1373,7 +1374,7 @@ int CHideAndSeekZone::UpdateCandidates()
 			continue;
 		if(!pChr->IsAlive())
 			continue;
-		if(pChr->Team() != TEAM_FLOCK)
+		if(!pChr->Teams()->MinigamesAllowed(pChr->Team()))
 			continue;
 		if(pPlayer->IsAfk())
 			continue;
@@ -1399,7 +1400,7 @@ bool CHideAndSeekZone::IsEligible(int ClientId) const
 		return false;
 
 	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
-	return pChr && pChr->Team() == TEAM_FLOCK;
+	return pChr && pChr->Teams()->MinigamesAllowed(pChr->Team());
 }
 
 bool CHideAndSeekZone::IsAliveHider(int ClientId) const

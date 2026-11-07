@@ -75,7 +75,7 @@ void CMultiMaps::InitTuning(CGameContext *pGameContext, size_t MultiMapIndex)
 
 void CMultiMaps::ApplySoloServerTuning()
 {
-	if(!g_Config.m_SvSoloServer)
+	if(!m_SoloServer)
 		return;
 
 	// Global tuning = m_aTuningList[0]

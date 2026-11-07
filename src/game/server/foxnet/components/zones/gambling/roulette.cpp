@@ -18,6 +18,7 @@
 #include <game/server/entity.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/teams.h>
 #include <game/teamscore.h>
 
 #include <cinttypes>
@@ -211,7 +212,7 @@ int CRouletteZone::AmountOfCloseClients() const
 		CCharacter *pCharacter = pPlayer->GetCharacter();
 		if(!pCharacter)
 			continue;
-		if(pCharacter->Team() != TEAM_FLOCK)
+		if(!pCharacter->Teams()->MinigamesAllowed(pCharacter->Team()))
 			continue;
 
 		Count++;
@@ -221,7 +222,7 @@ int CRouletteZone::AmountOfCloseClients() const
 
 bool CRouletteZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 {
-	if(pChr->Team() != TEAM_FLOCK)
+	if(!pChr->Teams()->MinigamesAllowed(pChr->Team()))
 		return true;
 	if(!pChr->IsAlive())
 		return true;
@@ -464,7 +465,7 @@ void CRouletteZone::SendBroadcast(int ClientId)
 		return;
 
 	CCharacter *pChr = pPlayer->GetCharacter();
-	if(!pChr || pChr->Team() != TEAM_FLOCK)
+	if(!pChr || !pChr->Teams()->MinigamesAllowed(pChr->Team()))
 		return;
 
 	float TimeLeft = (float)m_StartDelay / (float)Server()->TickSpeed();

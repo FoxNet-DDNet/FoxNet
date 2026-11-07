@@ -8,6 +8,7 @@
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+#include <game/server/teams.h>
 
 #include <cstddef>
 #include <optional>
@@ -37,7 +38,7 @@ void IMinigame::SendMotd(int ClientId)
 	// A dead character here means OnPlayerEnter turned them away, they never really got in
 	if(!pChr || !pChr->IsAlive())
 		return;
-	if(pChr->Team() != TEAM_FLOCK)
+	if(!pChr->Teams()->MinigamesAllowed(pChr->Team()))
 		return;
 
 	// One motd per player every 30 seconds, no matter how many zones they walk through

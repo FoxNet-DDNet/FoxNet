@@ -1389,7 +1389,7 @@ void CPowerUps::HandleClient(CPowerUp &Powerup, int ClientId)
 	CGameTeams &Teams = GameServer()->m_pController->Teams();
 	const int Team = pChr->Team();
 
-	if((Team != TEAM_FLOCK && !g_Config.m_SvSoloServer) || Teams.IsPractice(Team))
+	if(!Teams.MinigamesAllowed(Team))
 		return;
 
 	if(pPlayer->Acc()->m_Configs.m_HidePowerUps)
@@ -1551,7 +1551,7 @@ void CPowerUps::SnapPowerup(const CPowerUp &Powerup, int SnappingClient)
 				{
 					CGameTeams &Teams = GameServer()->m_pController->Teams();
 					const int Team = pChr->Team();
-					if((Team != TEAM_FLOCK && !g_Config.m_SvSoloServer) || Teams.IsPractice(Team))
+					if(!Teams.MinigamesAllowed(Team))
 						return;
 				}
 			}

@@ -138,7 +138,7 @@ class CHideAndSeekZone : public IMinigame
 	std::vector<int> m_vCandidateIds;
 	int UpdateCandidates();
 	bool IsCandidate(int ClientId) const;
-	// In the area and on TEAM_FLOCK; a player parked in a DDRace team inside the zone is
+	// In the area and not parked in a shared DDRace team; such a player inside the zone is
 	// treated as if they were outside of it entirely, same as UpdateCandidates() excludes them
 	bool IsEligible(int ClientId) const;
 	// True when another client on this map shares the entering player's ip
