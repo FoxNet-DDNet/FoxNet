@@ -45,6 +45,7 @@ public:
 enum Configs
 {
 	CONFIG_AUTLOGIN,
+	CONFIG_SPAWNSOLO,
 	CONFIG_FASTINPUTS,
 
 	CONFIG_HIDEPOWERUPS,
@@ -66,6 +67,8 @@ enum Configs
 
 constexpr const char *g_apAccConfigNames[NUM_CONFIGS] = {
 	"AutoLogin",
+	"Spawnsolo",
+
 	"FastInputs",
 
 	"HidePowerUps",
@@ -112,6 +115,8 @@ class CAccConfigs
 public:
 	bool m_AutoLogin = false;
 
+	bool m_UseSpawnSolo = true;
+	
 	// For better prediction on cosmetics
 	bool m_FastInputs = false;
 	int m_FastInputAmount = 20;

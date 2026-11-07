@@ -37,8 +37,10 @@
 constexpr const char *RAINBOW_SPEED = "Rainbow Speed";
 
 constexpr const char *SETTINGS_AUTO_LOGIN = "Auto Login";
+constexpr const char *SETTINGS_SPAWN_SOLO = "Use spawn-solo";
 constexpr const char *SETTINGS_HIDE_POWERUPS = "Hide PowerUps";
 constexpr const char *SETTINGS_HIDE_DISTRACTING_EFFECTS = "Hide Distracting Effects";
+
 constexpr const char *SETTINGS_FAST_INPUTS = "Using Fast Inputs?";
 
 constexpr const char *SETTINGS_HIDE_WEAPON_DROPS = "Hide Weapon drops";
@@ -305,6 +307,11 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 		if(IsOption(pVote, SETTINGS_HIDE_POWERUPS))
 		{
 			pPlayer->SetHidePowerUps(!pPlayer->Acc()->m_Configs.m_HidePowerUps);
+			return true;
+		}
+		if(IsOption(pVote, SETTINGS_SPAWN_SOLO))
+		{
+			Acc.m_Configs.m_UseSpawnSolo = !Acc.m_Configs.m_UseSpawnSolo;
 			return true;
 		}
 		if(IsOption(pVote, SETTINGS_HIDE_DISTRACTING_EFFECTS))
@@ -1247,9 +1254,9 @@ void CVoteMenu::PrepareSettings(int ClientId)
 	AddVoteText(ConvertToSmallCaps("Settings:"));
 	if(pAcc->m_LoggedIn)
 		AddVoteCheckBox(SETTINGS_AUTO_LOGIN, pAcc->m_Configs.m_AutoLogin);
+	AddVoteCheckBox(SETTINGS_SPAWN_SOLO, pAcc->m_Configs.m_UseSpawnSolo);
 	AddVoteCheckBox(SETTINGS_HIDE_POWERUPS, pAcc->m_Configs.m_HidePowerUps);
 	AddVoteCheckBox(SETTINGS_HIDE_DISTRACTING_EFFECTS, pAcc->m_Configs.m_HideDistractingEffects);
-	AddVoteCheckBox(SETTINGS_FAST_INPUTS, pAcc->m_Configs.m_FastInputs);
 
 	AddVoteSeparator();
 

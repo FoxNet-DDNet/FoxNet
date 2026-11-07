@@ -356,6 +356,8 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 
 		if(!str_comp(aKey, g_apAccConfigNames[CONFIG_AUTLOGIN]))
 			Configs.m_AutoLogin = On;
+		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_SPAWNSOLO]))
+			Configs.m_UseSpawnSolo = On;
 		else if(!str_comp(aKey, g_apAccConfigNames[CONFIG_FASTINPUTS]))
 			Configs.m_FastInputs = On;
 
@@ -395,6 +397,8 @@ static bool LoadConfigs(IDbConnection *pSql, const char *pUsername, CAccConfigs 
 static bool SaveConfigs(IDbConnection *pSql, const char *pUsername, const CAccConfigs &Configs, char *pError, int ErrorSize)
 {
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_AUTLOGIN], Configs.m_AutoLogin, pError, ErrorSize))
+		return false;
+	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_SPAWNSOLO], Configs.m_UseSpawnSolo, pError, ErrorSize))
 		return false;
 	if(!UpsertConfigBool(pSql, pUsername, g_apAccConfigNames[CONFIG_FASTINPUTS], Configs.m_FastInputs, pError, ErrorSize))
 		return false;

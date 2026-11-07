@@ -3316,7 +3316,7 @@ void CCharacter::FoxNetSpawn()
 	if(Team() != TEAM_FLOCK && Teams()->TeamSize(Team()) <= 1)
 		ShouldSolo = false; // Alone in a team
 
-	if(g_Config.m_SvSoloOnSpawn > 0 && ShouldSolo)
+	if(g_Config.m_SvSoloOnSpawn > 0 && ShouldSolo && Acc()->m_Configs.m_UseSpawnSolo)
 	{
 		SetSpawnSolo(true);
 		new CSpawnSoloIndicator(GameWorld(), GetPlayer()->GetCid(), m_Pos);
