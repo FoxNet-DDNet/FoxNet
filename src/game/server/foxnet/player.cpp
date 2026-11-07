@@ -680,6 +680,9 @@ bool CPlayer::OpenLootCase(const CItemConfig &CaseCfg)
 		const CItemConfig &Other = Item.second;
 		if(HasFlag(Other.m_Flags, EItemFlag::LootCase))
 			continue;
+		// only currently buyable items can drop
+		if(!GameServer()->m_Shop.ItemBuyable(Other))
+			continue;
 
 		if(!AllowAny && Other.m_Rarity != CaseRarity)
 			continue;

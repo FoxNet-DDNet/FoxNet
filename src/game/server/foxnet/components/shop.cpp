@@ -372,6 +372,8 @@ const CItemConfig *CShop::RandomItemByRarity(EItemRarity Rarity, bool AllowAny)
 		const auto &cfg = kv.second;
 		if(HasFlag(cfg.m_Flags, EItemFlag::LootCase))
 			continue;
+		if(!ItemBuyable(cfg))
+			continue;
 		if(AllowAny || cfg.m_Rarity == Rarity)
 			pool.push_back(&cfg);
 	}
