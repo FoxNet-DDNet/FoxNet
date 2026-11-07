@@ -326,44 +326,15 @@ bool CPlayer::CheckLevelUp(bool Silent)
 		};
 
 		auto NewRewardMail = [this](CReward Reward) {
-			class CRewardItem
-			{
-			public:
-				const CItemConfig *m_pItem = nullptr;
-				int m_Days = 0;
-			};
-
 			char aCmd[512] = "";
 			char aCmdName[512] = "";
 			char aSubject[128] = "";
 			char aMessage[128] = "";
 
-			std::vector<const CItemConfig *> Items;
-			for(auto &Item : GameServer()->m_Shop.Registry().Map())
+			std::vector<CRewardItem> vRewardItems = GameServer()->m_AccountManager.PickRandomRewardItems(Reward.m_AllowedRarities, Reward.m_ItemCount);
+
+			if(!vRewardItems.empty())
 			{
-				const CItemConfig &pCfg = Item.second;
-				if(std::find(Reward.m_AllowedRarities.begin(), Reward.m_AllowedRarities.end(), pCfg.m_Rarity) != Reward.m_AllowedRarities.end() && pCfg.m_Price > 0)
-				{
-					if(HasFlag(pCfg.m_Flags, EItemFlag::Upgrade))
-						continue;
-					Items.push_back(&pCfg);
-				}
-			}
-
-			if(!Items.empty())
-			{
-				std::uniform_int_distribution<int> Dis(0, Items.size() - 1);
-				std::uniform_int_distribution<int> DaysDis(1, 3);
-
-				std::vector<CRewardItem> vRewardItems;
-				for(int i = 0; i < Reward.m_ItemCount; i++)
-				{
-					CRewardItem RewardItem;
-					RewardItem.m_pItem = Items[Dis(Rng())];
-					RewardItem.m_Days = DaysDis(Rng()) * 7;
-					vRewardItems.push_back(RewardItem);
-				}
-
 				std::uniform_int_distribution<int> MoneyDis(Reward.m_MinMoney / 100, Reward.m_MaxMoney / 100);
 				int MoneyReward = MoneyDis(Rng()) * 100;
 

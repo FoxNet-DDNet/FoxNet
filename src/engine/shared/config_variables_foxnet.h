@@ -36,6 +36,17 @@ MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Wha
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER, "How much money a player should get if they level up")
 MACRO_CONFIG_INT64(SvMaxBet, sv_max_bet, 0, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Largest wager allowed in a gambling zone (0 = no limit)")
 
+// Daily login rewards
+MACRO_CONFIG_INT(SvDailyReward, sv_daily_reward, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Mail a login reward once per day, growing with the login streak")
+MACRO_CONFIG_INT(SvDailyRewardResetHour, sv_daily_reward_reset_hour, 0, 0, 23, CFGFLAG_SERVER | CFGFLAG_SAVE, "Hour in UTC at which the daily reward resets")
+MACRO_CONFIG_INT(SvDailyRewardMaxDays, sv_daily_reward_max_days, 30, 1, 365, CFGFLAG_SERVER | CFGFLAG_SAVE, "Streak day at which the reward stops growing")
+MACRO_CONFIG_INT64(SvDailyRewardMoney, sv_daily_reward_money, 500, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Money the first day of a streak pays")
+MACRO_CONFIG_INT64(SvDailyRewardMoneyStep, sv_daily_reward_money_step, 50, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Extra money per streak day past the first")
+// Keep these small, a level costs at most NeededXP() = 500 and playtime pays 1 XP per minute
+MACRO_CONFIG_INT64(SvDailyRewardXp, sv_daily_reward_xp, 10, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "XP the first day of a streak pays")
+MACRO_CONFIG_INT64(SvDailyRewardXpStep, sv_daily_reward_xp_step, 2, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Extra XP per streak day past the first")
+// Streak days 7, 30, 100 and 365 also roll random items, see CAccounts::SendDailyRewardMail
+
 // Bot Detection
 MACRO_CONFIG_INT(SvSetupDestroyer, sv_setup_destroyer, 0, 0, 1, CFGFLAG_SERVER, "Nudges players")
 MACRO_CONFIG_INT(SvAutoBanJSClient, sv_auto_ban_jsclient, 1, 0, 1, CFGFLAG_SERVER, "JS Client is a bot client commonly used for chat spamming")

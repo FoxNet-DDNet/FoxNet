@@ -1021,6 +1021,8 @@ bool CAccountsWorker::DeleteAccount(IDbConnection *pSql, const ISqlData *pData, 
 	int NumDeleted = 0;
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_mailbox", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
 		return false;
+	if(!DeleteRowsByUsername(pSql, "foxnet_account_timers", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
+		return false;
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_config", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
 		return false;
 	if(!DeleteRowsByUsername(pSql, "foxnet_account_inventory", pReq->m_aUsername, &NumDeleted, pError, ErrorSize))
@@ -1387,5 +1389,119 @@ bool CAccountsWorker::NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, 
 	pRes->m_Inserted = NumInserted;
 	pRes->m_Success = NumInserted > 0;
 	str_copy(pRes->m_aSubject, pReq->m_aSubject, sizeof(pRes->m_aSubject));
+	return true;
+}
+
+bool CAccountsWorker::ClaimDailyReward(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccClaimDailyReward *>(pData);
+	auto *pRes = dynamic_cast<CAccDailyRewardResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "ClaimDailyReward: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// A backup-only claim cannot guarantee exclusivity against servers that
+	// still use the primary database, so it must never grant a reward.
+	if(w == Write::NORMAL_FAILED)
+		return true;
+
+	const bool Primary = w == Write::NORMAL;
+
+	char aSelect[160];
+	str_copy(aSelect, "SELECT Period, Count FROM foxnet_account_timers WHERE Username = ? AND `Key` = ?", sizeof(aSelect));
+	if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	pSql->BindString(2, DAILY_REWARD_TIMER_KEY);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	const bool Exists = !End;
+	int64_t Period = -1;
+	int64_t Count = 0;
+	if(Exists)
+	{
+		Period = GetInt64OrDefault(pSql, 1, -1);
+		Count = GetInt64OrDefault(pSql, 2);
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+	}
+
+	// Already claimed this period, or the clock moved backwards past it
+	if(Exists && Period >= pReq->m_Period)
+	{
+		if(Primary)
+		{
+			pRes->m_PrimarySucceeded = true;
+			pRes->m_Claimed = false;
+			pRes->m_Streak = Count;
+		}
+		return true;
+	}
+
+	// A gap of more than one period breaks the streak
+	const int64_t Streak = (Exists && Period == pReq->m_Period - 1) ? Count + 1 : 1;
+
+	if(Exists)
+	{
+		char aUpdate[256];
+		str_copy(aUpdate,
+			"UPDATE foxnet_account_timers "
+			"SET Period = ?, Count = ?, UpdatedAt = ? "
+			"WHERE Username = ? AND `Key` = ? AND Period < ?",
+			sizeof(aUpdate));
+		if(!pSql->PrepareStatement(aUpdate, pError, ErrorSize))
+			return false;
+
+		int Param = 1;
+		pSql->BindInt64(Param++, pReq->m_Period);
+		pSql->BindInt64(Param++, Streak);
+		pSql->BindInt64(Param++, pReq->m_Now);
+		pSql->BindString(Param++, pReq->m_aUsername);
+		pSql->BindString(Param++, DAILY_REWARD_TIMER_KEY);
+		pSql->BindInt64(Param++, pReq->m_Period);
+
+		int NumUpdated = 0;
+		if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+
+		if(Primary)
+		{
+			pRes->m_PrimarySucceeded = true;
+			pRes->m_Claimed = NumUpdated == 1;
+			pRes->m_Streak = Streak;
+		}
+		return true;
+	}
+
+	char aInsert[256];
+	str_copy(aInsert,
+		"INSERT INTO foxnet_account_timers (Username, `Key`, ExpiresAt, Period, Count, UpdatedAt) "
+		"VALUES (?, ?, 0, ?, ?, ?)",
+		sizeof(aInsert));
+	if(!pSql->PrepareStatement(aInsert, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindString(Param++, DAILY_REWARD_TIMER_KEY);
+	pSql->BindInt64(Param++, pReq->m_Period);
+	pSql->BindInt64(Param++, Streak);
+	pSql->BindInt64(Param++, pReq->m_Now);
+
+	int NumInserted = 0;
+	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
+		return false;
+
+	if(Primary)
+	{
+		pRes->m_PrimarySucceeded = true;
+		pRes->m_Claimed = NumInserted == 1;
+		pRes->m_Streak = Streak;
+	}
 	return true;
 }

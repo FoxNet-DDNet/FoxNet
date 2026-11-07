@@ -301,6 +301,22 @@ struct CAccBulkNewMail : ISqlData
 	int m_MinLevel;
 };
 
+struct CAccDailyRewardResult : CAccResult
+{
+	bool m_PrimarySucceeded = false;
+	bool m_Claimed = false;
+	int64_t m_Streak = 0;
+};
+
+struct CAccClaimDailyReward : ISqlData
+{
+	CAccClaimDailyReward(std::shared_ptr<CAccDailyRewardResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	int64_t m_Period = 0;
+	int64_t m_Now = 0;
+};
+
 struct CAccountsWorker
 {
 	static bool Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize);
@@ -329,6 +345,8 @@ struct CAccountsWorker
 
 	static bool NewMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool ClaimDailyReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_ACCOUNTWORKER_H

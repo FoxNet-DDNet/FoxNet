@@ -174,4 +174,16 @@ constexpr int64_t saturating_mul(int64_t a, int64_t b)
 	return Positive ? (int64_t)Result : (int64_t)(0 - Result);
 }
 
+constexpr int64_t saturating_add(int64_t a, int64_t b)
+{
+	constexpr int64_t Max = std::numeric_limits<int64_t>::max();
+	constexpr int64_t Min = std::numeric_limits<int64_t>::lowest();
+
+	if(b > 0 && a > Max - b)
+		return Max;
+	if(b < 0 && a < Min - b)
+		return Min;
+	return a + b;
+}
+
 #endif // BASE_MATH_H

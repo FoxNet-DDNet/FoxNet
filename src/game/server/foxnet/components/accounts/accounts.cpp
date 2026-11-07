@@ -5,9 +5,12 @@
 #include <base/hash.h>
 #include <base/hash_ctxt.h>
 #include <base/log.h>
+#include <base/math.h>
 #include <base/str.h>
 #include <base/system.h>
+#include <base/time.h>
 
+#include <engine/console.h>
 #include <engine/server.h>
 #include <engine/server/databases/connection.h>
 #include <engine/server/databases/connection_pool.h>
@@ -25,12 +28,15 @@
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cinttypes>
+#include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <functional>
 #include <memory>
+#include <random>
 #include <string>
 #include <thread>
 #include <utility>
@@ -923,6 +929,8 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res, const char *pSuccessMessa
 				pPlayer->UseItem(Item.first.c_str(), Val, true);
 			}
 		}
+
+		ClaimDailyReward(ClientId);
 	});
 }
 
@@ -1309,16 +1317,8 @@ void CAccounts::RemoveItem(const char *pUsername, const char *pItemName)
 
 int CAccounts::NeededXP(int Level)
 {
-	if(Level < 1)
-		return 15;
-	else if(Level < 5)
-		return 40;
-	else if(Level < 10)
-		return 60;
-	else if(Level < 20)
-		return 80;
-	else
-		return std::min(80 + static_cast<int>(Level * 1.5), 500);
+	const int XP = 15 + round_to_int(Level * 1.5f);
+	return std::min(XP, 750);
 }
 
 void CAccounts::MarkAllMailsRead(const char *pUsername)
@@ -1702,11 +1702,11 @@ void CAccounts::ConReport(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	const std::string Message = "From: " + WebhookFormat::Name(pFrom) + " (" + std::to_string(ClientId) + ", acc: " + WebhookFormat::Name(pPlayer->Acc()->m_aUsername) + ") [||" +
-		WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(ClientId, false)) + "||]\n" +
-		"Against: " + WebhookFormat::Name(pSelf->Server()->ClientName(AgainstId)) + " (" + std::to_string(AgainstId) + ", acc: " +
-		WebhookFormat::Name(pAgainstPlayer->Acc()->m_LoggedIn ? pAgainstPlayer->Acc()->m_aUsername : "No Account") + ") [||" +
-		WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(AgainstId, false)) + "||]\n" +
-		WebhookFormat::CodeBlock(pReportText);
+				    WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(ClientId, false)) + "||]\n" +
+				    "Against: " + WebhookFormat::Name(pSelf->Server()->ClientName(AgainstId)) + " (" + std::to_string(AgainstId) + ", acc: " +
+				    WebhookFormat::Name(pAgainstPlayer->Acc()->m_LoggedIn ? pAgainstPlayer->Acc()->m_aUsername : "No Account") + ") [||" +
+				    WebhookFormat::EscapeText(pSelf->Server()->ClientAddrString(AgainstId, false)) + "||]\n" +
+				    WebhookFormat::CodeBlock(pReportText);
 	pSelf->Server()->SendWebhookMessage(IServer::EWebhookCategory::REPORTS, g_Config.m_DcReportsWebhookUrl, Message.c_str(), "[REPORT] - Player");
 
 	pPlayer->m_LastReport = pSelf->Server()->Tick();
@@ -1748,4 +1748,158 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("new_global_mail", "s[subject] s[message] s[cmd_name] s[cmd] ?i[min_level] i?[only-online] i?[include-disabled]", CFGFLAG_SERVER, ConNewGlobalMail, this, "Send a new mail");
 
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
+}
+
+std::vector<CRewardItem> CAccounts::PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count)
+{
+	std::vector<CRewardItem> vRewardItems;
+	if(Count <= 0)
+		return vRewardItems;
+
+	std::vector<const CItemConfig *> vItems;
+	for(const auto &Item : GameServer()->m_Shop.Registry().Map())
+	{
+		const CItemConfig &Cfg = Item.second;
+		if(std::find(vAllowedRarities.begin(), vAllowedRarities.end(), Cfg.m_Rarity) == vAllowedRarities.end())
+			continue;
+		if(Cfg.m_Price <= 0)
+			continue;
+		if(HasFlag(Cfg.m_Flags, EItemFlag::Upgrade))
+			continue;
+		vItems.push_back(&Cfg);
+	}
+
+	if(vItems.empty())
+		return vRewardItems;
+
+	std::uniform_int_distribution<int> Dis(0, (int)vItems.size() - 1);
+	std::uniform_int_distribution<int> DaysDis(1, 3);
+	for(int i = 0; i < Count; i++)
+	{
+		CRewardItem RewardItem;
+		RewardItem.m_pItem = vItems[Dis(Rng())];
+		RewardItem.m_Days = DaysDis(Rng()) * 7;
+		vRewardItems.push_back(RewardItem);
+	}
+	return vRewardItems;
+}
+
+// Day index the streak is counted in, shifted so the reset lands on the configured UTC hour
+static int64_t DailyRewardPeriod(int64_t Now)
+{
+	return (Now - (int64_t)g_Config.m_SvDailyRewardResetHour * 3600) / 86400;
+}
+
+void CAccounts::ClaimDailyReward(int ClientId)
+{
+	if(!g_Config.m_SvDailyReward || !DbPool() || !CheckClientId(ClientId))
+		return;
+
+	const CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	if(!Acc.m_LoggedIn || !Acc.m_aUsername[0])
+		return;
+
+	const int64_t Now = time(0);
+	auto pRes = std::make_shared<CAccDailyRewardResult>();
+	auto pReq = std::make_unique<CAccClaimDailyReward>(pRes);
+	str_copy(pReq->m_aUsername, Acc.m_aUsername, sizeof(pReq->m_aUsername));
+	pReq->m_Period = DailyRewardPeriod(Now);
+	pReq->m_Now = Now;
+
+	// The mail is addressed to the account, so it survives the player leaving
+	// before the database answers.
+	const std::string Username = Acc.m_aUsername;
+	AddPending(pRes, [this, Username](CAccResult &BaseRes) {
+		auto *pDailyRes = dynamic_cast<CAccDailyRewardResult *>(&BaseRes);
+		if(!BaseRes.m_Success || !pDailyRes || !pDailyRes->m_PrimarySucceeded)
+			return;
+		if(!pDailyRes->m_Claimed)
+			return;
+		SendDailyRewardMail(Username.c_str(), pDailyRes->m_Streak);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::ClaimDailyReward, std::move(pReq), "acc claim daily reward");
+}
+
+void CAccounts::SendDailyRewardMail(const char *pUsername, int64_t Streak)
+{
+	if(Streak <= 0)
+		return;
+
+	const int64_t MaxDays = g_Config.m_SvDailyRewardMaxDays;
+	const int64_t Day = Streak < MaxDays ? Streak : MaxDays;
+	const int64_t Money = saturating_add(g_Config.m_SvDailyRewardMoney, saturating_mul(Day - 1, g_Config.m_SvDailyRewardMoneyStep));
+	const int64_t Xp = saturating_add(g_Config.m_SvDailyRewardXp, saturating_mul(Day - 1, g_Config.m_SvDailyRewardXpStep));
+
+	// Longer streaks roll more items from deeper rarities, like the level up rewards do
+	std::vector<CRewardItem> vItems;
+	if(Streak % 365 == 0)
+	{
+		vItems = PickRandomRewardItems({EItemRarity::Common,
+						       EItemRarity::Uncommon,
+						       EItemRarity::Rare,
+						       EItemRarity::Epic,
+						       EItemRarity::Mythic,
+						       EItemRarity::Legendary},
+			6);
+	}
+	else if(Streak % 100 == 0)
+	{
+		vItems = PickRandomRewardItems({EItemRarity::Common,
+						       EItemRarity::Uncommon,
+						       EItemRarity::Rare,
+						       EItemRarity::Epic,
+						       EItemRarity::Mythic},
+			4);
+	}
+	else if(Streak % 30 == 0)
+	{
+		vItems = PickRandomRewardItems({EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare, EItemRarity::Epic}, 3);
+	}
+	else if(Streak % 7 == 0)
+	{
+		vItems = PickRandomRewardItems({EItemRarity::Common, EItemRarity::Uncommon, EItemRarity::Rare}, 2);
+	}
+
+	// m_aCmd is the reward, m_aCmdName is what the mailbox lists as its contents
+	char aCmd[1024] = "";
+	char aCmdName[512] = "";
+	char aPart[192];
+
+	for(const CRewardItem &Item : vItems)
+	{
+		str_format(aPart, sizeof(aPart), "give_item_days %%d %d %s;", Item.m_Days, Item.m_pItem->m_pName);
+		str_append(aCmd, aPart, sizeof(aCmd));
+		str_format(aPart, sizeof(aPart), "%s for %d days\n", Item.m_pItem->m_pName, Item.m_Days);
+		str_append(aCmdName, aPart, sizeof(aCmdName));
+	}
+	if(Money > 0)
+	{
+		str_format(aPart, sizeof(aPart), "give_money %%d %" PRId64 ";", Money);
+		str_append(aCmd, aPart, sizeof(aCmd));
+		str_format(aPart, sizeof(aPart), "%" PRId64 "%s\n", Money, g_Config.m_SvCurrencyName);
+		str_append(aCmdName, aPart, sizeof(aCmdName));
+	}
+	if(Xp > 0)
+	{
+		str_format(aPart, sizeof(aPart), "give_xp %%d %" PRId64 ";", Xp);
+		str_append(aCmd, aPart, sizeof(aCmd));
+		str_format(aPart, sizeof(aPart), "%" PRId64 " XP\n", Xp);
+		str_append(aCmdName, aPart, sizeof(aCmdName));
+	}
+
+	if(!aCmd[0])
+		return; // nothing configured to hand out
+
+	char aSubject[64];
+	str_format(aSubject, sizeof(aSubject), "Daily Reward - Day %" PRId64, Streak);
+
+	char aMessage[512];
+	if(vItems.empty())
+		str_format(aMessage, sizeof(aMessage), "Day %" PRId64 " of your login streak.", Streak);
+	else
+		str_format(aMessage, sizeof(aMessage), "Day %" PRId64 " of your login streak, with %d random Item%s!", Streak, (int)vItems.size(), vItems.size() > 1 ? "s" : "");
+	str_append(aMessage, "\nCome back tomorrow to keep it going, miss a day and it starts over.", sizeof(aMessage));
+
+	NewMail(pUsername, aSubject, aMessage, aCmdName, aCmd);
 }

@@ -396,6 +396,7 @@ bool CMysqlConnection::ConnectImpl()
 		char aCreateInventory[1024];
 		char aCreateMailbox[1024];
 		char aCreateAccountConfig[1024];
+		char aCreateAccountTimers[1024];
 		// FoxNet>
 		FormatCreateRace(aCreateRace, sizeof(aCreateRace), /* Backup */ false);
 		FormatCreateRace(aCreateDeletedRace, sizeof(aCreateDeletedRace), false, true);
@@ -409,6 +410,7 @@ bool CMysqlConnection::ConnectImpl()
 		FormatCreateAccountInventory(aCreateInventory, sizeof(aCreateInventory));
 		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox));
 		FormatCreateAccountConfig(aCreateAccountConfig, sizeof(aCreateAccountConfig));
+		FormatCreateAccountTimers(aCreateAccountTimers, sizeof(aCreateAccountTimers));
 		// FoxNet>
 
 		if(!PrepareAndExecuteStatement(aCreateRace) ||
@@ -422,7 +424,8 @@ bool CMysqlConnection::ConnectImpl()
 			!PrepareAndExecuteStatement(aCreateAccountRegistrations) ||
 			!PrepareAndExecuteStatement(aCreateInventory) ||
 			!PrepareAndExecuteStatement(aCreateMailbox) ||
-			!PrepareAndExecuteStatement(aCreateAccountConfig)
+			!PrepareAndExecuteStatement(aCreateAccountConfig) ||
+			!PrepareAndExecuteStatement(aCreateAccountTimers)
 			// FoxNet>
 		)
 		{

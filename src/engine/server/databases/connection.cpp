@@ -265,4 +265,19 @@ void IDbConnection::FormatCreateAccountConfig(char *aBuf, unsigned int BufferSiz
 		")",
 		BinaryCollate(), BinaryCollate(), BinaryCollate(), BinaryCollate(), Int64Type());
 }
+
+void IDbConnection::FormatCreateAccountTimers(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_account_timers ("
+		"  Username VARCHAR(32) COLLATE %s NOT NULL,"
+		"  `Key` VARCHAR(64) COLLATE %s NOT NULL,"
+		"  ExpiresAt %s NOT NULL DEFAULT 0," // cooldowns: usable again at
+		"  Period %s NOT NULL DEFAULT -1," // periodic resets: period last claimed
+		"  Count INTEGER NOT NULL DEFAULT 0," // streak or progress within Period
+		"  UpdatedAt %s NOT NULL DEFAULT 0,"
+		"  PRIMARY KEY (Username, `Key`)"
+		")",
+		BinaryCollate(), BinaryCollate(), Int64Type(), Int64Type(), Int64Type());
+}
 // FoxNet>

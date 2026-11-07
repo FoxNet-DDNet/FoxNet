@@ -31,6 +31,17 @@ enum
 	ACC_MAX_PASSW_LENGTH = 128,
 };
 
+// Row key in foxnet_account_timers holding the daily login streak
+constexpr const char *DAILY_REWARD_TIMER_KEY = "daily_login";
+
+// One rolled item in a reward mail
+class CRewardItem
+{
+public:
+	const CItemConfig *m_pItem = nullptr;
+	int m_Days = 0;
+};
+
 enum Configs
 {
 	CONFIG_AUTLOGIN,
@@ -266,6 +277,14 @@ public:
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
+
+	// Claims today's login streak day and mails the reward if it was not claimed yet
+	void ClaimDailyReward(int ClientId);
+	void SendDailyRewardMail(const char *pUsername, int64_t Streak);
+
+	// Draws Count random buyable items from the given rarities, each for 7, 14 or 21 days.
+	// Items can repeat, and the result is empty when no item matches.
+	std::vector<CRewardItem> PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count);
 
 	void OnClientDrop(int ClientId, const char *pReason) override;
 	void OnInit() override;
