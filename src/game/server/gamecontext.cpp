@@ -2001,7 +2001,7 @@ void CGameContext::OnClientConnected(int ClientId, void *pData)
 	int StartTeam = m_pController->GetAutoTeam(ClientId);
 	if(Spec || g_Config.m_SvTournamentMode)
 		StartTeam = TEAM_SPECTATORS;
-	if(g_Config.m_SvAccountsForced)
+	if(g_Config.m_SvAccountsForced && !m_aAccounts[ClientId].m_LoggedIn)
 		StartTeam = TEAM_SPECTATORS;
 	// FoxNet>
 
