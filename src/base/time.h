@@ -167,6 +167,21 @@ void str_timestamp(char *buffer, int buffer_size);
 [[gnu::format(strftime, 4, 0)]] void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format);
 
 /**
+ * Copies a timestamp of the given time in UTC in the given format to the string.
+ *
+ * @ingroup Timestamp
+ *
+ * @param time The time value to represent as a string.
+ * @param buffer Pointer to a buffer that shall receive the timestamp string.
+ * @param buffer_size Size of the buffer.
+ * @param format Time formatting string. See https://cppreference.com/w/c/chrono/strftime.html for format description.
+ *               See `TimestampFormat` for common formats.
+ *
+ * @remark Guarantees that buffer string will contain null-termination.
+ */
+[[gnu::format(strftime, 4, 0)]] void str_timestamp_utc_ex(time_t time, char *buffer, int buffer_size, const char *format);
+
+/**
  * Parses a string into a timestamp following a specified format.
  *
  * @ingroup Timestamp

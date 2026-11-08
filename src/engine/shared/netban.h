@@ -259,6 +259,32 @@ void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, in
 	// add info part
 	if(!pBan->m_Info.m_VerbatimReason && pBan->m_Info.m_Expires != CBanInfo::EXPIRES_NEVER)
 	{
+		// FoxNet: countdown for short bans, exact UTC expiry for long ones
+		if(Type == MSGTYPE_PLAYER)
+		{
+			const int64_t Remaining = pBan->m_Info.m_Expires - time_timestamp();
+			if(Remaining < 24 * 60 * 60)
+			{
+				int Mins = (int)((Remaining + 59) / 60);
+				if(Mins < 1)
+					Mins = 1;
+				const int Hours = Mins / 60;
+				const int RemMins = Mins % 60;
+				char aFor[64];
+				if(Hours == 0)
+					str_format(aFor, sizeof(aFor), "%d minute%s", Mins, Mins == 1 ? "" : "s");
+				else if(RemMins == 0)
+					str_format(aFor, sizeof(aFor), "%d hour%s", Hours, Hours == 1 ? "" : "s");
+				else
+					str_format(aFor, sizeof(aFor), "%d hour%s %d minute%s", Hours, Hours == 1 ? "" : "s", RemMins, RemMins == 1 ? "" : "s");
+				str_format(pBuf, BuffSize, "%s for %s (%s)", aBuf, aFor, pBan->m_Info.m_aReason);
+				return;
+			}
+			char aUntil[64];
+			str_timestamp_utc_ex((time_t)pBan->m_Info.m_Expires, aUntil, sizeof(aUntil), "%b %d %H:%M UTC");
+			str_format(pBuf, BuffSize, "%s until %s (%s)", aBuf, aUntil, pBan->m_Info.m_aReason);
+			return;
+		}
 		int Mins = ((pBan->m_Info.m_Expires - time_timestamp()) + 59) / 60;
 		if(Mins <= 1)
 			str_format(pBuf, BuffSize, "%s for 1 minute (%s)", aBuf, pBan->m_Info.m_aReason);

@@ -64,6 +64,20 @@ static tm time_localtime_threadlocal(time_t *time_data)
 	return *time;
 }
 
+static tm time_gmtime_threadlocal(time_t *time_data)
+{
+#if defined(CONF_FAMILY_WINDOWS)
+	// The result of gmtime is thread-local on Windows
+	tm *time = gmtime(time_data);
+#else
+	// Thread-local buffer for the result of gmtime_r
+	thread_local tm time_info_buf; // NOLINT(misc-use-internal-linkage)
+	tm *time = gmtime_r(time_data, &time_info_buf);
+#endif
+	dbg_assert(time != nullptr, "Failed to get UTC time for time data %" PRId64, (int64_t)*time_data);
+	return *time;
+}
+
 int time_houroftheday()
 {
 	time_t time_data;
@@ -167,6 +181,13 @@ void str_timestamp_format(char *buffer, int buffer_size, const char *format)
 void str_timestamp_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
 {
 	const tm time_info = time_localtime_threadlocal(&time_data);
+	strftime(buffer, buffer_size, format, &time_info);
+	buffer[buffer_size - 1] = 0; /* assure null termination */
+}
+
+void str_timestamp_utc_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
+{
+	const tm time_info = time_gmtime_threadlocal(&time_data);
 	strftime(buffer, buffer_size, format, &time_info);
 	buffer[buffer_size - 1] = 0; /* assure null termination */
 }
