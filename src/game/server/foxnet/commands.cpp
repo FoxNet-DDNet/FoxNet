@@ -1214,12 +1214,17 @@ void CGameContext::ConNewPickupDrop(IConsole::IResult *pResult, void *pUserData)
 	CCharacter *pChr = pSelf->GetPlayerChar(pResult->m_ClientId);
 	if(!pChr)
 		return;
+	const int Type = pResult->GetInteger(0);
+	if(!CPickupDrop::ValidWeaponDrop(Type))
+	{
+		log_info("pickupdrop", "invalid weapon drop type");
+		return;
+	}
 
 	const vec2 Pos = pChr->m_Pos;
 	const vec2 Dir = vec2(0, 0);
 	const int TeleCheck = pChr->m_TeleCheckpoint;
 	const int Team = pChr->Team();
-	const int Type = pResult->GetInteger(0);
 
 	const int Lifetime = 300; // Seconds
 
@@ -1239,10 +1244,16 @@ void CGameContext::ConBatchNewPickupDrop(IConsole::IResult *pResult, void *pUser
 	if(!pChr)
 		return;
 
+	const int Type = pResult->GetInteger(0);
+	if(!CPickupDrop::ValidWeaponDrop(Type))
+	{
+		log_info("pickupdrop", "invalid weapon drop type");
+		return;
+	}
+
 	const vec2 Pos = pChr->m_Pos;
 	const int TeleCheck = pChr->m_TeleCheckpoint;
 	const int Team = pChr->Team();
-	const int Type = pResult->GetInteger(0);
 	const int Amount = pResult->GetInteger(1);
 	if(Amount <= 0) // Division by 0
 		return;

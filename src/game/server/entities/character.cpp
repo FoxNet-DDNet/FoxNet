@@ -3656,7 +3656,7 @@ bool CCharacter::CanDropWeapon(int Type)
 	if(m_LastWeaponDropTick + g_Config.m_SvWeaponDropsCooldown > Server()->Tick())
 		return false;
 
-	if(Type < 0 || Type >= NUM_EXTRA_WEAPONS)
+	if(!CPickupDrop::ValidWeaponDrop(Type))
 		return false;
 
 	if(!Acc()->m_LoggedIn)
@@ -3666,12 +3666,6 @@ bool CCharacter::CanDropWeapon(int Type)
 	}
 
 	if(!m_Core.m_aWeapons[Type].m_Got)
-		return false;
-
-	if(Type == WEAPON_TELEKINESIS)
-		return false;
-
-	if(Type == WEAPON_NINJA)
 		return false;
 
 	if(GameServer()->m_ZoneManager.InMinigame(GetPlayer()->GetCid()))

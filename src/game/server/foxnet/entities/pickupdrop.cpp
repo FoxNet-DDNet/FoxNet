@@ -797,3 +797,20 @@ void CPickupDrop::Snap(int SnappingClient)
 			SnapPickupDropProjectile(m_aIds[0].value(), SnappingClient, WEAPON_GRENADE, m_Pos + Offset, Spin);
 	}
 }
+
+bool CPickupDrop::ValidWeaponDrop(int Type)
+{
+	if(Type < 0 || Type >= NUM_EXTRA_WEAPONS)
+		return false;
+
+	if(Type == WEAPON_TELEKINESIS)
+		return false;
+
+	if(Type == WEAPON_NINJA)
+		return false;
+
+	if(Type == WEAPON_DASH)
+		return false;
+
+	return true;
+}

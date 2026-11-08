@@ -107,6 +107,8 @@ public:
 	void Reset() override { Reset(false); }
 	void Tick() override;
 	void Snap(int SnappingClient) override;
+
+	static bool ValidWeaponDrop(int Type);
 };
 
 #endif // GAME_SERVER_FOXNET_ENTITIES_PICKUPDROP_H
