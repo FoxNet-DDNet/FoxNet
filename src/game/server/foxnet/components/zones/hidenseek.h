@@ -83,7 +83,11 @@ class CHideAndSeekZone : public IMinigame
 
 		bool m_IsSeeker = false;
 		int m_GunReloadTimer = 0;
+		int m_GunReloadTotal = 0; // what m_GunReloadTimer started at, the hud bar fills against it
 		int m_NumKills = 0;
+
+		int m_DashesLeft = 0; // ninja dashes a hider has left, the ninja goes away at 0
+		int m_DashesTotal = 0; // what they started the round with, only used for the hud
 
 		int m_NumWins = 0;
 		// Rounds played as a candidate without being picked as seeker, used to weight the next pick
@@ -104,7 +108,10 @@ class CHideAndSeekZone : public IMinigame
 			m_InHiddenZone = false;
 			m_IsSeeker = false;
 			m_GunReloadTimer = 0;
+			m_GunReloadTotal = 0;
 			m_NumKills = 0;
+			m_DashesLeft = 0;
+			m_DashesTotal = 0;
 		}
 
 	} m_aClientData[MAX_CLIENTS];
@@ -133,6 +140,14 @@ class CHideAndSeekZone : public IMinigame
 	void ReleasePlayers();
 
 	void SetGhost(int ClientId, int Duration);
+
+	// Hiders dash with the ninja, a fixed number of uses instead of a cooldown
+	void GiveDashes(int ClientId, int Dashes);
+	void TakeDashes(int ClientId);
+
+	void CountAlive(int *pSeekers, int *pHiders) const;
+	// Every seeker pings on their own, so the cooldown stretches with how badly hiders are outnumbered
+	int SeekerGunCooldownTicks() const;
 
 	// Client ids, not characters: characters get deleted mid tick, the list would be left with dangling pointers
 	std::vector<int> m_vCandidateIds;

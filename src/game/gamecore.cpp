@@ -786,6 +786,13 @@ void CCharacterCore::ReadDDNet(const CNetObj_DDNetCharacter *pObjDDNet)
 	m_aWeapons[WEAPON_GRENADE].m_Got = (pObjDDNet->m_Flags & CHARACTERFLAG_WEAPON_GRENADE) != 0;
 	m_aWeapons[WEAPON_LASER].m_Got = (pObjDDNet->m_Flags & CHARACTERFLAG_WEAPON_LASER) != 0;
 	m_aWeapons[WEAPON_NINJA].m_Got = (pObjDDNet->m_Flags & CHARACTERFLAG_WEAPON_NINJA) != 0;
+	// <FoxNet
+	// Read only, so prediction stops guessing at ninja state the server already snaps. Without the
+	// ammo the client never predicts the shot, without the tick it predicts the ninja expiring.
+	if(m_aWeapons[WEAPON_NINJA].m_Got)
+		m_aWeapons[WEAPON_NINJA].m_Ammo = -1;
+	m_Ninja.m_ActivationTick = pObjDDNet->m_NinjaActivationTick;
+	// FoxNet>
 
 	// Available jumps
 	m_Jumps = pObjDDNet->m_Jumps;

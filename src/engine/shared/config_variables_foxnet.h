@@ -171,12 +171,14 @@ MACRO_CONFIG_INT(SvHideSeekGiveXp, sv_hide_seek_give_xp, 1, 0, 1, CFGFLAG_SERVER
 MACRO_CONFIG_INT(SvHideSeekTuneZone, sv_hide_seek_tune_zone, 252, 1, 252, CFGFLAG_SERVER, "First of the 4 tune zones hide and seek uses, they get written into the map so clients can predict them")
 MACRO_CONFIG_INT(SvHideSeekWarmupTime, sv_hide_seek_warmup_time, 10, 1, 60, CFGFLAG_SERVER, "Delay in seconds before the game starts")
 MACRO_CONFIG_INT(SvHideSeekFreezeDuration, sv_hide_seek_freeze_duration, 10, 1, 30, CFGFLAG_SERVER, "How long seekers are frozen on game start")
-MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 80, 1, 500, CFGFLAG_SERVER, "How much time seekers have to find all hiders")
+MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 60, 1, 500, CFGFLAG_SERVER, "Base seek time in seconds, the time seekers get when every seeker has one hider to find")
+MACRO_CONFIG_INT(SvHideSeekSeekersTimePerHider, sv_hide_seek_seekers_time_per_hider, 10, 0, 100, CFGFLAG_SERVER, "Extra seek time in seconds for every hider a seeker has to find beyond the first")
 MACRO_CONFIG_INT(SvHideSeekSeekersGunCooldown, sv_hide_seek_seekers_gun_cooldown, 5000, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers gun is (like normal weapons)")
 MACRO_CONFIG_INT(SvHideSeekSeekersGunFreeze, sv_hide_seek_seekers_gun_freeze, 0, 0, 10000, CFGFLAG_SERVER, "Whether the gun should freeze hit hiders and how long (in ticks, 50 ticks in a second)")
 MACRO_CONFIG_INT(SvHideSeekSeekersHammerDelay, sv_hide_seek_seekers_hammer_delay, 275, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers hammer is (like normal weapons)")
 MACRO_CONFIG_INT(SvHideSeekHidersGhostDuration, sv_hide_seek_hiders_ghost_duration, 35, 1, 1000, CFGFLAG_SERVER, "How long hiders remain in ghost mode in second Seconds (30 -> 3 seconds)")
 MACRO_CONFIG_INT(SvHideSeekHidersGhostCooldown, sv_hide_seek_hiders_ghost_cooldown, 55, 1, 1000, CFGFLAG_SERVER, "Cooldown time for hiders' ghost mode in second Seconds (30 -> 3 seconds)")
+MACRO_CONFIG_INT(SvHideSeekHidersDashes, sv_hide_seek_hiders_dashes, 1, 0, 10, CFGFLAG_SERVER, "How many dashes a hider gets per seeker, 0 disables the dash")
 
 // Weapon configs
 MACRO_CONFIG_INT(SvPortalMaxDistance, sv_portal_max_distance, 50, 0, 1000, CFGFLAG_SERVER, "Max distance from player to portal")

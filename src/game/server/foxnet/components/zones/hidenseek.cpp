@@ -82,6 +82,13 @@ static std::string MakeHudBar(const char *pLabel, int Current, int Maximum, int 
 	return Bar;
 }
 
+static std::string MakeHudCount(const char *pLabel, int Current, int Maximum)
+{
+	char aBuf[32];
+	str_format(aBuf, sizeof(aBuf), "%s: %d/%d", pLabel, std::max(Current, 0), std::max(Maximum, 0));
+	return aBuf;
+}
+
 void CHideAndSeekZone::OnTick()
 {
 	UpdateCandidates();
@@ -263,6 +270,9 @@ inline static void SetLoadout(CCharacter *pChr, bool Remove)
 	pChr->GiveWeapon(Hammer, Remove);
 	pChr->GiveWeapon(Gun, Remove);
 
+	// The dash is handed out separately, this is the only place that takes it back
+	pChr->GiveWeapon(WEAPON_DASH, true);
+
 	// enumerated mismatch in conditional expression
 	pChr->SetActiveWeapon(Remove ? None : Hammer);
 }
@@ -331,7 +341,7 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 
 	if(!Data.m_Alive && (m_State == EState::Playing || m_State == EState::Finished))
 	{
-		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_GUN))
+		if(pChr->GetWeaponGot(WEAPON_HAMMER) || pChr->GetWeaponGot(WEAPON_GUN) || pChr->GetWeaponGot(WEAPON_DASH))
 		{
 			SetLoadout(pChr, true);
 		}
@@ -393,13 +403,24 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 				//	Msg += " ✓";
 				Messages.push_back(Msg);
 			}
+
+			// Spent dashes take the weapon with them, but not while one is still in flight: this
+			// runs before the character tick that moves it, taking it now would cut it short
+			const bool Dashing = pChr->Core()->m_Ninja.m_CurrentMoveTime > 0;
+			if(Data.m_DashesLeft <= 0 && !Dashing && pChr->GetWeaponGot(WEAPON_DASH))
+				TakeDashes(ClientId);
+
+			if(Data.m_DashesTotal > 0)
+				Messages.push_back(MakeHudCount("Dash", Data.m_DashesLeft, Data.m_DashesTotal));
 		}
 		else
 		{
 			if(Data.m_GunReloadTimer > 0)
 				Data.m_GunReloadTimer--;
 
-			const int GunCooldownTicks = g_Config.m_SvHideSeekSeekersGunCooldown * Server()->TickSpeed() / 1000;
+			// The bar fills against the cooldown this reload started at, not today's, the seeker to
+			// hider ratio can move while a seeker is reloading
+			const int GunCooldownTicks = std::max(Data.m_GunReloadTotal, 1);
 
 			if(Data.m_GunReloadTimer > 0)
 			{
@@ -510,6 +531,7 @@ const char *CHideAndSeekZone::Motd() const
 	       "\n"
 	       "Hɪᴅᴇʀ:\n"
 	       "Dark Areas completely hide you from the seeker, hammering will put you in ghost mode for a short time which allows you to run away\n"
+	       "The Dash weapon is a ninja dash with one use per seeker, and goes away once you spent them\n"
 	       "\n"
 	       "Depending on the map, entities will or will not work\n"
 	       "\n"
@@ -595,13 +617,21 @@ void CHideAndSeekZone::StartGame()
 		{
 			pChr->SetTuneOverride(m_HiderTuneZone);
 			pPlayer->SendChat("You are a Hider");
+
+			// One set of dashes per seeker, so being outnumbered is what pays for the escapes
+			GiveDashes(ClientId, g_Config.m_SvHideSeekHidersDashes * NumSeekers);
 		}
 	}
 
-	// Set Seeker Time based on number of players
-	int BaseTime = (g_Config.m_SvHideSeekSeekersTime + g_Config.m_SvHideSeekFreezeDuration);
+	// Seek time follows how much ground a single seeker has to cover: one hider each is the floor,
+	// every hider past that adds time. The start freeze is on top so it isn't seek time they lose.
+	constexpr float MaxHidersPerSeeker = 6.0f;
+	const float HidersPerSeeker = std::clamp((float)NumHiders / std::max(1, NumSeekers), 1.0f, MaxHidersPerSeeker);
+	const int ExtraTime = (int)(g_Config.m_SvHideSeekSeekersTimePerHider * (HidersPerSeeker - 1.0f));
 
-	int Ticks = (BaseTime + ((NumHiders / NumSeekers) * 5)) * Server()->TickSpeed();
+	const int Seconds = g_Config.m_SvHideSeekFreezeDuration + g_Config.m_SvHideSeekSeekersTime + ExtraTime;
+
+	int Ticks = Seconds * Server()->TickSpeed();
 	m_SeekTimeTotal = Ticks;
 	m_SeekTimeRemaining = Ticks;
 
@@ -873,6 +903,40 @@ void CHideAndSeekZone::ReleasePlayers()
 		ReleaseHold(ClientId);
 }
 
+void CHideAndSeekZone::CountAlive(int *pSeekers, int *pHiders) const
+{
+	*pSeekers = 0;
+	*pHiders = 0;
+	for(int ClientId : m_vCandidateIds)
+	{
+		const CClientData &Data = m_aClientData[ClientId];
+		if(!Data.m_Alive)
+			continue;
+
+		if(Data.m_IsSeeker)
+			(*pSeekers)++;
+		else
+			(*pHiders)++;
+	}
+}
+
+int CHideAndSeekZone::SeekerGunCooldownTicks() const
+{
+	const int Base = g_Config.m_SvHideSeekSeekersGunCooldown * Server()->TickSpeed() / 1000;
+
+	int AliveSeekers = 0;
+	int AliveHiders = 0;
+	CountAlive(&AliveSeekers, &AliveHiders);
+
+	// Each seeker reloads on their own, so three of them ping three times as often while hunting the
+	// same hider. Stretching every cooldown by the ratio keeps the pings a hider has to dodge flat,
+	// no matter how many seekers are left. Capped so a seeker is never left with nothing to do.
+	constexpr float MaxScale = 4.0f;
+	const float Scale = std::clamp((float)AliveSeekers / std::max(1, AliveHiders), 1.0f, MaxScale);
+
+	return std::max(1, (int)(Base * Scale));
+}
+
 void CHideAndSeekZone::SetGhost(int ClientId, int Duration)
 {
 	if(!IsCandidate(ClientId))
@@ -892,6 +956,42 @@ void CHideAndSeekZone::SetGhost(int ClientId, int Duration)
 
 	Data.m_GhostDuration = Duration;
 	Data.m_GhostCooldown = TimeToTicks(g_Config.m_SvHideSeekHidersGhostCooldown, Server()->TickSpeed());
+}
+
+void CHideAndSeekZone::GiveDashes(int ClientId, int Dashes)
+{
+	CClientData &Data = m_aClientData[ClientId];
+	Data.m_DashesLeft = Dashes;
+	Data.m_DashesTotal = Dashes;
+
+	if(Dashes <= 0)
+		return;
+
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr)
+		return;
+
+	// Only makes it available, hiders stay on the hammer so their ghost is the first thing to hand
+	pChr->GiveWeapon(WEAPON_DASH);
+}
+
+void CHideAndSeekZone::TakeDashes(int ClientId)
+{
+	CClientData &Data = m_aClientData[ClientId];
+	Data.m_DashesLeft = 0;
+
+	CCharacter *pChr = GameServer()->GetPlayerChar(ClientId);
+	if(!pChr || !pChr->GetWeaponGot(WEAPON_DASH))
+		return;
+
+	// GiveWeapon() falls back to the gun when it takes the active weapon away, hiders want the hammer
+	const bool WasHolding = pChr->GetActiveWeapon() == WEAPON_DASH;
+	pChr->GiveWeapon(WEAPON_DASH, true);
+	if(WasHolding)
+	{
+		pChr->SetActiveWeapon(WEAPON_HAMMER);
+		pChr->SetWeapon(WEAPON_HAMMER);
+	}
 }
 
 int CHideAndSeekZone::ShowOthers(CPlayer *pPlayer)
@@ -1063,7 +1163,8 @@ bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 				);
 				GameServer()->CreateSound(pChr->GetPos(), SOUND_GUN_FIRE, pChr->TeamMask());
 
-				m_aClientData[ClientId].m_GunReloadTimer = g_Config.m_SvHideSeekSeekersGunCooldown * Server()->TickSpeed() / 1000;
+				m_aClientData[ClientId].m_GunReloadTimer = SeekerGunCooldownTicks();
+				m_aClientData[ClientId].m_GunReloadTotal = m_aClientData[ClientId].m_GunReloadTimer;
 			}
 			return false;
 		}
@@ -1072,6 +1173,19 @@ bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 	{
 		if(Weapon == WEAPON_HAMMER)
 			SetGhost(ClientId, TimeToTicks(g_Config.m_SvHideSeekHidersGhostDuration, Server()->TickSpeed()));
+
+		if(Weapon == WEAPON_DASH)
+		{
+			// Uses, not a cooldown. The weapon goes away in ClientTick once the last one is spent,
+			// which keeps the fire delay this shot sets intact.
+			if(m_aClientData[ClientId].m_DashesLeft <= 0)
+				return false;
+
+			if(!pChr->StartDash())
+				return false; // nowhere to dash, don't charge them a use for it
+
+			m_aClientData[ClientId].m_DashesLeft--;
+		}
 	}
 	return true;
 }
@@ -1260,6 +1374,8 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 	CClientData &NewSeekerData = m_aClientData[NewSeekerId];
 	NewSeekerData.m_IsSeeker = true;
 	NewSeekerData.m_LastMovement = Server()->Tick();
+
+	TakeDashes(NewSeekerId);
 
 	CCharacter *pNewSeekerChr = GameServer()->GetPlayerChar(NewSeekerId);
 	if(pNewSeekerChr)

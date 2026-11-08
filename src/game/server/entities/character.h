@@ -98,6 +98,9 @@ public:
 	bool IncreaseArmor(int Amount);
 
 	void GiveWeapon(int Weapon, bool Remove = false);
+	// Sets up a dash towards the cursor, mirroring what firing the vanilla ninja sets up.
+	// False when there is no direction to dash in, nothing is spent then.
+	bool StartDash();
 	void GiveNinja();
 	void RemoveNinja();
 	void SetEndlessHook(bool Enable);
@@ -419,6 +422,10 @@ private:
 	void OnPlayerHook();
 
 	void FoxNetTick();
+	// WEAPON_DASH is snapped as the ninja, so the client predicts it with its own ninja code. These
+	// reproduce exactly what the vanilla ninja does to the dasher, nothing else.
+	void HandleDash();
+	int m_DashFireTick = -1;
 	void HandleSpawnSolo();
 	bool InSpawnSoloOverlap();
 	void FoxNetSpawn();

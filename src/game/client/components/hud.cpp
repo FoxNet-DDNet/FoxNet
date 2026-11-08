@@ -940,7 +940,12 @@ void CHud::RenderPlayerState(const int ClientId)
 		{
 			const int Max = g_pData->m_Weapons.m_Ninja.m_Duration * Client()->GameTickSpeed() / 1000;
 			float NinjaProgress = std::clamp(pCharacter->m_Ninja.m_ActivationTick + g_pData->m_Weapons.m_Ninja.m_Duration * Client()->GameTickSpeed() / 1000 - Client()->GameTick(g_Config.m_ClDummy), 0, Max) / (float)Max;
-			if(NinjaProgress > 0.0f && GameClient()->m_Snap.m_aCharacters[ClientId].m_HasExtendedDisplayInfo)
+			// <FoxNet
+			// An activation tick that sits ahead of now is a ninja that never runs out, which is how
+			// a custom weapon snapped as one looks. There is no duration to draw for it.
+			const bool Endless = pCharacter->m_Ninja.m_ActivationTick >= Client()->GameTick(g_Config.m_ClDummy);
+			// FoxNet>
+			if(!Endless && NinjaProgress > 0.0f && GameClient()->m_Snap.m_aCharacters[ClientId].m_HasExtendedDisplayInfo)
 			{
 				RenderNinjaBarPos(x, y - 12, 6.f, 24.f, NinjaProgress);
 			}

@@ -530,15 +530,34 @@ void CCharacter::HandleWeaponSwitch()
 	if(!m_Core.m_aWeapons[WantedWeapon].m_Got)
 	{
 		// Find another weapon with same weapon type
+		bool Found = false;
 		for(int i = 0; i < NUM_EXTRA_WEAPONS; i++)
 		{
 			const int WantedWeaponType = GameServer()->GetWeaponType(WantedWeapon);
 			if(m_Core.m_aWeapons[i].m_Got && GameServer()->GetWeaponType(i) == WantedWeaponType)
 			{
 				m_QueuedWeapon = i;
+				Found = true;
 				break;
 			}
 		}
+
+		// <FoxNet
+		// Nothing of that type, so a ninja typed weapon answers the empty slot instead. The client
+		// has no +weapon6, so that slot is the only way to select one by key at all. A real ninja
+		// never gets here, having one makes DoWeaponSwitch() refuse every switch anyway.
+		if(!Found)
+		{
+			for(int i = 0; i < NUM_EXTRA_WEAPONS; i++)
+			{
+				if(m_Core.m_aWeapons[i].m_Got && GameServer()->GetWeaponType(i) == WEAPON_NINJA)
+				{
+					m_QueuedWeapon = i;
+					break;
+				}
+			}
+		}
+		// FoxNet>
 	}
 	DoWeaponSwitch();
 }
@@ -1551,8 +1570,8 @@ bool CCharacter::CanSnapCharacter(int SnappingClient)
 	const auto CanCollideAfterSpawnSolo = [this](int ClientId) {
 		CPlayer *pOtherPlayer = GameServer()->m_apPlayers[ClientId];
 		return pOtherPlayer &&
-			(g_Config.m_SvMultimapAllowInteraction || pOtherPlayer->MultiMapIdx() == MultiMapIdx()) &&
-			Teams()->m_Core.CanCollideAfterSpawnSolo(GetPlayer()->GetCid(), ClientId);
+		       (g_Config.m_SvMultimapAllowInteraction || pOtherPlayer->MultiMapIdx() == MultiMapIdx()) &&
+		       Teams()->m_Core.CanCollideAfterSpawnSolo(GetPlayer()->GetCid(), ClientId);
 	};
 
 	// Keep characters visible while temporary solo prevents a collision that
@@ -1718,6 +1737,18 @@ void CCharacter::Snap(int SnappingClient)
 	// Display Information
 	DDNetCharacter.m_JumpedTotal = m_Core.m_JumpedTotal;
 	DDNetCharacter.m_NinjaActivationTick = m_Core.m_Ninja.m_ActivationTick;
+	// <FoxNet
+	// A custom weapon snapped as the ninja never runs out. An activation tick ahead of now is what
+	// stops the client predicting a timeout for it, and tells its hud there is no duration to draw.
+	for(int Weapon = NUM_WEAPONS; Weapon < NUM_EXTRA_WEAPONS; Weapon++)
+	{
+		if(!GetWeaponGot(Weapon) || GameServer()->GetWeaponType(Weapon) != WEAPON_NINJA)
+			continue;
+
+		DDNetCharacter.m_NinjaActivationTick = Server()->Tick() + g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000;
+		break;
+	}
+	// FoxNet>
 	DDNetCharacter.m_FreezeStart = m_Core.m_FreezeStart;
 	if(m_Core.m_IsInFreeze)
 	{
@@ -3240,9 +3271,67 @@ CClientMask CCharacter::OppositeCosmeticMask(EItemType Type)
 	return Teams()->CosmeticMask(Team(), MultiMapIdx(), GetPlayer()->GetCid(), Type, true);
 }
 
+bool CCharacter::StartDash()
+{
+	// The direction vanilla FireWeapon uses, which is the one the client predicts this shot with
+	const vec2 Target = vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY);
+	if(length(Target) <= 0.001f)
+		return false;
+
+	// Exactly what firing the vanilla ninja sets up, because the client predicts this with its own
+	// ninja code: WEAPON_DASH is snapped as WEAPON_NINJA, so a ninja is what the client sees
+	m_NumObjectsHit = 0;
+	m_Core.m_Ninja.m_ActivationDir = normalize(Target);
+	m_Core.m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
+
+	// clamp to prevent massive MoveBox calculation lag with SG bug
+	m_Core.m_Ninja.m_OldVelAmount = std::clamp(length(m_Core.m_Vel), 0.0f, 6000.0f);
+
+	// HandleNinja runs before the shot that starts a dash and HandleDash after it, so without this
+	// the server would be a tick ahead of the client for the whole dash
+	m_DashFireTick = Server()->Tick();
+
+	GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE, TeamMask());
+	return true;
+}
+
+void CCharacter::HandleDash()
+{
+	if(m_Core.m_ActiveWeapon != WEAPON_DASH)
+		return;
+
+	if(m_DashFireTick == Server()->Tick())
+		return;
+
+	// HandleNinja's movement, without its timeout, its forced weapon and its hits. Only the dashers
+	// own position may change, so hiders still cannot shove each other around.
+	m_Core.m_Ninja.m_CurrentMoveTime--;
+
+	if(m_Core.m_Ninja.m_CurrentMoveTime == 0)
+	{
+		// reset velocity
+		m_Core.m_Vel = m_Core.m_Ninja.m_ActivationDir * m_Core.m_Ninja.m_OldVelAmount;
+	}
+
+	if(m_Core.m_Ninja.m_CurrentMoveTime > 0)
+	{
+		// Set velocity
+		m_Core.m_Vel = m_Core.m_Ninja.m_ActivationDir * g_pData->m_Weapons.m_Ninja.m_Velocity;
+		vec2 GroundElasticity = vec2(
+			GetCurrentTuning()->m_GroundElasticityX,
+			GetCurrentTuning()->m_GroundElasticityY);
+
+		Collision()->MoveBox(&m_Core.m_Pos, &m_Core.m_Vel, vec2(GetProximityRadius(), GetProximityRadius()), GroundElasticity);
+
+		// reset velocity so the client doesn't predict stuff
+		ResetVelocity();
+	}
+}
+
 void CCharacter::FoxNetTick()
 {
 	HandleSpawnSolo();
+	HandleDash();
 
 	m_Snake.Tick();
 	m_Ufo.Tick();
@@ -3517,6 +3606,13 @@ void CCharacter::UpdateWeaponIndicator()
 {
 	if(!m_pPlayer->m_WeaponIndicator)
 		return;
+
+	// <FoxNet
+	// The dash already has its own counter in the minigames hud, both go out as the same broadcast
+	// so an indicator for it would only take that hud over
+	if(GetActiveWeapon() == WEAPON_DASH)
+		return;
+	// FoxNet>
 
 	char aAmmo[32] = "";
 	const char *pName = GetWeaponName(GetActiveWeapon());

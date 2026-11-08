@@ -10,3 +10,4 @@ MACRO_CUSTOM_WEAPON(HEARTGUN, "Heart Gun", WEAPON_GUN, 90, false, "Fire heart pr
 MACRO_CUSTOM_WEAPON(LIGHTSABER, "Lightsaber", WEAPON_GUN, 125, false, "Attack using a lightsaber")
 MACRO_CUSTOM_WEAPON(PORTALGUN, "Portal Gun", WEAPON_LASER, 100, false, "Place linked portals")
 MACRO_CUSTOM_WEAPON(METEOR, "Meteor Gun", WEAPON_GRENADE, 125, true, "Summon a meteor at the cursor")
+MACRO_CUSTOM_WEAPON(DASH, "Dash", WEAPON_NINJA, 800, false, "Dash towards the cursor, a set number of uses")
