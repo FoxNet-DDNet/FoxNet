@@ -68,13 +68,15 @@ struct FoxNetAccounts : public testing::TestWithParam<EBackend> // NOLINT(readab
 
 	void Connect()
 	{
+		// Every assertion reports m_aError, otherwise a setup failure says only
+		// that something returned false
 		ASSERT_TRUE(m_pConn->Connect(m_aError, sizeof(m_aError))) << m_aError;
 		// Persistent databases like MySQL keep rows between runs
-		ASSERT_TRUE(Wipe("foxnet_money_log"));
-		ASSERT_TRUE(Wipe("foxnet_account_timers"));
-		ASSERT_TRUE(Wipe("foxnet_accounts"));
-		ASSERT_TRUE(AddAccount("payer", 1000));
-		ASSERT_TRUE(AddAccount("receiver", 0));
+		ASSERT_TRUE(Wipe("foxnet_money_log")) << m_aError;
+		ASSERT_TRUE(Wipe("foxnet_account_timers")) << m_aError;
+		ASSERT_TRUE(Wipe("foxnet_accounts")) << m_aError;
+		ASSERT_TRUE(AddAccount("payer", 1000)) << m_aError;
+		ASSERT_TRUE(AddAccount("receiver", 0)) << m_aError;
 	}
 
 	bool Wipe(const char *pTable)

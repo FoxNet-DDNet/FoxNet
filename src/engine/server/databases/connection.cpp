@@ -219,7 +219,9 @@ void IDbConnection::FormatCreateAccountInventory(char *aBuf, unsigned int Buffer
 		"  Quantity INTEGER NOT NULL DEFAULT 1,"
 		"  AcquiredAt %s NOT NULL,"
 		"  ExpiresAt %s NOT NULL,"
-		"  Meta TEXT COLLATE %s DEFAULT '',"
+		// No DEFAULT: MySQL rejects one on a TEXT column, which made the whole
+		// CREATE fail there. Every insert sets Meta explicitly anyway.
+		"  Meta TEXT COLLATE %s,"
 		"  Value INTEGER NOT NULL DEFAULT 0,"
 		"  PRIMARY KEY (Username, ItemName)"
 		")",
