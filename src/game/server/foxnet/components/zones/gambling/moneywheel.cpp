@@ -437,10 +437,20 @@ bool CMoneyWheelZone::AddClient(int ClientId, const char *pBetOption)
 	// registered only once the database confirms the debit. The balance checked
 	// above is a cached copy, the database has the last word.
 	const int64_t Wager = BetAmount;
-	pPlayer->TrySpendMoney(Wager, [this, ClientId, Option, Wager](bool Ok) {
+	const int64_t Round = m_RoundId;
+	// Captured so a refund cannot land on whoever occupies the slot later
+	const std::string Username = pPlayer->Acc()->m_aUsername;
+	pPlayer->TrySpendMoney(Wager, [this, ClientId, Option, Wager, Round, Username](bool Ok) {
 		CPlayer *pBetter = GameServer()->m_apPlayers[ClientId];
 		if(!pBetter || !pBetter->Acc()->m_LoggedIn)
+		{
+			// Unreachable while ApplyMoneyDelta only calls back for the same
+			// session, and it refunds a spend whose session left. Refund here
+			// too rather than leave a silent way to lose the wager.
+			if(Ok)
+				GameServer()->m_AccountManager.MoneyDeltaByUsername(Username.c_str(), Wager);
 			return;
+		}
 
 		if(!Ok)
 		{
@@ -448,11 +458,22 @@ bool CMoneyWheelZone::AddClient(int ClientId, const char *pBetOption)
 			return;
 		}
 
-		// The round can move on while the debit is in flight
-		if(!m_HasWheel || !CanJoinRound(ClientId) || !IsInArea(ClientId))
+		// The bet was committed before the wheel started, so it still counts
+		// even if the database only confirmed it mid-spin: the option was
+		// fixed up front and the outcome is never sent to clients. Only a bet
+		// whose round has already paid out is too late, and area or round
+		// checks are deliberately absent here, since failing them after the
+		// commitment would let someone void a bet by walking away.
+		if(!m_HasWheel || Round != m_RoundId)
 		{
 			pBetter->GiveMoney(Wager, false, true);
-			GameServer()->SendChatTarget(ClientId, "The round moved on, your wager was returned.");
+			GameServer()->SendChatTarget(ClientId, "That round already finished, your wager was returned.");
+			return;
+		}
+		if(m_aClients[ClientId].m_Active)
+		{
+			// A second bet slipped through before this one was confirmed
+			pBetter->GiveMoney(Wager, false, true);
 			return;
 		}
 
@@ -553,6 +574,11 @@ void CMoneyWheelZone::OnTick()
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 			EvaluateBet(ClientId);
 		m_Spin.PrepareNext();
+		// <FoxNet: the round is over. A bet whose debit is still in flight
+		// belongs to it, so bumping the id lets its callback refund rather
+		// than register into the round that follows.
+		m_RoundId++;
+		// FoxNet>
 	}
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)

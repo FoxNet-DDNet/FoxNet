@@ -75,6 +75,11 @@ class CMoneyWheelZone : public IMinigame
 
 	int m_Betters = 0;
 	int64_t m_TotalWager = 0;
+	// <FoxNet: identifies the betting round, from accepting bets through to
+	// payout. A bet carries the id it was placed in, so a debit that the
+	// database confirms late can tell its own round from the next one.
+	int64_t m_RoundId = 0;
+	// FoxNet>
 
 	std::vector<CBetQuadData> m_vBetQuads;
 	CClientData m_aClients[MAX_CLIENTS];
