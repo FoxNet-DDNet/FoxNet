@@ -123,33 +123,50 @@ CSqlExecData::CSqlExecData(CDbConnectionPool::Mode m) :
 
 void CDbConnectionPool::Print(Mode DatabaseMode)
 {
-	m_pShared->m_aQueries[m_InsertIdx++] = std::make_unique<CSqlExecData>(DatabaseMode);
-	m_InsertIdx %= std::size(m_pShared->m_aQueries);
-	m_pShared->m_NumBackup.Signal();
+	Enqueue(std::make_unique<CSqlExecData>(DatabaseMode));
 }
 
 void CDbConnectionPool::RegisterSqliteDatabase(Mode DatabaseMode, const char aFilename[64])
 {
-	m_pShared->m_aQueries[m_InsertIdx++] = std::make_unique<CSqlExecData>(DatabaseMode, aFilename);
-	m_InsertIdx %= std::size(m_pShared->m_aQueries);
-	m_pShared->m_NumBackup.Signal();
+	Enqueue(std::make_unique<CSqlExecData>(DatabaseMode, aFilename));
 }
 
 void CDbConnectionPool::RegisterMysqlDatabase(Mode DatabaseMode, const CMysqlConfig *pMysqlConfig)
 {
-	m_pShared->m_aQueries[m_InsertIdx++] = std::make_unique<CSqlExecData>(DatabaseMode, pMysqlConfig);
-	m_InsertIdx %= std::size(m_pShared->m_aQueries);
-	m_pShared->m_NumBackup.Signal();
+	Enqueue(std::make_unique<CSqlExecData>(DatabaseMode, pMysqlConfig));
 }
+
+// <FoxNet
+bool CDbConnectionPool::Enqueue(std::unique_ptr<CSqlExecData> pData)
+{
+	// Reusing an occupied slot would destroy a query that has not run yet, so
+	// refuse the new one and make the loss visible instead.
+	if(m_pShared->m_NumQueued.load() >= (int)std::size(m_pShared->m_aQueries))
+	{
+		log_error("sql", "query queue is full (%d pending), dropped '%s'", (int)std::size(m_pShared->m_aQueries), pData->m_pName);
+		// Complete the result as failed, otherwise whoever is waiting on it
+		// keeps a pending callback that never fires.
+		if(pData->m_pThreadData && pData->m_pThreadData->m_pResult)
+		{
+			pData->m_pThreadData->m_pResult->m_Success = false;
+			pData->m_pThreadData->m_pResult->m_Completed.store(true);
+		}
+		return false;
+	}
+	m_pShared->m_aQueries[m_InsertIdx++] = std::move(pData);
+	m_InsertIdx %= std::size(m_pShared->m_aQueries);
+	m_pShared->m_NumQueued.fetch_add(1);
+	m_pShared->m_NumBackup.Signal();
+	return true;
+}
+// FoxNet>
 
 void CDbConnectionPool::Execute(
 	FRead pFunc,
 	std::unique_ptr<const ISqlData> pSqlRequestData,
 	const char *pName)
 {
-	m_pShared->m_aQueries[m_InsertIdx++] = std::make_unique<CSqlExecData>(pFunc, std::move(pSqlRequestData), pName);
-	m_InsertIdx %= std::size(m_pShared->m_aQueries);
-	m_pShared->m_NumBackup.Signal();
+	Enqueue(std::make_unique<CSqlExecData>(pFunc, std::move(pSqlRequestData), pName));
 }
 
 void CDbConnectionPool::ExecuteWrite(
@@ -157,9 +174,7 @@ void CDbConnectionPool::ExecuteWrite(
 	std::unique_ptr<const ISqlData> pSqlRequestData,
 	const char *pName)
 {
-	m_pShared->m_aQueries[m_InsertIdx++] = std::make_unique<CSqlExecData>(pFunc, std::move(pSqlRequestData), pName);
-	m_InsertIdx %= std::size(m_pShared->m_aQueries);
-	m_pShared->m_NumBackup.Signal();
+	Enqueue(std::make_unique<CSqlExecData>(pFunc, std::move(pSqlRequestData), pName));
 }
 
 void CDbConnectionPool::OnShutdown()
@@ -288,6 +303,11 @@ void CWorker::ProcessQueries()
 	// enter fail mode when a sql request fails, skip read request during it and
 	// write to the backup database until all requests are handled
 	bool FailMode = false;
+	// <FoxNet
+	// When the FailMode breaker was last half-opened to retest the database.
+	auto LastProbe = std::chrono::steady_clock::now();
+	constexpr auto FailModeProbeInterval = 5s;
+	// FoxNet>
 	for(int JobNum = 0;; JobNum++)
 	{
 		if(FailMode && m_pShared->m_NumWorker.GetApproximateValue() == 0)
@@ -302,6 +322,9 @@ void CWorker::ProcessQueries()
 			m_pShared->m_Shutdown.store(false);
 			return;
 		}
+		// <FoxNet: the slot is consumed, the main thread may fill it again
+		m_pShared->m_NumQueued.fetch_sub(1);
+		// FoxNet>
 		bool Success = false;
 		switch(pThreadData->m_Mode)
 		{
@@ -331,28 +354,84 @@ void CWorker::ProcessQueries()
 			}
 			if(!Success)
 			{
+				// <FoxNet: back off before the next probe, see WRITE_ACCESS
+				if(!FailMode)
+					LastProbe = std::chrono::steady_clock::now();
+				// FoxNet>
 				FailMode = true;
 			}
 		}
 		break;
 		case CSqlExecData::WRITE_ACCESS:
 		{
+			// <FoxNet
+			// Nothing clears FailMode while it is on, because writes go to the
+			// backup and reads are dismissed, so neither can ever succeed on
+			// the primary. Let one write through every few seconds to retest it.
+			const bool Probe = FailMode && std::chrono::steady_clock::now() - LastProbe > FailModeProbeInterval;
+			if(Probe)
+				LastProbe = std::chrono::steady_clock::now();
+			bool PrimaryTried = false;
+			// FoxNet>
 			if(m_pShared->m_Shutdown && m_pWriteBackup != nullptr)
 			{
 				dbg_msg("sql", "[%i] %s skipped to backup database during shutdown", JobNum, pThreadData->m_pName);
 			}
-			else if(FailMode && m_pWriteBackup != nullptr)
+			else if(FailMode && !Probe && m_pWriteBackup != nullptr)
 			{
 				dbg_msg("sql", "[%i] %s skipped to backup database during FailMode", JobNum, pThreadData->m_pName);
 			}
-			else if(CDbConnectionPool::ExecSqlFunc(m_pWriteConnection.get(), pThreadData.get(), Write::NORMAL))
+			else
 			{
-				if(m_DebugSql)
-					dbg_msg("sql", "[%i] %s done on write database", JobNum, pThreadData->m_pName);
-				Success = true;
+				// <FoxNet
+				// Retry here rather than dropping the query: the next Connect()
+				// reestablishes a dropped connection, and holding it in place
+				// keeps later writes for the same row behind it.
+				PrimaryTried = true;
+				const int MaxAttempts = FailMode ? 1 : 3;
+				const auto Started = std::chrono::steady_clock::now();
+				for(int Attempt = 0; Attempt < MaxAttempts; Attempt++)
+				{
+					if(Attempt > 0)
+					{
+						// A failure that took a while means the server is
+						// unreachable rather than the connection being stale.
+						// Retrying through its connect timeout would stall the
+						// queue for minutes, so give up and let FailMode take
+						// over.
+						if(std::chrono::steady_clock::now() - Started > 2s)
+						{
+							dbg_msg("sql", "[%i] %s gave up retrying, the write database is not responding", JobNum, pThreadData->m_pName);
+							break;
+						}
+						dbg_msg("sql", "[%i] %s retrying on write database (attempt %d/%d)", JobNum, pThreadData->m_pName, Attempt + 1, MaxAttempts);
+						std::this_thread::sleep_for(100ms * Attempt);
+					}
+					if(CDbConnectionPool::ExecSqlFunc(m_pWriteConnection.get(), pThreadData.get(), Write::NORMAL))
+					{
+						if(m_DebugSql)
+							dbg_msg("sql", "[%i] %s done on write database", JobNum, pThreadData->m_pName);
+						Success = true;
+						break;
+					}
+					if(m_pShared->m_Shutdown.load())
+						break;
+				}
+				if(!Success)
+					log_error("sql", "%s failed on write database after %d attempt(s)", pThreadData->m_pName, MaxAttempts);
+				// FoxNet>
 			}
 			// enter fail mode if not successful
-			FailMode = FailMode || !Success;
+			// <FoxNet: a write that reached the primary means it is healthy again
+			if(PrimaryTried)
+			{
+				FailMode = !Success;
+				// Measure the probe interval from this attempt, so entering
+				// FailMode waits before retesting instead of probing at once.
+				if(FailMode)
+					LastProbe = std::chrono::steady_clock::now();
+			}
+			// FoxNet>
 			const Write w = Success ? Write::NORMAL_SUCCEEDED : Write::NORMAL_FAILED;
 			if(m_pWriteBackup && CDbConnectionPool::ExecSqlFunc(m_pWriteBackup.get(), pThreadData.get(), w))
 			{

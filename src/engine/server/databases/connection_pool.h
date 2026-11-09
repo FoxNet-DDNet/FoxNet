@@ -104,6 +104,12 @@ public:
 private:
 	static bool ExecSqlFunc(IDbConnection *pConnection, struct CSqlExecData *pData, Write w);
 
+	// <FoxNet
+	// Adds a query to the queue. Returns false and logs instead of overwriting
+	// a query the worker has not run yet.
+	bool Enqueue(std::unique_ptr<struct CSqlExecData> pData);
+	// FoxNet>
+
 	// Only the main thread accesses this variable. It points to the index,
 	// where the next query is added to the queue.
 	int m_InsertIdx = 0;
@@ -126,7 +132,13 @@ private:
 		CSemaphore m_NumWorker;
 
 		// spsc queue with additional backup worker to look at queries first.
-		std::unique_ptr<struct CSqlExecData> m_aQueries[512];
+		std::unique_ptr<struct CSqlExecData> m_aQueries[4096];
+		// <FoxNet
+		// Queries inserted but not consumed by the worker yet. The ring has no
+		// backpressure, so without this a full queue silently overwrites a
+		// query that has not run.
+		std::atomic_int m_NumQueued{0};
+		// FoxNet>
 	};
 
 	std::shared_ptr<CSharedData> m_pShared;
