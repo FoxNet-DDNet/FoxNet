@@ -266,6 +266,20 @@ void IDbConnection::FormatCreateAccountConfig(char *aBuf, unsigned int BufferSiz
 		BinaryCollate(), BinaryCollate(), BinaryCollate(), BinaryCollate(), Int64Type());
 }
 
+void IDbConnection::FormatCreateMoneyLog(char *aBuf, unsigned int BufferSize) const
+{
+	str_format(aBuf, BufferSize,
+		"CREATE TABLE IF NOT EXISTS foxnet_money_log ("
+		"  Id %s NOT NULL,"
+		"  Payer VARCHAR(32) COLLATE %s NOT NULL,"
+		"  Receiver VARCHAR(32) COLLATE %s NOT NULL,"
+		"  Amount %s NOT NULL,"
+		"  Timestamp %s NOT NULL,"
+		"  PRIMARY KEY (Id)"
+		")",
+		Int64Type(), BinaryCollate(), BinaryCollate(), Int64Type(), Int64Type());
+}
+
 void IDbConnection::FormatCreateAccountTimers(char *aBuf, unsigned int BufferSize) const
 {
 	str_format(aBuf, BufferSize,

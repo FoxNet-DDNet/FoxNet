@@ -293,7 +293,11 @@ bool CMysqlConnection::ConnectImpl()
 	mysql_options(&m_Mysql, MYSQL_OPT_CONNECT_TIMEOUT, &OptConnectTimeout);
 	mysql_options(&m_Mysql, MYSQL_OPT_READ_TIMEOUT, &OptReadTimeout);
 	mysql_options(&m_Mysql, MYSQL_OPT_WRITE_TIMEOUT, &OptWriteTimeout);
-	mysql_options(&m_Mysql, MYSQL_OPT_RECONNECT, &OptReconnect);
+	// <FoxNet: removed in MySQL 8.4 client libraries. The select_db probe in
+	// ConnectImpl still recovers a dropped connection, so only note it.
+	if(mysql_options(&m_Mysql, MYSQL_OPT_RECONNECT, &OptReconnect) != 0)
+		dbg_msg("mysql", "MYSQL_OPT_RECONNECT unsupported by this client library, relying on the connection check");
+	// FoxNet>
 	mysql_options(&m_Mysql, MYSQL_SET_CHARSET_NAME, "utf8mb4");
 	if(m_Config.m_aBindaddr[0] != '\0')
 	{
@@ -397,6 +401,7 @@ bool CMysqlConnection::ConnectImpl()
 		char aCreateMailbox[1024];
 		char aCreateAccountConfig[1024];
 		char aCreateAccountTimers[1024];
+		char aCreateMoneyLog[1024];
 		// FoxNet>
 		FormatCreateRace(aCreateRace, sizeof(aCreateRace), /* Backup */ false);
 		FormatCreateRace(aCreateDeletedRace, sizeof(aCreateDeletedRace), false, true);
@@ -411,6 +416,7 @@ bool CMysqlConnection::ConnectImpl()
 		FormatCreateAccountMailbox(aCreateMailbox, sizeof(aCreateMailbox));
 		FormatCreateAccountConfig(aCreateAccountConfig, sizeof(aCreateAccountConfig));
 		FormatCreateAccountTimers(aCreateAccountTimers, sizeof(aCreateAccountTimers));
+		FormatCreateMoneyLog(aCreateMoneyLog, sizeof(aCreateMoneyLog));
 		// FoxNet>
 
 		if(!PrepareAndExecuteStatement(aCreateRace) ||
@@ -425,7 +431,8 @@ bool CMysqlConnection::ConnectImpl()
 			!PrepareAndExecuteStatement(aCreateInventory) ||
 			!PrepareAndExecuteStatement(aCreateMailbox) ||
 			!PrepareAndExecuteStatement(aCreateAccountConfig) ||
-			!PrepareAndExecuteStatement(aCreateAccountTimers)
+			!PrepareAndExecuteStatement(aCreateAccountTimers) ||
+			!PrepareAndExecuteStatement(aCreateMoneyLog)
 			// FoxNet>
 		)
 		{

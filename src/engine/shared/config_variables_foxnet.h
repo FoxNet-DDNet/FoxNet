@@ -36,6 +36,10 @@ MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Wha
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER, "How much money a player should get if they level up")
 MACRO_CONFIG_INT64(SvMaxBet, sv_max_bet, 0, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Largest wager allowed in a gambling zone (0 = no limit)")
 
+// /pay
+MACRO_CONFIG_INT(SvPayCooldown, sv_pay_cooldown, 300, 0, 86400, CFGFLAG_SERVER | CFGFLAG_SAVE, "Seconds a player must wait between transactions, kept per account in the database")
+MACRO_CONFIG_INT(SvPayMinLevel, sv_pay_min_level, 10, 0, 1000, CFGFLAG_SERVER | CFGFLAG_SAVE, "Level needed before a player may transfer money")
+
 // Daily login rewards
 MACRO_CONFIG_INT(SvDailyReward, sv_daily_reward, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Mail a login reward once per day, growing with the login streak")
 MACRO_CONFIG_INT(SvDailyRewardResetHour, sv_daily_reward_reset_hour, 0, 0, 23, CFGFLAG_SERVER | CFGFLAG_SAVE, "Hour in UTC at which the daily reward resets")

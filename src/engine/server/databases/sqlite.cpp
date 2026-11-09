@@ -191,6 +191,10 @@ bool CSqliteConnection::ConnectImpl(char *pError, int ErrorSize)
 		FormatCreateAccountTimers(aBuf, sizeof(aBuf));
 		if(!Execute(aBuf, pError, ErrorSize))
 			return false;
+
+		FormatCreateMoneyLog(aBuf, sizeof(aBuf));
+		if(!Execute(aBuf, pError, ErrorSize))
+			return false;
 		// FoxNet>
 
 		FormatCreateRace(aBuf, sizeof(aBuf), /* Backup */ true);

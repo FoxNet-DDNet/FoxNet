@@ -113,6 +113,7 @@ protected:
 	void FormatCreateAccountMailbox(char *aBuf, unsigned int BufferSize) const;
 	void FormatCreateAccountConfig(char *aBuf, unsigned int BufferSize) const;
 	void FormatCreateAccountTimers(char *aBuf, unsigned int BufferSize) const;
+	void FormatCreateMoneyLog(char *aBuf, unsigned int BufferSize) const;
 	// FoxNet>
 };
 
