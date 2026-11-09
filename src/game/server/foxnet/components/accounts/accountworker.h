@@ -333,8 +333,7 @@ struct CAccMoneyDeltaResult : CAccResult
 	bool m_PrimarySucceeded = false;
 	// Whether the row was changed. Only a RequireFunds debit can report false.
 	bool m_Applied = false;
-	// Balance in the database after the change
-	int64_t m_Money = 0;
+	// The balance after the change goes in the inherited CAccResult::m_Money
 };
 
 struct CAccMoneyDelta : ISqlData
