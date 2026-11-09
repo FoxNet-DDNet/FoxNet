@@ -20,6 +20,7 @@
 
 #include <game/server/foxnet/components/shop.h>
 
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -553,10 +554,16 @@ public:
 	bool CheckLevelUp(bool Silent = false);
 
 	void GiveMoney(int64_t Amount, bool Multiplier = true, bool Silent = false);
+	// Clamps at zero and always succeeds, so it is for penalties and
+	// corrections only. A purchase or a bet must use TrySpendMoney, which lets
+	// the database refuse it instead of handing something over unpaid.
 	void TakeMoney(int64_t Amount, bool Silent = false) { GiveMoney(-Amount, false, Silent); }
 
-	int64_t m_LastTransaction = 0;
 	void PayMoney(CPlayer *pReceiver, int64_t Amount);
+	// Spends only if the database still holds the funds. Cb(true) means the
+	// money is gone and whatever it paid for may be handed over; Cb runs only
+	// while this client is still logged into the same account.
+	void TrySpendMoney(int64_t Amount, std::function<void(bool Ok)> &&Cb);
 
 	int64_t GetDiscountedPrice(int64_t Price);
 

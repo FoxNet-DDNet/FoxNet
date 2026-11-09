@@ -124,7 +124,6 @@ struct CAccSaveInfo : ISqlData
 	int64_t m_Kills = 0;
 	int64_t m_Level = 0;
 	int64_t m_XP = 0;
-	int64_t m_Money = 0;
 	CInventory m_Inventory;
 	CAccConfigs m_Configs;
 };
@@ -301,6 +300,56 @@ struct CAccBulkNewMail : ISqlData
 	int m_MinLevel;
 };
 
+struct CAccPayResult : CAccResult
+{
+	enum class EStatus
+	{
+		FAILED,
+		OK,
+		ON_COOLDOWN,
+		INSUFFICIENT_FUNDS,
+		NO_RECEIVER,
+	};
+	bool m_PrimarySucceeded = false;
+	EStatus m_Status = EStatus::FAILED;
+	int64_t m_PayerMoney = 0;
+	// Unix seconds the payer's cooldown runs until, when refused for that
+	int64_t m_CooldownEndsAt = 0;
+};
+
+struct CAccPay : ISqlData
+{
+	CAccPay(std::shared_ptr<CAccPayResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aPayer[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aReceiver[ACC_MAX_USERNAME_LENGTH] = "";
+	int64_t m_Amount = 0;
+	int64_t m_Now = 0;
+	int64_t m_Cooldown = 0;
+};
+
+struct CAccMoneyDeltaResult : CAccResult
+{
+	bool m_PrimarySucceeded = false;
+	// Whether the row was changed. Only a RequireFunds debit can report false.
+	bool m_Applied = false;
+	// Balance in the database after the change
+	int64_t m_Money = 0;
+};
+
+struct CAccMoneyDelta : ISqlData
+{
+	CAccMoneyDelta(std::shared_ptr<CAccMoneyDeltaResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	int64_t m_Delta = 0;
+	// Debits only: refuse instead of clamping when the balance is too low
+	bool m_RequireFunds = false;
+	// Overwrite the balance with m_Delta instead of adding to it. Only for an
+	// admin set_money, where clobbering is the point.
+	bool m_Absolute = false;
+};
+
 struct CAccDailyRewardResult : CAccResult
 {
 	bool m_PrimarySucceeded = false;
@@ -347,6 +396,10 @@ struct CAccountsWorker
 	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool ClaimDailyReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool Pay(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ACCOUNTS_ACCOUNTWORKER_H

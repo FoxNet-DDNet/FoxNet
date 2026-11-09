@@ -33,6 +33,8 @@ enum
 
 // Row key in foxnet_account_timers holding the daily login streak
 constexpr const char *DAILY_REWARD_TIMER_KEY = "daily_login";
+// Row key holding when a player may transfer money again
+constexpr const char *PAY_TIMER_KEY = "pay";
 
 // One rolled item in a reward mail
 class CRewardItem
@@ -187,6 +189,13 @@ public:
 	int64_t m_LastMailboxFetch = 0; // unix seconds of last successful fetch
 	bool m_MailboxFetchPending = false;
 
+	// Money is owned by the database. This is a cached copy for display, and
+	// m_MoneyInFlight counts deltas sent but not acknowledged, so a refresh
+	// does not overwrite the balance with a value that predates them.
+	int m_MoneyInFlight = 0;
+	int64_t m_LastMoneyFetch = 0;
+	bool m_MoneyFetchPending = false;
+
 	CAccConfigs m_Configs;
 };
 
@@ -282,6 +291,20 @@ public:
 	void NewMail(const char *pUsername, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewMail(int ClientId, const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd);
 	void NewGlobalMail(const char *pSubject, const char *pMessage, const char *pCmdName, const char *pCmd, bool IncludeDisabled = false, bool OnlyLoggedIn = false, int MinLevel = 0);
+
+	// Moves money in the database and reports the balance it ended up at. The
+	// callback gets (DbSuccess, Applied, NewBalance) and only runs while the
+	// client is still logged into the same account.
+	void ApplyMoneyDelta(int ClientId, int64_t Delta, bool RequireFunds, std::function<void(bool, bool, int64_t)> &&Cb, bool Absolute = false);
+	// Overwrites the balance, for an admin set_money
+	void SetMoney(int ClientId, int64_t Money);
+	// Money change not tied to a session, used to refund a spend whose session left
+	void MoneyDeltaByUsername(const char *pUsername, int64_t Delta);
+	// Transfers money between two logged in accounts in one database transaction
+	void PayMoney(int PayerClientId, int ReceiverClientId, int64_t Amount);
+	// Re-reads balances from the write database, so changes made straight in the
+	// database show up without a relog
+	void RefreshMoney();
 
 	// Claims today's login streak day and mails the reward if it was not claimed yet
 	void ClaimDailyReward(int ClientId);

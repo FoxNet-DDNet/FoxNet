@@ -13,6 +13,7 @@
 #include <game/server/player.h>
 
 #include <cinttypes>
+#include <limits>
 
 static int GetIntOrDefault(IDbConnection *pSql, int Col, int DefaultValue = 0)
 {
@@ -229,6 +230,42 @@ static bool LoadMailbox(IDbConnection *pSql, const char *pUsername, CMailBox &Ma
 	}
 	return true;
 }
+
+// Local copy of the helper scoreworker.cpp uses, so a refused transfer leaves
+// nothing behind.
+class CScopedAccTransaction
+{
+	IDbConnection *m_pSql;
+	bool m_Active = false;
+
+public:
+	explicit CScopedAccTransaction(IDbConnection *pSql) :
+		m_pSql(pSql) {}
+	bool Begin(char *pError, int ErrorSize)
+	{
+		if(!m_pSql->BeginTransaction(pError, ErrorSize))
+			return false;
+		m_Active = true;
+		return true;
+	}
+	bool Commit(char *pError, int ErrorSize)
+	{
+		int NumUpdated = 0;
+		if(!m_pSql->PrepareStatement("COMMIT", pError, ErrorSize) || !m_pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+		m_Active = false;
+		return true;
+	}
+	~CScopedAccTransaction()
+	{
+		if(!m_Active)
+			return;
+		char aError[256];
+		int NumUpdated = 0;
+		if(m_pSql->PrepareStatement("ROLLBACK", aError, sizeof(aError)))
+			m_pSql->ExecuteUpdate(&NumUpdated, aError, sizeof(aError));
+	}
+};
 
 static bool DeleteRowsByUsername(IDbConnection *pSql, const char *pTable, const char *pUsername, int *pNumDeleted, char *pError, int ErrorSize)
 {
@@ -666,7 +703,7 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 		"SET LoggedIn = 0, Port = 0, ClientId = -1, ServerInstance = '', "
 		"    LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"    Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ? "
+		"    Level = ?, XP = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -677,7 +714,6 @@ bool CAccountsWorker::UpdateLogoutState(IDbConnection *pSql, const ISqlData *pDa
 	pSql->BindInt64(Param++, pReq->m_Kills);
 	pSql->BindInt64(Param++, pReq->m_Level);
 	pSql->BindInt64(Param++, pReq->m_XP);
-	pSql->BindInt64(Param++, pReq->m_Money);
 	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
@@ -719,12 +755,15 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	if(!UpdateItemValues(pSql, pReq->m_aUsername, pReq->m_Inventory, pError, ErrorSize))
 		return false;
 
+	// Money is deliberately not written here. It moves through MoneyDelta as a
+	// relative update, so an absolute write would clobber a change this session
+	// has not seen yet, including one made directly in the database.
 	char aSql[512];
 	str_copy(aSql,
 		"UPDATE foxnet_accounts "
 		"SET LastPlayerName = PlayerName, LastIP = CurrentIP, "
 		"     Playtime = ?, Deaths = ?, Kills = ?, "
-		"    Level = ?, XP = ?, Money = ? "
+		"    Level = ?, XP = ? "
 		"WHERE Username = ?",
 		sizeof(aSql));
 	if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
@@ -735,7 +774,6 @@ bool CAccountsWorker::SaveInfo(IDbConnection *pSql, const ISqlData *pData, Write
 	pSql->BindInt64(Param++, pReq->m_Kills);
 	pSql->BindInt64(Param++, pReq->m_Level);
 	pSql->BindInt64(Param++, pReq->m_XP);
-	pSql->BindInt64(Param++, pReq->m_Money);
 	pSql->BindString(Param++, pReq->m_aUsername);
 	int NumUpdated = 0;
 	return pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize);
@@ -1265,6 +1303,13 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write 
 	// id on the primary database.
 	const bool Primary = w == Write::NORMAL;
 
+	// The pool retries a failed write. On the primary the next MailId is read
+	// and then inserted, so without one atomic unit a connection lost between
+	// the two would insert the mail a second time under a fresh id.
+	CScopedAccTransaction Transaction(pSql);
+	if(Primary && !Transaction.Begin(pError, ErrorSize))
+		return false;
+
 	// Acquire next MailId for user
 	int64_t MailId = pReq->m_MailId;
 	if(MailId == 0 && !Primary)
@@ -1328,6 +1373,9 @@ bool CAccountsWorker::NewMail(IDbConnection *pSql, const ISqlData *pData, Write 
 		M.m_Unread = true;
 		pRes->m_MailBox.m_vMails.push_back(M);
 	}
+
+	if(Primary && !Transaction.Commit(pError, ErrorSize))
+		return false;
 
 	// The connection pool completes the result once every database has been
 	// visited. Completing it here would hand the session a mail that the
@@ -1408,7 +1456,9 @@ bool CAccountsWorker::ClaimDailyReward(IDbConnection *pSql, const ISqlData *pDat
 
 	// A backup-only claim cannot guarantee exclusivity against servers that
 	// still use the primary database, so it must never grant a reward.
-	if(w == Write::NORMAL_FAILED)
+	// NORMAL_SUCCEEDED is the pool replaying this on the backup; the period
+	// guard already makes that a no-op, so skip the queries outright.
+	if(w == Write::NORMAL_FAILED || w == Write::NORMAL_SUCCEEDED)
 		return true;
 
 	const bool Primary = w == Write::NORMAL;
@@ -1507,5 +1557,278 @@ bool CAccountsWorker::ClaimDailyReward(IDbConnection *pSql, const ISqlData *pDat
 		pRes->m_Claimed = NumInserted == 1;
 		pRes->m_Streak = Streak;
 	}
+	return true;
+}
+
+bool CAccountsWorker::MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccMoneyDelta *>(pData);
+	auto *pRes = dynamic_cast<CAccMoneyDeltaResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "MoneyDelta: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// NORMAL_FAILED means only the backup would get this, and it would be
+	// applied again when the primary recovers. NORMAL_SUCCEEDED is the pool
+	// replaying the job on the backup after the primary took it, which for a
+	// relative update would double it there. Neither may move money.
+	if(w == Write::NORMAL_FAILED || w == Write::NORMAL_SUCCEEDED)
+		return true;
+
+	const bool Primary = w == Write::NORMAL;
+
+	// The pool retries a failed write, and this is a relative update, so the
+	// change and the read-back have to be one atomic unit. Without this, a
+	// connection lost between them would apply the delta twice.
+	CScopedAccTransaction Transaction(pSql);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
+
+	char aSql[256];
+	int Param = 1;
+	if(pReq->m_Absolute)
+	{
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = ? WHERE Username = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(Param++, pReq->m_Delta);
+		pSql->BindString(Param++, pReq->m_aUsername);
+	}
+	else if(pReq->m_RequireFunds)
+	{
+		// Checking and debiting in one statement leaves no window to overdraw in
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = Money + ? WHERE Username = ? AND Money >= ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(Param++, pReq->m_Delta);
+		pSql->BindString(Param++, pReq->m_aUsername);
+		pSql->BindInt64(Param++, -pReq->m_Delta);
+	}
+	else if(pReq->m_Delta < 0)
+	{
+		// CASE rather than GREATEST/MAX, which differ between MySQL and SQLite
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = CASE WHEN Money + ? < 0 THEN 0 ELSE Money + ? END WHERE Username = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(Param++, pReq->m_Delta);
+		pSql->BindInt64(Param++, pReq->m_Delta);
+		pSql->BindString(Param++, pReq->m_aUsername);
+	}
+	else
+	{
+		// Refuse rather than wrap around when the balance cannot hold the credit
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = Money + ? WHERE Username = ? AND Money <= ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(Param++, pReq->m_Delta);
+		pSql->BindString(Param++, pReq->m_aUsername);
+		pSql->BindInt64(Param++, std::numeric_limits<int64_t>::max() - pReq->m_Delta);
+	}
+
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	if(!Primary)
+		return Transaction.Commit(pError, ErrorSize);
+
+	pRes->m_Applied = NumUpdated == 1;
+
+	// Hand the authoritative balance back, so the session stops guessing
+	char aSelect[128];
+	str_copy(aSelect, "SELECT Money FROM foxnet_accounts WHERE Username = ?", sizeof(aSelect));
+	if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+	if(!End)
+	{
+		pRes->m_Money = GetInt64OrDefault(pSql, 1);
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+	}
+
+	if(!Transaction.Commit(pError, ErrorSize))
+		return false;
+
+	// Only reported once the change is committed, so a caller never acts on a
+	// balance that got rolled back.
+	pRes->m_PrimarySucceeded = true;
+	return true;
+}
+
+bool CAccountsWorker::Pay(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccPay *>(pData);
+	auto *pRes = dynamic_cast<CAccPayResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "Pay: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// NORMAL_FAILED cannot be exclusive against servers still using the
+	// primary, and NORMAL_SUCCEEDED is the pool replaying this on the backup
+	// after the primary took it, which would transfer twice there.
+	if(w == Write::NORMAL_FAILED || w == Write::NORMAL_SUCCEEDED)
+		return true;
+
+	const bool Primary = w == Write::NORMAL;
+	auto Report = [&](CAccPayResult::EStatus Status) {
+		if(!Primary)
+			return;
+		pRes->m_PrimarySucceeded = true;
+		pRes->m_Status = Status;
+	};
+
+	CScopedAccTransaction Transaction(pSql);
+	if(!Transaction.Begin(pError, ErrorSize))
+		return false;
+
+	// Cooldown, kept on the account so rejoining does not clear it
+	int64_t CooldownEndsAt = 0;
+	bool HasTimerRow = false;
+	{
+		char aSql[160];
+		str_copy(aSql, "SELECT ExpiresAt FROM foxnet_account_timers WHERE Username = ? AND `Key` = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aPayer);
+		pSql->BindString(2, PAY_TIMER_KEY);
+		bool End = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+		if(!End)
+		{
+			HasTimerRow = true;
+			CooldownEndsAt = GetInt64OrDefault(pSql, 1);
+			if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+				return false;
+		}
+	}
+
+	if(CooldownEndsAt > pReq->m_Now)
+	{
+		if(Primary)
+			pRes->m_CooldownEndsAt = CooldownEndsAt;
+		Report(CAccPayResult::EStatus::ON_COOLDOWN);
+		return true; // transaction rolls back, nothing was changed
+	}
+
+	// Debit the payer. Checking and subtracting in one statement leaves no
+	// window where two transfers each see the same balance.
+	{
+		char aSql[192];
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = Money - ? WHERE Username = ? AND Money >= ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(1, pReq->m_Amount);
+		pSql->BindString(2, pReq->m_aPayer);
+		pSql->BindInt64(3, pReq->m_Amount);
+		int NumUpdated = 0;
+		if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+		if(NumUpdated != 1)
+		{
+			Report(CAccPayResult::EStatus::INSUFFICIENT_FUNDS);
+			return true;
+		}
+	}
+
+	// Credit the receiver, refusing rather than wrapping an overfull balance
+	{
+		char aSql[192];
+		str_copy(aSql, "UPDATE foxnet_accounts SET Money = Money + ? WHERE Username = ? AND Money <= ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindInt64(1, pReq->m_Amount);
+		pSql->BindString(2, pReq->m_aReceiver);
+		pSql->BindInt64(3, std::numeric_limits<int64_t>::max() - pReq->m_Amount);
+		int NumUpdated = 0;
+		if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+		if(NumUpdated != 1)
+		{
+			Report(CAccPayResult::EStatus::NO_RECEIVER);
+			return true;
+		}
+	}
+
+	// Arm the cooldown
+	{
+		char aSql[256];
+		if(HasTimerRow)
+			str_copy(aSql, "UPDATE foxnet_account_timers SET ExpiresAt = ?, UpdatedAt = ? WHERE Username = ? AND `Key` = ?", sizeof(aSql));
+		else
+			str_copy(aSql, "INSERT INTO foxnet_account_timers (Username, `Key`, ExpiresAt, Period, Count, UpdatedAt) VALUES (?, ?, ?, -1, 0, ?)", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		const int64_t EndsAt = pReq->m_Now + pReq->m_Cooldown;
+		int Param = 1;
+		if(HasTimerRow)
+		{
+			pSql->BindInt64(Param++, EndsAt);
+			pSql->BindInt64(Param++, pReq->m_Now);
+			pSql->BindString(Param++, pReq->m_aPayer);
+			pSql->BindString(Param++, PAY_TIMER_KEY);
+		}
+		else
+		{
+			pSql->BindString(Param++, pReq->m_aPayer);
+			pSql->BindString(Param++, PAY_TIMER_KEY);
+			pSql->BindInt64(Param++, EndsAt);
+			pSql->BindInt64(Param++, pReq->m_Now);
+		}
+		int NumUpdated = 0;
+		if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+	}
+
+	// Audit trail, so a transfer can be traced and reversed afterwards
+	{
+		char aSql[320];
+		str_copy(aSql,
+			"INSERT INTO foxnet_money_log (Id, Payer, Receiver, Amount, Timestamp) "
+			"SELECT COALESCE(MAX(Id), 0) + 1, ?, ?, ?, ? FROM foxnet_money_log",
+			sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aPayer);
+		pSql->BindString(2, pReq->m_aReceiver);
+		pSql->BindInt64(3, pReq->m_Amount);
+		pSql->BindInt64(4, pReq->m_Now);
+		int NumUpdated = 0;
+		if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+			return false;
+	}
+
+	// Payer's balance after the transfer, for the session cache
+	if(Primary)
+	{
+		char aSql[128];
+		str_copy(aSql, "SELECT Money FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, pReq->m_aPayer);
+		bool End = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+		if(!End)
+		{
+			pRes->m_PayerMoney = GetInt64OrDefault(pSql, 1);
+			if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+				return false;
+		}
+	}
+
+	if(!Transaction.Commit(pError, ErrorSize))
+		return false;
+
+	Report(CAccPayResult::EStatus::OK);
 	return true;
 }

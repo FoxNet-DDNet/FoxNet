@@ -227,7 +227,7 @@ void CAccounts::ConPayMoney(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	const int Amount = pResult->GetInteger64(1);
+	const int64_t Amount = pResult->GetInteger64(1);
 	pPlayer->PayMoney(pVictim, Amount);
 }
 
@@ -271,8 +271,7 @@ void CAccounts::ConSetMoney(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	const int64_t Money = std::max<int64_t>(0, pResult->GetInteger64(1));
-	pAcc->m_Money = Money;
-	pSelf->SaveAccountsInfo(ClientId, *pAcc);
+	pSelf->SetMoney(ClientId, Money);
 	log_info("account", "Set money to %" PRId64 " for player %s", Money, pSelf->Server()->ClientName(ClientId));
 }
 
@@ -517,6 +516,7 @@ void CAccounts::OnTick()
 	if(m_vPending.empty())
 	{
 		FetchMailBox();
+		RefreshMoney();
 		return;
 	}
 	std::vector<std::pair<std::shared_ptr<CAccResult>, std::function<void(CAccResult &)>>> vReady;
@@ -536,6 +536,12 @@ void CAccounts::OnTick()
 		if(Ready.second)
 			Ready.second(*Ready.first);
 	}
+
+	// <FoxNet: a busy pending list must not starve the money refresh, which is
+	// what picks up a balance changed straight in the database. Safe here
+	// because the callbacks above have already run.
+	RefreshMoney();
+	// FoxNet>
 }
 
 void CAccounts::AutoLogin(int ClientId)
@@ -908,6 +914,9 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res, const char *pSuccessMessa
 		// mailbox refresh from the primary database on the next tick.
 		Session.m_LastMailboxFetch = 0;
 		Session.m_MailboxFetchPending = false;
+		Session.m_MoneyInFlight = 0;
+		Session.m_LastMoneyFetch = 0;
+		Session.m_MoneyFetchPending = false;
 		pExpectedPlayer->m_LoginPending = false;
 		if(!SuccessMessage.empty())
 			GameServer()->SendChatTarget(ClientId, SuccessMessage.c_str());
@@ -966,7 +975,6 @@ void CAccounts::OnLogout(int ClientId, CAccountSession &AccInfo, bool WaitForCom
 	pReq->m_Kills = AccInfo.m_Kills;
 	pReq->m_Level = AccInfo.m_Level;
 	pReq->m_XP = AccInfo.m_XP;
-	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
 	pReq->m_Configs = AccInfo.m_Configs;
 	DbPool()->ExecuteWrite(CAccountsWorker::UpdateLogoutState, std::move(pReq), "acc update logout");
@@ -1205,7 +1213,6 @@ void CAccounts::SaveAccountsInfo(int ClientId, CAccountSession &AccInfo)
 	pReq->m_Kills = AccInfo.m_Kills;
 	pReq->m_Level = AccInfo.m_Level;
 	pReq->m_XP = AccInfo.m_XP;
-	pReq->m_Money = AccInfo.m_Money;
 	pReq->m_Inventory = AccInfo.m_Inventory;
 	pReq->m_Configs = AccInfo.m_Configs;
 	DbPool()->ExecuteWrite(CAccountsWorker::SaveInfo, std::move(pReq), "acc save info");
@@ -1738,7 +1745,7 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("set_level", "v[id] l[amount]", CFGFLAG_SERVER, ConSetLevel, this, "Set player' (id) level");
 	Console()->Register("set_deaths", "v[id] l[amount]", CFGFLAG_SERVER, ConSetDeaths, this, "Set player' (id) deaths");
 
-	// Console()->Register("pay", "s[player] l[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
+	Console()->Register("pay", "s[player] l[amount]", CFGFLAG_CHAT, ConPayMoney, this, "Pay someone money");
 
 	Console()->Register("top5money", "?i[offset]", CFGFLAG_CHAT, ConTop5Money, this, "Show someones profile");
 	Console()->Register("top5level", "?i[offset]", CFGFLAG_CHAT, ConTop5Level, this, "Show someones profile");
@@ -1902,4 +1909,287 @@ void CAccounts::SendDailyRewardMail(const char *pUsername, int64_t Streak)
 	str_append(aMessage, "\nCome back tomorrow to keep it going, miss a day and it starts over.", sizeof(aMessage));
 
 	NewMail(pUsername, aSubject, aMessage, aCmdName, aCmd);
+}
+
+void CAccounts::ApplyMoneyDelta(int ClientId, int64_t Delta, bool RequireFunds, std::function<void(bool, bool, int64_t)> &&Cb, bool Absolute)
+{
+	if(!DbPool() || !CheckClientId(ClientId))
+	{
+		if(Cb)
+			Cb(false, false, 0);
+		return;
+	}
+
+	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	if(!Acc.m_LoggedIn || !Acc.m_aUsername[0])
+	{
+		if(Cb)
+			Cb(false, false, 0);
+		return;
+	}
+
+	const std::string Username = Acc.m_aUsername;
+	auto pRes = std::make_shared<CAccMoneyDeltaResult>();
+	auto pReq = std::make_unique<CAccMoneyDelta>(pRes);
+	str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
+	pReq->m_Delta = Delta;
+	pReq->m_RequireFunds = RequireFunds;
+	pReq->m_Absolute = Absolute;
+
+	Acc.m_MoneyInFlight++;
+
+	AddPending(pRes, [this, ClientId, pExpectedPlayer, Username, Delta, RequireFunds, Callback = std::move(Cb)](CAccResult &BaseRes) mutable {
+		auto *pDeltaRes = dynamic_cast<CAccMoneyDeltaResult *>(&BaseRes);
+		const bool DbSuccess = BaseRes.m_Success && pDeltaRes && pDeltaRes->m_PrimarySucceeded;
+		const bool Applied = DbSuccess && pDeltaRes->m_Applied;
+		const int64_t NewMoney = DbSuccess ? pDeltaRes->m_Money : 0;
+
+		const bool SameSession = IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer) &&
+					 GameServer()->m_aAccounts[ClientId].m_LoggedIn &&
+					 str_comp(GameServer()->m_aAccounts[ClientId].m_aUsername, Username.c_str()) == 0;
+		if(SameSession)
+		{
+			CAccountSession &Session = GameServer()->m_aAccounts[ClientId];
+			if(Session.m_MoneyInFlight > 0)
+				Session.m_MoneyInFlight--;
+			// The database is the owner, so take its answer over the guess made
+			// when the delta was sent.
+			if(DbSuccess)
+				Session.m_Money = NewMoney;
+		}
+		else if(RequireFunds && Applied)
+		{
+			// The spend was reserved for a session that has gone, so whatever it
+			// paid for can no longer be handed over. Put the money back.
+			log_info("account", "refunding %" PRId64 " to '%s', the session left before the spend completed", -Delta, Username.c_str());
+			MoneyDeltaByUsername(Username.c_str(), -Delta);
+		}
+
+		if(!DbSuccess)
+			log_error("account", "money delta for '%s' failed, balance left to the database", Username.c_str());
+
+		// Only the session that asked for this can act on the result
+		if(SameSession && Callback)
+			Callback(DbSuccess, Applied, NewMoney);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::MoneyDelta, std::move(pReq), "acc money delta");
+}
+
+void CAccounts::MoneyDeltaByUsername(const char *pUsername, int64_t Delta)
+{
+	if(!DbPool() || !pUsername[0] || Delta == 0)
+		return;
+	auto pReq = std::make_unique<CAccMoneyDelta>(std::make_shared<CAccMoneyDeltaResult>());
+	str_copy(pReq->m_aUsername, pUsername, sizeof(pReq->m_aUsername));
+	pReq->m_Delta = Delta;
+	DbPool()->ExecuteWrite(CAccountsWorker::MoneyDelta, std::move(pReq), "acc money delta (no session)");
+}
+
+void CAccounts::SetMoney(int ClientId, int64_t Money)
+{
+	if(!CheckClientId(ClientId))
+		return;
+	// Shown right away, then corrected from the database like any other change
+	GameServer()->m_aAccounts[ClientId].m_Money = Money;
+	ApplyMoneyDelta(ClientId, Money, false, nullptr, /* Absolute */ true);
+}
+
+void CAccounts::RefreshMoney()
+{
+	if(!DbPool())
+		return;
+
+	const int64_t Now = time(0);
+
+	struct CMoneyFetchResult : CAccResult
+	{
+		bool m_PrimaryLoaded = false;
+	};
+
+	struct CMoneyFetch : ISqlData
+	{
+		CMoneyFetch(std::shared_ptr<CMoneyFetchResult> pRes) :
+			ISqlData(std::move(pRes)) {}
+		char m_aUsername[ACC_MAX_USERNAME_LENGTH]{};
+	};
+
+	// Routed through ExecuteWrite so it reads the write database. A read
+	// connection may be a replica that has not caught up with our own deltas.
+	auto FnFetch = [](IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize) -> bool {
+		const auto *p = dynamic_cast<const CMoneyFetch *>(pData);
+		auto *pRes = dynamic_cast<CMoneyFetchResult *>(pData->m_pResult.get());
+		if(!p || !pRes)
+			return false;
+		if(w != Write::NORMAL)
+			return true;
+
+		char aSql[128];
+		str_copy(aSql, "SELECT Money FROM foxnet_accounts WHERE Username = ?", sizeof(aSql));
+		if(!pSql->PrepareStatement(aSql, pError, ErrorSize))
+			return false;
+		pSql->BindString(1, p->m_aUsername);
+
+		bool End = true;
+		if(!pSql->Step(&End, pError, ErrorSize))
+			return false;
+		if(End)
+			return true;
+		pRes->m_Money = pSql->GetInt64(1);
+		pRes->m_PrimaryLoaded = true;
+		str_copy(pRes->m_aUsername, p->m_aUsername, sizeof(pRes->m_aUsername));
+		while(!End)
+		{
+			if(!pSql->Step(&End, pError, ErrorSize))
+				return false;
+		}
+		return true;
+	};
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		CAccountSession &Acc = GameServer()->m_aAccounts[i];
+		if(!Acc.m_LoggedIn || !Acc.m_aUsername[0])
+			continue;
+		if(Acc.m_MoneyFetchPending)
+			continue;
+		// A delta is still unacknowledged, its result will set the balance
+		if(Acc.m_MoneyInFlight > 0)
+			continue;
+		if(Acc.m_LastMoneyFetch != 0 && (Now - Acc.m_LastMoneyFetch) < 60)
+			continue;
+
+		CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[i];
+		const std::string Username = Acc.m_aUsername;
+		auto pRes = std::make_shared<CMoneyFetchResult>();
+		auto pReq = std::make_unique<CMoneyFetch>(pRes);
+		str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
+
+		// Throttle from the attempt, not the outcome, so a failing fetch does
+		// not retry every tick.
+		Acc.m_MoneyFetchPending = true;
+		Acc.m_LastMoneyFetch = Now;
+		AddPending(pRes, [this, i, pExpectedPlayer, Username](CAccResult &BaseRes) {
+			const bool SameSession = IsExpectedPlayerStillInSlot(GameServer(), i, pExpectedPlayer) &&
+						 GameServer()->m_aAccounts[i].m_LoggedIn &&
+						 str_comp(GameServer()->m_aAccounts[i].m_aUsername, Username.c_str()) == 0;
+			if(!SameSession)
+				return;
+
+			CAccountSession &Acc = GameServer()->m_aAccounts[i];
+			Acc.m_MoneyFetchPending = false;
+			auto *pFetch = dynamic_cast<CMoneyFetchResult *>(&BaseRes);
+			if(!BaseRes.m_Success || !pFetch || !pFetch->m_PrimaryLoaded)
+				return;
+			// Deltas sent while this was in flight own the balance instead
+			if(Acc.m_MoneyInFlight > 0)
+				return;
+			Acc.m_Money = pFetch->m_Money;
+		});
+
+		DbPool()->ExecuteWrite(FnFetch, std::move(pReq), "acc fetch money");
+		break; // one account per tick, like the mailbox fetch
+	}
+}
+
+void CAccounts::PayMoney(int PayerClientId, int ReceiverClientId, int64_t Amount)
+{
+	if(!DbPool() || !CheckClientId(PayerClientId) || !CheckClientId(ReceiverClientId))
+		return;
+	if(Amount <= 0 || PayerClientId == ReceiverClientId)
+		return;
+
+	CAccountSession &Payer = GameServer()->m_aAccounts[PayerClientId];
+	CAccountSession &Receiver = GameServer()->m_aAccounts[ReceiverClientId];
+	if(!Payer.m_LoggedIn || !Payer.m_aUsername[0] || !Receiver.m_LoggedIn || !Receiver.m_aUsername[0])
+		return;
+	if(!str_comp(Payer.m_aUsername, Receiver.m_aUsername))
+		return; // same account on two slots, nothing to transfer
+
+	CPlayer *pExpectedPayer = GameServer()->m_apPlayers[PayerClientId];
+	CPlayer *pExpectedReceiver = GameServer()->m_apPlayers[ReceiverClientId];
+	const std::string PayerName = Payer.m_aUsername;
+	const std::string ReceiverName = Receiver.m_aUsername;
+
+	auto pRes = std::make_shared<CAccPayResult>();
+	auto pReq = std::make_unique<CAccPay>(pRes);
+	str_copy(pReq->m_aPayer, PayerName.c_str(), sizeof(pReq->m_aPayer));
+	str_copy(pReq->m_aReceiver, ReceiverName.c_str(), sizeof(pReq->m_aReceiver));
+	pReq->m_Amount = Amount;
+	pReq->m_Now = time(0);
+	pReq->m_Cooldown = g_Config.m_SvPayCooldown;
+
+	// Keep the periodic refresh off both balances until the transfer is
+	// answered, otherwise it could cache a value from before the transfer.
+	Payer.m_MoneyInFlight++;
+	Receiver.m_MoneyInFlight++;
+
+	AddPending(pRes, [this, PayerClientId, ReceiverClientId, pExpectedPayer, pExpectedReceiver, PayerName, ReceiverName, Amount](CAccResult &BaseRes) {
+		auto *pPayRes = dynamic_cast<CAccPayResult *>(&BaseRes);
+		const bool PayerHere = IsExpectedPlayerStillInSlot(GameServer(), PayerClientId, pExpectedPayer) &&
+				       GameServer()->m_aAccounts[PayerClientId].m_LoggedIn &&
+				       str_comp(GameServer()->m_aAccounts[PayerClientId].m_aUsername, PayerName.c_str()) == 0;
+		const bool ReceiverHere = IsExpectedPlayerStillInSlot(GameServer(), ReceiverClientId, pExpectedReceiver) &&
+					  GameServer()->m_aAccounts[ReceiverClientId].m_LoggedIn &&
+					  str_comp(GameServer()->m_aAccounts[ReceiverClientId].m_aUsername, ReceiverName.c_str()) == 0;
+		if(PayerHere && GameServer()->m_aAccounts[PayerClientId].m_MoneyInFlight > 0)
+			GameServer()->m_aAccounts[PayerClientId].m_MoneyInFlight--;
+		if(ReceiverHere && GameServer()->m_aAccounts[ReceiverClientId].m_MoneyInFlight > 0)
+			GameServer()->m_aAccounts[ReceiverClientId].m_MoneyInFlight--;
+
+		if(!BaseRes.m_Success || !pPayRes || !pPayRes->m_PrimarySucceeded)
+		{
+			if(PayerHere)
+				GameServer()->SendChatTarget(PayerClientId, "The database could not complete the transaction. No money was moved.");
+			return;
+		}
+
+		char aBuf[256];
+		switch(pPayRes->m_Status)
+		{
+		case CAccPayResult::EStatus::OK:
+		{
+			if(PayerHere)
+			{
+				GameServer()->m_aAccounts[PayerClientId].m_Money = pPayRes->m_PayerMoney;
+				str_format(aBuf, sizeof(aBuf), "You paid %s %" PRId64 "%s", ReceiverName.c_str(), Amount, g_Config.m_SvCurrencyName);
+				GameServer()->SendChatTarget(PayerClientId, aBuf);
+			}
+			if(ReceiverHere)
+			{
+				// The money is already theirs in the database, the refresh picks
+				// the balance up; tell them now so it is not a silent change.
+				GameServer()->m_aAccounts[ReceiverClientId].m_LastMoneyFetch = 0;
+				str_format(aBuf, sizeof(aBuf), "You received %" PRId64 "%s from %s", Amount, g_Config.m_SvCurrencyName, PayerName.c_str());
+				GameServer()->SendChatTarget(ReceiverClientId, aBuf);
+			}
+			log_info("account", "'%s' paid '%s' %" PRId64, PayerName.c_str(), ReceiverName.c_str(), Amount);
+		}
+		break;
+		case CAccPayResult::EStatus::ON_COOLDOWN:
+			if(PayerHere)
+			{
+				const int64_t Left = pPayRes->m_CooldownEndsAt - time(0);
+				str_format(aBuf, sizeof(aBuf), "You need to wait %" PRId64 " more seconds before another transaction.", Left > 0 ? Left : 1);
+				GameServer()->SendChatTarget(PayerClientId, aBuf);
+			}
+			break;
+		case CAccPayResult::EStatus::INSUFFICIENT_FUNDS:
+			if(PayerHere)
+				GameServer()->SendChatTarget(PayerClientId, "You don't have enough money to do this transaction.");
+			break;
+		case CAccPayResult::EStatus::NO_RECEIVER:
+			if(PayerHere)
+				GameServer()->SendChatTarget(PayerClientId, "That account could not receive the money. Nothing was transferred.");
+			break;
+		case CAccPayResult::EStatus::FAILED:
+		default:
+			if(PayerHere)
+				GameServer()->SendChatTarget(PayerClientId, "The transaction failed. No money was moved.");
+			break;
+		}
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::Pay, std::move(pReq), "acc pay");
 }

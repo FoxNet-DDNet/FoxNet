@@ -264,17 +264,32 @@ bool CShop::BuyItem(CPlayer *pPlayer, const char *pName)
 		}
 	}
 
-	pPlayer->TakeMoney(Price, true);
-	GiveItem(pPlayer, pCfg, pCfg->m_DefaultDays, "Shop", true);
+	// The item is handed over only once the database confirms the debit, so a
+	// refused or lost spend cannot leave the player holding a free item. The
+	// balance shown above is a cached copy, the database has the last word.
+	const int ClientId = pPlayer->GetCid();
+	pPlayer->TrySpendMoney(Price, [this, ClientId, pCfg, Price](bool Ok) {
+		CPlayer *pBuyer = GameServer()->m_apPlayers[ClientId];
+		if(!pBuyer || !pBuyer->Acc()->m_LoggedIn)
+			return;
 
-	pPlayer->SendChatFmt("Successfully bought Item '%s'", pCfg->m_pName);
+		if(!Ok)
+		{
+			pBuyer->SendChatFmt("Could not buy '%s', the purchase was not charged", pCfg->m_pName);
+			pBuyer->SendChatFmt("You need atleast %d%s", Price, g_Config.m_SvCurrencyName);
+			return;
+		}
 
-	if(pCfg->m_Group == EExclusiveGroup::Hat)
-	{
-		int TypeHat = (int)pPlayer->Cosmetics()->m_HatType;
-		if(TypeHat <= (int)EHatType::Ninja && TypeHat > (int)EHatType::None)
-			pPlayer->SendChat("Hats can be rotated! Head to the settings section to change the rotation");
-	}
+		GiveItem(pBuyer, pCfg, pCfg->m_DefaultDays, "Shop", true);
+		pBuyer->SendChatFmt("Successfully bought Item '%s'", pCfg->m_pName);
+
+		if(pCfg->m_Group == EExclusiveGroup::Hat)
+		{
+			int TypeHat = (int)pBuyer->Cosmetics()->m_HatType;
+			if(TypeHat <= (int)EHatType::Ninja && TypeHat > (int)EHatType::None)
+				pBuyer->SendChat("Hats can be rotated! Head to the settings section to change the rotation");
+		}
+	});
 
 	return true;
 }

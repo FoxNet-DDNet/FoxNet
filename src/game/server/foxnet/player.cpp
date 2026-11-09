@@ -190,7 +190,6 @@ void CPlayer::FoxNetReset()
 	m_LastAutoLoginAttempt.reset();
 	m_RetryAutoLogin = false;
 
-	m_LastTransaction = 0;
 	m_vReceivedConditionals.clear();
 
 	m_MultiMapIndex = DefaultMapIndex;
@@ -440,6 +439,8 @@ void CPlayer::GiveMoney(int64_t Amount, bool Multiplier, bool Silent)
 	else
 		NewMoney = std::max<int64_t>(0, OldMoney + Amount);
 
+	// Apply to the cached balance right away so the feedback is immediate. The
+	// database owns the real value and corrects this in the callback.
 	Acc()->m_Money = NewMoney;
 	const int64_t AppliedAmount = NewMoney - OldMoney;
 
@@ -456,7 +457,26 @@ void CPlayer::GiveMoney(int64_t Amount, bool Multiplier, bool Silent)
 		pChr->SetEmote(AppliedAmount >= 0 ? EMOTE_HAPPY : EMOTE_PAIN, Server()->Tick() + 75);
 	}
 
-	GameServer()->m_AccountManager.SaveAccountsInfo(m_ClientId, *Acc());
+	if(Amount != 0)
+		GameServer()->m_AccountManager.ApplyMoneyDelta(m_ClientId, Amount, false, nullptr);
+}
+
+void CPlayer::TrySpendMoney(int64_t Amount, std::function<void(bool Ok)> &&Cb)
+{
+	if(!Acc()->m_LoggedIn || Amount <= 0)
+	{
+		if(Cb)
+			Cb(false);
+		return;
+	}
+
+	// The database decides whether the balance covers this, so there is no
+	// window between checking and debiting.
+	GameServer()->m_AccountManager.ApplyMoneyDelta(m_ClientId, -Amount, true,
+		[Callback = std::move(Cb)](bool DbSuccess, bool Applied, int64_t) mutable {
+			if(Callback)
+				Callback(DbSuccess && Applied);
+		});
 }
 
 void CPlayer::PayMoney(CPlayer *pReceiver, int64_t Amount)
@@ -472,30 +492,28 @@ void CPlayer::PayMoney(CPlayer *pReceiver, int64_t Amount)
 		return;
 	}
 
-	if(Acc()->m_Level < 10)
+	if(Acc()->m_Level < g_Config.m_SvPayMinLevel)
 	{
-		SendChat("You need to be at least level 10 to do transactions.");
+		SendChatFmt("You need to be at least level %d to do transactions.", g_Config.m_SvPayMinLevel);
 		return;
 	}
+
+	if(pReceiver->Acc()->m_Level < g_Config.m_SvPayMinLevel)
+	{
+		SendChatFmt("'%s' needs to be at least level %d.", Server()->ClientName(pReceiver->GetCid()), g_Config.m_SvPayMinLevel);
+		return;
+	}
+	// The cached balance is only a hint here. The transfer itself debits with a
+	// condition, so the database refuses an overdraw even if this passes.
 	if(Acc()->m_Money < Amount)
 	{
 		SendChat("You don't have enough money to do this transaction.");
 		return;
 	}
 
-	constexpr int Cooldown = 300; // 5 minutes cooldown between transactions to prevent abuse
-	if(m_LastTransaction != 0 && Server()->Tick() - m_LastTransaction < Server()->TickSpeed() * Cooldown)
-	{
-		SendChat("You need to wait a bit before doing another transaction.");
-		return;
-	}
-
-	TakeMoney(Amount, false);
-	pReceiver->GiveMoney(Amount, false, false);
-
-	SendChatFmt("You paid %s %" PRId64 "%s", Server()->ClientName(pReceiver->GetCid()), Amount, g_Config.m_SvCurrencyName);
-	pReceiver->SendChatFmt("You received %" PRId64 "%s from %s", Amount, g_Config.m_SvCurrencyName, Server()->ClientName(GetCid()));
-	m_LastTransaction = Server()->Tick();
+	// Both halves move in one database transaction, and the cooldown lives on
+	// the account, so rejoining no longer clears it.
+	GameServer()->m_AccountManager.PayMoney(m_ClientId, pReceiver->GetCid(), Amount);
 }
 
 int64_t CPlayer::GetDiscountedPrice(int64_t Price)

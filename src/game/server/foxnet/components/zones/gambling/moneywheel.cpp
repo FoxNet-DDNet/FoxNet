@@ -433,19 +433,42 @@ bool CMoneyWheelZone::AddClient(int ClientId, const char *pBetOption)
 		return false;
 	}
 
-	BeginCountdown();
-	pPlayer->TakeMoney(BetAmount, true);
+	// The wager has to leave the account before the bet counts, so the bet is
+	// registered only once the database confirms the debit. The balance checked
+	// above is a cached copy, the database has the last word.
+	const int64_t Wager = BetAmount;
+	pPlayer->TrySpendMoney(Wager, [this, ClientId, Option, Wager](bool Ok) {
+		CPlayer *pBetter = GameServer()->m_apPlayers[ClientId];
+		if(!pBetter || !pBetter->Acc()->m_LoggedIn)
+			return;
 
-	m_aClients[ClientId].m_UsedWager = BetAmount;
-	m_aClients[ClientId].m_BetOption = Option;
-	m_aClients[ClientId].m_Active = true;
+		if(!Ok)
+		{
+			GameServer()->SendChatTarget(ClientId, "You don't have enough money to place that bet anymore.");
+			return;
+		}
 
-	m_Betters++;
-	m_TotalWager += BetAmount;
+		// The round can move on while the debit is in flight
+		if(!m_HasWheel || !CanJoinRound(ClientId) || !IsInArea(ClientId))
+		{
+			pBetter->GiveMoney(Wager, false, true);
+			GameServer()->SendChatTarget(ClientId, "The round moved on, your wager was returned.");
+			return;
+		}
 
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "You placed a bet of %" PRId64 " on %s", BetAmount, s_aOptions[Option].m_pName);
-	GameServer()->SendChatTarget(ClientId, aBuf);
+		BeginCountdown();
+
+		m_aClients[ClientId].m_UsedWager = Wager;
+		m_aClients[ClientId].m_BetOption = Option;
+		m_aClients[ClientId].m_Active = true;
+
+		m_Betters++;
+		m_TotalWager += Wager;
+
+		char aBuf[256];
+		str_format(aBuf, sizeof(aBuf), "You placed a bet of %" PRId64 " on %s", Wager, s_aOptions[Option].m_pName);
+		GameServer()->SendChatTarget(ClientId, aBuf);
+	});
 	return true;
 }
 
