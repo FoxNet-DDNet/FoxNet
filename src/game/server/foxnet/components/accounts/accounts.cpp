@@ -2077,15 +2077,15 @@ void CAccounts::RefreshMoney()
 			if(!SameSession)
 				return;
 
-			CAccountSession &Acc = GameServer()->m_aAccounts[i];
-			Acc.m_MoneyFetchPending = false;
+			CAccountSession &Session = GameServer()->m_aAccounts[i];
+			Session.m_MoneyFetchPending = false;
 			auto *pFetch = dynamic_cast<CMoneyFetchResult *>(&BaseRes);
 			if(!BaseRes.m_Success || !pFetch || !pFetch->m_PrimaryLoaded)
 				return;
 			// Deltas sent while this was in flight own the balance instead
-			if(Acc.m_MoneyInFlight > 0)
+			if(Session.m_MoneyInFlight > 0)
 				return;
-			Acc.m_Money = pFetch->m_Money;
+			Session.m_Money = pFetch->m_Money;
 		});
 
 		DbPool()->ExecuteWrite(FnFetch, std::move(pReq), "acc fetch money");
