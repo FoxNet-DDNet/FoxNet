@@ -347,6 +347,10 @@ struct CAccMoneyDelta : ISqlData
 	// Overwrite the balance with m_Delta instead of adding to it. Only for an
 	// admin set_money, where clobbering is the point.
 	bool m_Absolute = false;
+	// Read the resulting balance back into CAccResult::m_Money. Costs a second
+	// statement plus a transaction to keep the two atomic, so it is only set
+	// when a caller actually needs the number.
+	bool m_ReadBack = false;
 };
 
 struct CAccDailyRewardResult : CAccResult

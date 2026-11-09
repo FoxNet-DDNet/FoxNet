@@ -146,7 +146,7 @@ struct FoxNetAccounts : public testing::TestWithParam<EBackend> // NOLINT(readab
 		int64_t m_Money = 0;
 	};
 
-	SDelta Delta(const char *pUsername, int64_t Amount, bool RequireFunds = false, bool Absolute = false, Write w = Write::NORMAL)
+	SDelta Delta(const char *pUsername, int64_t Amount, bool RequireFunds = false, bool Absolute = false, Write w = Write::NORMAL, bool ReadBack = true)
 	{
 		auto pRes = std::make_shared<CAccMoneyDeltaResult>();
 		CAccMoneyDelta Req(pRes);
@@ -154,6 +154,7 @@ struct FoxNetAccounts : public testing::TestWithParam<EBackend> // NOLINT(readab
 		Req.m_Delta = Amount;
 		Req.m_RequireFunds = RequireFunds;
 		Req.m_Absolute = Absolute;
+		Req.m_ReadBack = ReadBack;
 
 		SDelta Out;
 		if(!CAccountsWorker::MoneyDelta(m_pConn, &Req, w, m_aError, sizeof(m_aError)))
@@ -274,6 +275,25 @@ TEST_P(FoxNetAccounts, CreditIsRefusedRatherThanWrapping)
 	EXPECT_TRUE(Res.m_Ok);
 	EXPECT_FALSE(Res.m_Applied);
 	EXPECT_EQ(Money("payer"), std::numeric_limits<int64_t>::max() - 5) << "an overflowing credit must not wrap the balance negative";
+}
+
+TEST_P(FoxNetAccounts, CreditWithoutReadBackStillApplies)
+{
+	// The cheap path used by a fire and forget credit: no transaction and no
+	// balance read, so m_Money stays zero while the row still changes.
+	const auto Res = Delta("payer", 250, false, false, Write::NORMAL, /* ReadBack */ false);
+	EXPECT_TRUE(Res.m_Ok);
+	EXPECT_TRUE(Res.m_Applied);
+	EXPECT_EQ(Res.m_Money, 0) << "nothing was read back, so no balance is reported";
+	EXPECT_EQ(Money("payer"), 1250) << "the row must still be updated";
+}
+
+TEST_P(FoxNetAccounts, GuardedDebitWithoutReadBackStillRefuses)
+{
+	const auto Res = Delta("payer", -5000, true, false, Write::NORMAL, /* ReadBack */ false);
+	EXPECT_TRUE(Res.m_Ok);
+	EXPECT_FALSE(Res.m_Applied);
+	EXPECT_EQ(Money("payer"), 1000);
 }
 
 TEST_P(FoxNetAccounts, DeltaOnBackupReplayDoesNothing)

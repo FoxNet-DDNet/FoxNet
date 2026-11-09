@@ -1936,10 +1936,16 @@ void CAccounts::ApplyMoneyDelta(int ClientId, int64_t Delta, bool RequireFunds, 
 	pReq->m_Delta = Delta;
 	pReq->m_RequireFunds = RequireFunds;
 	pReq->m_Absolute = Absolute;
+	// A spend has to show the new balance at once, and any caller with a
+	// callback is told it. A fire and forget credit does not need it: GiveMoney
+	// already applied the same delta to the cache, and the periodic refresh
+	// reconciles any drift.
+	const bool ReadBack = RequireFunds || (bool)Cb;
+	pReq->m_ReadBack = ReadBack;
 
 	Acc.m_MoneyInFlight++;
 
-	AddPending(pRes, [this, ClientId, pExpectedPlayer, Username, Delta, RequireFunds, Callback = std::move(Cb)](CAccResult &BaseRes) mutable {
+	AddPending(pRes, [this, ClientId, pExpectedPlayer, Username, Delta, RequireFunds, ReadBack, Callback = std::move(Cb)](CAccResult &BaseRes) mutable {
 		auto *pDeltaRes = dynamic_cast<CAccMoneyDeltaResult *>(&BaseRes);
 		const bool DbSuccess = BaseRes.m_Success && pDeltaRes && pDeltaRes->m_PrimarySucceeded;
 		const bool Applied = DbSuccess && pDeltaRes->m_Applied;
@@ -1954,8 +1960,9 @@ void CAccounts::ApplyMoneyDelta(int ClientId, int64_t Delta, bool RequireFunds, 
 			if(Session.m_MoneyInFlight > 0)
 				Session.m_MoneyInFlight--;
 			// The database is the owner, so take its answer over the guess made
-			// when the delta was sent.
-			if(DbSuccess)
+			// when the delta was sent. Without a read-back there is no answer
+			// to take, and NewMoney would just be zero.
+			if(DbSuccess && ReadBack)
 				Session.m_Money = NewMoney;
 		}
 		else if(RequireFunds && Applied)

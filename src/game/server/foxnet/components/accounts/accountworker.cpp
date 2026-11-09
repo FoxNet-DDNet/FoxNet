@@ -1579,11 +1579,14 @@ bool CAccountsWorker::MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Wri
 
 	const bool Primary = w == Write::NORMAL;
 
-	// The pool retries a failed write, and this is a relative update, so the
-	// change and the read-back have to be one atomic unit. Without this, a
-	// connection lost between them would apply the delta twice.
+	// The pool retries a failed write and this is a relative update, so the
+	// change and the read-back have to be one atomic unit: a connection lost
+	// between them would otherwise apply the delta twice. With no read-back
+	// the single UPDATE is already its own transaction, so the wrapper is
+	// skipped and the hot path costs several round trips less. Both forms
+	// leave the same one ambiguous point, a lost commit acknowledgement.
 	CScopedAccTransaction Transaction(pSql);
-	if(!Transaction.Begin(pError, ErrorSize))
+	if(pReq->m_ReadBack && !Transaction.Begin(pError, ErrorSize))
 		return false;
 
 	char aSql[256];
@@ -1632,9 +1635,15 @@ bool CAccountsWorker::MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Wri
 		return false;
 
 	if(!Primary)
-		return Transaction.Commit(pError, ErrorSize);
+		return pReq->m_ReadBack ? Transaction.Commit(pError, ErrorSize) : true;
 
 	pRes->m_Applied = NumUpdated == 1;
+
+	if(!pReq->m_ReadBack)
+	{
+		pRes->m_PrimarySucceeded = true;
+		return true;
+	}
 
 	// Hand the authoritative balance back, so the session stops guessing
 	char aSelect[128];
