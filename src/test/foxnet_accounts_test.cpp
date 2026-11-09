@@ -12,8 +12,49 @@
 
 // MysqlInit() asserts on a second call, so it is deliberately left to
 // score_test.cpp, which already initialises it for the whole binary.
+//
+// That makes ordering the problem: CMysqlConnection asserts in its
+// constructor that the library is initialised, and the order of static
+// initialisation between translation units is unspecified. So the connections
+// are built inside function-local statics, which are created on first use from
+// a test body, long after every DummyMysqlInit has run.
 
-struct FoxNetAccounts : public testing::TestWithParam<IDbConnection *> // NOLINT(readability-identifier-naming)
+enum class EBackend
+{
+	SQLITE,
+	MYSQL,
+};
+
+#if defined(CONF_TEST_MYSQL)
+// Same server the CI job provisions for score_test.cpp
+CMysqlConfig gFoxNetMysqlConfig{
+	"ddnet", // database
+	"foxnet_test", // prefix
+	"ddnet", // user
+	"thebestpassword", // password
+	"localhost", // ip
+	"", // bindaddr
+	3306, // port
+	true, // setup
+};
+#endif
+
+static IDbConnection *Backend(EBackend Which)
+{
+	if(Which == EBackend::MYSQL)
+	{
+#if defined(CONF_TEST_MYSQL)
+		static std::unique_ptr<IDbConnection> s_pMysql = CreateMysqlConnection(gFoxNetMysqlConfig);
+		return s_pMysql.get();
+#else
+		return nullptr;
+#endif
+	}
+	static std::unique_ptr<IDbConnection> s_pSqlite = CreateSqliteConnection(":memory:", true);
+	return s_pSqlite.get();
+}
+
+struct FoxNetAccounts : public testing::TestWithParam<EBackend> // NOLINT(readability-identifier-naming)
 {
 	FoxNetAccounts()
 	{
@@ -155,7 +196,7 @@ struct FoxNetAccounts : public testing::TestWithParam<IDbConnection *> // NOLINT
 		return pRes->m_Claimed ? pRes->m_Streak : -1;
 	}
 
-	IDbConnection *m_pConn{GetParam()};
+	IDbConnection *m_pConn{Backend(GetParam())};
 	char m_aError[256] = {};
 
 private:
@@ -350,35 +391,19 @@ TEST_P(FoxNetAccounts, DailyOnFailedPrimaryGrantsNothing)
 	EXPECT_EQ(Timer("payer", DAILY_REWARD_TIMER_KEY), -1);
 }
 
-static auto g_pFoxNetSqliteConn = CreateSqliteConnection(":memory:", true);
-#if defined(CONF_TEST_MYSQL)
-// Same server the CI job provisions for score_test.cpp
-CMysqlConfig gFoxNetMysqlConfig{
-	"ddnet", // database
-	"foxnet_test", // prefix
-	"ddnet", // user
-	"thebestpassword", // password
-	"localhost", // ip
-	"", // bindaddr
-	3306, // port
-	true, // setup
-};
-static auto g_pFoxNetMysqlConn = CreateMysqlConnection(gFoxNetMysqlConfig);
-#endif
-
 // Preprocessor directives cannot sit inside a macro argument list, so the
 // conditional stays out here where testing::Values is an ordinary call.
 static auto g_FoxNetTestValues{
 	testing::Values(
 #if defined(CONF_TEST_MYSQL)
-		g_pFoxNetMysqlConn.get(),
+		EBackend::MYSQL,
 #endif
-		g_pFoxNetSqliteConn.get())};
+		EBackend::SQLITE)};
 
 INSTANTIATE_TEST_SUITE_P(Sql, FoxNetAccounts, g_FoxNetTestValues,
 	[](const testing::TestParamInfo<FoxNetAccounts::ParamType> &Info) {
-		// Named off the connection rather than the index, so the suffix is
-		// right whether or not MySQL is compiled in. CI filters out -*SQLite*
-		// on the job that has a MySQL server.
-		return Info.param == g_pFoxNetSqliteConn.get() ? "SQLite" : "MySQL";
+		// Named off the backend rather than the index, so the suffix is right
+		// whether or not MySQL is compiled in. CI filters out -*SQLite* on the
+		// job that has a MySQL server.
+		return Info.param == EBackend::SQLITE ? "SQLite" : "MySQL";
 	});
