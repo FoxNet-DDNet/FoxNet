@@ -857,8 +857,8 @@ void CGameContext::Explosion(vec2 Pos, CClientMask Mask)
 	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_truncate(Pos.x);
+		pEvent->m_Y = round_truncate(Pos.y);
 	}
 }
 

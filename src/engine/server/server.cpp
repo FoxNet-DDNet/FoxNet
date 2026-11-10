@@ -2136,27 +2136,28 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		return;
 	}
 
-	// <FoxNet
-	if(!ClientSlotEmpty(ClientId) && !IsRconAuthed(ClientId))
-		return;
-	// FoxNet>
 
 	if(Config()->m_SvNetlimit && (Msg != NETMSG_REQUEST_MAP_DATA || m_aClients[ClientId].m_State != CClient::STATE_CONNECTING))
 	{
-		int64_t Now = time_get();
-		int64_t Diff = Now - m_aClients[ClientId].m_TrafficSince;
-		double Alpha = Config()->m_SvNetlimitAlpha / 100.0;
-		double Limit = (double)(Config()->m_SvNetlimit * 1024) / time_freq();
+		// <FoxNet
+		if(!ClientSlotEmpty(ClientId) && !IsRconAuthed(ClientId))
+		{
+			// FoxNet>
+			int64_t Now = time_get();
+			int64_t Diff = Now - m_aClients[ClientId].m_TrafficSince;
+			double Alpha = Config()->m_SvNetlimitAlpha / 100.0;
+			double Limit = (double)(Config()->m_SvNetlimit * 1024) / time_freq();
 
-		if(m_aClients[ClientId].m_Traffic > Limit)
-		{
-			m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
-			return;
-		}
-		if(Diff > 100)
-		{
-			m_aClients[ClientId].m_Traffic = (Alpha * ((double)pPacket->m_DataSize / Diff)) + (1.0 - Alpha) * m_aClients[ClientId].m_Traffic;
-			m_aClients[ClientId].m_TrafficSince = Now;
+			if(m_aClients[ClientId].m_Traffic > Limit)
+			{
+				m_NetServer.NetBan()->BanAddr(&pPacket->m_Address, 600, "Stressing network", false);
+				return;
+			}
+			if(Diff > 100)
+			{
+				m_aClients[ClientId].m_Traffic = (Alpha * ((double)pPacket->m_DataSize / Diff)) + (1.0 - Alpha) * m_aClients[ClientId].m_Traffic;
+				m_aClients[ClientId].m_TrafficSince = Now;
+			}
 		}
 	}
 
