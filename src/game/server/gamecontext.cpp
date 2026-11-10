@@ -454,8 +454,8 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, CClientMas
 		CNetEvent_DamageInd *pEvent = m_Events.Create<CNetEvent_DamageInd>(Mask);
 		if(pEvent)
 		{
-			pEvent->m_X = (int)Pos.x;
-			pEvent->m_Y = (int)Pos.y;
+			pEvent->m_X = round_truncate(Pos.x);
+			pEvent->m_Y = round_truncate(Pos.y);
 			pEvent->m_Angle = (int)(f * 256.0f);
 		}
 	}
@@ -588,8 +588,8 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, CClientMask Mask)
 	CNetEvent_SoundWorld *pEvent = m_Events.Create<CNetEvent_SoundWorld>(Mask);
 	if(pEvent)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_X = round_truncate(Pos.x);
+		pEvent->m_Y = round_truncate(Pos.y);
 		pEvent->m_SoundId = Sound;
 	}
 }
@@ -980,11 +980,17 @@ void CGameContext::SendModeratorAlert(int ToClientId, const char *pMessage)
 	dbg_assert(in_range(ToClientId, 0, MAX_CLIENTS - 1), "SendImportantAlert ToClientId invalid: %d", ToClientId);
 	dbg_assert(m_apPlayers[ToClientId] != nullptr, "Client not online: %d", ToClientId);
 
-	if(m_apPlayers[ToClientId]->GetClientVersion() >= VERSION_DDNET_IMPORTANT_ALERT)
+	const int ClientVersion = m_apPlayers[ToClientId]->GetClientVersion();
+	if(ClientVersion >= VERSION_DDNET_IMPORTANT_ALERT)
 	{
 		CNetMsg_Sv_ModeratorAlert Msg;
 		Msg.m_pMessage = pMessage;
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ToClientId);
+
+		if(ClientVersion < VERSION_DDNET_IMPORTANT_ALERT_DUMMY_FIXED)
+		{
+			log_info("moderator_alert", "Notice: player uses an old client version and may not see moderator alerts: %s (ID %d)", Server()->ClientName(ToClientId), ToClientId);
+		}
 	}
 	else
 	{
@@ -1760,6 +1766,13 @@ void CGameContext::OnClientPrepareInput(int ClientId, void *pInput)
 
 	if(Server()->IsSixup(ClientId))
 		pPlayerInput->m_PlayerFlags = PlayerFlags_SevenToSix(pPlayerInput->m_PlayerFlags);
+
+	constexpr int MaxTarget = 1 << 20;
+	pPlayerInput->m_TargetX = std::clamp(pPlayerInput->m_TargetX, -MaxTarget, MaxTarget);
+	pPlayerInput->m_TargetY = std::clamp(pPlayerInput->m_TargetY, -MaxTarget, MaxTarget);
+
+	if(pPlayerInput->m_WantedWeapon < 0 || pPlayerInput->m_WantedWeapon > NUM_WEAPONS)
+		pPlayerInput->m_WantedWeapon = 0;
 }
 
 void CGameContext::OnClientDirectInput(int ClientId, const void *pInput)
