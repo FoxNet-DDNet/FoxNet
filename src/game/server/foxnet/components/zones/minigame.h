@@ -133,7 +133,8 @@ public:
 	virtual void OnCharacterHammerHit(int ClientId, int Target) {}
 	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
 
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, CFinishTime &FinishTime) {}
+	virtual void OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick) {}
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_MINIGAME_H

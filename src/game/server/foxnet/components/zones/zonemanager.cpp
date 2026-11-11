@@ -555,11 +555,18 @@ bool CZoneManager::SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId
 	return true;
 }
 
-void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime)
+void CZoneManager::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, IGameController::CFinishTime &FinishTime)
 {
 	for(IMinigame *pMinigame : m_vpMinigames)
 	{
-		pMinigame->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, pTeam, pLatency, pScore, pFinishTime);
+		pMinigame->OnPlayerSnap(pPlayer, SnappingClient, ClientInfo, Team, Latency, Score, FinishTime);
+	}
+}
+void CZoneManager::OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick)
+{
+	for(IMinigame *pMinigame : m_vpMinigames)
+	{
+		pMinigame->OnCharacterSnap(pChr, SnappingClient, Weapon, AmmoCount, Health, Armor, Emote, Tick);
 	}
 }
 void CZoneManager::FreeQuadIds()

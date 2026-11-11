@@ -54,6 +54,8 @@ class CHideAndSeekZone : public IMinigame
 
 	int64_t m_WarmUpTime = 0;
 
+	int m_HideTimeTicks = 0;
+
 	int m_SeekTimeTotal = 0;
 	int m_SeekTimeRemaining = 0; // In Ticks
 
@@ -192,8 +194,9 @@ public:
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
-	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime) override;
-
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, IGameController::CFinishTime &FinishTime) override;
+	void OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick) override;
+	
 	bool IsRoundRunning() const { return m_State == EState::Playing; }
 	// The only players a seekers bullet may ever touch
 	bool IsAliveHider(int ClientId) const;

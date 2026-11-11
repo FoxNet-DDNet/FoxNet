@@ -1479,6 +1479,8 @@ void CCharacter::SnapCharacter(int SnappingClient, int MapId)
 		Armor = m_Armor;
 		AmmoCount = (m_FreezeTime == 0 && m_Core.m_ActiveWeapon >= 0) ? m_Core.m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo : 0;
 	}
+	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
+		pComponent->OnCharacterSnap(this, SnappingClient, Weapon, AmmoCount, Health, Armor, Emote, Tick);
 
 	if(!Server()->IsSixup(SnappingClient))
 	{
@@ -1486,6 +1488,7 @@ void CCharacter::SnapCharacter(int SnappingClient, int MapId)
 
 		pCore->Write(&Character);
 
+		// <FoxNet
 		if(m_pPlayer->GetCid() != SnappingClient || GetPlayer()->IsPaused())
 		{
 			if(g_Config.m_SvTeeCursor)

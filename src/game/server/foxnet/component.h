@@ -138,10 +138,20 @@ public:
 	 * Called when a Mask is being set for a client, return false to prevent the mask from being set
 	 */
 	virtual bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) { return true; }
+
+
 	/*
 	 * Used to override player snap data
 	 */
-	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) {}
+	virtual void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, CFinishTime &FinishTime) {}
+	/*
+	 * Called when a character is snapped, return false to prevent it from being snapped for the client
+	 *
+	 * @param pChr the character that is being snapped
+	 * @param SnappingClient the client that is snapping this character
+	 * @param DDNetCharacter the corresponding snap data
+	 */
+	virtual void OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick) {}
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENT_H

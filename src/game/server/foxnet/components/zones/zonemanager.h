@@ -112,7 +112,8 @@ public:
 	void OnCharacterHammerHit(int ClientId, int Target) override;
 	bool SetMask(int ClientId, int MultiMapIdx, int Team, int ExceptId, int Asker, int VersionFlags, int Flags) override;
 
-	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, CFinishTime *pFinishTime) override;
+	void OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, CFinishTime &FinishTime) override;
+	void OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick) override;
 };
 
 #endif // GAME_SERVER_FOXNET_COMPONENTS_ZONES_ZONEMANAGER_H

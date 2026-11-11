@@ -32,6 +32,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <engine/shared/protocolglue.h>
 
 // ToDo @qxdFox:
 // ~~Dont allow weapon drops~~
@@ -177,6 +178,9 @@ void CHideAndSeekZone::OnTick()
 			m_State = EState::WaitingForPlayers;
 			return;
 		}
+
+		if(m_HideTimeTicks > 0)
+			m_HideTimeTicks--;
 
 		if(m_SeekTimeRemaining > 0)
 		{
@@ -412,6 +416,20 @@ void CHideAndSeekZone::ClientTick(int ClientId)
 
 			if(Data.m_DashesTotal > 0)
 				Messages.push_back(MakeHudCount("Dash", Data.m_DashesLeft, Data.m_DashesTotal));
+
+			if(pChr->Core()->m_Ninja.m_CurrentMoveTime > 0)
+			{
+				for(int CandidateId : m_vCandidateIds)
+				{
+					CCharacter *pCand = GameServer()->GetPlayerChar(CandidateId);
+
+					if(pCand)
+					{
+						if(pCand->Core()->HookedPlayer() == ClientId)
+							pCand->ReleaseHook();
+					}
+				}
+			}
 		}
 		else
 		{
@@ -593,6 +611,8 @@ void CHideAndSeekZone::StartGame()
 	const int NumSeekers = DesiredSeekers;
 	const int NumHiders = NumCandidates - NumSeekers;
 
+	m_HideTimeTicks = g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed();
+
 	// move players to spawn points
 	for(int ClientId : m_vCandidateIds)
 	{
@@ -609,7 +629,7 @@ void CHideAndSeekZone::StartGame()
 
 		if(m_aClientData[ClientId].m_IsSeeker)
 		{
-			pChr->FreezeForce(g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed());
+			pChr->FreezeForce(m_HideTimeTicks);
 			pChr->SetTuneOverride(m_SeekerTuneZone);
 			pPlayer->SendChat("You are a Seeker");
 		}
@@ -620,6 +640,7 @@ void CHideAndSeekZone::StartGame()
 
 			// One set of dashes per seeker, so being outnumbered is what pays for the escapes
 			GiveDashes(ClientId, g_Config.m_SvHideSeekHidersDashes * NumSeekers);
+			pChr->SetActiveWeapon(WEAPON_HAMMER);
 		}
 	}
 
@@ -1181,6 +1202,9 @@ bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 			if(m_aClientData[ClientId].m_DashesLeft <= 0)
 				return false;
 
+			if(m_HideTimeTicks > 0)
+				return false; // seeker didnt start yet, dont waste
+
 			if(!pChr->StartDash())
 				return false; // nowhere to dash, don't charge them a use for it
 
@@ -1190,7 +1214,7 @@ bool CHideAndSeekZone::OnCharacterFire(CCharacter *pChr, int Weapon)
 	return true;
 }
 
-void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int *pTeam, int *pLatency, int *pScore, IGameController::CFinishTime *pFinishTime)
+void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetObj_ClientInfo &ClientInfo, int &Team, int &Latency, int &Score, IGameController::CFinishTime &FinishTime)
 {
 	if(SnappingClient == SERVER_DEMO_CLIENT)
 		return;
@@ -1198,7 +1222,7 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	if(!pSnapPlayer)
 		return;
 
-	int ClientId = pPlayer->GetCid();
+	const int ClientId = pPlayer->GetCid();
 
 	CClientData &Data = m_aClientData[ClientId];
 	CClientData &SnapData = m_aClientData[SnappingClient];
@@ -1207,8 +1231,8 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	const bool SnapInArena = IsEligible(SnappingClient);
 	if(SnappingClient != SERVER_DEMO_CLIENT && pSnapPlayer && SnapInArena)
 	{
-		*pFinishTime = IGameController::CFinishTime::Unset();
-		*pScore = Data.m_NumWins;
+		FinishTime = IGameController::CFinishTime::Unset();
+		Score = Data.m_NumWins;
 	}
 
 	if(m_State != EState::Playing && m_State != EState::Finished)
@@ -1217,7 +1241,7 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 	if(!InArea)
 	{
 		if(ClientId != SnappingClient && SnapInArena)
-			*pTeam = (int)TEAM_SPECTATORS;
+			Team = (int)TEAM_SPECTATORS;
 		return;
 	}
 
@@ -1226,7 +1250,17 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 		ClientInfo.m_UseCustomColor = false;
 		StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "x_spec");
 	}
-	else if(!Data.m_IsSeeker)
+	else if(Data.m_IsSeeker)
+	{
+		if(m_State == EState::Finished)
+			return;
+
+		constexpr int ColorSeeker = 16758590; // Red
+		ClientInfo.m_UseCustomColor = true;
+		ClientInfo.m_ColorBody = ColorSeeker;
+		ClientInfo.m_ColorFeet = ColorSeeker;
+	}
+	else
 	{
 		if(m_State == EState::Finished)
 			return;
@@ -1236,22 +1270,43 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 		ClientInfo.m_ColorBody = ColorHider;
 		ClientInfo.m_ColorFeet = ColorHider;
 
-		bool CanSeePlayer = !SnapData.m_IsSeeker || CanSnapCharacter(pPlayer->GetCharacter(), SnappingClient);
+		CCharacter *pChr = pPlayer->GetCharacter();
+		bool CanSeePlayer = !SnapData.m_IsSeeker || CanSnapCharacter(pChr, SnappingClient);
 
+		log_info("test", "id(%d)=%d", ClientId, pChr->GetActiveWeapon());
+		if(pChr->GetActiveWeapon() == WEAPON_DASH)
+		{
+			StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "x_ninja");
+			return;
+		}
 		if(Data.m_GhostDuration > 0 && CanSeePlayer)
 		{
 			ClientInfo.m_UseCustomColor = false;
 			StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "ghost");
 		}
 	}
-	else
+}
+
+void CHideAndSeekZone::OnCharacterSnap(CCharacter *pChr, int SnappingClient, int &Weapon, int &AmmoCount, int &Health, int &Armor, int &Emote, int &Tick)
+{
+	if(SnappingClient == SERVER_DEMO_CLIENT)
+		return;
+	CPlayer *pSnapPlayer = GameServer()->m_apPlayers[SnappingClient];
+	if(!pSnapPlayer)
+		return;
+
+	const int ClientId = pChr->GetPlayer()->GetCid();
+
+	const bool InArea = IsEligible(ClientId);
+	if(!InArea)
+		return;
+
+	if(m_State != EState::Playing && m_State != EState::Finished)
+		return;
+
+	if(Weapon == WEAPON_NINJA && SnappingClient != ClientId)
 	{
-		if(m_State == EState::Finished)
-			return;
-		constexpr int ColorSeeker = 16758590; // Red
-		ClientInfo.m_UseCustomColor = true;
-		ClientInfo.m_ColorBody = ColorSeeker;
-		ClientInfo.m_ColorFeet = ColorSeeker;
+		Weapon = WEAPON_GUN;
 	}
 }
 
@@ -1381,7 +1436,7 @@ bool CHideAndSeekZone::TryReplaceAfkSeeker(int ClientId)
 	if(pNewSeekerChr)
 	{
 		pNewSeekerChr->SetTuneOverride(m_SeekerTuneZone);
-		pNewSeekerChr->FreezeForce(g_Config.m_SvHideSeekFreezeDuration * Server()->TickSpeed());
+		pNewSeekerChr->FreezeForce(m_HideTimeTicks);
 		pNewSeekerChr->ForceSetPos(GetRandomSpawnPos());
 	}
 	m_SeekTimeRemaining += MaxAfkSeconds * Server()->TickSpeed();

@@ -385,7 +385,7 @@ void CPlayer::Snap(int SnappingClient)
 	IGameController::CFinishTime PlayerTime = GameServer()->m_pController->SnapPlayerTime(SnappingClient, this);
 
 	for(CServerComponent *pComponent : GameServer()->m_vpComponents)
-		pComponent->OnPlayerSnap(this, SnappingClient, ClientInfo, &Team, &Latency, &Score, &PlayerTime);
+		pComponent->OnPlayerSnap(this, SnappingClient, ClientInfo, Team, Latency, Score, PlayerTime);
 
 	Server()->SnapNewItem(TranslatedId, ClientInfo);
 
