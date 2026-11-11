@@ -2137,7 +2137,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 	}
 
 
-	if(Config()->m_SvNetlimit && (Msg != NETMSG_REQUEST_MAP_DATA || m_aClients[ClientId].m_State != CClient::STATE_CONNECTING))
+	if(Config()->m_SvNetlimit && Msg != NETMSG_REQUEST_MAP_DATA)
 	{
 		// <FoxNet
 		if(!ClientSlotEmpty(ClientId) && !IsRconAuthed(ClientId))
@@ -2210,7 +2210,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		}
 		else if(Msg == NETMSG_REQUEST_MAP_DATA)
 		{
-			if(m_aClients[ClientId].m_State != CClient::STATE_CONNECTING)
+			if(m_aClients[ClientId].m_State < CClient::STATE_CONNECTING)
 				return;
 
 			if(m_aClients[ClientId].m_Sixup)
