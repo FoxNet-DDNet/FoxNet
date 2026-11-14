@@ -1275,6 +1275,10 @@ bool CGameContext::IsVetoEligible(int ClientId) const
 	if(!pPlayer || pPlayer->IsAfk() || pPlayer->GetTeam() == TEAM_SPECTATORS)
 		return false;
 
+	// no veto rights while in practice
+	if(m_pController->Teams().IsPractice(GetDDRaceTeam(ClientId)))
+		return false;
+
 	const CCharacter *pCharacter = pPlayer->GetCharacter();
 	const bool LongRace = pCharacter && pCharacter->m_DDRaceState == ERaceState::STARTED &&
 			      (Server()->Tick() - pCharacter->m_StartTime) / (Server()->TickSpeed() * 60) > g_Config.m_SvVoteVetoTime;
