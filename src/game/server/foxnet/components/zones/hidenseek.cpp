@@ -1273,7 +1273,6 @@ void CHideAndSeekZone::OnPlayerSnap(CPlayer *pPlayer, int SnappingClient, CNetOb
 		CCharacter *pChr = pPlayer->GetCharacter();
 		bool CanSeePlayer = !SnapData.m_IsSeeker || CanSnapCharacter(pChr, SnappingClient);
 
-		log_info("test", "id(%d)=%d", ClientId, pChr->GetActiveWeapon());
 		if(pChr->GetActiveWeapon() == WEAPON_DASH)
 		{
 			StrToInts(ClientInfo.m_aSkin, std::size(ClientInfo.m_aSkin), "x_ninja");
