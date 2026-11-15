@@ -1378,10 +1378,21 @@ void CGameTeams::OnCharacterSpawn(int ClientId)
 	if(GetSaving(Team))
 		return;
 
-	if(!IsValidTeamNumber(Team) || Team == TEAM_FLOCK || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO ||
+	// <FoxNet
+	/*
+	 * sv_solo_server is a per map setting, so which kind of team a player belongs in depends on the map
+	 * they spawn on: their own team on a solo map, the flock anywhere else. A player who walked onto a
+	 * map that is not solo still carries the team forced solo gave them, and teams cannot be joined by
+	 * hand on such a server, so any team but the flock here is one of those and is safe to take away.
+	 */
+	const bool ForcedSolo = GameServer()->ForcedSoloFor(ClientId);
+	const bool LeftSoloMap = !ForcedSolo && GameServer()->PerMapForcedSolo() && Team != TEAM_FLOCK;
+	// FoxNet>
+
+	if(!IsValidTeamNumber(Team) || Team == TEAM_FLOCK || ForcedSolo || LeftSoloMap ||
 		(!m_aTeamLocked[Team] && !m_aTeamFlock[Team] && m_aTeamState[Team] > ETeamState::OPEN))
 	{
-		if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO)
+		if(!ForcedSolo)
 			SetForceCharacterTeam(ClientId, TEAM_FLOCK);
 		else
 			SetForceCharacterTeam(ClientId, ClientId); // initialize team
@@ -1404,7 +1415,17 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 		return;
 	bool Locked = TeamLocked(Team) && Weapon != WEAPON_GAME;
 
-	if(g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO && Team != TEAM_SUPER)
+	// <FoxNet
+	/*
+	 * This block is about a player's own forced solo team. Under per map solo a player can be in the
+	 * flock, because the map they are on is not solo, while the server as a whole is forced solo, and
+	 * then it must not run: it would reset the round state of team 0, which those players share.
+	 */
+	const bool OwnSoloTeam = GameServer()->ForcedSoloFor(ClientId) &&
+				 (!GameServer()->PerMapForcedSolo() || Team == ClientId);
+	// FoxNet>
+
+	if(OwnSoloTeam && Team != TEAM_SUPER)
 	{
 		ChangeTeamState(Team, ETeamState::OPEN);
 		if(m_aPractice[Team])

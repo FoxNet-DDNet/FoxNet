@@ -581,6 +581,19 @@ public:
 
 	bool PracticeByDefault() const;
 
+	// <FoxNet
+	// Whether that map's own settings made it a solo server, see LoadMapSettings
+	bool SoloMap(int MultiMapIdx) const;
+	/*
+	 * True when sv_solo_server is what put the server in forced solo, which is the only case where
+	 * each map gets to say whether players on it are solo. sv_team 3 on its own is a server wide
+	 * setting with no per map answer, so it keeps deciding for every map.
+	 */
+	bool PerMapForcedSolo() const;
+	// Whether the client is forced solo where they are standing. Ask this instead of reading sv_team.
+	bool ForcedSoloFor(int ClientId) const;
+	// FoxNet>
+
 	std::shared_ptr<CScoreRandomMapResult> m_SqlRandomMapResult;
 
 	// cached map info from database

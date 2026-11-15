@@ -3408,7 +3408,8 @@ void CCharacter::FoxNetSpawn()
 	m_PowerHookedId = -1;
 
 	bool ShouldSolo = true;
-	if(g_Config.m_SvSoloServer || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
+	// Both are per map, a casino map on a solo server hands out spawn solo like any normal map
+	if(GameServer()->SoloMap(MultiMapIdx()) || GameServer()->ForcedSoloFor(GetPlayer()->GetCid()))
 		ShouldSolo = false;
 
 	if(Team() != TEAM_FLOCK && Teams()->TeamSize(Team()) <= 1)

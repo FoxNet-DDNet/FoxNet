@@ -5338,11 +5338,14 @@ void CGameContext::LoadMapSettings(size_t MultiMapIdx)
 	// <FoxNet
 	/*
 	 * Map settings are plain console lines, so they land in the one global config no matter which map
-	 * they came from. sv_solo_server is the one setting a map can flip that changes how players
-	 * interact, so a secondary map must not be able to turn the whole server solo: it starts from the
-	 * server's value, keeps whatever its own settings make of it, and hands the global back untouched.
+	 * they came from. sv_solo_server changes how players interact, so a secondary map must not be able
+	 * to turn the whole server solo, and must not be made solo by the main map either: it starts from
+	 * off, keeps whatever its own settings make of it, and hands the global back untouched. Every map
+	 * therefore states its own answer, which is what lets a casino map sit on a solo server.
 	 */
 	const int ServerSoloServer = g_Config.m_SvSoloServer;
+	if(MultiMapIdx != (size_t)DefaultMapIndex)
+		g_Config.m_SvSoloServer = 0;
 	// FoxNet>
 
 	for(int i = Start; i < Start + Num; i++)
@@ -6190,6 +6193,33 @@ bool CGameContext::PracticeByDefault() const
 {
 	return g_Config.m_SvPracticeByDefault && g_Config.m_SvTestingCommands;
 }
+
+// <FoxNet
+bool CGameContext::SoloMap(int MultiMapIdx) const
+{
+	if(MultiMapIdx < 0 || (size_t)MultiMapIdx >= m_vMultiMaps.size())
+		return false;
+
+	return m_vMultiMaps[MultiMapIdx]->m_SoloServer;
+}
+
+bool CGameContext::PerMapForcedSolo() const
+{
+	return g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO && SoloMap(DefaultMapIndex);
+}
+
+bool CGameContext::ForcedSoloFor(int ClientId) const
+{
+	if(g_Config.m_SvTeam != SV_TEAM_FORCED_SOLO)
+		return false;
+	if(!PerMapForcedSolo())
+		return true;
+	if(!CheckClientId(ClientId) || !m_apPlayers[ClientId])
+		return true; // Nothing to go on, answer for the server
+
+	return SoloMap(m_apPlayers[ClientId]->MultiMapIdx());
+}
+// FoxNet>
 
 void CGameContext::SendStartMessages(int ClientId)
 {

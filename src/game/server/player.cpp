@@ -876,7 +876,7 @@ void CPlayer::TryRespawn()
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->m_pController->GetMaskForPlayerWorldEvent(m_ClientId, MultiMapIdx()));
 
-	if(g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
+	if(GameServer()->ForcedSoloFor(m_ClientId)) // FoxNet, per map rather than sv_team
 		m_pCharacter->SetSolo(true);
 }
 
