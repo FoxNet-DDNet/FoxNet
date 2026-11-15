@@ -290,6 +290,14 @@ char *CSaveTee::GetString(const CSaveTeam *pTeam)
 		}
 	}
 
+	// <FoxNet: the custom weapons ride along as one got-bitmask
+	static_assert((int)NUM_EXTRA_WEAPONS - (int)NUM_WEAPONS <= 32);
+	int ExtraWeaponsGot = 0;
+	for(int i = NUM_WEAPONS; i < NUM_EXTRA_WEAPONS; i++)
+		if(m_aWeapons[i].m_Got)
+			ExtraWeaponsGot |= 1 << (i - NUM_WEAPONS);
+	// FoxNet>
+
 	str_format(m_aString, sizeof(m_aString),
 		"%s\t%d\t%d\t%d\t%d\t%d\t"
 		// weapons
@@ -324,7 +332,8 @@ char *CSaveTee::GetString(const CSaveTeam *pTeam)
 		"%d\t" // m_ReloadTimer
 		"%d\t" // m_TeeStarted
 		"%d\t" //m_LiveFreeze
-		"%f\t%f\t%d\t%d\t%d", // m_Ninja
+		"%f\t%f\t%d\t%d\t%d\t" // m_Ninja
+		"%d", // extra weapons got
 		m_aName, m_Alive, m_Paused, m_NeededFaketuning, m_TeeFinished, m_IsSolo,
 		// weapons
 		m_aWeapons[0].m_AmmoRegenStart, m_aWeapons[0].m_Ammo, m_aWeapons[0].m_Ammocost, m_aWeapons[0].m_Got,
@@ -358,12 +367,14 @@ char *CSaveTee::GetString(const CSaveTeam *pTeam)
 		m_ReloadTimer,
 		m_TeeStarted,
 		m_LiveFrozen,
-		m_Ninja.m_ActivationDir.x, m_Ninja.m_ActivationDir.y, m_Ninja.m_ActivationTick, m_Ninja.m_CurrentMoveTime, m_Ninja.m_OldVelAmount);
+		m_Ninja.m_ActivationDir.x, m_Ninja.m_ActivationDir.y, m_Ninja.m_ActivationTick, m_Ninja.m_CurrentMoveTime, m_Ninja.m_OldVelAmount,
+		ExtraWeaponsGot);
 	return m_aString;
 }
 
 bool CSaveTee::FromString(const char *pString, int MembersCount)
 {
+	int ExtraWeaponsGot = 0; // <FoxNet: stays 0 for saves written before the mask
 	int Num;
 	Num = sscanf(pString,
 		"%15[^\t]\t%d\t%d\t%d\t%d\t%d\t"
@@ -399,7 +410,8 @@ bool CSaveTee::FromString(const char *pString, int MembersCount)
 		"%d\t" // m_ReloadTimer
 		"%d\t" // m_TeeStarted
 		"%d\t" // m_LiveFreeze
-		"%f\t%f\t%d\t%d\t%d", // m_Ninja
+		"%f\t%f\t%d\t%d\t%d\t" // m_Ninja
+		"%d", // extra weapons got
 		m_aName, &m_Alive, &m_Paused, &m_NeededFaketuning, &m_TeeFinished, &m_IsSolo,
 		// weapons
 		&m_aWeapons[0].m_AmmoRegenStart, &m_aWeapons[0].m_Ammo, &m_aWeapons[0].m_Ammocost, &m_aWeapons[0].m_Got,
@@ -433,7 +445,8 @@ bool CSaveTee::FromString(const char *pString, int MembersCount)
 		&m_ReloadTimer,
 		&m_TeeStarted,
 		&m_LiveFrozen,
-		&m_Ninja.m_ActivationDir.x, &m_Ninja.m_ActivationDir.y, &m_Ninja.m_ActivationTick, &m_Ninja.m_CurrentMoveTime, &m_Ninja.m_OldVelAmount);
+		&m_Ninja.m_ActivationDir.x, &m_Ninja.m_ActivationDir.y, &m_Ninja.m_ActivationTick, &m_Ninja.m_CurrentMoveTime, &m_Ninja.m_OldVelAmount,
+		&ExtraWeaponsGot);
 	switch(Num) // Don't forget to update this when you save / load more / less.
 	{
 	case 96:
@@ -476,7 +489,8 @@ bool CSaveTee::FromString(const char *pString, int MembersCount)
 		m_Ninja.m_CurrentMoveTime = 0;
 		m_Ninja.m_OldVelAmount = 0;
 		[[fallthrough]];
-	case 115:
+	case 115: // <FoxNet: predates the extra weapon mask
+	case 116:
 		break;
 	default:
 		dbg_msg("load", "failed to load tee-string");
@@ -484,18 +498,24 @@ bool CSaveTee::FromString(const char *pString, int MembersCount)
 		return false;
 	}
 
-	if(m_LastWeapon < 0 || m_LastWeapon >= NUM_WEAPONS)
+	// <FoxNet
+	for(int i = NUM_WEAPONS; i < NUM_EXTRA_WEAPONS; i++)
+		m_aWeapons[i].m_Got = (ExtraWeaponsGot >> (i - NUM_WEAPONS)) & 1;
+	// FoxNet>
+
+	// WEAPON_NONE is valid, it means that no weapon is held
+	if(m_LastWeapon < WEAPON_NONE || m_LastWeapon >= NUM_EXTRA_WEAPONS)
 	{
 		log_error("load", "savegame: tee has an invalid last weapon: %d", m_LastWeapon);
 		return false;
 	}
 	// -1 is valid, it means that no weapon is queued
-	if(m_QueuedWeapon < -1 || m_QueuedWeapon >= NUM_WEAPONS)
+	if(m_QueuedWeapon < -1 || m_QueuedWeapon >= NUM_EXTRA_WEAPONS)
 	{
 		log_error("load", "savegame: tee has an invalid queued weapon: %d", m_QueuedWeapon);
 		return false;
 	}
-	if(m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
+	if(m_ActiveWeapon < WEAPON_NONE || m_ActiveWeapon >= NUM_EXTRA_WEAPONS)
 	{
 		log_error("load", "savegame: tee has an invalid active weapon: %d", m_ActiveWeapon);
 		return false;

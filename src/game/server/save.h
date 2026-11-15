@@ -84,13 +84,14 @@ private:
 	int m_TeeFinished;
 	int m_IsSolo;
 
+	// <FoxNet: zero-init, a save string need not carry every weapon
 	class CWeaponStat
 	{
 	public:
-		int m_AmmoRegenStart;
-		int m_Ammo;
-		int m_Ammocost;
-		int m_Got;
+		int m_AmmoRegenStart = 0;
+		int m_Ammo = 0;
+		int m_Ammocost = 0;
+		int m_Got = 0;
 	} m_aWeapons[NUM_EXTRA_WEAPONS];
 
 	// ninja
