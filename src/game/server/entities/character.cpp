@@ -85,6 +85,7 @@ CCharacter::CCharacter(CGameWorld *pWorld, int MapIdx, CNetObj_PlayerInput LastI
 
 	m_LatestPrevPrevInput = m_LatestPrevInput = m_LatestInput = m_PrevInput = m_SavedInput = m_Input;
 
+	m_TimeCpBroadcastEndTick = 0;
 	m_LastTimeCp = -1;
 	m_LastTimeCpBroadcasted = -1;
 	for(float &CurrentTimeCp : m_aCurrentTimeCp)

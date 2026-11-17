@@ -2136,7 +2136,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 		return;
 	}
 
-
 	if(Config()->m_SvNetlimit && Msg != NETMSG_REQUEST_MAP_DATA)
 	{
 		// <FoxNet

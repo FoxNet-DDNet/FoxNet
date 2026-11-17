@@ -55,7 +55,7 @@ public:
 	void OnCharacterTick(int ClientId) override;
 	void OnHookAttach(int ClientId, bool Player) override;
 
-	void ConsoleCommand(const char *pCommand) override;
+	void ConsoleCommand(int ClientId, const char *pCommand) override;
 };
 
 extern IEngineAntibot *CreateEngineAntibot();
