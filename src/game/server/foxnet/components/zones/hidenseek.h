@@ -129,6 +129,9 @@ class CHideAndSeekZone : public IMinigame
 
 	std::vector<CQuadData> m_vSpawnQuads;
 
+	// Built per send, parts of it depend on config
+	mutable std::string m_Motd;
+
 	int m_SeekerTuneZone = -1;
 	int m_HiderTuneZone = -1;
 	int m_GhostTuneZone = -1;

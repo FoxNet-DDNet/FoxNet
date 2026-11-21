@@ -539,21 +539,34 @@ bool CHideAndSeekZone::HasSameIpInArea(int ClientId) const
 
 const char *CHideAndSeekZone::Motd() const
 {
-	return "[Viewable in Server info tab]\n"
-	       "\n"
-	       "\n"
-	       "--  Hɪᴅᴇ ᴀɴᴅ Sᴇᴇᴋ  --\n"
-	       "\n"
-	       "Sᴇᴇᴋᴇʀ:\n"
-	       "Find all seekers and hammer them, shooting your gun will point to the closest hidden player.\n"
-	       "\n"
-	       "Hɪᴅᴇʀ:\n"
-	       "Dark Areas completely hide you from the seeker, hammering will put you in ghost mode for a short time which allows you to run away\n"
-	       "The Dash weapon is a ninja dash with one use per seeker, and goes away once you spent them\n"
-	       "\n"
-	       "Depending on the map, entities will or will not work\n"
-	       "\n"
-	       "[Press Tab to hide]";
+	// Rebuilt on every send, the lines below depend on config
+	m_Motd = "[Viewable in Server info tab]\n"
+		 "\n"
+		 "\n"
+		 "--  Hɪᴅᴇ ᴀɴᴅ Sᴇᴇᴋ  --\n"
+		 "\n"
+		 "Sᴇᴇᴋᴇʀ:\n"
+		 "Find every hider and hammer them before the time runs out.\n"
+		 "Your gun shoots a tracker towards the closest hider. It aims at their last known position, which falls behind if they're in ghost mode";
+	if(g_Config.m_SvHideSeekSeekersGunFreeze > 0)
+		m_Motd += ", a hit freezes them";
+	m_Motd += "\n"
+		  "\n"
+		  "Hɪᴅᴇʀ:\n"
+		  "Dark areas completely hide you from the seekers\n"
+		  "Hammering puts you in ghost mode for a short time: you are invisible and your last known position stops updating, so the seekers gun keeps pointing at the spot you ghosted on\n";
+	if(g_Config.m_SvHideSeekHidersDashes > 0)
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "The Dash weapon is a ninja dash, %d use%s per seeker, and goes away once you spent them\n",
+			g_Config.m_SvHideSeekHidersDashes, g_Config.m_SvHideSeekHidersDashes == 1 ? "" : "s");
+		m_Motd += aBuf;
+	}
+	m_Motd += "\n"
+		  "Depending on the map, entities will or will not work\n"
+		  "\n"
+		  "[Press Tab to hide]";
+	return m_Motd.c_str();
 }
 
 void CHideAndSeekZone::StartGame()
