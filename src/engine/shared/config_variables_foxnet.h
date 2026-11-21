@@ -12,10 +12,10 @@
 #define MACRO_CONFIG_STR(Name, ScriptName, Len, Def, Save, Desc)
 #endif
 
-MACRO_CONFIG_INT(FoxExampleInt, fox_example_int, 2, 0, 100, CFGFLAG_SERVER | CFGFLAG_SAVE, "Example integer config variable")
-MACRO_CONFIG_STR(FoxExampleStr, fox_example_str, 100, "FoxNet", CFGFLAG_SERVER | CFGFLAG_SAVE, "Example string config variable")
+MACRO_CONFIG_INT(FoxExampleInt, fox_example_int, 2, 0, 100, CFGFLAG_SERVER, "Example integer config variable")
+MACRO_CONFIG_STR(FoxExampleStr, fox_example_str, 100, "FoxNet", CFGFLAG_SERVER, "Example string config variable")
 
-MACRO_CONFIG_INT(SvFoxNetType, sv_foxnet_type, 0, 0, 2, CFGFLAG_SERVER | CFGFLAG_SAVE, "(Change Gametype Color) 0=Gores | 1=DDRace | 2=FoxNetwork")
+MACRO_CONFIG_INT(SvFoxNetType, sv_foxnet_type, 0, 0, 2, CFGFLAG_SERVER, "(Change Gametype Color) 0=Gores | 1=DDRace | 2=FoxNetwork")
 
 MACRO_CONFIG_INT(SvRandomMapVoteOnStart, sv_random_map_vote_on_start, 0, 0, 1, CFGFLAG_SERVER, "Call a random map vote on server startup")
 MACRO_CONFIG_INT(SvVoteSkipPrefix, sv_vote_skip_prefix, 1, 0, 1, CFGFLAG_SERVER, "Skips Prefixes for the vote message when calling a vote")
@@ -24,31 +24,31 @@ MACRO_CONFIG_INT(SvVoteVetoRequireRace, sv_vote_veto_require_race, 1, 0, 1, CFGF
 MACRO_CONFIG_INT(SvCustomVoteMenu, sv_custom_vote_menu, 1, 0, 1, CFGFLAG_SERVER, "Whether to use the custom vote menu or just show votes")
 
 // Accounts & Currency
-MACRO_CONFIG_INT(SvAccounts, sv_accounts, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Enable player accounts")
+MACRO_CONFIG_INT(SvAccounts, sv_accounts, 0, 0, 1, CFGFLAG_SERVER, "Enable player accounts")
 MACRO_CONFIG_INT(SvAccountsForced, sv_accounts_forced, 0, 0, 1, CFGFLAG_SERVER, "Whether an account is necessary to play or not")
 MACRO_CONFIG_INT(SvAccountsForcedMinPlaytime, sv_accounts_forced_min_playtime, 0, 0, 2097152, CFGFLAG_SERVER, "Whether an account is necessary to play or not")
-MACRO_CONFIG_INT(SvAccountsAllowRegister, sv_accounts_allow_register, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Whether to allow new account registrations")
-MACRO_CONFIG_INT(SvAccountsMaxLoginAttempts, sv_accounts_max_login_attempts, 5, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of login attempts before a ban")
-MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER | CFGFLAG_SAVE, "Maximum number of accounts that can be registered per IP address")
-MACRO_CONFIG_STR(SvAccountsInstance, sv_accounts_instance, 16, "", CFGFLAG_SERVER | CFGFLAG_SAVE, "Unique account instance/region identifier for shared databases (e.g. eu-1, us-1)")
+MACRO_CONFIG_INT(SvAccountsAllowRegister, sv_accounts_allow_register, 1, 0, 1, CFGFLAG_SERVER, "Whether to allow new account registrations")
+MACRO_CONFIG_INT(SvAccountsMaxLoginAttempts, sv_accounts_max_login_attempts, 5, 1, 10, CFGFLAG_SERVER, "Maximum number of login attempts before a ban")
+MACRO_CONFIG_INT(SvAccountsMaxRegister, sv_accounts_max_register, 2, 1, 10, CFGFLAG_SERVER, "Maximum number of accounts that can be registered per IP address")
+MACRO_CONFIG_STR(SvAccountsInstance, sv_accounts_instance, 16, "", CFGFLAG_SERVER, "Unique account instance/region identifier for shared databases (e.g. eu-1, us-1)")
 
 MACRO_CONFIG_STR(SvCurrencyName, sv_currency_name, 13, "$", CFGFLAG_SERVER, "Whatever you want your currency name to be")
 MACRO_CONFIG_INT(SvLevelUpMoney, sv_levelup_money, 1000, 0, 5000, CFGFLAG_SERVER, "How much money a player should get if they level up")
-MACRO_CONFIG_INT64(SvMaxBet, sv_max_bet, 0, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Largest wager allowed in a gambling zone (0 = no limit)")
+MACRO_CONFIG_INT64(SvMaxBet, sv_max_bet, 0, 0, 9223372036854775807, CFGFLAG_SERVER, "Largest wager allowed in a gambling zone (0 = no limit)")
 
 // /pay
-MACRO_CONFIG_INT(SvPayCooldown, sv_pay_cooldown, 300, 0, 86400, CFGFLAG_SERVER | CFGFLAG_SAVE, "Seconds a player must wait between transactions, kept per account in the database")
-MACRO_CONFIG_INT(SvPayMinLevel, sv_pay_min_level, 10, 0, 1000, CFGFLAG_SERVER | CFGFLAG_SAVE, "Level needed before a player may transfer money")
+MACRO_CONFIG_INT(SvPayCooldown, sv_pay_cooldown, 300, 0, 86400, CFGFLAG_SERVER, "Seconds a player must wait between transactions, kept per account in the database")
+MACRO_CONFIG_INT(SvPayMinLevel, sv_pay_min_level, 10, 0, 1000, CFGFLAG_SERVER, "Level needed before a player may transfer money")
 
 // Daily login rewards
-MACRO_CONFIG_INT(SvDailyReward, sv_daily_reward, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_SAVE, "Mail a login reward once per day, growing with the login streak")
-MACRO_CONFIG_INT(SvDailyRewardResetHour, sv_daily_reward_reset_hour, 0, 0, 23, CFGFLAG_SERVER | CFGFLAG_SAVE, "Hour in UTC at which the daily reward resets")
-MACRO_CONFIG_INT(SvDailyRewardMaxDays, sv_daily_reward_max_days, 30, 1, 365, CFGFLAG_SERVER | CFGFLAG_SAVE, "Streak day at which the reward stops growing")
-MACRO_CONFIG_INT64(SvDailyRewardMoney, sv_daily_reward_money, 500, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Money the first day of a streak pays")
-MACRO_CONFIG_INT64(SvDailyRewardMoneyStep, sv_daily_reward_money_step, 50, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Extra money per streak day past the first")
+MACRO_CONFIG_INT(SvDailyReward, sv_daily_reward, 1, 0, 1, CFGFLAG_SERVER, "Mail a login reward once per day, growing with the login streak")
+MACRO_CONFIG_INT(SvDailyRewardResetHour, sv_daily_reward_reset_hour, 0, 0, 23, CFGFLAG_SERVER, "Hour in UTC at which the daily reward resets")
+MACRO_CONFIG_INT(SvDailyRewardMaxDays, sv_daily_reward_max_days, 30, 1, 365, CFGFLAG_SERVER, "Streak day at which the reward stops growing")
+MACRO_CONFIG_INT64(SvDailyRewardMoney, sv_daily_reward_money, 500, 0, 9223372036854775807, CFGFLAG_SERVER, "Money the first day of a streak pays")
+MACRO_CONFIG_INT64(SvDailyRewardMoneyStep, sv_daily_reward_money_step, 50, 0, 9223372036854775807, CFGFLAG_SERVER, "Extra money per streak day past the first")
 // Keep these small, a level costs at most NeededXP() = 500 and playtime pays 1 XP per minute
-MACRO_CONFIG_INT64(SvDailyRewardXp, sv_daily_reward_xp, 10, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "XP the first day of a streak pays")
-MACRO_CONFIG_INT64(SvDailyRewardXpStep, sv_daily_reward_xp_step, 2, 0, 9223372036854775807, CFGFLAG_SERVER | CFGFLAG_SAVE, "Extra XP per streak day past the first")
+MACRO_CONFIG_INT64(SvDailyRewardXp, sv_daily_reward_xp, 10, 0, 9223372036854775807, CFGFLAG_SERVER, "XP the first day of a streak pays")
+MACRO_CONFIG_INT64(SvDailyRewardXpStep, sv_daily_reward_xp_step, 2, 0, 9223372036854775807, CFGFLAG_SERVER, "Extra XP per streak day past the first")
 // Streak days 7, 30, 100 and 365 also roll random items, see CAccounts::SendDailyRewardMail
 
 // Bot Detection
@@ -108,8 +108,8 @@ MACRO_CONFIG_INT(SvWeaponDropsCooldown, sv_weapondrops_cooldown, 10, 0, 500, CFG
 
 // PowerUps
 MACRO_CONFIG_INT(SvPowerUps, sv_powerups, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether to spawn powerups randomly in the map")
-MACRO_CONFIG_INT(SvPowerUpsMax, sv_powerups_max, 7, 1, 100, CFGFLAG_SERVER | CFGFLAG_GAME, "Maximum number of powerups that can spawn")
-MACRO_CONFIG_INT(SvPowerUpsSpawnDelay, sv_powerups_spawn_delay, 150, 1, 10000, CFGFLAG_SERVER | CFGFLAG_GAME, "Delay between powerup spawns at six or more active players in deciseconds (1 = 0.1 seconds)")
+MACRO_CONFIG_INT(SvPowerUpsMax, sv_powerups_max, 7, 1, 100, CFGFLAG_SERVER, "Maximum number of powerups that can spawn")
+MACRO_CONFIG_INT(SvPowerUpsSpawnDelay, sv_powerups_spawn_delay, 150, 1, 10000, CFGFLAG_SERVER, "Delay between powerup spawns at six or more active players in deciseconds (1 = 0.1 seconds)")
 
 // Solo on Spawn
 MACRO_CONFIG_INT(SvSoloOnSpawn, sv_solo_on_spawn, 0, 0, 15, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether Players Should be solod on spawn + how long in seconds")
@@ -174,15 +174,15 @@ MACRO_CONFIG_INT(SvMinigamesSameIp, sv_minigames_same_ip, 0, 0, 1, CFGFLAG_SERVE
 MACRO_CONFIG_INT(SvHideSeekGiveXp, sv_hide_seek_give_xp, 1, 0, 1, CFGFLAG_SERVER, "Whether the minigame should give xp on game finish")
 MACRO_CONFIG_INT(SvHideSeekTuneZone, sv_hide_seek_tune_zone, 252, 1, 252, CFGFLAG_SERVER, "First of the 4 tune zones hide and seek uses, they get written into the map so clients can predict them")
 MACRO_CONFIG_INT(SvHideSeekWarmupTime, sv_hide_seek_warmup_time, 10, 1, 60, CFGFLAG_SERVER, "Delay in seconds before the game starts")
-MACRO_CONFIG_INT(SvHideSeekFreezeDuration, sv_hide_seek_freeze_duration, 10, 1, 30, CFGFLAG_SERVER, "How long seekers are frozen on game start")
-MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 60, 1, 500, CFGFLAG_SERVER, "Base seek time in seconds, the time seekers get when every seeker has one hider to find")
-MACRO_CONFIG_INT(SvHideSeekSeekersTimePerHider, sv_hide_seek_seekers_time_per_hider, 10, 0, 100, CFGFLAG_SERVER, "Extra seek time in seconds for every hider a seeker has to find beyond the first")
-MACRO_CONFIG_INT(SvHideSeekSeekersGunCooldown, sv_hide_seek_seekers_gun_cooldown, 5000, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers gun is (like normal weapons)")
-MACRO_CONFIG_INT(SvHideSeekSeekersGunFreeze, sv_hide_seek_seekers_gun_freeze, 0, 0, 10000, CFGFLAG_SERVER, "Whether the gun should freeze hit hiders and how long (in ticks, 50 ticks in a second)")
-MACRO_CONFIG_INT(SvHideSeekSeekersHammerDelay, sv_hide_seek_seekers_hammer_delay, 275, 1, 10000, CFGFLAG_SERVER, "How long the cooldown for the seekers hammer is (like normal weapons)")
-MACRO_CONFIG_INT(SvHideSeekHidersGhostDuration, sv_hide_seek_hiders_ghost_duration, 35, 1, 1000, CFGFLAG_SERVER, "How long hiders remain in ghost mode in second Seconds (30 -> 3 seconds)")
-MACRO_CONFIG_INT(SvHideSeekHidersGhostCooldown, sv_hide_seek_hiders_ghost_cooldown, 55, 1, 1000, CFGFLAG_SERVER, "Cooldown time for hiders' ghost mode in second Seconds (30 -> 3 seconds)")
-MACRO_CONFIG_INT(SvHideSeekHidersDashes, sv_hide_seek_hiders_dashes, 1, 0, 10, CFGFLAG_SERVER, "How many dashes a hider gets per seeker, 0 disables the dash")
+MACRO_CONFIG_INT(SvHideSeekFreezeDuration, sv_hide_seek_freeze_duration, 10, 1, 30, CFGFLAG_SERVER | CFGFLAG_GAME, "How long seekers are frozen on game start")
+MACRO_CONFIG_INT(SvHideSeekSeekersTime, sv_hide_seek_seekers_time, 60, 1, 500, CFGFLAG_SERVER | CFGFLAG_GAME, "Base seek time in seconds, the time seekers get when every seeker has one hider to find")
+MACRO_CONFIG_INT(SvHideSeekSeekersTimePerHider, sv_hide_seek_seekers_time_per_hider, 10, 0, 100, CFGFLAG_SERVER | CFGFLAG_GAME, "Extra seek time in seconds for every hider a seeker has to find beyond the first")
+MACRO_CONFIG_INT(SvHideSeekSeekersGunCooldown, sv_hide_seek_seekers_gun_cooldown, 5000, 1, 10000, CFGFLAG_SERVER | CFGFLAG_GAME, "How long the cooldown for the seekers gun is (like normal weapons)")
+MACRO_CONFIG_INT(SvHideSeekSeekersGunFreeze, sv_hide_seek_seekers_gun_freeze, 0, 0, 10000, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether the gun should freeze hit hiders and how long (in ticks, 50 ticks in a second)")
+MACRO_CONFIG_INT(SvHideSeekSeekersHammerDelay, sv_hide_seek_seekers_hammer_delay, 275, 1, 10000, CFGFLAG_SERVER | CFGFLAG_GAME, "How long the cooldown for the seekers hammer is (like normal weapons)")
+MACRO_CONFIG_INT(SvHideSeekHidersGhostDuration, sv_hide_seek_hiders_ghost_duration, 35, 1, 1000, CFGFLAG_SERVER | CFGFLAG_GAME, "How long hiders remain in ghost mode in second Seconds (30 -> 3 seconds)")
+MACRO_CONFIG_INT(SvHideSeekHidersGhostCooldown, sv_hide_seek_hiders_ghost_cooldown, 55, 1, 1000, CFGFLAG_SERVER | CFGFLAG_GAME, "Cooldown time for hiders' ghost mode in second Seconds (30 -> 3 seconds)")
+MACRO_CONFIG_INT(SvHideSeekHidersDashes, sv_hide_seek_hiders_dashes, 1, 0, 10, CFGFLAG_SERVER | CFGFLAG_GAME, "How many dashes a hider gets per seeker, 0 disables the dash")
 
 // Weapon configs
 MACRO_CONFIG_INT(SvPortalMaxDistance, sv_portal_max_distance, 50, 0, 1000, CFGFLAG_SERVER, "Max distance from player to portal")
@@ -191,11 +191,11 @@ MACRO_CONFIG_INT(SvPortalCheckLineOfSight, sv_portal_check_line_of_sight, 1, 0, 
 MACRO_CONFIG_INT(SvMeteorMaxDistance, sv_meteor_max_distance, 50, 0, 1000, CFGFLAG_SERVER, "Max distance from player to meteor")
 
 // Scripting
-MACRO_CONFIG_STR(SvScriptStartup, sv_script_startup, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server start")
-MACRO_CONFIG_STR(SvScriptShutdown, sv_script_shutdown, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed on server shutdown")
-MACRO_CONFIG_STR(SvScriptPlayerConnect, sv_script_player_connect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player connects")
-MACRO_CONFIG_STR(SvScriptPlayerDisconnect, sv_script_player_disconnect, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed when a player disconnects")
+MACRO_CONFIG_STR(SvScriptStartup, sv_script_startup, 128, "", CFGFLAG_SERVER, "Script that gets executed on server start")
+MACRO_CONFIG_STR(SvScriptShutdown, sv_script_shutdown, 128, "", CFGFLAG_SERVER, "Script that gets executed on server shutdown")
+MACRO_CONFIG_STR(SvScriptPlayerConnect, sv_script_player_connect, 128, "", CFGFLAG_SERVER, "Script that gets executed when a player connects")
+MACRO_CONFIG_STR(SvScriptPlayerDisconnect, sv_script_player_disconnect, 128, "", CFGFLAG_SERVER, "Script that gets executed when a player disconnects")
 MACRO_CONFIG_STR(SvCommandRelayUrl, sv_command_relay_url, 256, "", CFGFLAG_SERVER, "Local command relay base URL, e.g. http://127.0.0.1:666")
 MACRO_CONFIG_STR(SvCommandRelayToken, sv_command_relay_token, 128, "", CFGFLAG_SERVER, "Command relay API bearer token")
-MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets kicked")
-MACRO_CONFIG_STR(SvScriptPlayerMutes, sv_script_player_mutes, 128, "", CFGFLAG_SERVER | CFGFLAG_GAME, "Script that gets executed after a player gets muted")
+MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER, "Script that gets executed after a player gets kicked")
+MACRO_CONFIG_STR(SvScriptPlayerMutes, sv_script_player_mutes, 128, "", CFGFLAG_SERVER, "Script that gets executed after a player gets muted")
