@@ -307,6 +307,7 @@ void CPickupDrop::Tick()
 	bool Grounded = false;
 	// A true return means a solid quad was involved; those can move, so a drop
 	// riding one must keep simulating or it would detach from the platform.
+	MarkQuadSweepOrigin(m_Pos, Server()->Tick());
 	const bool TouchedQuad = Collision()->MoveBox(&m_Pos, &m_Vel, CCharacterCore::PhysicalSizeVec2(), m_GroundElasticity, &Grounded);
 	if(Grounded)
 		m_Vel.x *= 0.88f;

@@ -24,6 +24,42 @@ static bool MovingTilesFor(CEntity *pEnt)
 	return pEnt->GetTuning(std::max(0, pEnt->TuneZone()))->m_MovingTiles;
 }
 
+// Gives up as much of a correction as it takes to stay out of the map, rather than all of it
+static vec2 MoveAxisClamped(const CCollision *pCollision, vec2 &Place, const vec2 &Delta, const vec2 &Box)
+{
+	if(Delta.x == 0.0f && Delta.y == 0.0f)
+		return vec2(0.0f, 0.0f);
+
+	const auto CanPlace = [&](const vec2 &At) {
+		return !pCollision->TestBox(At, Box);
+	};
+
+	if(CanPlace(Place + Delta))
+	{
+		Place += Delta;
+		return Delta;
+	}
+
+	float Low = 0.0f;
+	float High = 1.0f;
+	for(int i = 0; i < 10; i++)
+	{
+		const float Mid = (Low + High) * 0.5f;
+		if(CanPlace(Place + Delta * Mid))
+			Low = Mid;
+		else
+			High = Mid;
+	}
+
+	if(Low > 0.0f)
+	{
+		const vec2 Applied = Delta * Low;
+		Place += Applied;
+		return Applied;
+	}
+	return vec2(0.0f, 0.0f);
+}
+
 void CCollidableZone::Init(CMapItemLayerQuads *pQuadsLayer)
 {
 	int NumQuads = pQuadsLayer->m_NumQuads;
@@ -82,6 +118,10 @@ void CCollidableZone::TickSharedQuads()
 void CCollidableZone::HandleSolidQuads()
 {
 	if(Collision()->Quads().empty())
+		return;
+	// Carrying and overrunning are both about a quad having moved, so a layer where none can
+	// has nothing for this pass to do
+	if(!Collision()->HasAnimatedQuads())
 		return;
 
 	const int MapIdx = (int)MultiMapIndex();
@@ -207,8 +247,9 @@ bool CCollidableZone::SolidQuadPush(CEntity *pEnt)
 	return false;
 }
 
-void CCollidableZone::CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 QuadMotion)
+void CCollidableZone::CollidableImpl(CEntity *pEnt, int QuadId, vec2 QuadMotion)
 {
+	const CQuadData &Quad = m_vQuads[QuadId];
 	const float Radius = pEnt->GetProximityRadius() * 0.55f;
 	const vec2 P = pEnt->GetPos();
 
@@ -230,18 +271,11 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 
 		}
 	}
 
-	// Only a quad overlapping this one can hide one of its edges, and that is a handful of the layer
+	// Only a quad overlapping this one can hide one of its edges, and those are settled at load
 	m_vpNeighbours.clear();
-	for(const CQuadData &Other : Quads())
-	{
-		if(&Other == &Quad)
-			continue;
-		if(Other.m_AabbMax.x < Quad.m_AabbMin.x || Other.m_AabbMin.x > Quad.m_AabbMax.x)
-			continue;
-		if(Other.m_AabbMax.y < Quad.m_AabbMin.y || Other.m_AabbMin.y > Quad.m_AabbMax.y)
-			continue;
-		m_vpNeighbours.push_back(&Other);
-	}
+	QueryNeighbours(QuadId, m_vNeighbourIds);
+	for(int OtherId : m_vNeighbourIds)
+		m_vpNeighbours.push_back(&m_vQuads[OtherId]);
 
 	const auto BuriedAt = [&](const vec2 &Point) {
 		for(const CQuadData *pOther : m_vpNeighbours)
@@ -337,46 +371,12 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 
 
 	{
 		const vec2 MTV = PushDir * PushDepth;
-
-		auto CanPlace = [&](const vec2 &Pos) {
-			return !Collision()->TestBox(Pos, vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()));
-		};
-
-		auto MoveAxis = [&](vec2 &Pos, const vec2 &Delta) {
-			if(Delta.x == 0.0f && Delta.y == 0.0f)
-				return vec2(0.f, 0.f);
-
-			vec2 Target = Pos + Delta;
-			if(CanPlace(Target))
-			{
-				Pos = Target;
-				return Delta;
-			}
-
-			float lo = 0.0f;
-			float hi = 1.0f;
-			for(int i = 0; i < 10; ++i)
-			{
-				float Mid = (lo + hi) * 0.5f;
-				vec2 MidPos = Pos + Delta * Mid;
-				if(CanPlace(MidPos))
-					lo = Mid;
-				else
-					hi = Mid;
-			}
-			if(lo > 0.0f)
-			{
-				vec2 Applied = Delta * lo;
-				Pos += Applied;
-				return Applied;
-			}
-			return vec2(0.0f, 0.0f);
-		};
+		const vec2 Box = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius());
 
 		vec2 NewPos = pEnt->m_Pos;
 
-		vec2 AppliedX = MoveAxis(NewPos, vec2(MTV.x, 0.0f));
-		vec2 AppliedY = MoveAxis(NewPos, vec2(0.0f, MTV.y));
+		vec2 AppliedX = MoveAxisClamped(Collision(), NewPos, vec2(MTV.x, 0.0f), Box);
+		vec2 AppliedY = MoveAxisClamped(Collision(), NewPos, vec2(0.0f, MTV.y), Box);
 
 		const vec2 Vel = pEnt->GetVelocity();
 		pEnt->ForceSetPos(NewPos);
@@ -427,6 +427,111 @@ void CCollidableZone::CollidableImpl(CEntity *pEnt, const CQuadData &Quad, vec2 
 	}
 }
 
+/*
+ * How far apart the path below may be sampled. The push sends an entity out by the nearest edge,
+ * so to be sent back the way it came, a sample has to land while the entity is still outside the
+ * face it is about to cross and within Radius of it. That band is Radius deep outside the face
+ * and half the quad's waist inside it, so a step no larger than that always puts a sample in it.
+ * Caught on the far side instead, the nearest edge is the one it was leaving by and the push
+ * would shove it the rest of the way through.
+ */
+float CCollidableZone::SampleStep(CEntity *pEnt, const vec2 &From, const vec2 &To)
+{
+	const float Radius = pEnt->GetProximityRadius() * 0.55f;
+
+	QueryQuads(
+		vec2(std::min(From.x, To.x) - Radius, std::min(From.y, To.y) - Radius),
+		vec2(std::max(From.x, To.x) + Radius, std::max(From.y, To.y) + Radius),
+		m_vSweepCandidates);
+
+	float Step = std::numeric_limits<float>::max();
+	for(int QuadId : m_vSweepCandidates)
+		Step = std::min(Step, Radius + m_vQuads[QuadId].m_Waist * 0.5f);
+
+	if(Step == std::numeric_limits<float>::max())
+		return 0.0f; // nothing on the path, so the whole travel is one step
+
+	return std::max(Step, ms_MinSampleStep);
+}
+
+void CCollidableZone::SweepResolve(CEntity *pEnt)
+{
+	const vec2 To = pEnt->GetPos();
+
+	if(pEnt->QuadSweepTick() != Server()->Tick())
+	{
+		ResolveOverlaps(pEnt); // nothing recorded this tick, so there is no path to walk
+		return;
+	}
+
+	const vec2 From = pEnt->QuadSweepFrom();
+	const vec2 Travel = To - From;
+	const float Length = length(Travel);
+
+	int Steps = 1;
+	if(Length > pEnt->GetProximityRadius() * 0.55f)
+	{
+		const float Step = SampleStep(pEnt, From, To);
+		if(Step > 0.0f)
+			Steps = std::clamp((int)std::ceil(Length / Step), 1, ms_MaxSampleSteps);
+	}
+
+	// One step is the end of the travel, which is where this has always acted -- so slow enough
+	// to be in no danger of stepping over a quad, nothing about this changes a thing
+	if(Steps <= 1)
+	{
+		ResolveOverlaps(pEnt);
+		return;
+	}
+
+	vec2 Offset = vec2(0.0f, 0.0f);
+	for(int Step = 1; Step <= Steps; Step++)
+	{
+		const vec2 Target = From + Travel * ((float)Step / (float)Steps) + Offset;
+		pEnt->ForceSetPos(Target);
+		ResolveOverlaps(pEnt);
+		// Carry what the push changed into the rest of the travel, so the entity keeps sliding
+		// along a surface instead of being dragged back onto the original line
+		Offset += pEnt->GetPos() - Target;
+	}
+
+	/*
+	 * A push quantizes where it lands, but a sample that pushed nothing leaves the carried offset
+	 * on the position as it stands. Ending a tick on a fractional position is something no other
+	 * path here does, and the snapshot the prediction gets carries whole units, so settle it.
+	 */
+	if(Offset != vec2(0.0f, 0.0f) && pEnt->ObjectType() == CGameWorld::ENTTYPE_CHARACTER)
+		static_cast<CCharacter *>(pEnt)->ResettleCore();
+}
+
+void CCollidableZone::ResolveOverlaps(CEntity *pEnt)
+{
+	const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
+	const vec2 Pos = pEnt->GetPos();
+
+	// Twice the box, so a quad that a push of this pass moves the entity into is already listed
+	const vec2 Margin = Size * 2.0f;
+	QueryQuads(
+		vec2(Pos.x - Margin.x, Pos.y - Margin.y),
+		vec2(Pos.x + Margin.x, Pos.y + Margin.y),
+		m_vOverlapCandidates);
+
+	// Map order, as the walk of the whole layer had: the pushes below are cumulative, so which
+	// quad goes first is part of the answer and the grid hands them back cell by cell
+	std::sort(m_vOverlapCandidates.begin(), m_vOverlapCandidates.end());
+
+	for(int QuadId : m_vOverlapCandidates)
+	{
+		const CQuadData &QuadData = m_vQuads[QuadId];
+		// Re-read, since every push of this loop moves the entity
+		const vec2 At = pEnt->GetPos();
+		if(!InsideQuad(At, QuadData, Size))
+			continue;
+
+		CollidableImpl(pEnt, QuadId, QuadData.MotionAt(At));
+	}
+}
+
 void CCollidableZone::HandleCharacters()
 {
 	if(Quads().empty())
@@ -446,20 +551,7 @@ void CCollidableZone::HandleCharacters()
 		if(!pChr || !pChr->IsAlive())
 			continue;
 
-		const vec2 Size = vec2(pChr->GetProximityRadius(), pChr->GetProximityRadius()) * 0.55f;
-
-		const auto TestQuad = [&](const CQuadData &QuadData) {
-			const vec2 Pos = pChr->GetPos();
-			const vec2 QuadMotion = QuadData.MotionAt(Pos);
-
-			if(!InsideQuad(Pos, QuadData, Size))
-				return;
-
-			CollidableImpl(pChr, QuadData, QuadMotion);
-		};
-
-		for(const CQuadData &QuadData : Quads())
-			TestQuad(QuadData);
+		SweepResolve(pChr);
 	}
 }
 
@@ -477,19 +569,6 @@ void CCollidableZone::HandlePickups()
 		if(!MovingTilesFor(pEnt))
 			continue;
 
-		const vec2 Size = vec2(pEnt->GetProximityRadius(), pEnt->GetProximityRadius()) * 0.55f;
-
-		const auto TestQuad = [&](const CQuadData &QuadData) {
-			const vec2 Pos = pEnt->GetPos();
-			const vec2 QuadMotion = QuadData.MotionAt(Pos);
-
-			if(!InsideQuad(Pos, QuadData, Size))
-				return;
-
-			CollidableImpl(pEnt, QuadData, QuadMotion);
-		};
-
-		for(const CQuadData &QuadData : Quads())
-			TestQuad(QuadData);
+		SweepResolve(pEnt);
 	}
 }

@@ -1141,6 +1141,7 @@ void CCharacter::TickDeferred()
 
 	m_Core.m_Id = m_pPlayer->GetCid();
 	m_Core.m_MultiMapIdx = MultiMapIdx();
+	MarkQuadSweepOrigin(m_Core.m_Pos, Server()->Tick()); // FoxNet
 	m_Core.Move();
 	bool StuckAfterMove = Collision()->TestBox(m_Core.m_Pos, CCharacterCore::PhysicalSizeVec2());
 	m_Core.Quantize();

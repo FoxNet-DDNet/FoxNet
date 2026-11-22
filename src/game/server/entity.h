@@ -199,8 +199,21 @@ public: // TODO: Maybe make protected
 	bool CheckMultiMapIdx(int SnappingClient, int MultiMapIndex) const;
 	void SetMultiMapIdx(int MultiMapIndex) { m_MultiMapIndex = MultiMapIndex; }
 
+	// Where this entity stood before the move of this tick, which the swept quad collision walks
+	// from. Recorded against the tick so a sweep never runs on a stale one, see
+	// CCollidableZone::SweepQuads
+	void MarkQuadSweepOrigin(vec2 Pos, int Tick)
+	{
+		m_QuadSweepFrom = Pos;
+		m_QuadSweepTick = Tick;
+	}
+	vec2 QuadSweepFrom() const { return m_QuadSweepFrom; }
+	int QuadSweepTick() const { return m_QuadSweepTick; }
+
 private:
 	int m_MultiMapIndex;
+	vec2 m_QuadSweepFrom = vec2(0.0f, 0.0f);
+	int m_QuadSweepTick = -1;
 	// FoxNet>
 };
 

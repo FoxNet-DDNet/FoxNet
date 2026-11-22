@@ -91,6 +91,8 @@ MACRO_CONFIG_INT(SvMovingTilesStopTime, sv_moving_tiles_stop_time, 0, 0, 1, CFGF
 
 MACRO_CONFIG_INT(SvInstantCoreUpdate, sv_instant_core_update, 0, 0, 1, CFGFLAG_SERVER, "Sends Info about a player every tick, even if not doing anything")
 MACRO_CONFIG_INT(SvQStopaGivesDj, sv_qstopa_gives_dj, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether the QStopa quad should give dj back")
+MACRO_CONFIG_INT(SvQuadFreezePath, sv_quad_freeze_path, 1, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether QFr and QUnFr act on the whole path of a tick (1) or only where it ended (0, lets a quad be skipped at speed)")
+MACRO_CONFIG_INT(SvQuadSolidBox, sv_quad_solid_box, 0, 0, 1, CFGFLAG_SERVER | CFGFLAG_GAME, "Whether QHook and QUnHook are tested against the whole tee box (1) or only its four corners (0, the default, lets a tee sink into a slanted quad)")
 
 // Debug Id Pool
 MACRO_CONFIG_INT(SvDebugIdPool, sv_debug_id_pool, 0, 0, 1, CFGFLAG_SERVER, "Debug Id allocation")

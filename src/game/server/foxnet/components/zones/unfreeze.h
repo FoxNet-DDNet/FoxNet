@@ -12,6 +12,9 @@
 
 class CUnfreezeZone : public CQuadZone
 {
+	// Grid answers, a member only to keep an allocation off the per player path
+	std::vector<int> m_vCandidates;
+
 public:
 	CUnfreezeZone(CGameContext *pGameContext, size_t MapIndex) :
 		CQuadZone(pGameContext, MapIndex) {}

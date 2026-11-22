@@ -24,6 +24,30 @@ namespace
 		return Area * 0.5f;
 	}
 
+	// Shortest height of either triangle half, which is the least a crossing path has to cover.
+	// Split in two because an editor quad can be concave and a triangle never is.
+	float NarrowestWaist(const vec2 aPoints[4])
+	{
+		static const int s_aaTriangles[2][3] = {{0, 1, 2}, {0, 2, 3}};
+
+		float Waist = std::numeric_limits<float>::max();
+		for(const auto &aTriangle : s_aaTriangles)
+		{
+			const vec2 &A = aPoints[aTriangle[0]];
+			const vec2 &B = aPoints[aTriangle[1]];
+			const vec2 &C = aPoints[aTriangle[2]];
+
+			const float TwiceArea = absolute((B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x));
+			const float Longest = std::max(std::max(distance(A, B), distance(B, C)), distance(C, A));
+			if(TwiceArea <= 1e-3f || Longest <= 1e-3f)
+				continue; // degenerate, the other half speaks for the quad
+
+			Waist = std::min(Waist, TwiceArea / Longest);
+		}
+
+		return Waist == std::numeric_limits<float>::max() ? 0.0f : Waist;
+	}
+
 	struct SEnvelopeExtrema
 	{
 		bool m_Available = false;
@@ -127,6 +151,7 @@ void CQuadData::Init(CQuad *pQuad, IMap *pMap)
 	m_Animated = pQuad->m_PosEnv >= 0;
 	m_PrevPivot = m_aPoints[4];
 	m_PrevAngle = 0.0f;
+	m_Waist = NarrowestWaist(m_aLocalPoints);
 	UpdateAabb();
 
 	if(!m_Animated || !pMap)

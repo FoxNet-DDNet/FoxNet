@@ -199,9 +199,12 @@ private:
 
 public:
 	const std::vector<CColQuadData> &Quads() const { return m_vQuads; }
+	bool HasAnimatedQuads() const { return !m_vAnimatedQuadIndices.empty(); }
 
 	const CColQuadData *Quad(int QuadId) const;
 	int GetQuadIdAt(vec2 Pos) const;
+	// The lowest-indexed quad the whole of this box reaches, not only its four corners
+	int GetQuadIdOverlapping(vec2 Pos, vec2 Size) const;
 
 	int GetGroundQuadIdAt(vec2 Pos, float Size) const;
 

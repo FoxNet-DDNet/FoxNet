@@ -2,12 +2,15 @@
 
 #include <base/vmath.h>
 
+#include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
 
 #include <game/quad_data.h>
 #include <game/server/entities/character.h>
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
+
+#include <algorithm>
 
 void CFreezeZone::OnPostTick()
 {
@@ -40,9 +43,25 @@ void CFreezeZone::OnPostTick()
 		if(pChr->m_TileIndex == TILE_UNFREEZE || pChr->m_TileFIndex == TILE_UNFREEZE)
 			continue;
 
-		for(const CQuadData &QuadData : Quads())
+		/*
+		 * The whole path of this tick, not only where it ended: a quad thinner than one tick of
+		 * travel was otherwise passed straight through at speed. sv_quad_freeze_path 0 puts that
+		 * back for a map built around phasing through one, and takes the original test with it
+		 * rather than a path of no length, so the edges answer exactly as they used to.
+		 */
+		const bool Path = g_Config.m_SvQuadFreezePath != 0;
+		const vec2 To = pChr->GetPos();
+		const vec2 From = Path && pChr->QuadSweepTick() == Server()->Tick() ? pChr->QuadSweepFrom() : To;
+
+		QueryQuads(
+			vec2(std::min(From.x, To.x), std::min(From.y, To.y)),
+			vec2(std::max(From.x, To.x), std::max(From.y, To.y)),
+			m_vCandidates);
+
+		for(int QuadId : m_vCandidates)
 		{
-			if(!InsideQuad(pChr->GetPos(), QuadData, vec2(0, 0)))
+			const CQuadData &QuadData = m_vQuads[QuadId];
+			if(!(Path ? SegmentInsideQuad(From, To, QuadData) : InsideQuad(To, QuadData, vec2(0, 0))))
 				continue;
 
 			pChr->Freeze();

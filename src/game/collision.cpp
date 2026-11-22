@@ -553,6 +553,28 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size, int *pOutQuadId) const
 		return true;
 	if(CheckPoint(Pos.x + Size.x, Pos.y + Size.y, pOutQuadId))
 		return true;
+
+	// <FoxNet
+	/*
+	 * A quad the box only reaches side-on passes clean between those four corners without any of
+	 * them entering it -- on a slanted quad a tee can sink in by half its body and collide with
+	 * nothing. A tile cannot do that, being 32 across where the box is 28, so only the quads are
+	 * asked and only once the corners have already said no, which means this never takes a
+	 * collision away. It is off by default all the same, since closing it moves where a tee
+	 * stands on every map that has these layers: sv_quad_solid_box.
+	 */
+	if(m_HasSolidQuads && g_Config.m_SvQuadSolidBox)
+	{
+		const int QuadId = GetQuadIdOverlapping(Pos, Size);
+		if(QuadId >= 0)
+		{
+			if(pOutQuadId)
+				*pOutQuadId = QuadId;
+			return true;
+		}
+	}
+	// FoxNet>
+
 	return false;
 }
 
@@ -1603,16 +1625,70 @@ int CCollision::GetGroundQuadIdAt(vec2 Pos, float Size) const
 		// go on to hand over, see CCollidableZone::HandleSolidQuads
 		const vec2 QuadMotion = QuadData.MotionAt(Pos);
 
-		for(int Side = 0; Side < 2; Side++)
-		{
-			const vec2 Probe = FeetPos + vec2(Side == 0 ? Size / 2 : -Size / 2, 0.0f) + QuadMotion;
-			if(!QuadData.AabbContains(Probe))
-				continue;
+		/*
+		 * The whole line the feet stand on, not only the two ends of it: a quad narrower than
+		 * the stance passes between them and the character is underfoot nothing. Holding either
+		 * end still counts, since a line with an end inside the quad crosses it, so this never
+		 * takes a grounding away. Behind the same setting as the box test, since both decide
+		 * where a tee stands on a quad, see sv_quad_solid_box.
+		 */
+		const vec2 Left = FeetPos + vec2(-Size / 2, 0.0f) + QuadMotion;
+		const vec2 Right = FeetPos + vec2(Size / 2, 0.0f) + QuadMotion;
+		const vec2 aPoints[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
 
-			const vec2 aPoints[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
-			if(InsideQuadrilateral(Probe, aPoints))
-				return (int)QuadId;
+		if(!g_Config.m_SvQuadSolidBox)
+		{
+			// The two ends alone, as this always asked
+			const vec2 aProbes[2] = {Right, Left};
+			for(const vec2 &Probe : aProbes)
+			{
+				if(!QuadData.AabbContains(Probe))
+					continue;
+				if(InsideQuadrilateral(Probe, aPoints))
+					return (int)QuadId;
+			}
+			continue;
 		}
+
+		if(std::max(Left.x, Right.x) < QuadData.m_AabbMin.x || std::min(Left.x, Right.x) > QuadData.m_AabbMax.x)
+			continue;
+		if(std::max(Left.y, Right.y) < QuadData.m_AabbMin.y || std::min(Left.y, Right.y) > QuadData.m_AabbMax.y)
+			continue;
+
+		if(SegmentHitsQuadrilateral(Left, Right, aPoints))
+			return (int)QuadId;
+	}
+
+	return -1;
+}
+
+/*
+ * Walked rather than taken through the grid on purpose: a box reaches several cells, so a grid
+ * answer would need deduping, and every map that uses these layers has a dozen quads at most --
+ * below which a bounds compare each is the cheaper answer anyway, see CQuadZone::ms_GridMinQuads.
+ * Index order, so the first hit is the lowest, which is what every other lookup here answers with.
+ */
+int CCollision::GetQuadIdOverlapping(vec2 Pos, vec2 Size) const
+{
+	if(!m_UseMovingTiles || m_vQuads.empty())
+		return -1;
+
+	// Nearly every box is nowhere near a quad and stops on these four compares, which matters
+	// because MoveBox asks this of every sub-step of every entity
+	if(m_QuadGridValid &&
+		(Pos.x + Size.x < m_QuadsAabbMin.x || Pos.x - Size.x > m_QuadsAabbMax.x ||
+			Pos.y + Size.y < m_QuadsAabbMin.y || Pos.y - Size.y > m_QuadsAabbMax.y))
+		return -1;
+
+	for(int QuadId = 0; QuadId < (int)m_vQuads.size(); QuadId++)
+	{
+		const CColQuadData &QuadData = m_vQuads[QuadId];
+		if(!QuadData.AabbIntersects(Pos, Size))
+			continue;
+
+		const vec2 aPoints[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+		if(InsideQuadrilateral(Pos, aPoints, Size))
+			return QuadId;
 	}
 
 	return -1;

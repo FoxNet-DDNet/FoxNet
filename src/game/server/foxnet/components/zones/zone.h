@@ -7,6 +7,7 @@
 #include <game/layers.h>
 #include <game/quad_data.h>
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -35,6 +36,41 @@ class CQuadZone
 		int m_PosEnv = -1;
 		int m_PosEnvOffset = 0;
 	};
+
+	// Same uniform grid as the collision's own, see CCollision::RebuildQuadGrid. A layer of
+	// thousands is walked per entity per tick without it, and the sweep asks several times a tick.
+	static constexpr int ms_GridMaxCells = 1 << 16;
+	static constexpr float ms_GridMinCellSize = 128.0f;
+	/*
+	 * Below this a bounds compare per quad answers faster than any grid lookup, and a layer whose
+	 * quads are animated throws the grid away every tick -- a handful of quads spread over a map
+	 * asks for thousands of cells, so building it cost far more than the walk it saved.
+	 */
+	static constexpr size_t ms_GridMinQuads = 64;
+	vec2 m_GridAabbMin = vec2(0.0f, 0.0f);
+	vec2 m_GridAabbMax = vec2(0.0f, 0.0f);
+	float m_GridCellSize = ms_GridMinCellSize;
+	int m_GridWidth = 0;
+	int m_GridHeight = 0;
+	std::vector<int> m_vGridStart; // start offset into m_vGridIndices per cell, plus a final end
+	std::vector<int> m_vGridIndices;
+	std::vector<int> m_vGridFill; // scratch for the rebuild, kept to kill a per tick allocation
+	std::vector<int> m_vGridStamp; // last query that already took each quad, so none comes twice
+	int m_GridQueryStamp = 0;
+	bool m_GridValid = false;
+	void RebuildGrid();
+
+	/*
+	 * Each static quad's static neighbours, settled once. Asking the grid for them per contact
+	 * reads the quad's own bounds, and one long diagonal quad covers a great many cells, so that
+	 * walked thousands of entries to come back with a dozen. Which static quads overlap which
+	 * never changes, and an animated one is handled apart, see QueryNeighbours.
+	 */
+	std::vector<int> m_vNeighbourStart; // per quad, offset into the indices below, plus a final end
+	std::vector<int> m_vNeighbourIndices;
+	std::vector<int> m_vNeighbourScratch;
+	bool m_NeighbourCacheValid = false;
+	void BuildNeighbourCache();
 
 protected:
 	void ReserveQuads(int AdditionalQuads);
@@ -72,7 +108,28 @@ public:
 
 		return ::InsideQuadrilateral(Pos, Points, Size);
 	}
+	/*
+	 * Whether the path an entity took this tick touches the quad anywhere along it, rather than
+	 * only where it ended up. A quad thinner than one tick of travel is otherwise passed straight
+	 * through at speed, the same skip the push had, see CCollidableZone::SweepResolve. This one
+	 * needs no sampling: nothing is resolved, so the question is only whether the path crossed it.
+	 */
+	[[nodiscard]] bool SegmentInsideQuad(const vec2 &From, const vec2 &To, const CQuadData &QuadData) const
+	{
+		if(std::max(From.x, To.x) < QuadData.m_AabbMin.x || std::min(From.x, To.x) > QuadData.m_AabbMax.x)
+			return false;
+		if(std::max(From.y, To.y) < QuadData.m_AabbMin.y || std::min(From.y, To.y) > QuadData.m_AabbMax.y)
+			return false;
+
+		const vec2 Points[4] = {QuadData.m_aPoints[0], QuadData.m_aPoints[1], QuadData.m_aPoints[2], QuadData.m_aPoints[3]};
+
+		return ::SegmentHitsQuadrilateral(From, To, Points);
+	}
 	[[nodiscard]] vec2 RandomPointInQuad(const CQuadData &QuadData) const;
+	// Indices of the quads whose bounds reach this box, replacing whatever vOut held
+	void QueryQuads(const vec2 &Min, const vec2 &Max, std::vector<int> &vOut);
+	// The quads overlapping this one, itself excluded, replacing whatever vOut held
+	void QueryNeighbours(int QuadId, std::vector<int> &vOut);
 	void UpdateCache();
 
 	CQuadZone(CGameContext *pGameContext, size_t MapIndex) :

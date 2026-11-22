@@ -48,6 +48,16 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 	IMap *pMap = GameServer()->Map(MultiMapIdx);
 	pMap->GetType(MAPITEMTYPE_GROUP, &GroupsStart, &GroupsNum);
 	pMap->GetType(MAPITEMTYPE_LAYER, &LayersStart, &LayersNum);
+
+	/*
+	 * Every QStopa layer of the map goes into this one zone. The sampled push has to walk the
+	 * travel once against all of them: a second zone would walk the same travel again from the
+	 * same starting point, after the first had already moved the character, and would size its
+	 * sampling to its own quads alone. The prediction keeps them in one list for the same reason,
+	 * see CQuadZones::OnMapLoad, and this keeps the two in the same order.
+	 */
+	CCollidableZone *pStopAZone = nullptr;
+
 	for(int GroupIndex = 0; GroupIndex < GroupsNum; GroupIndex++)
 	{
 		CMapItemGroup *pGroup = static_cast<CMapItemGroup *>(pMap->GetItem(GroupsStart + GroupIndex));
@@ -119,9 +129,12 @@ void CZoneManager::OnMapLoad(size_t MultiMapIdx)
 			}
 			else if(!str_comp("QStopa", aLayerName))
 			{
-				CCollidableZone *pZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_STOPA);
-				pZone->Init(pTilemap);
-				m_avpZones[(int)EZoneType::StopA].push_back(pZone);
+				if(pStopAZone == nullptr)
+				{
+					pStopAZone = new CCollidableZone(GameServer(), MultiMapIdx, COLLZONE_STOPA);
+					m_avpZones[(int)EZoneType::StopA].push_back(pStopAZone);
+				}
+				pStopAZone->Init(pTilemap);
 			}
 			else if(!str_comp("QHook", aLayerName))
 			{

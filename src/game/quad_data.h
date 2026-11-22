@@ -61,6 +61,14 @@ public:
 	vec2 m_AabbMin = vec2(0, 0);
 	vec2 m_AabbMax = vec2(0, 0);
 
+	/*
+	 * The narrowest way through this quad: the shortest of the two triangle halves' heights. It
+	 * bounds how far apart the collision may sample a path before this quad could be stepped
+	 * over, see CCollidableZone::SweepResolve. Rigid motion does not change it, so it is settled
+	 * once at load even for a quad that moves.
+	 */
+	float m_Waist = 0.0f;
+
 	void Init(CQuad *pQuad, IMap *pMap = nullptr);
 	void UpdatePositionEnvelope(double GlobalTime, IMap *pMap);
 
