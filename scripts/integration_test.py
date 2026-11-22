@@ -156,6 +156,9 @@ class TestRunner:
 						tmp_dir_cleanup = False
 					else:
 						error = None
+				elif any(name.startswith("SAN.") for name in os.listdir(tmp_dir)):
+					error = "sanitizer errors:\n" + "".join(open(os.path.join(tmp_dir, name), encoding="utf-8").read() for name in sorted(os.listdir(tmp_dir)) if name.startswith("SAN."))
+					tmp_dir_cleanup = False
 		finally:
 			if tmp_dir_cleanup:
 				shutil.rmtree(tmp_dir)
@@ -897,6 +900,7 @@ def server_can_register(test_env):
 	servers_json = mastersrv.servers_json()
 	if len(servers_json["servers"]) != 0:
 		raise AssertionError(f"unexpected servers.json\n{servers_json}")
+	server.wait_for_exit()
 	mastersrv.exit()
 	mastersrv.wait_for_exit()
 
@@ -919,6 +923,7 @@ def server_can_register_protocol(test_env, protocol_config, protocol_log, protoc
 	servers_json = mastersrv.servers_json()
 	if len(servers_json["servers"]) != 0:
 		raise AssertionError(f"unexpected servers.json\n{servers_json}")
+	server.wait_for_exit()
 	mastersrv.exit()
 	mastersrv.wait_for_exit()
 
@@ -976,6 +981,7 @@ ddvc_6DnZq51fypqX9ldrEFCF9aJdpi6wjgh6YA = "ddnet"
 	servers_json = mastersrv.servers_json()
 	if len(servers_json["servers"]) != 0:
 		raise AssertionError(f"unexpected servers.json\n{servers_json}")
+	server.wait_for_exit()
 	mastersrv.exit()
 	mastersrv.wait_for_exit()
 
