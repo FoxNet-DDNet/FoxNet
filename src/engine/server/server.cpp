@@ -270,6 +270,15 @@ void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 	net_addr_str(pAddr, aTarget, sizeof(aTarget), false);
 	if(!m_pServer->RelayApplying())
 	{
+		// The ban goes onto the relay before the antibot is told about it. The
+		// antibot publishes its ban evasion fingerprint from the notification
+		// below, and the outbox is drained in order, so a server that learned
+		// the fingerprint first would read anyone still connected from this
+		// address as a ban evader until the ban itself arrived.
+		char aCommand[512];
+		const std::string Reason = RelaySafeReason(Info.m_aReason);
+		str_format(aCommand, sizeof(aCommand), "ban_timestamp %s %" PRId64 "%s%s", aTarget, Info.m_Expires, Reason.empty() ? "" : " ", Reason.c_str());
+		m_pServer->PublishConsoleCommand(aCommand);
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
 			if(m_pServer->m_aClients[ClientId].m_State != CServer::CClient::STATE_EMPTY &&
@@ -291,14 +300,6 @@ void CServerBan::OnBanChanged(const NETADDR *pAddr, const CBanInfo &Info)
 		Event.m_ActorClientId = m_pServer->m_RconClientId;
 		m_pServer->SendModerationEvent(Event);
 	}
-	if(m_pServer->RelayApplying())
-		return;
-	char aAddr[NETADDR_MAXSTRSIZE];
-	char aCommand[512];
-	net_addr_str(pAddr, aAddr, sizeof(aAddr), false);
-	const std::string Reason = RelaySafeReason(Info.m_aReason);
-	str_format(aCommand, sizeof(aCommand), "ban_timestamp %s %" PRId64 "%s%s", aAddr, Info.m_Expires, Reason.empty() ? "" : " ", Reason.c_str());
-	m_pServer->PublishConsoleCommand(aCommand);
 }
 
 void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
@@ -310,6 +311,13 @@ void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 	str_format(aTarget, sizeof(aTarget), "%s %s", aTargetLower, aTargetUpper);
 	if(!m_pServer->RelayApplying())
 	{
+		// Published before the antibot is told, for the reason given in the
+		// address overload above: the fingerprint must not reach another server
+		// ahead of the ban it belongs to.
+		char aBanCommand[512];
+		const std::string BanReason = RelaySafeReason(Info.m_aReason);
+		str_format(aBanCommand, sizeof(aBanCommand), "ban_range_timestamp %s %s %" PRId64 "%s%s", aTargetLower, aTargetUpper, Info.m_Expires, BanReason.empty() ? "" : " ", BanReason.c_str());
+		m_pServer->PublishConsoleCommand(aBanCommand);
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
 			if(m_pServer->m_aClients[ClientId].m_State != CServer::CClient::STATE_EMPTY &&
@@ -318,7 +326,7 @@ void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 					m_pServer->m_RconClientId, Info.m_VerbatimReason);
 		}
 	}
-	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE], aCommand[512];
+	char aLower[NETADDR_MAXSTRSIZE], aUpper[NETADDR_MAXSTRSIZE];
 	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
 	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
 	char aRange[2 * NETADDR_MAXSTRSIZE + 4];
@@ -331,13 +339,6 @@ void CServerBan::OnBanChanged(const CNetRange *pRange, const CBanInfo &Info)
 	Event.m_pReason = Info.m_aReason;
 	Event.m_ActorClientId = m_pServer->m_RconClientId;
 	m_pServer->SendModerationEvent(Event);
-	if(m_pServer->RelayApplying())
-		return;
-	net_addr_str(&pRange->m_LB, aLower, sizeof(aLower), false);
-	net_addr_str(&pRange->m_UB, aUpper, sizeof(aUpper), false);
-	const std::string Reason = RelaySafeReason(Info.m_aReason);
-	str_format(aCommand, sizeof(aCommand), "ban_range_timestamp %s %s %" PRId64 "%s%s", aLower, aUpper, Info.m_Expires, Reason.empty() ? "" : " ", Reason.c_str());
-	m_pServer->PublishConsoleCommand(aCommand);
 }
 
 void CServerBan::OnBanRemoved(const NETADDR *pAddr)
