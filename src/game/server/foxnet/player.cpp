@@ -1455,7 +1455,7 @@ bool CPlayer::SendToMap(int Idx)
 	CCharacter *pChr = GetCharacter();
 	if(pChr)
 	{
-		pChr->Die(-1, WEAPON_GAME);
+		pChr->Die(GetCid(), WEAPON_GAME);
 	}
 
 	int CasinoIdx = GameServer()->GetMapIndexByType(EMapType::Casino);
