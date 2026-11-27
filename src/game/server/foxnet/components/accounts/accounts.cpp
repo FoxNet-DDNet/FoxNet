@@ -516,6 +516,7 @@ void CAccounts::OnTick()
 	if(m_vPending.empty())
 	{
 		FetchMailBox();
+		FetchAdvent();
 		RefreshMoney();
 		return;
 	}
@@ -917,6 +918,11 @@ void CAccounts::OnLogin(int ClientId, CAccResult &Res, const char *pSuccessMessa
 		Session.m_MoneyInFlight = 0;
 		Session.m_LastMoneyFetch = 0;
 		Session.m_MoneyFetchPending = false;
+		Session.m_AdventMask = 0;
+		Session.m_AdventYear = 0;
+		Session.m_LastAdventFetch = 0;
+		Session.m_AdventFetchPending = false;
+		Session.m_AdventClaimPending = false;
 		pExpectedPlayer->m_LoginPending = false;
 		if(!SuccessMessage.empty())
 			GameServer()->SendChatTarget(ClientId, SuccessMessage.c_str());
@@ -1503,6 +1509,9 @@ void CAccounts::NewMail(const char *pUsername, const char *pSubject, const char 
 			if(!Exists)
 				Box.m_vMails.push_back(NewMail);
 
+			// A claim that created this mail may be waiting to open it
+			GameServer()->m_VoteMenu.OnNewMail(Target, NewMail.m_MailId, NewMail.m_aSubject);
+
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "You received a new mail: %s", NewMail.m_aSubject);
 			GameServer()->SendChatTarget(Target, aBuf);
@@ -1760,9 +1769,12 @@ void CAccounts::OnConsoleInit()
 std::vector<CRewardItem> CAccounts::PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count)
 {
 	std::vector<CRewardItem> vRewardItems;
-	if(Count <= 0)
-		return vRewardItems;
+	DrawRewardItems(RewardCandidates(vAllowedRarities), Count, Rng(), &vRewardItems);
+	return vRewardItems;
+}
 
+std::vector<const CItemConfig *> CAccounts::RewardCandidates(const std::vector<EItemRarity> &vAllowedRarities)
+{
 	std::vector<const CItemConfig *> vItems;
 	for(const auto &Item : GameServer()->m_Shop.Registry().Map())
 	{
@@ -1776,19 +1788,80 @@ std::vector<CRewardItem> CAccounts::PickRandomRewardItems(const std::vector<EIte
 		vItems.push_back(&Cfg);
 	}
 
-	if(vItems.empty())
-		return vRewardItems;
+	// The registry is an unordered_map, so a caller that seeds its own
+	// generator only gets the same draw twice if the candidates are ordered
+	std::sort(vItems.begin(), vItems.end(), [](const CItemConfig *pA, const CItemConfig *pB) {
+		return str_comp(pA->m_pName, pB->m_pName) < 0;
+	});
+	return vItems;
+}
 
-	std::uniform_int_distribution<int> Dis(0, (int)vItems.size() - 1);
-	std::uniform_int_distribution<int> DaysDis(1, 3);
-	for(int i = 0; i < Count; i++)
+void CAccounts::DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut)
+{
+	if(!pvOut || Count <= 0)
+		return;
+
+	// Whatever the caller drew already is off the table, so a reward assembled
+	// out of several draws cannot list one item twice for different days
+	std::vector<const CItemConfig *> vLeft;
+	vLeft.reserve(vCandidates.size());
+	for(const CItemConfig *pCfg : vCandidates)
 	{
-		CRewardItem RewardItem;
-		RewardItem.m_pItem = vItems[Dis(Rng())];
-		RewardItem.m_Days = DaysDis(Rng()) * 7;
-		vRewardItems.push_back(RewardItem);
+		bool Taken = false;
+		for(const CRewardItem &Item : *pvOut)
+		{
+			if(Item.m_pItem == pCfg)
+			{
+				Taken = true;
+				break;
+			}
+		}
+		if(!Taken)
+			vLeft.push_back(pCfg);
 	}
-	return vRewardItems;
+
+	std::uniform_int_distribution<int> DaysDis(1, 3);
+	for(int i = 0; i < Count && !vLeft.empty(); i++)
+	{
+		std::uniform_int_distribution<int> Dis(0, (int)vLeft.size() - 1);
+		const int Pick = Dis(Rng);
+		// Drawn either way, so adding an item that does not expire does not
+		// shift what a seeded generator rolls for the items after it
+		const int Days = DaysDis(Rng) * 7;
+
+		CRewardItem RewardItem;
+		RewardItem.m_pItem = vLeft[Pick];
+		// A stackable item gets a quantity and never expires, see CShop::GiveItem
+		RewardItem.m_Days = HasFlag(vLeft[Pick]->m_Flags, EItemFlag::Stackable) ? ForeverDays : Days;
+		pvOut->push_back(RewardItem);
+
+		// Swap and pop, the order change is deterministic so a seeded draw
+		// still reproduces
+		vLeft[Pick] = vLeft.back();
+		vLeft.pop_back();
+	}
+}
+
+void CAccounts::AppendRewardItem(const CRewardItem &Item, char *pCmd, int CmdSize, char *pCmdName, int CmdNameSize)
+{
+	if(!Item.m_pItem)
+		return;
+
+	char aPart[192];
+	if(Item.m_Days == ForeverDays)
+	{
+		// give_item leaves the duration to the item, which for these is never
+		str_format(aPart, sizeof(aPart), "give_item %%d %s;", Item.m_pItem->m_pName);
+		str_append(pCmd, aPart, CmdSize);
+		str_format(aPart, sizeof(aPart), "%s\n", Item.m_pItem->m_pName);
+		str_append(pCmdName, aPart, CmdNameSize);
+		return;
+	}
+
+	str_format(aPart, sizeof(aPart), "give_item_days %%d %d %s;", Item.m_Days, Item.m_pItem->m_pName);
+	str_append(pCmd, aPart, CmdSize);
+	str_format(aPart, sizeof(aPart), "%s for %d days\n", Item.m_pItem->m_pName, Item.m_Days);
+	str_append(pCmdName, aPart, CmdNameSize);
 }
 
 // Day index the streak is counted in, shifted so the reset lands on the configured UTC hour
@@ -1874,12 +1947,7 @@ void CAccounts::SendDailyRewardMail(const char *pUsername, int64_t Streak)
 	char aPart[192];
 
 	for(const CRewardItem &Item : vItems)
-	{
-		str_format(aPart, sizeof(aPart), "give_item_days %%d %d %s;", Item.m_Days, Item.m_pItem->m_pName);
-		str_append(aCmd, aPart, sizeof(aCmd));
-		str_format(aPart, sizeof(aPart), "%s for %d days\n", Item.m_pItem->m_pName, Item.m_Days);
-		str_append(aCmdName, aPart, sizeof(aCmdName));
-	}
+		AppendRewardItem(Item, aCmd, sizeof(aCmd), aCmdName, sizeof(aCmdName));
 	if(Money > 0)
 	{
 		str_format(aPart, sizeof(aPart), "give_money %%d %" PRId64 ";", Money);
@@ -1907,6 +1975,355 @@ void CAccounts::SendDailyRewardMail(const char *pUsername, int64_t Streak)
 	else
 		str_format(aMessage, sizeof(aMessage), "Day %" PRId64 " of your login streak, with %d random Item%s!", Streak, (int)vItems.size(), vItems.size() > 1 ? "s" : "");
 	str_append(aMessage, "\nCome back tomorrow to keep it going, miss a day and it starts over.", sizeof(aMessage));
+
+	NewMail(pUsername, aSubject, aMessage, aCmdName, aCmd);
+}
+
+// Hardcoded ranges, one row per December day, day 24 is the finale. One item of
+// m_MaxRarity is always in the draw, so the rarity range is what a day is
+// really worth. Item counts stay under what each range holds, see
+// RewardCandidates: the pool is 12 Common, 3 Uncommon, 11 Rare, 9 Epic,
+// 7 Mythic and 3 Legendary, so there is no asking for 4 Legendaries.
+static const CAdventDay g_aAdventDays[ADVENT_MAX_DAYS] = {
+	{1500, 3000, 10, 15, 1, EItemRarity::Common, EItemRarity::Common},
+	{2000, 3500, 10, 18, 1, EItemRarity::Common, EItemRarity::Common},
+	{2500, 3000, 11, 22, 2, EItemRarity::Common, EItemRarity::Uncommon},
+	{3000, 4500, 12, 25, 1, EItemRarity::Common, EItemRarity::Common},
+	{3000, 4000, 13, 27, 2, EItemRarity::Common, EItemRarity::Uncommon},
+	{4000, 5500, 14, 29, 2, EItemRarity::Common, EItemRarity::Uncommon},
+	{8000, 12000, 25, 60, 2, EItemRarity::Uncommon, EItemRarity::Rare}, // 7
+	{3000, 6500, 15, 30, 1, EItemRarity::Common, EItemRarity::Uncommon},
+	{3000, 6000, 16, 31, 2, EItemRarity::Uncommon, EItemRarity::Rare},
+	{3000, 7000, 17, 33, 2, EItemRarity::Rare, EItemRarity::Rare},
+	{3000, 7500, 18, 35, 2, EItemRarity::Rare, EItemRarity::Rare},
+	{3500, 8000, 20, 38, 3, EItemRarity::Rare, EItemRarity::Epic},
+	{3500, 8250, 22, 41, 2, EItemRarity::Epic, EItemRarity::Epic},
+	{3500, 8500, 24, 44, 2, EItemRarity::Rare, EItemRarity::Epic},
+	{4000, 9000, 26, 47, 3, EItemRarity::Rare, EItemRarity::Epic},
+	{4000, 9250, 28, 50, 2, EItemRarity::Epic, EItemRarity::Epic},
+	{4000, 9500, 30, 53, 3, EItemRarity::Epic, EItemRarity::Epic},
+	{4000, 8500, 32, 56, 3, EItemRarity::Rare, EItemRarity::Mythic},
+	{5000, 9500, 34, 59, 2, EItemRarity::Epic, EItemRarity::Mythic},
+	{7500, 15000, 36, 62, 3, EItemRarity::Epic, EItemRarity::Mythic},
+	{10000, 15000, 38, 65, 3, EItemRarity::Epic, EItemRarity::Mythic},
+	{10000, 35000, 40, 68, 3, EItemRarity::Mythic, EItemRarity::Mythic},
+	{25000, 65000, 45, 75, 3, EItemRarity::Epic, EItemRarity::Legendary},
+	{50000, 100000, 80, 125, 4, EItemRarity::Mythic, EItemRarity::Legendary},
+};
+
+// Stable generator for one account's day. The username is in the seed, so the
+// ranges above land somewhere different for everyone, and the same place twice.
+static std::mt19937 AdventRng(const char *pUsername, int64_t Year, int Day)
+{
+	char aSeed[128];
+	str_format(aSeed, sizeof(aSeed), "%s|%" PRId64 "|%d", pUsername, Year, Day);
+
+	uint64_t Hash = 14695981039346656037ull; // FNV-1a
+	for(const char *pCur = aSeed; *pCur; pCur++)
+	{
+		Hash ^= (uint64_t)(unsigned char)*pCur;
+		Hash *= 1099511628211ull;
+	}
+
+	std::seed_seq Seq{(uint32_t)(Hash & 0xffffffffu), (uint32_t)(Hash >> 32)};
+	return std::mt19937(Seq);
+}
+
+const CAdventDay &CAccounts::AdventDay(int Day)
+{
+	return g_aAdventDays[std::clamp(Day, 1, ADVENT_MAX_DAYS) - 1];
+}
+
+void CAccounts::AdventKey(char *pBuf, int Size, int64_t Year)
+{
+	str_format(pBuf, Size, "%s%" PRId64, ADVENT_TIMER_KEY_PREFIX, Year);
+}
+
+bool CAccounts::AdventWindow(int *pDay, int64_t *pYear)
+{
+	if(pDay)
+		*pDay = 0;
+	if(pYear)
+		*pYear = 0;
+	if(!g_Config.m_SvAdventCalendar)
+		return false;
+
+	// Shifted like the daily reward, so the rollover lands on a configured UTC hour
+	const int64_t Shifted = (int64_t)time(0) - (int64_t)g_Config.m_SvAdventCalendarResetHour * 3600;
+
+	// IsPageAllowed asks for this in a loop every tick, and the date only moves
+	// once a minute at worst. Main thread only, the database workers never ask.
+	static int64_t s_CachedMinute = -1;
+	static int s_CachedYear = 0;
+	static int s_CachedMonth = 0;
+	static int s_CachedDay = 0;
+	if(Shifted / 60 != s_CachedMinute)
+	{
+		char aBuf[16];
+		str_timestamp_utc_ex((time_t)Shifted, aBuf, sizeof(aBuf), "%Y");
+		s_CachedYear = str_toint(aBuf);
+		str_timestamp_utc_ex((time_t)Shifted, aBuf, sizeof(aBuf), "%m");
+		s_CachedMonth = str_toint(aBuf);
+		str_timestamp_utc_ex((time_t)Shifted, aBuf, sizeof(aBuf), "%d");
+		s_CachedDay = str_toint(aBuf);
+		s_CachedMinute = Shifted / 60;
+	}
+
+	int Year = s_CachedYear;
+	int Month = s_CachedMonth;
+	int Day = s_CachedDay;
+
+	if(g_Config.m_SvAdventCalendarForceDay > 0)
+	{
+		Month = 12;
+		Day = g_Config.m_SvAdventCalendarForceDay;
+		if(g_Config.m_SvAdventCalendarForceYear > 0)
+			Year = g_Config.m_SvAdventCalendarForceYear;
+	}
+
+	if(Month != 12)
+		return false;
+
+	const int MaxDay = std::min(g_Config.m_SvAdventCalendarDays, ADVENT_MAX_DAYS);
+	if(Day < 1 || Day > MaxDay)
+		return false;
+
+	if(pDay)
+		*pDay = Day;
+	if(pYear)
+		*pYear = Year;
+	return true;
+}
+
+void CAccounts::RollAdventReward(const char *pUsername, int64_t Year, int Day, int64_t *pMoney, int64_t *pXp, std::vector<CRewardItem> *pvItems)
+{
+	const CAdventDay &Cfg = AdventDay(Day);
+	std::mt19937 Rng = AdventRng(pUsername, Year, Day);
+
+	// Money and XP are drawn first, so showing a collected day's amounts again
+	// does not depend on the item roll, which the shop registry can change
+	const int64_t Money = std::uniform_int_distribution<int64_t>(Cfg.m_MoneyMin, Cfg.m_MoneyMax)(Rng);
+	const int64_t Xp = std::uniform_int_distribution<int64_t>(Cfg.m_XpMin, Cfg.m_XpMax)(Rng);
+
+	if(pMoney)
+		*pMoney = Money;
+	if(pXp)
+		*pXp = Xp;
+	if(!pvItems)
+		return;
+
+	pvItems->clear();
+	if(Cfg.m_Items <= 0)
+		return;
+
+	// The top rarity is guaranteed, so draw that one first and let the rest of
+	// the range fill up around it. Both draws share pvItems, so DrawRewardItems
+	// will not hand out the same item twice.
+	std::vector<const CItemConfig *> vTop = RewardCandidates({Cfg.m_MaxRarity});
+
+	// A loot case is a lottery ticket, not the prize the day promises, so keep
+	// it out of the guaranteed slot. The lower slots may still roll one.
+	std::vector<const CItemConfig *> vTopNoCases;
+	for(const CItemConfig *pCfg : vTop)
+	{
+		if(!HasFlag(pCfg->m_Flags, EItemFlag::LootCase))
+			vTopNoCases.push_back(pCfg);
+	}
+	// Unless that would leave nothing, in which case the guarantee wins
+	if(!vTopNoCases.empty())
+		vTop = vTopNoCases;
+
+	DrawRewardItems(vTop, 1, Rng, pvItems);
+
+	std::vector<EItemRarity> vRarities;
+	for(int Rarity = (int)Cfg.m_MinRarity; Rarity <= (int)Cfg.m_MaxRarity; Rarity++)
+		vRarities.push_back((EItemRarity)Rarity);
+
+	DrawRewardItems(RewardCandidates(vRarities), Cfg.m_Items - 1, Rng, pvItems);
+}
+
+void CAccounts::FetchAdvent()
+{
+	if(!DbPool())
+		return;
+
+	int64_t Year = 0;
+	if(!AdventWindow(nullptr, &Year))
+		return;
+
+	char aKey[64];
+	AdventKey(aKey, sizeof(aKey), Year);
+
+	const int64_t Now = time(0);
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		auto &Acc = GameServer()->m_aAccounts[i];
+		if(!Acc.m_LoggedIn)
+			continue;
+		if(Acc.m_AdventFetchPending || Acc.m_AdventClaimPending)
+			continue;
+		// A claim writes the mask back itself, so this only has to pick up
+		// changes made elsewhere and the year rolling over
+		if(Acc.m_AdventYear == Year && Acc.m_LastAdventFetch != 0 && (Now - Acc.m_LastAdventFetch) < 5 * 60)
+			continue;
+
+		Acc.m_AdventFetchPending = true;
+		CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[i];
+		const std::string Username = Acc.m_aUsername;
+
+		auto pRes = std::make_shared<CAccAdventResult>();
+		auto pReq = std::make_unique<CAccLoadAdvent>(pRes);
+		str_copy(pReq->m_aUsername, Username.c_str(), sizeof(pReq->m_aUsername));
+		str_copy(pReq->m_aKey, aKey, sizeof(pReq->m_aKey));
+
+		AddPending(pRes, [this, i, Now, Year, pExpectedPlayer, Username](CAccResult &Res) {
+			if(!IsExpectedPlayerStillInSlot(GameServer(), i, pExpectedPlayer) ||
+				!GameServer()->m_aAccounts[i].m_LoggedIn ||
+				str_comp(GameServer()->m_aAccounts[i].m_aUsername, Username.c_str()) != 0)
+				return;
+			auto &AccRef = GameServer()->m_aAccounts[i];
+			AccRef.m_AdventFetchPending = false;
+
+			auto *pAdventRes = dynamic_cast<CAccAdventResult *>(&Res);
+			if(!Res.m_Success || !pAdventRes || !pAdventRes->m_PrimarySucceeded)
+				return;
+			AccRef.m_AdventMask = pAdventRes->m_Mask;
+			AccRef.m_AdventYear = Year;
+			AccRef.m_LastAdventFetch = Now;
+		});
+
+		DbPool()->ExecuteWrite(CAccountsWorker::LoadAdvent, std::move(pReq), "acc advent refresh");
+	}
+}
+
+void CAccounts::ClaimAdventDay(int ClientId, int Day)
+{
+	if(!DbPool() || !CheckClientId(ClientId))
+		return;
+
+	int Today = 0;
+	int64_t Year = 0;
+	if(!AdventWindow(&Today, &Year))
+		return;
+
+	// Only today is ever claimable. A door that was missed stays shut.
+	if(Day != Today)
+		return;
+
+	CAccountSession &Acc = GameServer()->m_aAccounts[ClientId];
+	if(!Acc.m_LoggedIn || !Acc.m_aUsername[0])
+		return;
+	if(Acc.m_AdventClaimPending)
+		return;
+	if(Acc.m_AdventYear == Year && (Acc.m_AdventMask & (1 << (Day - 1))))
+		return;
+
+	Acc.m_AdventClaimPending = true;
+
+	char aKey[64];
+	AdventKey(aKey, sizeof(aKey), Year);
+
+	auto pRes = std::make_shared<CAccAdventResult>();
+	auto pReq = std::make_unique<CAccClaimAdventDay>(pRes);
+	str_copy(pReq->m_aUsername, Acc.m_aUsername, sizeof(pReq->m_aUsername));
+	str_copy(pReq->m_aKey, aKey, sizeof(pReq->m_aKey));
+	pReq->m_Year = Year;
+	pReq->m_Day = Day;
+	pReq->m_Now = time(0);
+
+	CPlayer *pExpectedPlayer = GameServer()->m_apPlayers[ClientId];
+	const std::string Username = Acc.m_aUsername;
+
+	AddPending(pRes, [this, ClientId, pExpectedPlayer, Username, Year, Day](CAccResult &BaseRes) {
+		auto *pAdventRes = dynamic_cast<CAccAdventResult *>(&BaseRes);
+		const bool DbSuccess = BaseRes.m_Success && pAdventRes && pAdventRes->m_PrimarySucceeded;
+
+		const bool SameSession = IsExpectedPlayerStillInSlot(GameServer(), ClientId, pExpectedPlayer) &&
+					 GameServer()->m_aAccounts[ClientId].m_LoggedIn &&
+					 str_comp(GameServer()->m_aAccounts[ClientId].m_aUsername, Username.c_str()) == 0;
+		if(SameSession)
+		{
+			CAccountSession &Session = GameServer()->m_aAccounts[ClientId];
+			Session.m_AdventClaimPending = false;
+			if(DbSuccess)
+			{
+				Session.m_AdventMask = pAdventRes->m_Mask;
+				Session.m_AdventYear = Year;
+				Session.m_LastAdventFetch = time(0);
+			}
+		}
+
+		if(!DbSuccess || !pAdventRes->m_Claimed)
+			return;
+
+		// Land the player on the mail this creates, so the reward is one more
+		// click away instead of a trip through the menu. Armed before the mail
+		// is sent, the vote menu opens it when the insert comes back.
+		if(SameSession)
+		{
+			char aSubject[64];
+			AdventMailSubject(aSubject, sizeof(aSubject), Day);
+			GameServer()->m_VoteMenu.AwaitMail(ClientId, aSubject);
+		}
+
+		// Addressed to the account, so the reward survives the player leaving
+		// before the database answers
+		SendAdventMail(Username.c_str(), Year, Day);
+	});
+
+	DbPool()->ExecuteWrite(CAccountsWorker::ClaimAdventDay, std::move(pReq), "acc claim advent day");
+}
+
+void CAccounts::AdventMailSubject(char *pBuf, int Size, int Day)
+{
+	str_format(pBuf, Size, "Advent Calendar - December %d", Day);
+}
+
+void CAccounts::SendAdventMail(const char *pUsername, int64_t Year, int Day)
+{
+	if(Day < 1 || Day > ADVENT_MAX_DAYS)
+		return;
+
+	int64_t Money = 0;
+	int64_t Xp = 0;
+	std::vector<CRewardItem> vItems;
+	RollAdventReward(pUsername, Year, Day, &Money, &Xp, &vItems);
+
+	// m_aCmd is the reward, m_aCmdName is what the mailbox lists as its contents
+	char aCmd[1024] = "";
+	char aCmdName[512] = "";
+	char aPart[192];
+
+	for(const CRewardItem &Item : vItems)
+		AppendRewardItem(Item, aCmd, sizeof(aCmd), aCmdName, sizeof(aCmdName));
+	if(Money > 0)
+	{
+		str_format(aPart, sizeof(aPart), "give_money %%d %" PRId64 ";", Money);
+		str_append(aCmd, aPart, sizeof(aCmd));
+		str_format(aPart, sizeof(aPart), "%" PRId64 "%s\n", Money, g_Config.m_SvCurrencyName);
+		str_append(aCmdName, aPart, sizeof(aCmdName));
+	}
+	if(Xp > 0)
+	{
+		str_format(aPart, sizeof(aPart), "give_xp %%d %" PRId64 ";", Xp);
+		str_append(aCmd, aPart, sizeof(aCmd));
+		str_format(aPart, sizeof(aPart), "%" PRId64 " XP\n", Xp);
+		str_append(aCmdName, aPart, sizeof(aCmdName));
+	}
+
+	if(!aCmd[0])
+		return; // nothing configured to hand out
+
+	char aSubject[64];
+	AdventMailSubject(aSubject, sizeof(aSubject), Day);
+
+	char aMessage[512];
+	if(vItems.empty())
+		str_format(aMessage, sizeof(aMessage), "Behind door %d of the advent calendar.", Day);
+	else
+		str_format(aMessage, sizeof(aMessage), "Behind door %d of the advent calendar, with %d Item%s!", Day, (int)vItems.size(), vItems.size() > 1 ? "s" : "");
+	if(Day < ADVENT_MAX_DAYS)
+		str_append(aMessage, "\nOpen the next one tomorrow, a door you miss stays shut.", sizeof(aMessage));
 
 	NewMail(pUsername, aSubject, aMessage, aCmdName, aCmd);
 }

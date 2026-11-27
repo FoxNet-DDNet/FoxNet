@@ -21,6 +21,7 @@ enum Pages
 
 	PAGE_MAIN = 0,
 	PAGE_BOOSTERS,
+	PAGE_ADVENT, // only listed while the calendar window is open
 	PAGE_SERVERINFO,
 	PAGE_VOTES,
 	PAGE_SHOP,
@@ -133,7 +134,9 @@ class CVoteMenu : public CServerComponent
 
 		bool m_OnlyUnreadMails = false;
 
-		bool m_OnlyAffordable = false;
+		// OnClientDrop used to set this on, so a reused slot started with the
+		// filter on and a fresh one off. The initializer decides it now.
+		bool m_OnlyAffordable = true;
 
 		char m_aMetaData[64] = "";
 		const CItemConfig *m_pLastItemInfo = nullptr;
@@ -141,6 +144,14 @@ class CVoteMenu : public CServerComponent
 		int64_t m_RetryTick = -1;
 
 		float m_StatMultiplier = 1.0f;
+
+		// Day the advent page was last drawn for, so it redraws at the rollover
+		int m_AdventDay = 0;
+		bool m_EmojiSupport = false;
+
+		// Mail to open as soon as the database hands it back, see AwaitMail
+		char m_aAwaitMailSubject[64] = "";
+		int64_t m_AwaitMailExpireTick = -1;
 	};
 	CClientData m_aClientData[MAX_CLIENTS];
 	std::vector<std::string> m_vDescriptions;
@@ -166,6 +177,7 @@ class CVoteMenu : public CServerComponent
 
 	void PrepareMainMenu(int ClientId);
 	void PrepareBoosters(int ClientId);
+	void PrepareAdvent(int ClientId);
 	void PrepareNormalVotes(int ClientId);
 	void PrepareSettings(int ClientId);
 	void PrepareMailbox(int ClientId);
@@ -178,6 +190,9 @@ class CVoteMenu : public CServerComponent
 
 	bool OwnsAnyOfType(int ClientId, EItemType ItemType) const;
 
+	// False for vanilla DDNet, which ships no emoji font. See data/fonts/index.json.
+	bool CanRenderEmoji(int ClientId) const;
+
 public:
 	void SetRetryTick(int ClientId, int64_t Tick) { m_aClientData[ClientId].m_RetryTick = Tick; }
 
@@ -188,10 +203,17 @@ public:
 	int GetPage(int ClientId) const;
 	void SetPage(int ClientId, int Page);
 
+	// Open this mail as soon as it arrives, for a claim that should leave the
+	// player on the mail it just created rather than making them find it
+	void AwaitMail(int ClientId, const char *pSubject);
+	// Called when a new mail has been pushed into a session's mailbox
+	void OnNewMail(int ClientId, int64_t MailId, const char *pSubject);
+
 	bool OnCallVote(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
 
 	bool IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId);
 
+	void OnClientEnter(int ClientId) override;
 	void OnClientDrop(int ClientId, const char *pReason) override;
 	void OnConsoleInit() override;
 	void OnTick() override;

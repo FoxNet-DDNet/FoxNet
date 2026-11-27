@@ -13,6 +13,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,29 @@ enum
 constexpr const char *DAILY_REWARD_TIMER_KEY = "daily_login";
 // Row key holding when a player may transfer money again
 constexpr const char *PAY_TIMER_KEY = "pay";
+// Row key prefix of the advent calendar, one row per year, see CAccounts::AdventKey
+constexpr const char *ADVENT_TIMER_KEY_PREFIX = "advent_";
+
+// Highest December day the calendar can cover. The collected days are a
+// bitmask in an INTEGER column, which is 32 bit signed on MySQL.
+constexpr int ADVENT_MAX_DAYS = 24;
+
+// Hardcoded reward range for one December day. What a player actually gets is
+// rolled out of these per account, so no two players get the same.
+class CAdventDay
+{
+public:
+	int64_t m_MoneyMin;
+	int64_t m_MoneyMax;
+	int64_t m_XpMin;
+	int64_t m_XpMax;
+	int m_Items;
+	// Items roll from this rarity range, and one of them is always of
+	// m_MaxRarity. Keep m_Items within the number of items the range holds,
+	// a draw is distinct and simply runs short otherwise.
+	EItemRarity m_MinRarity;
+	EItemRarity m_MaxRarity;
+};
 
 // One rolled item in a reward mail
 class CRewardItem
@@ -196,6 +220,14 @@ public:
 	int64_t m_LastMoneyFetch = 0;
 	bool m_MoneyFetchPending = false;
 
+	// Advent calendar days already collected, bit 0 is December 1. Owned by the
+	// database, m_AdventYear is the year the mask was read for.
+	int m_AdventMask = 0;
+	int64_t m_AdventYear = 0;
+	int64_t m_LastAdventFetch = 0;
+	bool m_AdventFetchPending = false;
+	bool m_AdventClaimPending = false;
+
 	CAccConfigs m_Configs;
 };
 
@@ -310,9 +342,37 @@ public:
 	void ClaimDailyReward(int ClientId);
 	void SendDailyRewardMail(const char *pUsername, int64_t Streak);
 
-	// Draws Count random buyable items from the given rarities, each for 7, 14 or 21 days.
-	// Items can repeat, and the result is empty when no item matches.
+	// Draws Count distinct random buyable items from the given rarities, each for
+	// 7, 14 or 21 days. Runs short rather than repeating when the rarities hold
+	// fewer items than asked for, and is empty when none match.
 	std::vector<CRewardItem> PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count);
+	// Buyable, non upgrade items of the given rarities, ordered by name so that a
+	// caller with a seeded generator draws the same set every time
+	std::vector<const CItemConfig *> RewardCandidates(const std::vector<EItemRarity> &vAllowedRarities);
+	// Appends up to Count items that are not in *pvOut yet, so a reward built
+	// out of several draws still never lists the same item twice
+	void DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut);
+	// Writes one drawn item into a mail's reward command and its contents
+	// listing. Items that do not expire are granted and listed without a
+	// duration, see CShop::GiveItem.
+	static void AppendRewardItem(const CRewardItem &Item, char *pCmd, int CmdSize, char *pCmdName, int CmdNameSize);
+
+	// Advent calendar. The window runs December 1 to sv_advent_calendar_days,
+	// shifted by sv_advent_calendar_reset_hour. Returns false outside it.
+	static bool AdventWindow(int *pDay, int64_t *pYear);
+	static void AdventKey(char *pBuf, int Size, int64_t Year);
+	static const CAdventDay &AdventDay(int Day);
+	// Rolls a day's hardcoded range into a concrete reward. Deterministic per
+	// account, year and day, so a collected day's money and XP can be shown
+	// again without storing them. Pass nullptr for pvItems to skip the item
+	// roll, which depends on the shop registry and so is not stable over time.
+	void RollAdventReward(const char *pUsername, int64_t Year, int Day, int64_t *pMoney, int64_t *pXp, std::vector<CRewardItem> *pvItems);
+	void FetchAdvent();
+	// Flips today's bit if it is still clear, then mails what it rolled
+	void ClaimAdventDay(int ClientId, int Day);
+	void SendAdventMail(const char *pUsername, int64_t Year, int Day);
+	// Shared by the mail itself and by the claim waiting to open that mail
+	static void AdventMailSubject(char *pBuf, int Size, int Day);
 
 	void OnClientDrop(int ClientId, const char *pReason) override;
 	void OnInit() override;

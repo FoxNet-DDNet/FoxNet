@@ -340,14 +340,7 @@ bool CPlayer::CheckLevelUp(bool Silent)
 				str_copy(aCmd, "");
 				str_copy(aCmdName, "");
 				for(const CRewardItem &RewardItem : vRewardItems)
-				{
-					char aTemp[128];
-					str_format(aTemp, sizeof(aTemp), "give_item_days %s %d %s;", "%d", RewardItem.m_Days, RewardItem.m_pItem->m_pName);
-					str_append(aCmd, aTemp, sizeof(aCmd));
-					char aTempName[128];
-					str_format(aTempName, sizeof(aTempName), "%s for %d days\n", RewardItem.m_pItem->m_pName, RewardItem.m_Days);
-					str_append(aCmdName, aTempName, sizeof(aCmdName));
-				}
+					CAccounts::AppendRewardItem(RewardItem, aCmd, sizeof(aCmd), aCmdName, sizeof(aCmdName));
 				char aMoneyCmd[128];
 				str_format(aMoneyCmd, sizeof(aMoneyCmd), "give_money %s %d", "%d", MoneyReward);
 				str_append(aCmd, aMoneyCmd, sizeof(aCmd));

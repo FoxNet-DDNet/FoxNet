@@ -369,6 +369,32 @@ struct CAccClaimDailyReward : ISqlData
 	int64_t m_Now = 0;
 };
 
+struct CAccAdventResult : CAccResult
+{
+	bool m_PrimarySucceeded = false;
+	bool m_Claimed = false;
+	int m_Mask = 0; // collected days after the claim, bit 0 is December 1
+};
+
+struct CAccClaimAdventDay : ISqlData
+{
+	CAccClaimAdventDay(std::shared_ptr<CAccAdventResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aKey[64] = ""; // advent_<year>
+	int64_t m_Year = 0;
+	int m_Day = 0; // 1 based
+	int64_t m_Now = 0;
+};
+
+struct CAccLoadAdvent : ISqlData
+{
+	CAccLoadAdvent(std::shared_ptr<CAccAdventResult> pRes) :
+		ISqlData(std::move(pRes)) {}
+	char m_aUsername[ACC_MAX_USERNAME_LENGTH] = "";
+	char m_aKey[64] = "";
+};
+
 struct CAccountsWorker
 {
 	static bool Register(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize);
@@ -399,6 +425,9 @@ struct CAccountsWorker
 	static bool NewGlobalMail(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool ClaimDailyReward(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+
+	static bool ClaimAdventDay(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
+	static bool LoadAdvent(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 
 	static bool MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Write, char *pError, int ErrorSize);
 

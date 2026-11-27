@@ -51,6 +51,13 @@ MACRO_CONFIG_INT64(SvDailyRewardXp, sv_daily_reward_xp, 10, 0, 92233720368547758
 MACRO_CONFIG_INT64(SvDailyRewardXpStep, sv_daily_reward_xp_step, 2, 0, 9223372036854775807, CFGFLAG_SERVER, "Extra XP per streak day past the first")
 // Streak days 7, 30, 100 and 365 also roll random items, see CAccounts::SendDailyRewardMail
 
+// Advent calendar, ranges per day live in g_aAdventDays
+MACRO_CONFIG_INT(SvAdventCalendar, sv_advent_calendar, 1, 0, 1, CFGFLAG_SERVER, "Offer one advent calendar reward per day in December")
+MACRO_CONFIG_INT(SvAdventCalendarDays, sv_advent_calendar_days, 24, 1, 24, CFGFLAG_SERVER, "Number of December days the calendar covers")
+MACRO_CONFIG_INT(SvAdventCalendarResetHour, sv_advent_calendar_reset_hour, 0, 0, 23, CFGFLAG_SERVER, "Hour in UTC at which the calendar rolls over to the next day")
+MACRO_CONFIG_INT(SvAdventCalendarForceDay, sv_advent_calendar_force_day, 0, 0, 24, CFGFLAG_SERVER, "Pretend it is this December day, for testing. 0 uses the real date")
+MACRO_CONFIG_INT(SvAdventCalendarForceYear, sv_advent_calendar_force_year, 0, 0, 9999, CFGFLAG_SERVER, "Year the forced day claims against. 0 uses the real year")
+
 // Bot Detection
 MACRO_CONFIG_INT(SvSetupDestroyer, sv_setup_destroyer, 0, 0, 1, CFGFLAG_SERVER, "Nudges players")
 MACRO_CONFIG_INT(SvAutoBanJSClient, sv_auto_ban_jsclient, 1, 0, 1, CFGFLAG_SERVER, "JS Client is a bot client commonly used for chat spamming")

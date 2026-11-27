@@ -1560,6 +1560,138 @@ bool CAccountsWorker::ClaimDailyReward(IDbConnection *pSql, const ISqlData *pDat
 	return true;
 }
 
+bool CAccountsWorker::LoadAdvent(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccLoadAdvent *>(pData);
+	auto *pRes = dynamic_cast<CAccAdventResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "LoadAdvent: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	// Only the primary knows which days were really collected
+	if(w != Write::NORMAL)
+		return true;
+
+	char aSelect[160];
+	str_copy(aSelect, "SELECT Count FROM foxnet_account_timers WHERE Username = ? AND `Key` = ?", sizeof(aSelect));
+	if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	pSql->BindString(2, pReq->m_aKey);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	if(!End)
+	{
+		pRes->m_Mask = GetIntOrDefault(pSql, 1);
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+	}
+
+	pRes->m_PrimarySucceeded = true;
+	return true;
+}
+
+bool CAccountsWorker::ClaimAdventDay(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
+{
+	const auto *pReq = dynamic_cast<const CAccClaimAdventDay *>(pData);
+	auto *pRes = dynamic_cast<CAccAdventResult *>(pData->m_pResult.get());
+	if(!pReq || !pRes)
+	{
+		str_copy(pError, "ClaimAdventDay: bad request/result type", ErrorSize);
+		return false;
+	}
+
+	if(pReq->m_Day < 1 || pReq->m_Day > 24)
+	{
+		str_copy(pError, "ClaimAdventDay: day out of range", ErrorSize);
+		return false;
+	}
+
+	// Same reasoning as ClaimDailyReward: a backup-only write cannot be
+	// exclusive against servers on the primary, and NORMAL_SUCCEEDED is the
+	// pool replaying this, where the bit guard would make it a no-op anyway.
+	if(w == Write::NORMAL_FAILED || w == Write::NORMAL_SUCCEEDED)
+		return true;
+
+	const bool Primary = w == Write::NORMAL;
+	const int Bit = 1 << (pReq->m_Day - 1);
+
+	// Seed the row so the claim below is a single conditional update. The
+	// insert losing a race is fine, the update is what grants the day.
+	char aInsert[256];
+	str_format(aInsert, sizeof(aInsert),
+		"%s INTO foxnet_account_timers (Username, `Key`, ExpiresAt, Period, Count, UpdatedAt) "
+		"VALUES (?, ?, 0, ?, 0, ?)",
+		pSql->InsertIgnore());
+	if(!pSql->PrepareStatement(aInsert, pError, ErrorSize))
+		return false;
+
+	int Param = 1;
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindString(Param++, pReq->m_aKey);
+	pSql->BindInt64(Param++, pReq->m_Year);
+	pSql->BindInt64(Param++, pReq->m_Now);
+
+	int NumInserted = 0;
+	if(!pSql->ExecuteUpdate(&NumInserted, pError, ErrorSize))
+		return false;
+
+	char aUpdate[256];
+	str_copy(aUpdate,
+		"UPDATE foxnet_account_timers "
+		"SET Count = Count | ?, UpdatedAt = ? "
+		"WHERE Username = ? AND `Key` = ? AND (Count & ?) = 0",
+		sizeof(aUpdate));
+	if(!pSql->PrepareStatement(aUpdate, pError, ErrorSize))
+		return false;
+
+	Param = 1;
+	pSql->BindInt(Param++, Bit);
+	pSql->BindInt64(Param++, pReq->m_Now);
+	pSql->BindString(Param++, pReq->m_aUsername);
+	pSql->BindString(Param++, pReq->m_aKey);
+	pSql->BindInt(Param++, Bit);
+
+	int NumUpdated = 0;
+	if(!pSql->ExecuteUpdate(&NumUpdated, pError, ErrorSize))
+		return false;
+
+	const bool Claimed = NumUpdated == 1;
+
+	// Read the mask back so the menu shows every collected day, not just this one
+	char aSelect[160];
+	str_copy(aSelect, "SELECT Count FROM foxnet_account_timers WHERE Username = ? AND `Key` = ?", sizeof(aSelect));
+	if(!pSql->PrepareStatement(aSelect, pError, ErrorSize))
+		return false;
+	pSql->BindString(1, pReq->m_aUsername);
+	pSql->BindString(2, pReq->m_aKey);
+
+	bool End = true;
+	if(!pSql->Step(&End, pError, ErrorSize))
+		return false;
+
+	int Mask = Claimed ? Bit : 0;
+	if(!End)
+	{
+		Mask = GetIntOrDefault(pSql, 1, Mask);
+		if(!ConsumeRemainingRows(pSql, &End, pError, ErrorSize))
+			return false;
+	}
+
+	if(Primary)
+	{
+		pRes->m_PrimarySucceeded = true;
+		pRes->m_Claimed = Claimed;
+		pRes->m_Mask = Mask;
+	}
+	return true;
+}
+
 bool CAccountsWorker::MoneyDelta(IDbConnection *pSql, const ISqlData *pData, Write w, char *pError, int ErrorSize)
 {
 	const auto *pReq = dynamic_cast<const CAccMoneyDelta *>(pData);

@@ -102,6 +102,16 @@ constexpr const char *MAIL_DELETE = "✘ Delete Mail";
 // Shop
 constexpr const char *SHOP_ONLY_AFFORDABLE = "Only show Affordable Items";
 
+// Advent calendar. Today's unopened door is the only clickable row and the only
+// one carrying the open marker, so the click identifies itself without an index.
+// Vanilla DDNet ships no emoji font, see data/fonts/index.json, so it gets
+// markers DejaVu Sans can draw. ✔ and ✘ are in DejaVu, those need no variant.
+constexpr const char *ADVENT_OPEN_MARKER = "🎁";
+constexpr const char *ADVENT_OPEN_MARKER_PLAIN = "★";
+constexpr const char *ADVENT_LOCKED_MARKER = "🔒";
+constexpr const char *ADVENT_LOCKED_MARKER_PLAIN = "□";
+constexpr const char *ADVENT_HIDDEN_REWARD = "???";
+
 // Navigation
 constexpr const char *MAIN_MENU_PAGE = "↩ Main Menu ↩";
 constexpr const char *BACKPAGE = "↩ Back ↩";
@@ -174,12 +184,13 @@ void CVoteMenu::OnConsoleInit()
 	str_copy(m_aPages[PAGE_MAIN], ConvertToSmallCaps("Main Menu")); // Not shown
 
 	str_copy(m_aPages[PAGE_BOOSTERS], ConvertToSmallCaps("Boosters"));
+	str_copy(m_aPages[PAGE_ADVENT], ConvertToSmallCaps("Advent Calendar"));
 	str_copy(m_aPages[PAGE_SERVERINFO], ConvertToSmallCaps("Info"));
 	str_copy(m_aPages[PAGE_VOTES], ConvertToSmallCaps("Votes"));
+	str_copy(m_aPages[PAGE_SETTINGS], ConvertToSmallCaps("Settings"));
 	str_copy(m_aPages[PAGE_SHOP], ConvertToSmallCaps("Shop"));
 	str_copy(m_aPages[PAGE_INVENTORY], ConvertToSmallCaps("Inventory"));
 	str_copy(m_aPages[PAGE_MAILBOX], ConvertToSmallCaps("Mailbox"));
-	str_copy(m_aPages[PAGE_SETTINGS], ConvertToSmallCaps("Settings"));
 	str_copy(m_aPages[PAGE_ADMIN], ConvertToSmallCaps("Admin"));
 }
 
@@ -408,6 +419,27 @@ bool CVoteMenu::IsCustomVoteOption(const CNetMsg_Cl_CallVote *pMsg, int ClientId
 			Acc.m_Configs.m_HatItemFlags = PICKUPFLAG_ROTATE;
 			return true;
 		}
+	}
+	else if(Page == PAGE_ADVENT)
+	{
+		if(!g_Config.m_SvAccounts)
+			return false;
+
+		int Today = 0;
+		if(!CAccounts::AdventWindow(&Today, nullptr))
+		{
+			SetPage(ClientId, PAGE_MAIN);
+			return true;
+		}
+
+		// Only today's door carries an open marker, and ClaimAdventDay derives
+		// the day itself, so nothing is read out of the description. Both
+		// variants are accepted, a client can announce itself between the page
+		// being drawn and the click. A missed or still locked door is swallowed
+		// here rather than falling through.
+		if(IsOptionWithSuffix(pVote, ADVENT_OPEN_MARKER) || IsOptionWithSuffix(pVote, ADVENT_OPEN_MARKER_PLAIN))
+			GameServer()->m_AccountManager.ClaimAdventDay(ClientId, Today);
+		return true;
 	}
 	else if(Page == PAGE_MAILBOX)
 	{
@@ -763,6 +795,14 @@ void CVoteMenu::OnTick()
 		if(Server()->ClientSlotEmpty(ClientId) || !GameServer()->m_apPlayers[ClientId])
 			continue;
 
+		CClientData &Data = m_aClientData[ClientId];
+		if(Data.m_AwaitMailExpireTick != -1 && Server()->Tick() >= Data.m_AwaitMailExpireTick)
+		{
+			// The mail never arrived, the database write must have failed
+			Data.m_aAwaitMailSubject[0] = '\0';
+			Data.m_AwaitMailExpireTick = -1;
+		}
+
 		if((GameServer()->m_apPlayers[ClientId]->m_PlayerFlags & PLAYERFLAG_IN_MENU) && !(GameServer()->m_apPlayers[ClientId]->m_PrevPlayerFlags & PLAYERFLAG_IN_MENU))
 			GameServer()->ClearVotes(ClientId); // Update the menu when the player opens it
 
@@ -779,14 +819,20 @@ void CVoteMenu::OnTick()
 	}
 }
 
+void CVoteMenu::OnClientEnter(int ClientId)
+{
+	// A custom client announces itself with a NETMSG_IAM_* message and they all
+	// carry Noto Emoji. A client that announced nothing is vanilla DDNet.
+	const bool CustomClient = str_comp(Server()->GetCustomClient(ClientId), "DDNet") != 0;
+	const bool ClientRecentEnough = Server()->GetClientVersion(ClientId) >= 19050;
+	m_aClientData[ClientId].m_EmojiSupport = CustomClient && ClientRecentEnough;
+}
+
 void CVoteMenu::OnClientDrop(int ClientId, const char *pReason)
 {
-	CVoteMenu::CClientData &Data = m_aClientData[ClientId];
-	Data.m_Page = PAGE_MAIN;
-	for(int i = 0; i < NUM_PAGES; i++)
-		Data.m_aSubPage[i] = 0;
-	Data.m_pLastItemInfo = nullptr;
-	Data.m_OnlyAffordable = true;
+	// The slot is handed to the next player as it is left here, nothing
+	// re-initializes it on connect, so clear all of it
+	m_aClientData[ClientId] = CClientData();
 }
 
 void CVoteMenu::UpdatePages(int ClientId)
@@ -856,6 +902,24 @@ void CVoteMenu::UpdatePages(int ClientId)
 		if(pAcc->m_Money != OldAcc.m_Money)
 			Changes = true;
 	}
+	if(Page == PAGE_ADVENT || Page == PAGE_MAIN)
+	{
+		if(pAcc->m_AdventMask != OldAcc.m_AdventMask)
+			Changes = true;
+		if(pAcc->m_AdventYear != OldAcc.m_AdventYear)
+			Changes = true;
+		if(pAcc->m_AdventClaimPending != OldAcc.m_AdventClaimPending)
+			Changes = true;
+
+		// Redraw at the rollover, the page itself has nothing else to go by
+		int Today = 0;
+		CAccounts::AdventWindow(&Today, nullptr);
+		if(Today != m_aClientData[ClientId].m_AdventDay)
+		{
+			m_aClientData[ClientId].m_AdventDay = Today;
+			Changes = true;
+		}
+	}
 	if(Page == PAGE_INVENTORY || Page == PAGE_ADMIN)
 	{
 		if(pAcc->m_Inventory.m_Map != OldAcc.m_Inventory.m_Map)
@@ -904,6 +968,10 @@ bool CVoteMenu::IsPageAllowed(int ClientId, int Page) const
 	if(pAcc->m_LoggedIn && (Page == PAGE_INVENTORY || Page == PAGE_MAILBOX || Page == PAGE_SHOP || Page == PAGE_BOOSTERS))
 		return true;
 
+	// The page disappears once December is over
+	if(Page == PAGE_ADVENT)
+		return pAcc->m_LoggedIn && CAccounts::AdventWindow(nullptr, nullptr);
+
 	return false;
 }
 
@@ -939,6 +1007,7 @@ void CVoteMenu::PrepareVoteOptions(int ClientId)
 	{
 	case PAGE_MAIN: PrepareMainMenu(ClientId); break;
 	case PAGE_BOOSTERS: PrepareBoosters(ClientId); break;
+	case PAGE_ADVENT: PrepareAdvent(ClientId); break;
 	case PAGE_VOTES: PrepareNormalVotes(ClientId); break;
 	case PAGE_SETTINGS: PrepareSettings(ClientId); break;
 	case PAGE_MAILBOX: PrepareMailbox(ClientId); break;
@@ -1007,6 +1076,52 @@ void CVoteMenu::SetPage(int ClientId, int Page)
 	m_aClientData[ClientId].m_Page = Page;
 
 	GameServer()->ClearVotes(ClientId);
+}
+
+void CVoteMenu::AwaitMail(int ClientId, const char *pSubject)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS || !pSubject || !pSubject[0])
+		return;
+
+	CClientData &Data = m_aClientData[ClientId];
+	str_copy(Data.m_aAwaitMailSubject, pSubject, sizeof(Data.m_aAwaitMailSubject));
+	// Give up rather than yank the player into an unrelated mail much later
+	Data.m_AwaitMailExpireTick = Server()->Tick() + 10 * Server()->TickSpeed();
+}
+
+void CVoteMenu::OnNewMail(int ClientId, int64_t MailId, const char *pSubject)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	CClientData &Data = m_aClientData[ClientId];
+	if(!Data.m_aAwaitMailSubject[0] || str_comp(Data.m_aAwaitMailSubject, pSubject) != 0)
+		return;
+
+	Data.m_aAwaitMailSubject[0] = '\0';
+	Data.m_AwaitMailExpireTick = -1;
+
+	if(!IsPageAllowed(ClientId, PAGE_MAILBOX))
+		return;
+
+	const CMailBox &MailBox = GameServer()->m_aAccounts[ClientId].m_MailBox;
+	int Index = -1;
+	for(int i = 0; i < (int)MailBox.m_vMails.size(); i++)
+	{
+		if(MailBox.m_vMails[i].m_MailId == MailId)
+		{
+			Index = i;
+			break;
+		}
+	}
+	if(Index < 0)
+		return;
+
+	// The view page reads the index out of the metadata, and SetSubPage writes
+	// into whichever page is current, so the page has to be set first
+	str_copy(Data.m_aMetaData, std::to_string(Index).c_str(), sizeof(Data.m_aMetaData));
+	SetPage(ClientId, PAGE_MAILBOX);
+	SetSubPage(ClientId, SUB_MAILBOX_VIEW, true);
 }
 
 int CVoteMenu::GetSubPage(int ClientId) const
@@ -1122,6 +1237,18 @@ void CVoteMenu::PrepareMainMenu(int ClientId)
 				PageName += " [" + std::to_string(UnreadMails) + "]";
 		}
 
+		if(i == PAGE_ADVENT)
+		{
+			int Today = 0;
+			int64_t Year = 0;
+			if(CAccounts::AdventWindow(&Today, &Year))
+			{
+				const int Mask = pAcc->m_AdventYear == Year ? pAcc->m_AdventMask : 0;
+				if(!(Mask & (1 << (Today - 1))))
+					PageName += " [!]";
+			}
+		}
+
 		AddVoteText(PageName.c_str(), EPrefix::SMALL_GREATER_THAN);
 	}
 }
@@ -1216,6 +1343,90 @@ void CVoteMenu::PrepareBoosters(int ClientId)
 		AddVoteText("│ No active boosters");
 
 	AddVoteText("╰────────────────────");
+}
+
+bool CVoteMenu::CanRenderEmoji(int ClientId) const
+{
+	return m_aClientData[ClientId].m_EmojiSupport;
+}
+
+void CVoteMenu::PrepareAdvent(int ClientId)
+{
+	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	const CAccountSession *pAcc = &GameServer()->m_aAccounts[ClientId];
+
+	int Today = 0;
+	int64_t Year = 0;
+	if(!CAccounts::AdventWindow(&Today, &Year))
+	{
+		SetPage(ClientId, PAGE_MAIN);
+		return;
+	}
+
+	// A mask read for another year says nothing about this one
+	const int Mask = pAcc->m_AdventYear == Year ? pAcc->m_AdventMask : 0;
+	const int MaxDay = std::min(g_Config.m_SvAdventCalendarDays, ADVENT_MAX_DAYS);
+
+	const bool Emoji = CanRenderEmoji(ClientId);
+	const char *pOpenMarker = Emoji ? ADVENT_OPEN_MARKER : ADVENT_OPEN_MARKER_PLAIN;
+	const char *pLockedMarker = Emoji ? ADVENT_LOCKED_MARKER : ADVENT_LOCKED_MARKER_PLAIN;
+
+	int Opened = 0;
+	for(int Day = 1; Day <= MaxDay; Day++)
+	{
+		if(Mask & (1 << (Day - 1)))
+			Opened++;
+	}
+
+	char aBuf[VOTE_DESC_LENGTH];
+	// Small caps makes every letter multi byte, so this title gets fewer
+	// leading dashes than the other pages to stay under VOTE_DESC_LENGTH
+	AddVoteText(ConvertToSmallCaps("╭─────  Advent Calendar"));
+	str_format(aBuf, sizeof(aBuf), "│ December %" PRId64, Year);
+	AddVoteText(aBuf);
+	str_format(aBuf, sizeof(aBuf), "│ Doors opened: %d/%d", Opened, MaxDay);
+	AddVoteText(aBuf);
+	AddVoteText("╰────────────────────");
+	AddVoteSeparator();
+
+	if(pAcc->m_AdventClaimPending)
+		AddVoteText("Opening your door...");
+	else if(Mask & (1 << (Today - 1)))
+		AddVoteText("Today's door is open, come back tomorrow.");
+	else
+		AddVoteText("Click today's door to open it!");
+	AddVoteSeparator();
+
+	for(int Day = 1; Day <= MaxDay; Day++)
+	{
+		const CAdventDay &Cfg = CAccounts::AdventDay(Day);
+
+		if(Mask & (1 << (Day - 1)))
+		{
+			// Money and XP roll back to the same numbers. The items are not
+			// re-rolled, the mail is what lists those.
+			int64_t Money = 0;
+			int64_t Xp = 0;
+			GameServer()->m_AccountManager.RollAdventReward(pAcc->m_aUsername, Year, Day, &Money, &Xp, nullptr);
+
+			char aItems[32] = "";
+			if(Cfg.m_Items > 0)
+				str_format(aItems, sizeof(aItems), " + %d Item%s", Cfg.m_Items, Cfg.m_Items > 1 ? "s" : "");
+
+			str_format(aBuf, sizeof(aBuf), "✔ Dec %d - %" PRId64 "%s, %" PRId64 " XP%s",
+				Day, Money, g_Config.m_SvCurrencyName, Xp, aItems);
+		}
+		else if(Day == Today)
+			str_format(aBuf, sizeof(aBuf), "%s Dec %d - %s", pOpenMarker, Day, ADVENT_HIDDEN_REWARD);
+		else if(Day < Today)
+			str_format(aBuf, sizeof(aBuf), "✘ Dec %d - missed", Day);
+		else
+			str_format(aBuf, sizeof(aBuf), "%s Dec %d", pLockedMarker, Day);
+
+		AddVoteText(aBuf);
+	}
 }
 
 void CVoteMenu::PrepareNormalVotes(int ClientId)
