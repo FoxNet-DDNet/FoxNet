@@ -1357,30 +1357,45 @@ void CServer::DoSnapshot()
 		if(m_aClients[i].m_State != CClient::STATE_INGAME || m_aClients[i].m_OverrideMapReloading)
 			continue;
 
+		// <FoxNet
+		// A demo kept for later review must not inherit the send throttling below:
+		// it needs a snapshot on every tick no matter what this client's connection
+		// is doing. So the two decisions are kept apart - `SendSnap` still answers
+		// "does this client get a snapshot now", `RecordDemo` answers "does the demo
+		// get one", and the snapshot is built whenever either says yes. The send path
+		// (delta base, packing, m_Snapshots) is untouched and only runs for `SendSnap`.
+		//
+		// 0.7 clients are the one exception: their snapshots may only be built on
+		// global ticks, see the dbg_assert in CGameContext::OnSnap.
+		// Set sv_demo_full_tick_rate 0 to go back to recording only what is sent.
+		const bool RecordDemo = IsRecording(i) && (IsGlobalSnap || !IsSixup(i));
+
+		bool SendSnap = true;
+
 		// this client is trying to recover, don't spam snapshots
 		if(m_aClients[i].m_SnapRate == CClient::SNAPRATE_RECOVER && (Tick() % TickSpeed()) != 0)
-			continue;
+			SendSnap = false;
 
 		// this client is trying to recover, don't spam snapshots
 		if(m_aClients[i].m_SnapRate == CClient::SNAPRATE_INIT && (Tick() % 10) != 0)
-			continue;
+			SendSnap = false;
 
 		// only allow clients with forced high bandwidth on spectate to receive snapshots on non-global ticks
 		if(!IsGlobalSnap && !(m_aClients[i].m_ForceHighBandwidthOnSpectate && GameServer()->IsClientHighBandwidth(i)))
 		{
-			// <FoxNet
-			if(IsSixup(i))
-				continue;
-			if(!m_aClients[i].m_HighBandwidth)
-				continue;
-			// FoxNet>
+			if(IsSixup(i) || !m_aClients[i].m_HighBandwidth)
+				SendSnap = false;
 		}
+
+		if(!SendSnap && !(RecordDemo && Config()->m_SvDemoFullTickRate))
+			continue;
+		// FoxNet>
 
 		{
 			m_SnapshotBuilder.Init(m_aClients[i].m_Sixup);
 
 			// only snap events on global ticks
-			GameServer()->OnSnap(i, IsGlobalSnap, IsRecording(i));
+			GameServer()->OnSnap(i, IsGlobalSnap, RecordDemo);
 
 			// finish snapshot
 			CSnapshotBuffer Data;
@@ -1393,6 +1408,12 @@ void CServer::DoSnapshot()
 			}
 			if(m_pRunDemoRecorder)
 				m_pRunDemoRecorder->Snapshot(i, Tick(), Data.AsSnapshot(), SnapshotSize);
+
+			// <FoxNet
+			// recording-only tick: nothing below may run, it is all send path
+			if(!SendSnap)
+				continue;
+			// FoxNet>
 
 			int Crc = Data.AsSnapshot()->Crc();
 
