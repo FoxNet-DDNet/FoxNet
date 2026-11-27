@@ -162,7 +162,7 @@ void CShop::ListItems()
 	log_info("shop", "%s", Separator);
 	for(const auto *pItem : vSortedMap)
 	{
-		log_info("shop", "Price: %ld | MinLevel: %d | %s", pItem->m_Price, pItem->m_MinLevel, pItem->m_pName);
+		log_info("shop", "Price: %ld | MinLevel: %d | %s | %s", pItem->m_Price, pItem->m_MinLevel, pItem->m_pName, RarityToName(pItem->m_Rarity));
 	}
 	log_info("shop", "%s", Separator);
 }
