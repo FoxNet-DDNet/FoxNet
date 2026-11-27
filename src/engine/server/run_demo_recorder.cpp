@@ -68,6 +68,25 @@ namespace
 		return Result.empty() ? pFallback : Result;
 	}
 
+	void FormatRaceTime(float Time, char (&aDisplay)[32], char (&aFilename)[32])
+	{
+		const int64_t Centiseconds = std::max<int64_t>(0, std::llround(Time * 100.0));
+		const int64_t Hours = Centiseconds / 360000;
+		const int64_t Minutes = Centiseconds / 6000 % 60;
+		const int64_t Seconds = Centiseconds / 100 % 60;
+		const int64_t Hundredths = Centiseconds % 100;
+		if(Hours)
+		{
+			str_format(aDisplay, sizeof(aDisplay), "%" PRId64 ":%02" PRId64 ":%02" PRId64 ".%02" PRId64, Hours, Minutes, Seconds, Hundredths);
+			str_format(aFilename, sizeof(aFilename), "%" PRId64 "h%02" PRId64 "m%02" PRId64 ".%02" PRId64 "s", Hours, Minutes, Seconds, Hundredths);
+		}
+		else
+		{
+			str_format(aDisplay, sizeof(aDisplay), "%" PRId64 ":%02" PRId64 ".%02" PRId64, Minutes, Seconds, Hundredths);
+			str_format(aFilename, sizeof(aFilename), "%02" PRId64 "m%02" PRId64 ".%02" PRId64 "s", Minutes, Seconds, Hundredths);
+		}
+	}
+
 	std::string ShortRunId(const std::string &Base)
 	{
 		uint64_t Hash = 14695981039346656037ULL;
@@ -202,6 +221,20 @@ void CRunDemoRecorder::Finish(int ClientId, float Time, const char *pPlayer, std
 		m_aActive[ClientId] = false;
 }
 
+void CRunDemoRecorder::Dump(int ClientId, float Time, const char *pPlayer, const char *pAccountUsername, const char *pRequestedBy)
+{
+	if(!IsRecording(ClientId))
+		return;
+	CEvent Event{EEventType::DUMP, ClientId, m_aGeneration[ClientId]};
+	Event.m_Time = Time;
+	Event.m_Player = pPlayer ? pPlayer : "";
+	Event.m_AccountUsername = pAccountUsername ? pAccountUsername : "";
+	Event.m_RequestedBy = pRequestedBy ? pRequestedBy : "";
+	// Unlike FINISH this leaves the run active: it keeps recording afterwards.
+	if(!TryQueue(std::move(Event)))
+		Cancel(ClientId);
+}
+
 void CRunDemoRecorder::Abort(int ClientId)
 {
 	if(!m_aActive[ClientId])
@@ -313,102 +346,172 @@ void CRunDemoRecorder::HandleEvent(const CEvent &Event)
 	else if(Event.m_Type == EEventType::MESSAGE)
 		Run.m_pRecorder->RecordMessage(Event.m_Data.data(), static_cast<int>(Event.m_Data.size()));
 	else if(Event.m_Type == EEventType::FINISH)
+		HandleFinish(Event, Run);
+	else if(Event.m_Type == EEventType::DUMP)
+		HandleDump(Event, Run);
+	CheckRollover(Event.m_ClientId, Run);
+}
+
+std::string CRunDemoRecorder::UniqueBase(const CRun &Run, const CEvent &Event, const char *pTimeSuffix, size_t Count) const
+{
+	char aWhen[64];
+	str_timestamp_format(aWhen, sizeof(aWhen), TimestampFormat::SPACE);
+	std::string When = aWhen;
+	for(char &Ch : When)
+		if(Ch == ' ')
+			Ch = '_';
+		else if(Ch == ':')
+			Ch = '-';
+	const std::string NameBase = When + "_" + FilenameComponent(Run.m_Map.c_str(), "map") + "_" + FilenameComponent(Event.m_Player.c_str(), "player") + "_" + pTimeSuffix + "_" + ShortRunId(Run.m_Base) + (Event.m_TeamSaved ? "_saved" : "");
+	std::string FinalBase = NameBase;
+	for(unsigned Collision = 1;; ++Collision)
 	{
-		Run.m_pRecorder->Stop(IDemoRecorder::EStopMode::KEEP_FILE);
-		char aWhen[64];
-		str_timestamp_format(aWhen, sizeof(aWhen), TimestampFormat::SPACE);
-		std::string When = aWhen;
-		for(char &Ch : When)
-			if(Ch == ' ')
-				Ch = '_';
-			else if(Ch == ':')
-				Ch = '-';
-		const long long Centiseconds = std::max(0LL, std::llround(Event.m_Time * 100.0));
-		const long long Hours = Centiseconds / 360000;
-		const long long Minutes = Centiseconds / 6000 % 60;
-		const long long Seconds = Centiseconds / 100 % 60;
-		const long long Hundredths = Centiseconds % 100;
-		char aDisplayTime[32];
-		char aFilenameTime[32];
-		if(Hours)
-		{
-			str_format(aDisplayTime, sizeof(aDisplayTime), "%lld:%02lld:%02lld.%02lld", Hours, Minutes, Seconds, Hundredths);
-			str_format(aFilenameTime, sizeof(aFilenameTime), "%lldh%02lldm%02lld.%02llds", Hours, Minutes, Seconds, Hundredths);
-		}
-		else
-		{
-			str_format(aDisplayTime, sizeof(aDisplayTime), "%lld:%02lld.%02lld", Minutes, Seconds, Hundredths);
-			str_format(aFilenameTime, sizeof(aFilenameTime), "%02lldm%02lld.%02llds", Minutes, Seconds, Hundredths);
-		}
-		const size_t Count = Run.m_vParts.size();
-		const std::string NameBase = When + "_" + FilenameComponent(Run.m_Map.c_str(), "map") + "_" + FilenameComponent(Event.m_Player.c_str(), "player") + "_" + aFilenameTime + "_" + ShortRunId(Run.m_Base) + (Event.m_TeamSaved ? "_saved" : "");
-		std::string FinalBase = NameBase;
-		for(unsigned Collision = 1;; ++Collision)
-		{
-			std::error_code ManifestError;
-			bool Exists = fs::exists(fs::path(m_Folder) / (FinalBase + ".txt"), ManifestError);
-			for(size_t i = 0; i < Count; ++i)
-			{
-				char aPart[24];
-				str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
-				const fs::path PartBase = fs::path(m_Folder) / (FinalBase + aPart);
-				std::error_code Error;
-				if(fs::exists(PartBase.string() + ".demo", Error) || fs::exists(PartBase.string() + ".txt", Error))
-					Exists = true;
-			}
-			if(!Exists)
-				break;
-			FinalBase = NameBase + "_" + std::to_string(Collision);
-		}
-		bool Finalized = true;
+		std::error_code ManifestError;
+		bool Exists = fs::exists(fs::path(m_Folder) / (FinalBase + ".txt"), ManifestError);
 		for(size_t i = 0; i < Count; ++i)
 		{
-			const fs::path TempPath = fs::path(m_Folder) / Run.m_vParts[i];
 			char aPart[24];
 			str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
-			const std::string ReadyName = FinalBase + aPart;
-			const fs::path DemoPath = fs::path(m_Folder) / (ReadyName + ".demo");
+			const fs::path PartBase = fs::path(m_Folder) / (FinalBase + aPart);
 			std::error_code Error;
-			fs::rename(TempPath, DemoPath, Error);
-			if(Error)
-			{
-				log_error("run_demo", "could not finalize %s: %s", TempPath.string().c_str(), Error.message().c_str());
-				Finalized = false;
-			}
+			if(fs::exists(PartBase.string() + ".demo", Error) || fs::exists(PartBase.string() + ".txt", Error))
+				Exists = true;
 		}
-		if(Finalized)
+		if(!Exists)
+			return FinalBase;
+		FinalBase = NameBase + "_" + std::to_string(Collision);
+	}
+}
+
+void CRunDemoRecorder::HandleFinish(const CEvent &Event, CRun &Run)
+{
+	Run.m_pRecorder->Stop(IDemoRecorder::EStopMode::KEEP_FILE);
+	char aDisplayTime[32];
+	char aFilenameTime[32];
+	FormatRaceTime(Event.m_Time, aDisplayTime, aFilenameTime);
+	const size_t Count = Run.m_vParts.size();
+	const std::string FinalBase = UniqueBase(Run, Event, aFilenameTime, Count);
+	bool Finalized = true;
+	for(size_t i = 0; i < Count; ++i)
+	{
+		const fs::path TempPath = fs::path(m_Folder) / Run.m_vParts[i];
+		char aPart[24];
+		str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
+		const std::string ReadyName = FinalBase + aPart;
+		const fs::path DemoPath = fs::path(m_Folder) / (ReadyName + ".demo");
+		std::error_code Error;
+		fs::rename(TempPath, DemoPath, Error);
+		if(Error)
 		{
-			const fs::path MetaPath = fs::path(m_Folder) / (FinalBase + ".txt");
-			const fs::path TempMetaPath = fs::path(m_Folder) / (FinalBase + ".txt.tmp");
-			bool MetaWritten = false;
-			{
-				std::ofstream Meta(TempMetaPath, std::ios::binary);
-				Meta << (Event.m_TeamSaved ? "FOXNET_RUN_DEMO_SAVE_V1\n" : "FOXNET_RUN_DEMO_V2\n")
-				     << Count << '\n'
-				     << Event.m_RankUnchanged << '\n';
-				Meta << "Player: " << SafeDiscordName(Event.m_Player.c_str()) << " (" << Event.m_ClientId;
-				if(!Event.m_AccountUsername.empty())
-					Meta << ", acc: " << SafeDiscordName(Event.m_AccountUsername.c_str());
-				Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str()) << (Event.m_TeamSaved ? "\nSaved at: " : "\nTime: ") << aDisplayTime;
-				if(!Event.m_TeamSaved)
-					Meta << "\nRank: ";
-				Meta.flush();
-				MetaWritten = Meta.good();
-			}
-			std::error_code Error;
-			if(MetaWritten)
-				fs::rename(TempMetaPath, MetaPath, Error);
-			if(MetaWritten && !Error)
-				QueueUpload({FinalBase, Event.m_pRank});
-			else
-				log_error("run_demo", "could not save metadata for %s: %s", FinalBase.c_str(), MetaWritten ? Error.message().c_str() : "write failed");
+			log_error("run_demo", "could not finalize %s: %s", TempPath.string().c_str(), Error.message().c_str());
+			Finalized = false;
 		}
-		Run.m_pRecorder.reset();
-		Run.m_vParts.clear();
-		Run.m_Generation = 0;
+	}
+	if(Finalized)
+	{
+		const fs::path MetaPath = fs::path(m_Folder) / (FinalBase + ".txt");
+		const fs::path TempMetaPath = fs::path(m_Folder) / (FinalBase + ".txt.tmp");
+		bool MetaWritten = false;
+		{
+			std::ofstream Meta(TempMetaPath, std::ios::binary);
+			Meta << (Event.m_TeamSaved ? "FOXNET_RUN_DEMO_SAVE_V1\n" : "FOXNET_RUN_DEMO_V2\n")
+			     << Count << '\n'
+			     << Event.m_RankUnchanged << '\n';
+			Meta << "Player: " << SafeDiscordName(Event.m_Player.c_str()) << " (" << Event.m_ClientId;
+			if(!Event.m_AccountUsername.empty())
+				Meta << ", acc: " << SafeDiscordName(Event.m_AccountUsername.c_str());
+			Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str()) << (Event.m_TeamSaved ? "\nSaved at: " : "\nTime: ") << aDisplayTime;
+			if(!Event.m_TeamSaved)
+				Meta << "\nRank: ";
+			Meta.flush();
+			MetaWritten = Meta.good();
+		}
+		std::error_code Error;
+		if(MetaWritten)
+			fs::rename(TempMetaPath, MetaPath, Error);
+		if(MetaWritten && !Error)
+			QueueUpload({FinalBase, Event.m_pRank});
+		else
+			log_error("run_demo", "could not save metadata for %s: %s", FinalBase.c_str(), MetaWritten ? Error.message().c_str() : "write failed");
+	}
+	Run.m_pRecorder.reset();
+	Run.m_vParts.clear();
+	Run.m_Generation = 0;
+}
+
+void CRunDemoRecorder::HandleDump(const CEvent &Event, CRun &Run)
+{
+	// A dump has to close the open part to finalize its header, so it always costs
+	// the run one part. Refuse rather than spend the last one: losing the rest of
+	// someone's run demo is worse than an admin not getting a mid-run copy.
+	if(Run.m_vParts.size() >= MAX_PARTS)
+	{
+		log_error("run_demo", "not dumping %s: the run already uses all %d parts", Run.m_Base.c_str(), MAX_PARTS);
 		return;
 	}
-	CheckRollover(Event.m_ClientId, Run);
+
+	// Close the part that is open so its header carries a length, copy every part
+	// recorded so far under a name of its own, and open a fresh part. The run's own
+	// temporary parts are left in place, so the finish demo is still complete.
+	Run.m_pRecorder->Stop(IDemoRecorder::EStopMode::KEEP_FILE);
+	Run.m_pRecorder.reset();
+
+	char aDisplayTime[32];
+	char aFilenameTime[32];
+	FormatRaceTime(Event.m_Time, aDisplayTime, aFilenameTime);
+	const size_t Count = Run.m_vParts.size();
+	const std::string FinalBase = UniqueBase(Run, Event, (std::string("at") + aFilenameTime).c_str(), Count);
+
+	bool Copied = Count != 0;
+	for(size_t i = 0; i < Count; ++i)
+	{
+		char aPart[24];
+		str_format(aPart, sizeof(aPart), "_part%02" PRIzu "-of%02" PRIzu, i + 1, Count);
+		const fs::path DemoPath = fs::path(m_Folder) / (FinalBase + aPart + ".demo");
+		std::error_code Error;
+		fs::copy_file(fs::path(m_Folder) / Run.m_vParts[i], DemoPath, fs::copy_options::overwrite_existing, Error);
+		if(Error)
+		{
+			log_error("run_demo", "could not copy %s: %s", Run.m_vParts[i].c_str(), Error.message().c_str());
+			Copied = false;
+		}
+	}
+
+	if(Copied)
+	{
+		const fs::path MetaPath = fs::path(m_Folder) / (FinalBase + ".txt");
+		const fs::path TempMetaPath = fs::path(m_Folder) / (FinalBase + ".txt.tmp");
+		bool MetaWritten = false;
+		{
+			std::ofstream Meta(TempMetaPath, std::ios::binary);
+			Meta << "FOXNET_RUN_DEMO_PROGRESS_V1\n"
+			     << Count << "\n0\n";
+			Meta << "Player: " << SafeDiscordName(Event.m_Player.c_str()) << " (" << Event.m_ClientId;
+			if(!Event.m_AccountUsername.empty())
+				Meta << ", acc: " << SafeDiscordName(Event.m_AccountUsername.c_str());
+			Meta << ")\nMap: " << SafeDiscordName(Run.m_Map.c_str())
+			     << "\nRun in progress, recorded up to: " << aDisplayTime
+			     << "\nRequested by: " << SafeDiscordName(Event.m_RequestedBy.c_str());
+			Meta.flush();
+			MetaWritten = Meta.good();
+		}
+		std::error_code Error;
+		if(MetaWritten)
+			fs::rename(TempMetaPath, MetaPath, Error);
+		if(MetaWritten && !Error)
+			QueueUpload({FinalBase, nullptr});
+		else
+			log_error("run_demo", "could not save metadata for %s: %s", FinalBase.c_str(), MetaWritten ? Error.message().c_str() : "write failed");
+	}
+
+	// Keep recording the run itself. Failing to reopen only costs the rest of this
+	// run, which is the same outcome as running out of parts.
+	if(!StartPart(Run))
+	{
+		Run.m_Overflow = true;
+		m_aOverflow[Event.m_ClientId].store(true, std::memory_order_release);
+		log_error("run_demo", "could not continue recording after a demo dump; kept partial files under %s", Run.m_Base.c_str());
+	}
 }
 
 void CRunDemoRecorder::WriterLoop()
@@ -472,7 +575,10 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 	std::string Magic;
 	std::getline(Parsed, Magic);
 	const bool TeamSaved = Magic == "FOXNET_RUN_DEMO_SAVE_V1";
-	if(Magic == "FOXNET_RUN_DEMO_V2" || TeamSaved)
+	// A mid-run copy requested by an admin: there is no finish, so no rank to wait for.
+	const bool InProgress = Magic == "FOXNET_RUN_DEMO_PROGRESS_V1";
+	const bool NoRank = TeamSaved || InProgress;
+	if(Magic == "FOXNET_RUN_DEMO_V2" || NoRank)
 	{
 		Grouped = true;
 		if(!(Parsed >> PartCount >> RankUnchanged) || PartCount < 1 || PartCount > MAX_PARTS)
@@ -482,13 +588,13 @@ bool CRunDemoRecorder::Upload(const CUpload &Upload)
 		}
 		Parsed.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		Content.assign(std::istreambuf_iterator<char>(Parsed), std::istreambuf_iterator<char>());
-		if(!TeamSaved && Upload.m_pRank)
+		if(!NoRank && Upload.m_pRank)
 		{
 			const auto Deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 			while(Upload.m_pRank->load(std::memory_order_acquire) < 0 && std::chrono::steady_clock::now() < Deadline)
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
-		if(!TeamSaved)
+		if(!NoRank)
 		{
 			const int Rank = Upload.m_pRank ? Upload.m_pRank->load(std::memory_order_acquire) : 0;
 			Content += Rank > 0 ? "#" + std::to_string(Rank) + (RankUnchanged ? " (unchanged)" : "") : "unavailable";

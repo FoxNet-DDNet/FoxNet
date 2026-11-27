@@ -4696,6 +4696,7 @@ void CServer::StartRecord(int ClientId)
 {
 	if(m_pRunDemoRecorder)
 	{
+		m_aLastRunDemoUploadTick[ClientId] = 0;
 		m_pRunDemoRecorder->Start(ClientId, GameServer()->NetVersion(), GameServer()->Map()->BaseName(), m_aCurrentMapSha256[MAP_TYPE_SIX], m_aCurrentMapCrc[MAP_TYPE_SIX]);
 		return;
 	}
@@ -4737,6 +4738,19 @@ bool CServer::IsRecording(int ClientId)
 	if(m_pRunDemoRecorder && ClientId >= 0 && ClientId < MAX_CLIENTS)
 		return m_pRunDemoRecorder->IsRecording(ClientId);
 	return m_aDemoRecorder[ClientId].IsRecording();
+}
+
+bool CServer::UploadRunDemo(int ClientId, float Time, const char *pAccountUsername, const char *pRequestedBy)
+{
+	if(!m_pRunDemoRecorder || ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+	if(!m_pRunDemoRecorder->IsRecording(ClientId))
+		return false;
+	if(m_aLastRunDemoUploadTick[ClientId] && Tick() - m_aLastRunDemoUploadTick[ClientId] < TickSpeed() * RUN_DEMO_UPLOAD_COOLDOWN_SECONDS)
+		return false;
+	m_aLastRunDemoUploadTick[ClientId] = Tick();
+	m_pRunDemoRecorder->Dump(ClientId, Time, ClientName(ClientId), pAccountUsername, pRequestedBy);
+	return true;
 }
 
 void CServer::StopDemos()

@@ -360,6 +360,11 @@ public:
 	virtual void StartRecord(int ClientId) = 0;
 	virtual void StopRecord(int ClientId) = 0;
 	virtual bool IsRecording(int ClientId) = 0;
+	// <FoxNet
+	// Send the run recorded for this client so far to the records channel now,
+	// without interrupting it. False if there is no run demo being recorded.
+	virtual bool UploadRunDemo(int ClientId, float Time, const char *pAccountUsername, const char *pRequestedBy) = 0;
+	// FoxNet>
 	virtual void StopDemos() = 0;
 
 	virtual int *GetIdMap(int ClientId) = 0;

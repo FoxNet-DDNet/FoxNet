@@ -4553,6 +4553,7 @@ void CGameContext::RegisterDDRaceCommands()
 	Console()->Register("move_raw", "i[x] i[y] ?v[id]", CFGFLAG_SERVER, ConMoveRaw, this, "Moves to the point with x/y-coordinates ii");
 	Console()->Register("force_pause", "v[id] i[seconds]", CFGFLAG_SERVER, ConForcePause, this, "Force i to pause for i seconds");
 	Console()->Register("force_unpause", "v[id]", CFGFLAG_SERVER, ConForcePause, this, "Set force-pause timer of i to 0.");
+	Console()->Register("upload_demo", "v[id]", CFGFLAG_SERVER, ConUploadDemo, this, "Send the run demo of i recorded so far to the records channel, without interrupting the recording");
 
 	Console()->Register("set_team_ddr", "v[id] i[team]", CFGFLAG_SERVER, ConSetDDRTeam, this, "Set ddrace team for a player");
 	Console()->Register("uninvite", "v[id] i[team]", CFGFLAG_SERVER, ConUninvite, this, "Uninvite player from team");

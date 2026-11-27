@@ -596,6 +596,37 @@ void CGameContext::ConForcePause(IConsole::IResult *pResult, void *pUserData)
 	pPlayer->ForcePause(Seconds);
 }
 
+void CGameContext::ConUploadDemo(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	const int Victim = pResult->GetVictim(0);
+	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
+	if(!pPlayer)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "upload_demo", "No such player");
+		return;
+	}
+
+	// How far into the run the copy reaches, so the message and the filename say
+	// what you are getting. Zero when the player has not crossed the start line.
+	float Time = 0.0f;
+	const CCharacter *pChr = pPlayer->GetCharacter();
+	if(pChr && pChr->m_DDRaceState == ERaceState::STARTED)
+		Time = (pSelf->Server()->Tick() - pChr->m_StartTime) / (float)pSelf->Server()->TickSpeed();
+
+	const char *pAccountUsername = pPlayer->Acc()->m_LoggedIn ? pPlayer->Acc()->m_aUsername : "";
+	const char *pRequestedBy = pResult->m_ClientId >= 0 ? pSelf->Server()->ClientName(pResult->m_ClientId) : "rcon";
+
+	char aBuf[160];
+	if(pSelf->Server()->UploadRunDemo(Victim, Time, pAccountUsername, pRequestedBy))
+		str_format(aBuf, sizeof(aBuf), "Sending the run of '%s' so far to the records channel", pSelf->Server()->ClientName(Victim));
+	else if(pSelf->Server()->IsRecording(Victim))
+		str_format(aBuf, sizeof(aBuf), "Not sending: the run of '%s' was already sent a moment ago", pSelf->Server()->ClientName(Victim));
+	else
+		str_format(aBuf, sizeof(aBuf), "No run demo is being recorded for '%s'", pSelf->Server()->ClientName(Victim));
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "upload_demo", aBuf);
+}
+
 void CGameContext::ConModerate(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;

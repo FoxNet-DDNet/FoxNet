@@ -41,6 +41,7 @@ class CRunDemoRecorder
 		SNAPSHOT,
 		MESSAGE,
 		FINISH,
+		DUMP,
 		ABORT,
 	};
 
@@ -57,6 +58,7 @@ class CRunDemoRecorder
 		std::string m_NetVersion;
 		std::string m_Player;
 		std::string m_AccountUsername;
+		std::string m_RequestedBy;
 		std::shared_ptr<std::atomic<int>> m_pRank;
 		bool m_RankUnchanged = false;
 		bool m_TeamSaved = false;
@@ -118,6 +120,11 @@ class CRunDemoRecorder
 	void WriterLoop();
 	void UploadLoop();
 	void HandleEvent(const CEvent &Event);
+	void HandleFinish(const CEvent &Event, CRun &Run);
+	void HandleDump(const CEvent &Event, CRun &Run);
+	// Name the run's files after the player, the map and a race time, avoiding
+	// anything already on disk. Count is how many parts the name has to cover.
+	std::string UniqueBase(const CRun &Run, const CEvent &Event, const char *pTimeSuffix, size_t Count) const;
 	void CloseRun(CRun &Run, bool KeepFiles);
 	bool StartPart(CRun &Run);
 	void CheckRollover(int ClientId, CRun &Run);
@@ -134,6 +141,9 @@ public:
 	void Snapshot(int ClientId, int Tick, const void *pData, int Size);
 	void Message(int ClientId, const void *pData, int Size);
 	void Finish(int ClientId, float Time, const char *pPlayer, std::shared_ptr<std::atomic<int>> pRank, bool RankUnchanged, const char *pAccountUsername, bool TeamSaved = false);
+	// Send a copy of the run so far to the records channel without disturbing it:
+	// the run keeps recording and still produces its own demo when it finishes.
+	void Dump(int ClientId, float Time, const char *pPlayer, const char *pAccountUsername, const char *pRequestedBy);
 	void Abort(int ClientId);
 	bool IsRecording(int ClientId);
 	void AbortAll();

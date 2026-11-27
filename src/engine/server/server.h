@@ -541,6 +541,11 @@ public:
 	void StartRecord(int ClientId) override;
 	void StopRecord(int ClientId) override;
 	bool IsRecording(int ClientId) override;
+	// Each mid-run demo upload costs the run one of its ten parts, so they are
+	// rate limited per client. Reset when a run starts, so every run allows one.
+	static constexpr int RUN_DEMO_UPLOAD_COOLDOWN_SECONDS = 15;
+	int m_aLastRunDemoUploadTick[MAX_CLIENTS] = {};
+	bool UploadRunDemo(int ClientId, float Time, const char *pAccountUsername, const char *pRequestedBy) override;
 	void StopDemos() override;
 
 	int Run();
