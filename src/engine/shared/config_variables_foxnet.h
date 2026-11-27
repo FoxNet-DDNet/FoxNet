@@ -208,3 +208,4 @@ MACRO_CONFIG_STR(SvCommandRelayUrl, sv_command_relay_url, 256, "", CFGFLAG_SERVE
 MACRO_CONFIG_STR(SvCommandRelayToken, sv_command_relay_token, 128, "", CFGFLAG_SERVER, "Command relay API bearer token")
 MACRO_CONFIG_STR(SvScriptPlayerKicks, sv_script_player_kicks, 128, "", CFGFLAG_SERVER, "Script that gets executed after a player gets kicked")
 MACRO_CONFIG_STR(SvScriptPlayerMutes, sv_script_player_mutes, 128, "", CFGFLAG_SERVER, "Script that gets executed after a player gets muted")
+MACRO_CONFIG_INT(SvDemoFullTickRate, sv_demo_full_tick_rate, 1, 0, 1, CFGFLAG_SERVER, "Record a snapshot in run/player demos on every tick, independently of the client's own snap rate (costs an extra snapshot build per recording client on ticks the client is not sent one)")
