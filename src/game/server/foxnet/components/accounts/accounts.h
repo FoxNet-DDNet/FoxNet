@@ -68,6 +68,19 @@ public:
 	int m_Days = 0;
 };
 
+// How long a drawn reward item lasts: a count rolled between m_MinUnits and
+// m_MaxUnits inclusive, times m_UnitDays. Keeping the unit separate lets a
+// range stay on whole weeks or months instead of landing on odd day counts.
+// The default is the 7, 14 or 21 days rewards have always handed out, and
+// m_MinUnits == m_MaxUnits makes every item last the same.
+class CRewardDuration
+{
+public:
+	int m_MinUnits = 1;
+	int m_MaxUnits = 3;
+	int m_UnitDays = 7;
+};
+
 enum Configs
 {
 	CONFIG_AUTLOGIN,
@@ -342,16 +355,17 @@ public:
 	void ClaimDailyReward(int ClientId);
 	void SendDailyRewardMail(const char *pUsername, int64_t Streak);
 
-	// Draws Count distinct random buyable items from the given rarities, each for
-	// 7, 14 or 21 days. Runs short rather than repeating when the rarities hold
-	// fewer items than asked for, and is empty when none match.
-	std::vector<CRewardItem> PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count);
+	// Draws Count distinct random buyable items from the given rarities, each
+	// lasting a duration rolled out of Duration. Runs short rather than
+	// repeating when the rarities hold fewer items than asked for, and is empty
+	// when none match.
+	std::vector<CRewardItem> PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count, const CRewardDuration &Duration = CRewardDuration());
 	// Buyable, non upgrade items of the given rarities, ordered by name so that a
 	// caller with a seeded generator draws the same set every time
 	std::vector<const CItemConfig *> RewardCandidates(const std::vector<EItemRarity> &vAllowedRarities);
 	// Appends up to Count items that are not in *pvOut yet, so a reward built
 	// out of several draws still never lists the same item twice
-	void DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut);
+	void DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut, const CRewardDuration &Duration = CRewardDuration());
 	// Writes one drawn item into a mail's reward command and its contents
 	// listing. Items that do not expire are granted and listed without a
 	// duration, see CShop::GiveItem.

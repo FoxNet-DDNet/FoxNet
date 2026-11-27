@@ -1766,10 +1766,10 @@ void CAccounts::OnConsoleInit()
 	Console()->Register("report", "s[player] r[message]", CFGFLAG_CHAT, ConReport, this, "Report a player");
 }
 
-std::vector<CRewardItem> CAccounts::PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count)
+std::vector<CRewardItem> CAccounts::PickRandomRewardItems(const std::vector<EItemRarity> &vAllowedRarities, int Count, const CRewardDuration &Duration)
 {
 	std::vector<CRewardItem> vRewardItems;
-	DrawRewardItems(RewardCandidates(vAllowedRarities), Count, Rng(), &vRewardItems);
+	DrawRewardItems(RewardCandidates(vAllowedRarities), Count, Rng(), &vRewardItems, Duration);
 	return vRewardItems;
 }
 
@@ -1796,7 +1796,7 @@ std::vector<const CItemConfig *> CAccounts::RewardCandidates(const std::vector<E
 	return vItems;
 }
 
-void CAccounts::DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut)
+void CAccounts::DrawRewardItems(const std::vector<const CItemConfig *> &vCandidates, int Count, std::mt19937 &Rng, std::vector<CRewardItem> *pvOut, const CRewardDuration &Duration)
 {
 	if(!pvOut || Count <= 0)
 		return;
@@ -1820,14 +1820,18 @@ void CAccounts::DrawRewardItems(const std::vector<const CItemConfig *> &vCandida
 			vLeft.push_back(pCfg);
 	}
 
-	std::uniform_int_distribution<int> DaysDis(1, 3);
+	const int UnitDays = std::max(1, Duration.m_UnitDays);
+	const int MinUnits = std::max(1, Duration.m_MinUnits);
+	const int MaxUnits = std::max(MinUnits, Duration.m_MaxUnits);
+	std::uniform_int_distribution<int> DaysDis(MinUnits, MaxUnits);
+
 	for(int i = 0; i < Count && !vLeft.empty(); i++)
 	{
 		std::uniform_int_distribution<int> Dis(0, (int)vLeft.size() - 1);
 		const int Pick = Dis(Rng);
 		// Drawn either way, so adding an item that does not expire does not
 		// shift what a seeded generator rolls for the items after it
-		const int Days = DaysDis(Rng) * 7;
+		const int Days = DaysDis(Rng) * UnitDays;
 
 		CRewardItem RewardItem;
 		RewardItem.m_pItem = vLeft[Pick];
@@ -2011,6 +2015,10 @@ static const CAdventDay g_aAdventDays[ADVENT_MAX_DAYS] = {
 	{50000, 100000, 80, 125, 4, EItemRarity::Mythic, EItemRarity::Legendary},
 };
 
+// Every calendar item lasts two months. Widen the unit range to roll a duration
+// per item instead, or move this into CAdventDay to vary it by day.
+static constexpr CRewardDuration ADVENT_ITEM_DURATION = {2, 2, 30};
+
 // Stable generator for one account's day. The username is in the seed, so the
 // ranges above land somewhere different for everyone, and the same place twice.
 static std::mt19937 AdventRng(const char *pUsername, int64_t Year, int Day)
@@ -2133,13 +2141,13 @@ void CAccounts::RollAdventReward(const char *pUsername, int64_t Year, int Day, i
 	if(!vTopNoCases.empty())
 		vTop = vTopNoCases;
 
-	DrawRewardItems(vTop, 1, Rng, pvItems);
+	DrawRewardItems(vTop, 1, Rng, pvItems, ADVENT_ITEM_DURATION);
 
 	std::vector<EItemRarity> vRarities;
 	for(int Rarity = (int)Cfg.m_MinRarity; Rarity <= (int)Cfg.m_MaxRarity; Rarity++)
 		vRarities.push_back((EItemRarity)Rarity);
 
-	DrawRewardItems(RewardCandidates(vRarities), Cfg.m_Items - 1, Rng, pvItems);
+	DrawRewardItems(RewardCandidates(vRarities), Cfg.m_Items - 1, Rng, pvItems, ADVENT_ITEM_DURATION);
 }
 
 void CAccounts::FetchAdvent()
